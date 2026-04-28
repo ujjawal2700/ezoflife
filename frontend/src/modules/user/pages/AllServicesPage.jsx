@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi } from '../../../lib/api';
+import { serviceApi, BASE_URL } from '../../../lib/api';
 
 const AllServicesPage = () => {
   const navigate = useNavigate();
@@ -13,7 +13,7 @@ const AllServicesPage = () => {
     try {
       setLoading(true);
       const [masterRes, customRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/master-services`).then(res => res.json()),
+        fetch(`${BASE_URL}/master-services`).then(res => res.json()),
         serviceApi.getAll({ approvedOnly: true })
       ]);
 

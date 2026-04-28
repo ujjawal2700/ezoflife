@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { BASE_URL } from '../../../lib/api';
 
 const RegisterAsVendorPage = () => {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ const RegisterAsVendorPage = () => {
   const fetchMasterServices = async () => {
     try {
         setIsLoadingServices(true);
-        const response = await fetch('http://localhost:5001/api/master-services');
+        const response = await fetch(`${BASE_URL}/master-services`);
         const data = await response.json();
         setMasterServices(data);
         
@@ -83,7 +84,7 @@ const RegisterAsVendorPage = () => {
             return;
         }
 
-        const response = await fetch(`http://localhost:5001/api/auth/become-vendor/${userId}`, {
+        const response = await fetch(`${BASE_URL}/auth/become-vendor/${userId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)

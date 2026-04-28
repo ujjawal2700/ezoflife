@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:5001/api';
+import { BASE_URL } from './api';
 
 export const shippingConfigApi = {
     getConfig: async () => {

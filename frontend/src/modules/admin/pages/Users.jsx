@@ -119,7 +119,7 @@ export default function Users() {
     if (window.confirm('CRITICAL ACTION: This will delete ALL users (Customers, Vendors, Suppliers). Are you absolutely sure?')) {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:5001/api/admin/users-clear-all', {
+            const response = await fetch(`${BASE_URL}/admin/users-clear-all`, {
                 method: 'DELETE'
             });
             const result = await response.json();

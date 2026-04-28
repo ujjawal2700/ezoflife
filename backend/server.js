@@ -46,7 +46,11 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
+app.use(cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+    credentials: true
+}));
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/uploads', express.static('uploads'));
@@ -307,6 +311,6 @@ const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
     const msg = `🚀 SERVER RESTARTED AT ${new Date().toISOString()} ON PORT ${PORT}`;
     console.log(msg);
-    console.log(`🌐 Backend URL: ${process.env.BACKEND_URL || 'Not Set'}`);
+    console.log(`🌐 Allowed Frontend: ${process.env.FRONTEND_URL || 'All (*)'}`);
     logToFile(msg);
 });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { masterServiceApi } from '../../../lib/api';
+import { masterServiceApi, BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { useLoadScript, Autocomplete } from '@react-google-maps/api';
 
@@ -140,7 +140,7 @@ const MasterServiceManagement = () => {
     const handleClearAll = async () => {
         if (!window.confirm('CRITICAL: This will delete ALL master services. Are you sure?')) return;
         try {
-            const response = await fetch('http://localhost:5001/api/master-services/clear-all', {
+            const response = await fetch(`${BASE_URL}/master-services/clear-all`, {
                 method: 'DELETE'
             });
             if (response.ok) {
