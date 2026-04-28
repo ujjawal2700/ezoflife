@@ -11,8 +11,9 @@ export const uploadMedia = async (req, res) => {
 
         console.log(`Uploading file locally: ${req.file.originalname} to ${req.file.path}`);
         
-        // Construct Local URL
-        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        // Use environment variable for Backend URL if available, otherwise fallback to dynamic
+        const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+        const fileUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
         const newMedia = new Media({
             fileName: req.file.originalname,
@@ -35,7 +36,8 @@ export const uploadMultipleMedia = async (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        const fileUrls = req.files.map(file => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
+        const baseUrl = process.env.BACKEND_URL || `${req.protocol}://${req.get('host')}`;
+        const fileUrls = req.files.map(file => `${baseUrl}/uploads/${file.filename}`);
         res.status(201).json({ urls: fileUrls });
     } catch (err) {
         res.status(500).json({ message: err.message });
