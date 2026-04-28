@@ -11,7 +11,12 @@ const useNotificationStore = create((set, get) => ({
         set({ isLoading: true });
         try {
             const data = await notificationApi.getNotifications(userId, role);
-            const mapped = data.map(n => ({
+            if (!Array.isArray(data)) {
+                set({ notifications: [], unreadCount: 0, isLoading: false });
+                return;
+            }
+
+            const mapped = data.filter(n => n).map(n => ({
                 id: n._id,
                 type: n.type,
                 title: n.title,

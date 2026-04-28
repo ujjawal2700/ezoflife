@@ -60,7 +60,7 @@ export default function ProfessionalTooltip({
                 {payload[0]?.payload?.insight && (
                     <div className="mt-3 pt-2 border-t border-slate-50">
                         <p className="text-[10px] text-slate-500 font-medium italic leading-relaxed opacity-60">
-                            Analytics: {payload[0].payload.insight}
+                            Analytics: {payload[0]?.payload?.insight}
                         </p>
                     </div>
                 )}
