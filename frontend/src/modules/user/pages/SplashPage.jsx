@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
+import { safeStorage } from '../../lib/safeStorage';
 
 const SplashPage = () => {
   const navigate = useNavigate();
@@ -25,8 +26,8 @@ const SplashPage = () => {
 
     // Automatic redirect after 3 seconds based on role-based session check
     const redirectTimer = setTimeout(() => {
-      const userSession = localStorage.getItem('userSession');
-      const userRole = localStorage.getItem('userRole');
+      const userSession = safeStorage.getItem('userSession');
+      const userRole = safeStorage.getItem('userRole');
 
       if (userSession && userRole) {
         switch (userRole) {
@@ -48,7 +49,7 @@ const SplashPage = () => {
         }
       } else {
         // If first time or not logged in, show Landing Ad screen
-        const hasSeenLanding = localStorage.getItem('hasSeenLanding');
+        const hasSeenLanding = safeStorage.getItem('hasSeenLanding');
         if (hasSeenLanding) {
             navigate('/user/home', { replace: true });
         } else {

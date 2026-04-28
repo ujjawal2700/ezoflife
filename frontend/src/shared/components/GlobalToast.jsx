@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useNotificationStore from '../stores/notificationStore';
+import { safeStorage } from '../../lib/safeStorage';
 
 /**
  * Global Toast Manager (Phase 4 Requirement)
@@ -15,7 +16,7 @@ const GlobalToast = () => {
     const [activeToast, setActiveToast] = useState(null);
     
     const [lastShownId, setLastShownId] = useState(() => {
-        return localStorage.getItem('last_processed_toast_id') || null;
+        return safeStorage.getItem('last_processed_toast_id') || null;
     });
 
     useEffect(() => {
@@ -31,7 +32,7 @@ const GlobalToast = () => {
                 // If it's a new ID but has no date, just mark it as seen and skip toast
                 if (isNewId) {
                     setLastShownId(latest.id);
-                    localStorage.setItem('last_processed_toast_id', latest.id);
+                    safeStorage.setItem('last_processed_toast_id', latest.id);
                 }
                 return;
             }

@@ -1,0 +1,15 @@
+{
+  "name": "Spinzyt - The Pristine Flow",
+  "short_name": "Spinzyt",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#89ECDA",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

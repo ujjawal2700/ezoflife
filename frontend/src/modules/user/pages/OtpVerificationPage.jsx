@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authApi } from '../../../lib/api';
+import { safeStorage } from '../../../lib/safeStorage';
 
 const OtpVerificationPage = () => {
   const navigate = useNavigate();
@@ -72,12 +73,12 @@ const OtpVerificationPage = () => {
 
           console.log(`🎯 [AUTH_DEBUG] Final Acting Role: ${actingRole}`);
 
-          localStorage.setItem('token', response.token);
-          localStorage.setItem('user_auth_token', response.token);
-          localStorage.setItem('user', JSON.stringify(user));
-          localStorage.setItem('userData', JSON.stringify(user));
-          localStorage.setItem('userId', user._id || user.id);
-          localStorage.setItem('userRole', actingRole);
+          safeStorage.setItem('token', response.token);
+          safeStorage.setItem('user_auth_token', response.token);
+          safeStorage.setItem('user', JSON.stringify(user));
+          safeStorage.setItem('userData', JSON.stringify(user));
+          safeStorage.setItem('userId', user._id || user.id);
+          safeStorage.setItem('userRole', actingRole);
 
           // Force Page Refresh or specific redirect
           if (actingRole === 'vendor') {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { adApi, UPLOADS_URL } from '../../../lib/api';
+import { safeStorage } from '../../../lib/safeStorage';
 
 const LandingAdPage = () => {
     const navigate = useNavigate();
@@ -37,7 +38,7 @@ const LandingAdPage = () => {
     }, []);
 
     const handleStartBrowsing = () => {
-        localStorage.setItem('hasSeenLanding', 'true');
+        safeStorage.setItem('hasSeenLanding', 'true');
         navigate('/user/home');
     };
 

@@ -46,9 +46,25 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Middleware
-const allowedOrigins = [process.env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:5174'].filter(Boolean);
+const allowedOrigins = [
+    process.env.FRONTEND_URL?.replace(/\/$/, ''), 
+    'http://localhost:5173', 
+    'http://localhost:5174'
+].filter(Boolean);
+
 app.use(cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        
+        const cleanOrigin = origin.replace(/\/$/, '');
+        if (allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            console.log('🚫 CORS Blocked Origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
