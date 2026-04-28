@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useNotificationStore from '../stores/notificationStore';
-import { safeStorage } from '../../../lib/safeStorage';
+import { safeStorage } from '@/lib/safeStorage';
 
 /**
  * Global Toast Manager (Phase 4 Requirement)

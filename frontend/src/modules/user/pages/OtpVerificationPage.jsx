@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authApi } from '../../../lib/api';
-import { safeStorage } from '../../../lib/safeStorage';
+import { safeStorage } from '@/lib/safeStorage';
 
 const OtpVerificationPage = () => {
   const navigate = useNavigate();
