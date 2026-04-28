@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
-import { safeStorage } from '../../lib/safeStorage';
+import { safeStorage } from '../../../lib/safeStorage';
 
 const SplashPage = () => {
   const navigate = useNavigate();
