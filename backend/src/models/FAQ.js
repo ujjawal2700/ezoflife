@@ -18,6 +18,11 @@ const faqSchema = new mongoose.Schema({
     category: {
         type: String,
         default: 'General'
+    },
+    targetRole: {
+        type: String,
+        enum: ['Customer', 'Vendor', 'Supplier', 'All'],
+        default: 'All'
     }
 }, { timestamps: true });
 

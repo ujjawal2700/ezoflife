@@ -8,7 +8,14 @@ const AdvertiseWithUsPage = () => {
     const navigate = useNavigate();
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [formData, setFormData] = useState({ brandName: '', phone: '', budget: '', timeline: 'Launch Boost' });
+    const [formData, setFormData] = useState({ 
+        brandName: '', 
+        email: '',
+        phone: '', 
+        location: '',
+        budget: '', 
+        timeline: 'Launch Boost' 
+    });
 
     const campaignTypes = useMemo(() => ['Launch Boost', 'Retainer', 'One-Off'], []);
 
@@ -108,16 +115,44 @@ const AdvertiseWithUsPage = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Contact Number</label>
+                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Contact Email</label>
                                     <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all">
                                         <input 
                                             required 
-                                            type="tel" 
-                                            placeholder="+91 99999 99999" 
-                                            value={formData.phone}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                            type="email" 
+                                            placeholder="marketing@nike.com" 
+                                            value={formData.email}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                                             className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Contact Number</label>
+                                        <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all">
+                                            <input 
+                                                required 
+                                                type="tel" 
+                                                placeholder="+91 ..." 
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Target Location</label>
+                                        <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all">
+                                            <input 
+                                                required 
+                                                type="text" 
+                                                placeholder="e.g. Pan India" 
+                                                value={formData.location}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div>

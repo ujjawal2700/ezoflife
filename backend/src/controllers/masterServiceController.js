@@ -4,12 +4,12 @@ import SystemConfig from '../models/SystemConfig.js';
 export const createMasterService = async (req, res) => {
     try {
         console.log('DEBUG: Received Master Service Data:', req.body);
-        const { name, icon, basePrice, category, description, targetAudience, address, location, tier } = req.body;
+        const { name, icon, basePrice, category, subCategory, description, targetAudience, address, location, tier } = req.body;
         const exists = await MasterService.findOne({ name });
         if (exists) return res.status(400).json({ message: 'Service already exists' });
 
         const service = new MasterService({ 
-            name, icon, basePrice, category, description, targetAudience, address, location, tier 
+            name, icon, basePrice, category, subCategory, description, targetAudience, address, location, tier 
         });
         await service.save();
         res.status(201).json(service);
@@ -20,7 +20,10 @@ export const createMasterService = async (req, res) => {
 
 export const getAllMasterServices = async (req, res) => {
     try {
-        const services = await MasterService.find({ isActive: true }).lean();
+        const services = await MasterService.find({ isActive: true })
+            .populate('category')
+            .populate('subCategory')
+            .lean();
         
         // Fetch System Config for Pricing Calculation
         const config = await SystemConfig.find({ 

@@ -8,13 +8,14 @@ const MoreMenuPage = () => {
 
   const menuSections = useMemo(() => [
     {
-      title: "Partnerships",
+      title: "Partnerships & Updates",
       icon: "handshake",
       items: [
         { icon: "storefront", title: "Become a Vendor", desc: "Onboard Physical Shop", path: "/user/become-vendor" },
         { icon: "factory", title: "Become a Supplier", desc: "Distribute Materials", path: "/user/become-supplier" },
         { icon: "campaign", title: "Advertise with us", desc: "Digital Media Kit", path: "/user/advertise", color: "primary" },
         { icon: "handshake", title: "Partner with us", desc: "Logistics & Alliances", path: "/user/partnerships", color: "tertiary" },
+        { icon: "notifications", title: "Notifications", desc: "View Alerts & Updates", path: "/user/notifications", color: "primary" },
       ]
     },
     {
@@ -33,14 +34,6 @@ const MoreMenuPage = () => {
         { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
       ]
     },
-    {
-      title: "Legal & Safety",
-      icon: "shield",
-      items: [
-        { icon: "gavel", title: "Terms of Service", desc: "Rules of Engagement", path: "/user/terms", rightIcon: "open_in_new" },
-        { icon: "verified_user", title: "Privacy Policy", desc: "Data Protection Protocol", path: "/user/privacy", rightIcon: "open_in_new" }
-      ]
-    }
   ], []);
 
   const containerVariants = {

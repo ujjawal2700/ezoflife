@@ -1,15 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi, masterServiceApi, authApi } from '../../../lib/api';
+import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
+import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { location, setPromptOpen, setPickerOpen } = useLocationStore();
+  
+  useEffect(() => {
+    // Automatically attempt to trigger location prompt if not set
+    if (!location) {
+      setTimeout(() => setPromptOpen(true), 1500);
+    }
+  }, [location, setPromptOpen]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState('Essential'); // 'Essential' or 'Heritage'
   const [services, setServices] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   
   // LOGISTICS STATE
   const [isExpress, setIsExpress] = useState(() => localStorage.getItem('is_express') === 'true');
@@ -53,6 +68,14 @@ const HomePage = () => {
     return saved ? JSON.parse(saved) : null;
   });
   const [isSameAsPickup, setIsSameAsPickup] = useState(true);
+  
+  // NEW: ORDER INSTRUCTIONS & PHOTOS
+  const [orderNotes, setOrderNotes] = useState(() => localStorage.getItem('order_notes') || '');
+  const [orderPhotos, setOrderPhotos] = useState(() => {
+    const saved = localStorage.getItem('order_photos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [uploading, setUploading] = useState(false);
 
   const isSlotsPicked = selectedPickup && pickupTime && selectedDelivery && deliveryTime;
 
@@ -70,7 +93,9 @@ const HomePage = () => {
     localStorage.setItem('delivery_time', deliveryTime);
     if (pickupAddress) localStorage.setItem('pickup_address', JSON.stringify(pickupAddress));
     if (dropAddress) localStorage.setItem('drop_address', JSON.stringify(dropAddress));
-  }, [isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress]);
+    localStorage.setItem('order_notes', orderNotes);
+    localStorage.setItem('order_photos', JSON.stringify(orderPhotos));
+  }, [isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress, orderNotes, orderPhotos]);
 
   const [selectedQuantities, setSelectedQuantities] = useState(() => {
     const saved = localStorage.getItem('cart_quantities');
@@ -148,9 +173,63 @@ const HomePage = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      setCategoriesLoading(true);
+      const data = await categoryApi.getMain();
+      setCategories(data);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  const handleCategoryClick = async (category) => {
+    if (selectedCategory?._id === category._id) {
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
+      setSubCategories([]);
+    } else {
+      setSelectedCategory(category);
+      setSelectedSubCategory(null);
+      try {
+        const subData = await categoryApi.getSub(category._id);
+        setSubCategories(subData);
+      } catch (error) {
+        console.error('Error fetching sub-categories:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchServices();
+    fetchCategories();
   }, []);
+
+  const filteredServices = useMemo(() => {
+    return services.filter(s => {
+      // Tier filter
+      if ((s.tier || 'Essential') !== selectedTier) return false;
+      
+      // Search filter
+      if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+      
+      // Category filter
+      if (selectedCategory) {
+        const sCatId = s.category?._id || s.category;
+        if (sCatId !== selectedCategory._id) return false;
+      }
+      
+      // Sub-category filter
+      if (selectedSubCategory) {
+        const sSubCatId = s.subCategory?._id || s.subCategory;
+        if (sSubCatId !== selectedSubCategory._id) return false;
+      }
+      
+      return true;
+    });
+  }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory]);
 
   const updateQuantity = (id, delta) => {
     setSelectedQuantities(prev => {
@@ -170,6 +249,32 @@ const HomePage = () => {
     const price = service?.totalPrice || service?.basePrice || 0;
     return acc + price * q; 
   }, 0), [selectedQuantities, services]);
+  
+  const handlePhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    
+    setUploading(true);
+    try {
+        const uploaded = [];
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('media', file);
+            const res = await mediaApi.upload(formData);
+            if (res.url) uploaded.push(res.url);
+        }
+        setOrderPhotos(prev => [...prev, ...uploaded]);
+    } catch (error) {
+        console.error('Upload Error:', error);
+        alert('Photo upload failed');
+    } finally {
+        setUploading(false);
+    }
+  };
+
+  const removePhoto = (index) => {
+    setOrderPhotos(prev => prev.filter((_, i) => i !== index));
+  };
 
   const [isCartDismissed, setIsCartDismissed] = useState(false);
 
@@ -244,9 +349,9 @@ const HomePage = () => {
 
         {/* 2. Tier Toggle & Search */}
         <div className="flex flex-col md:flex-row gap-4 mb-10">
-          <div className="bg-slate-50 p-1.5 rounded-[2rem] border border-slate-100 flex gap-1 shadow-sm shrink-0">
+          <div className="bg-slate-50 p-1.5 rounded-[2rem] border border-slate-100 flex gap-1 shadow-sm shrink-0 w-full md:w-auto">
             {['Essential', 'Heritage'].map(tier => (
-              <button key={tier} onClick={() => setSelectedTier(tier)} className={`px-8 py-3 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-xl' : 'text-slate-400'}`}>{tier}</button>
+              <button key={tier} onClick={() => setSelectedTier(tier)} className={`flex-1 px-6 md:px-8 py-3 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-xl' : 'text-slate-400'}`}>{tier}</button>
             ))}
           </div>
           <div className={`relative flex-1 flex items-center bg-white rounded-[2rem] px-6 py-4 shadow-sm border ${isHeritage ? 'border-[#D4AF37]/30' : 'border-slate-100'} transition-all`}>
@@ -255,13 +360,73 @@ const HomePage = () => {
           </div>
         </div>
 
+        {/* Categories Section */}
+        <section className="mb-10 w-full overflow-hidden">
+          <div className="flex items-center justify-between mb-4 px-2">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Select Category</h3>
+            {selectedCategory && (
+              <button 
+                onClick={() => { setSelectedCategory(null); setSelectedSubCategory(null); setSubCategories([]); }}
+                className="text-[9px] font-black text-primary uppercase tracking-widest"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+            {categoriesLoading ? (
+              [...Array(4)].map((_, i) => <div key={i} className="min-w-[80px] h-24 bg-white rounded-3xl animate-pulse border border-black/5" />)
+            ) : (
+              categories.map(cat => (
+                <button 
+                  key={cat._id}
+                  onClick={() => handleCategoryClick(cat)}
+                  className={`flex flex-col items-center gap-3 min-w-[110px] max-w-[110px] p-4 rounded-[2rem] border transition-all ${selectedCategory?._id === cat._id ? 'bg-black text-white border-black shadow-xl shadow-black/10' : 'bg-white text-slate-400 border-black/5 hover:border-black/20'}`}
+                >
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${selectedCategory?._id === cat._id ? 'bg-white/20' : 'bg-slate-50'}`}>
+                    {cat.image ? (
+                      <img src={cat.image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">category</span>
+                    )}
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest leading-tight text-center">{cat.name}</span>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Sub Categories */}
+          <AnimatePresence>
+            {subCategories.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-6 flex gap-2 overflow-x-auto pb-4 hide-scrollbar px-1"
+              >
+                {subCategories.map(sub => (
+                  <button
+                    key={sub._id}
+                    onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : sub)}
+                    className={`px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${selectedSubCategory?._id === sub._id ? 'bg-primary text-white border-primary' : 'bg-slate-100 text-slate-400 border-transparent hover:bg-slate-200'}`}
+                  >
+                    {sub.name}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+
         {/* 3. Service Selection Grid */}
         <section className="mb-10 w-full">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {loading ? (
                 [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-5 h-48 border border-black/5 animate-pulse" />)
             ) : (
-                services.filter(s => (s.tier || 'Essential') === selectedTier).map((service, i) => {
+                filteredServices.map((service, i) => {
                     const serviceId = service._id || service.id;
                     const qty = selectedQuantities[serviceId] || 0;
                     const isSelected = qty > 0;
@@ -386,6 +551,16 @@ const HomePage = () => {
                           </motion.div>
                         )}
                       </div>
+
+                        <div className="space-y-4">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">5. Order Instructions</p>
+                          <textarea 
+                            value={orderNotes}
+                            onChange={(e) => setOrderNotes(e.target.value)}
+                            placeholder="Example: Be careful with the buttons, special stain on collar..."
+                            className="w-full bg-slate-50 border border-slate-100 p-5 rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-slate-800 text-xs min-h-[100px] resize-none"
+                          />
+                        </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

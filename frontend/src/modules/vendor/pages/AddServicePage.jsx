@@ -70,6 +70,17 @@ const AddServicePage = () => {
             className="bg-background text-on-background min-h-screen pb-32 font-body"
         >
             <main className="max-w-xl mx-auto px-6 pt-8 space-y-8">
+                <header className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-slate-950 transition-colors mb-4 group">
+                            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:-translate-x-1">arrow_back</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em]">Go Back</span>
+                        </button>
+                        <h1 className="text-3xl font-black tracking-tighter text-slate-950 uppercase leading-none">New Service.</h1>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] ml-1">Expanding your catalog</p>
+                    </div>
+                </header>
+
                 <section className="bg-white p-8 rounded-[2.5rem] border border-outline-variant/10 shadow-sm space-y-8">
                     <div className="space-y-6">
                         {/* Tier Selection */}

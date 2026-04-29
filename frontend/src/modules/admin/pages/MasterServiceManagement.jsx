@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { masterServiceApi, BASE_URL } from '../../../lib/api';
+import { masterServiceApi, categoryApi, BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { useLoadScript, Autocomplete } from '@react-google-maps/api';
 
@@ -27,7 +27,8 @@ const MasterServiceManagement = () => {
         name: '',
         icon: 'local_laundry_service',
         basePrice: 0,
-        category: 'General',
+        category: '',
+        subCategory: '',
         targetAudience: 'both',
         tier: 'Essential',
         description: '',
@@ -36,9 +37,32 @@ const MasterServiceManagement = () => {
         tags: ''
     });
 
+    const [mainCategories, setMainCategories] = useState([]);
+    const [subCategories, setSubCategories] = useState([]);
+
     useEffect(() => {
         fetchServices();
+        fetchInitialCategories();
     }, []);
+
+    const fetchInitialCategories = async () => {
+        try {
+            const data = await categoryApi.getMain();
+            setMainCategories(data);
+        } catch (error) {
+            console.error('Error fetching categories');
+        }
+    };
+
+    const fetchSubCategories = async (parentId) => {
+        if (!parentId) return;
+        try {
+            const data = await categoryApi.getSub(parentId);
+            setSubCategories(data);
+        } catch (error) {
+            console.error('Error fetching sub-categories');
+        }
+    };
 
     const fetchServices = async () => {
         try {
@@ -58,7 +82,8 @@ const MasterServiceManagement = () => {
                 name: service.name,
                 icon: service.icon,
                 basePrice: service.basePrice,
-                category: service.category,
+                category: service.category?._id || service.category || '',
+                subCategory: service.subCategory?._id || service.subCategory || '',
                 targetAudience: service.targetAudience || 'both',
                 tier: service.tier || 'Essential',
                 description: service.description || '',
@@ -72,7 +97,8 @@ const MasterServiceManagement = () => {
                 name: '',
                 icon: 'local_laundry_service',
                 basePrice: 0,
-                category: 'General',
+                category: '',
+                subCategory: '',
                 targetAudience: 'both',
                 tier: 'Essential',
                 description: '',
@@ -156,32 +182,32 @@ const MasterServiceManagement = () => {
     const categories = ['General', 'Premium', 'Express', 'Industrial'];
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen font-body">
-            <header className="flex justify-between items-end mb-10">
+        <div className="p-4 md:p-8 bg-slate-50 min-h-screen font-body">
+            <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-10">
                 <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 mb-2">Service Control</h1>
-                    <p className="text-slate-500 text-sm font-medium mb-6">Manage global master service catalog</p>
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 mb-2">Service Control</h1>
+                    <p className="text-slate-500 text-sm font-medium">Manage global master service catalog</p>
                 </div>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-3">
                     <button 
                         onClick={handleClearAll}
-                        className="bg-white border border-rose-100 text-rose-500 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-rose-50 active:scale-95 transition-all flex items-center gap-3"
+                        className="flex-1 md:flex-none bg-white border border-rose-100 text-rose-500 px-4 md:px-8 py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-rose-50 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined text-sm font-black">delete_sweep</span>
                         Clear All
                     </button>
                     <button 
-                        className="bg-white border border-slate-200 text-slate-600 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 active:scale-95 transition-all flex items-center gap-3"
+                        className="flex-1 md:flex-none bg-white border border-slate-200 text-slate-600 px-4 md:px-8 py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest hover:bg-slate-50 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined text-sm font-black">upload_file</span>
-                        Upload Excel
+                        Upload
                     </button>
                     <button 
                         onClick={() => handleOpenModal()}
-                        className="bg-primary text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3"
+                        className="w-full md:w-auto bg-primary text-white px-6 md:px-8 py-4 rounded-2xl font-black text-[10px] md:text-xs uppercase tracking-widest shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined text-sm font-black">add</span>
-                        Create Master Service
+                        Create Service
                     </button>
                 </div>
             </header>
@@ -221,8 +247,13 @@ const MasterServiceManagement = () => {
                             <div className="space-y-2 mb-6">
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary border border-primary/10">
-                                        {service.category}
+                                        {service.category?.name || 'General'}
                                     </span>
+                                    {service.subCategory && (
+                                        <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
+                                            {service.subCategory?.name}
+                                        </span>
+                                    )}
                                 </div>
                                 <h3 className="text-2xl font-black tracking-tight text-slate-900 leading-tight">{service.name}</h3>
                                 <p className="text-slate-400 text-[13px] font-bold line-clamp-2">{service.description || 'Professional laundry service template.'}</p>
@@ -388,15 +419,27 @@ const MasterServiceManagement = () => {
                                             placeholder="50"
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 relative">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Category</label>
-                                        <select 
-                                            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-slate-800 appearance-none"
+                                        <CustomDropdown 
+                                            options={Array.from(new Map(mainCategories.map(c => [c.name, c])).values()).map(c => ({ label: c.name, value: c._id }))}
                                             value={formData.category}
-                                            onChange={e => setFormData({...formData, category: e.target.value})}
-                                        >
-                                            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                        </select>
+                                            onChange={(val) => {
+                                                setFormData({...formData, category: val, subCategory: ''});
+                                                fetchSubCategories(val);
+                                            }}
+                                            placeholder="Select Category"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 relative">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sub Category</label>
+                                        <CustomDropdown 
+                                            options={Array.from(new Map(subCategories.map(c => [c.name, c])).values()).map(c => ({ label: c.name, value: c._id }))}
+                                            value={formData.subCategory}
+                                            onChange={(val) => setFormData({...formData, subCategory: val})}
+                                            placeholder="Select Sub Category"
+                                            disabled={!formData.category}
+                                        />
                                     </div>
                                     <div className="space-y-2 col-span-2">
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Target Audience</label>
@@ -464,6 +507,54 @@ const MasterServiceManagement = () => {
                             </form>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+const CustomDropdown = ({ options, value, onChange, placeholder, disabled }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const selectedOption = options.find(o => o.value === value);
+
+    return (
+        <div className={`relative w-full ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+            <div 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-white transition-all"
+            >
+                <span className={`font-bold text-sm ${selectedOption ? 'text-slate-800' : 'text-slate-400'}`}>
+                    {selectedOption ? selectedOption.label : placeholder}
+                </span>
+                <span className={`material-symbols-outlined text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}>
+                    expand_more
+                </span>
+            </div>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        <div className="fixed inset-0 z-[1050]" onClick={() => setIsOpen(false)} />
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute left-0 right-0 top-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl z-[1100] max-h-60 overflow-y-auto no-scrollbar"
+                        >
+                            {options.map((opt) => (
+                                <div 
+                                    key={opt.value}
+                                    onClick={() => {
+                                        onChange(opt.value);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`p-4 text-sm font-bold cursor-pointer transition-all hover:bg-slate-50 ${value === opt.value ? 'bg-primary/5 text-primary' : 'text-slate-600'}`}
+                                >
+                                    {opt.label}
+                                </div>
+                            ))}
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
         </div>

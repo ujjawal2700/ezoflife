@@ -294,7 +294,7 @@ const Dashboard = () => {
             trend: 'up', 
             variant: 'surface' 
         },
-        { label: 'Process Queue', value: categorizedOrders['In Progress'].length.toString().padStart(2, '0'), subValue: `${categorizedOrders['Ready'].length} Ready for Delivery`, variant: 'primary' }
+        { label: 'Process Queue', value: categorizedOrders['In Progress'].length.toString().padStart(2, '0'), variant: 'primary' }
     ], [categorizedOrders, dailyEarnings]);
 
     const [selectedOrderForReady, setSelectedOrderForReady] = useState(null);
@@ -546,6 +546,70 @@ const Dashboard = () => {
             {/* 🚀 MAIN CONTENT AREA */}
             <main className="max-w-xl mx-auto px-6 pt-6 space-y-8">
                 
+                {/* 0. EARNINGS TODAY (BLACK & WHITE PREMIUM) */}
+                <section>
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        whileHover={{ y: -5 }}
+                        className="relative group cursor-default"
+                    >
+                        <div className="relative bg-white text-slate-900 p-9 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.06)] overflow-hidden border border-slate-100">
+                            {/* Sophisticated Pattern */}
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full blur-[80px] -mr-32 -mt-32"></div>
+                            
+                            <div className="relative z-10">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] leading-none">Net Revenue</p>
+                                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter mt-1">Today's Earnings</h3>
+                                    </div>
+                                    <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-900/20">
+                                        <span className="material-symbols-outlined text-3xl">payments</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-black text-slate-300 tracking-tight leading-none">₹</span>
+                                    <h2 className="text-7xl font-black tracking-tighter leading-none text-slate-900">{dailyEarnings.toLocaleString()}</h2>
+                                    
+                                    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl border ${dailyEarnings > 0 ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'} transition-all ml-4`}>
+                                        <span className="material-symbols-outlined text-sm font-black">{dailyEarnings > 0 ? 'trending_up' : 'info'}</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">
+                                            {dailyEarnings > 0 ? 'Active' : 'No Sales'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Micro Details */}
+                                <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
+                                    <div className="flex items-center gap-10">
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Your Payout</p>
+                                            <p className="text-lg font-black text-slate-900 mt-1">
+                                                ₹{(dailyEarnings * 0.85).toFixed(0)}
+                                            </p>
+                                        </div>
+                                        <div className="w-px h-10 bg-slate-100"></div>
+                                        <div>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fees (15%)</p>
+                                            <p className="text-lg font-black text-slate-900 mt-1">
+                                                ₹{(dailyEarnings * 0.15).toFixed(0)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => navigate('/vendor/earnings')}
+                                        className="w-12 h-12 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-900 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
+                                    >
+                                        <span className="material-symbols-outlined text-xl font-black">arrow_forward</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </section>
+
                 {/* 1. ORDER WORKFLOW TABS (NOW AT THE TOP) */}
                 <section className="space-y-6">
                     <div className="flex flex-col gap-5">
@@ -744,14 +808,6 @@ const Dashboard = () => {
                                                         </div>
                                                     </div>
                                                     
-                                                    {activeTab === 'In Progress' && (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); setSelectedOrderForReady(order); }}
-                                                            className="px-6 py-3 rounded-xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-primary transition-all shadow-lg shadow-slate-900/10 active:scale-95"
-                                                        >
-                                                            Mark Ready
-                                                        </button>
-                                                    )}
 
                                                     {activeTab === 'Completed' && (
                                                         <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">
@@ -783,87 +839,6 @@ const Dashboard = () => {
                     </div>
                 </section>
 
-                {/* 2. MATERIAL SUPPLY REQUEST (COMPACT DESIGN) */}
-                <section className="space-y-4">
-                    <motion.div 
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate('/vendor/material-request')}
-                        className="bg-gradient-to-br from-slate-800 to-slate-950 rounded-[2rem] p-5 shadow-lg shadow-slate-900/20 relative overflow-hidden group cursor-pointer"
-                    >
-                        {/* Decorative background element */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-12 -mt-12 transition-all group-hover:scale-150"></div>
-                        
-                        <div className="relative z-10 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-primary border border-white/10">
-                                    <span className="material-symbols-outlined text-[24px]">inventory</span>
-                                </div>
-                                <div>
-                                    <h4 className="text-[13px] font-black text-white tracking-tight leading-none">Inventory & Supplies</h4>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                                        <span className="w-1 h-1 rounded-full bg-primary"></span>
-                                        Order Materials
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 bg-white/5 px-3 py-2 rounded-xl border border-white/5">
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Order</span>
-                                <span className="material-symbols-outlined text-[16px] text-primary">shopping_cart</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                </section>
-
-                {/* 3. SKILLED LABOR REQUEST (COMPACT DESIGN) */}
-                <section className="space-y-4">
-                    <motion.div 
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate('/vendor/labor-request')}
-                        className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-[2rem] p-5 shadow-lg shadow-indigo-500/20 relative overflow-hidden group cursor-pointer"
-                    >
-                        {/* Decorative background element */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 transition-all group-hover:scale-150"></div>
-                        
-                        <div className="relative z-10 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/20">
-                                    <span className="material-symbols-outlined text-[24px]">engineering</span>
-                                </div>
-                                <div>
-                                    <h4 className="text-[13px] font-black text-white tracking-tight leading-none">Skilled Labor Support</h4>
-                                    <p className="text-[9px] font-black text-indigo-100/60 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                                        <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
-                                        On-Demand Staffing
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-xl border border-white/10">
-                                <span className="text-[10px] font-black text-white uppercase tracking-widest">Request</span>
-                                <span className="material-symbols-outlined text-[16px] text-white">chevron_right</span>
-                            </div>
-                        </div>
-                    </motion.div>
-                </section>
-
-                {/* 4. STATS & QUICK ACTIONS */}
-                <section className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                        {dashboardStats.map((stat, i) => (
-                            <div 
-                                key={i} 
-                                className={`${stat.variant === 'primary' ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10' : 'bg-white text-slate-900 border border-slate-200 shadow-sm'} p-5 rounded-[2rem] transition-all hover:scale-[1.02]`}
-                            >
-                                <p className={`text-[9px] font-black uppercase tracking-widest mb-1.5 ${stat.variant === 'primary' ? 'text-primary' : 'text-slate-400'}`}>{stat.label}</p>
-                                <h2 className="text-2xl font-black tracking-tighter leading-none">{stat.value}</h2>
-                                {stat.subValue && <p className="text-[9px] font-black uppercase mt-2.5 opacity-40">{stat.subValue}</p>}
-                            </div>
-                        ))}
-                    </div>
-
-
-                </section>
             </main>
         </motion.div>
     );

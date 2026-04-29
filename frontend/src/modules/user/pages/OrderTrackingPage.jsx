@@ -120,6 +120,7 @@ const OrderTrackingPage = () => {
     if (status === 'Picked Up') {
       steps[0].status = 'completed';
       steps[1].status = 'completed';
+      steps[2].status = 'active';
     }
     if (status === 'In Progress') {
       steps[0].status = 'completed';
@@ -141,13 +142,6 @@ const OrderTrackingPage = () => {
     }
 
     if (status === 'Payment Pending' || status === 'Delivered') {
-      steps[0].status = 'completed';
-      steps[1].status = 'completed';
-      steps[2].status = 'completed';
-      steps[3].status = 'completed';
-      steps[4].status = 'completed';
-    }
-    if (status === 'Delivered') {
       steps.forEach(s => s.status = 'completed');
     }
 

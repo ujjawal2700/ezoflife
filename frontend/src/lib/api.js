@@ -1,6 +1,57 @@
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 export const UPLOADS_URL = BASE_URL.replace('/api', '') + '/uploads/';
 
+export const categoryApi = {
+    getAll: async () => {
+        const res = await fetch(`${BASE_URL}/categories`);
+        return res.json();
+    },
+    getMain: async () => {
+        const res = await fetch(`${BASE_URL}/categories/main`);
+        return res.json();
+    },
+    getSub: async (parentId) => {
+        const res = await fetch(`${BASE_URL}/categories/sub/${parentId}`);
+        return res.json();
+    },
+    create: async (data) => {
+        const res = await fetch(`${BASE_URL}/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    update: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/categories/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    delete: async (id) => {
+        const res = await fetch(`${BASE_URL}/categories/${id}`, {
+            method: 'DELETE'
+        });
+        return res.json();
+    },
+    bulkUpload: async (categories) => {
+        const res = await fetch(`${BASE_URL}/categories/bulk-upload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categories })
+        });
+        return res.json();
+    },
+    clearAll: async () => {
+        const res = await fetch(`${BASE_URL}/categories/clear-all`, {
+            method: 'DELETE'
+        });
+        return res.json();
+    }
+};
+
 export const authApi = {
     requestOtp: async (phone, channel, mode, options = {}) => {
         // Mock Credentials Bypass
@@ -530,6 +581,28 @@ export const adminApi = {
             console.error('Clear All Orders Error:', error);
             throw error;
         }
+    },
+    getConfigs: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/config`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Config Error:', error);
+            throw error;
+        }
+    },
+    updateConfig: async (data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Config Error:', error);
+            throw error;
+        }
     }
 };
 
@@ -949,6 +1022,30 @@ export const ticketApi = {
             return await response.json();
         } catch (error) {
             console.error('Update Ticket Status Error:', error);
+            throw error;
+        }
+    },
+    updateTicket: async (ticketId, data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/tickets/${ticketId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Ticket Error:', error);
+            throw error;
+        }
+    },
+    deleteTicket: async (ticketId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/tickets/${ticketId}`, {
+                method: 'DELETE'
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Delete Ticket Error:', error);
             throw error;
         }
     }
@@ -1382,5 +1479,24 @@ export const logisticsApi = {
             console.error('Verify Handshake Error:', error);
             throw error;
         }
+    }
+};
+
+export const legalApi = {
+    getAll: async () => {
+        const response = await fetch(`${BASE_URL}/legal/all`);
+        return await response.json();
+    },
+    getByType: async (type) => {
+        const response = await fetch(`${BASE_URL}/legal/${type}`);
+        return await response.json();
+    },
+    update: async (type, data) => {
+        const response = await fetch(`${BASE_URL}/legal/${type}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
     }
 };

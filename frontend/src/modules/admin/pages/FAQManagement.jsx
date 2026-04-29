@@ -7,7 +7,7 @@ import StatusBadge from '../components/common/StatusBadge';
 const FAQManagement = () => {
     const [faqs, setFaqs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [newFaq, setNewFaq] = useState({ question: '', answer: '', category: 'General' });
+    const [newFaq, setNewFaq] = useState({ question: '', answer: '', category: 'General', targetRole: 'All' });
     const [isAdding, setIsAdding] = useState(false);
 
     const fetchFaqs = async () => {
@@ -30,7 +30,7 @@ const FAQManagement = () => {
         if (!newFaq.question || !newFaq.answer) return;
         try {
             await faqApi.create(newFaq);
-            setNewFaq({ question: '', answer: '', category: 'General' });
+            setNewFaq({ question: '', answer: '', category: 'General', targetRole: 'All' });
             setIsAdding(false);
             fetchFaqs();
         } catch (error) {
@@ -65,7 +65,7 @@ const FAQManagement = () => {
             {/* Add FAQ Form */}
             {isAdding && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question</label>
                             <input 
@@ -87,6 +87,19 @@ const FAQManagement = () => {
                                 <option value="Orders">Orders</option>
                                 <option value="Payments">Payments</option>
                                 <option value="Vendor">Vendor</option>
+                            </select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Audience</label>
+                            <select 
+                                value={newFaq.targetRole}
+                                onChange={(e) => setNewFaq({ ...newFaq, targetRole: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 focus:border-primary/30 outline-none text-sm font-bold"
+                            >
+                                <option value="All">All Roles</option>
+                                <option value="Customer">Customer Only</option>
+                                <option value="Vendor">Vendor Only</option>
+                                <option value="Supplier">Supplier Only</option>
                             </select>
                         </div>
                     </div>
@@ -121,7 +134,12 @@ const FAQManagement = () => {
                             </div>
                             <div className="flex-1 space-y-1">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">{faq.category}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">{faq.category}</span>
+                                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${faq.targetRole === 'Customer' ? 'bg-blue-50 text-blue-600' : faq.targetRole === 'Vendor' ? 'bg-orange-50 text-orange-600' : faq.targetRole === 'Supplier' ? 'bg-purple-50 text-purple-600' : 'bg-slate-50 text-slate-500'}`}>
+                                            {faq.targetRole || 'All'}
+                                        </span>
+                                    </div>
                                     <button 
                                         onClick={() => handleDelete(faq._id)}
                                         className="text-slate-300 hover:text-red-500 transition-colors"

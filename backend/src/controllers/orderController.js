@@ -395,9 +395,15 @@ export const updateOrderStatus = async (req, res) => {
             .populate('vendor', 'shopDetails address location')
             .populate('rider', 'displayName phone location');
             
-        // Socket.io: Notify Customer room
+        // Socket.io: Notify rooms
         const io = getIO();
         io.to(`order_${id}`).emit('order_status_update', updatedOrder);
+        
+        // Also notify vendor specifically for live reports
+        if (updatedOrder.vendor) {
+            const vendorId = updatedOrder.vendor._id || updatedOrder.vendor;
+            io.to(`user_${vendorId}`).emit('order_status_update', updatedOrder);
+        }
 
         res.status(200).json(updatedOrder);
     } catch (err) {

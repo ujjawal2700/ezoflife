@@ -33,7 +33,8 @@ import {
     Briefcase,
     ClipboardList,
     Factory,
-    Rocket
+    Rocket,
+    MapPin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -47,8 +48,17 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
             group: 'Operations', items: [
                 { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
                 { icon: Users, label: 'User Management', path: '/admin/users' },
-                { icon: ShieldCheck, label: 'Vendor Approvals', path: '/admin/vendors/approvals' },
+                { 
+                    icon: ShieldCheck, 
+                    label: 'Approvals', 
+                    path: '/admin/vendors/approvals',
+                    subItems: [
+                        { label: 'Vendor Requests', path: '/admin/vendors/approvals' },
+                        { label: 'Supplier Requests', path: '/admin/vendors/approvals?tab=Supplier' },
+                    ]
+                },
                 { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
+                { icon: MapPin, label: 'Service Zones', path: '/admin/geofencing' },
                 { 
                     icon: CreditCard, 
                     label: 'Payments', 
@@ -68,6 +78,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     subItems: [
                         { label: 'Services', path: '/admin/services' },
                         { label: 'Master Services', path: '/admin/master-services' },
+                        { label: 'Category Management', path: '/admin/categories' },
                         { label: 'Edit Rates', path: '/admin/pricing' },
                         { label: 'Essential Fee', path: '/admin/pricing?type=essential' },
                         { label: 'Heritage Fee', path: '/admin/pricing?type=heritage' },
@@ -79,10 +90,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     label: 'Support Tickets', 
                     path: '/admin/help-desk',
                     subItems: [
-                        { label: 'Customer Issues', path: '/admin/help-desk?category=Customer' },
-                        { label: 'Vendor Issues', path: '/admin/help-desk?category=Vendor' },
+                        { label: 'Customer Issues', path: '/admin/help-desk?activeTab=Customer' },
+                        { label: 'Vendor Issues', path: '/admin/help-desk?activeTab=Vendor' },
                         { label: 'Missing Item Dispute', path: '/admin/dispute-center' },
-                        { label: 'Technical Problem', path: '/admin/help-desk?category=Technical' },
+                        { label: 'Supplier Issue', path: '/admin/help-desk?activeTab=Supplier' },
                     ]
                 },
                 { 
@@ -109,6 +120,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     ]
                 },
                 { icon: HelpCircle, label: 'FAQ Manager', path: '/admin/faqs' },
+                { icon: ShieldAlert, label: 'Legal & Policy', path: '/admin/legal' },
                 { icon: Rocket, label: 'Splash Ads', path: '/admin/ads' },
                 { icon: Handshake, label: 'Partnerships', path: '/admin/partnerships' },
             ]

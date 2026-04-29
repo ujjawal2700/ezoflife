@@ -17,8 +17,14 @@ const masterServiceSchema = new mongoose.Schema({
         default: 0 
     },
     category: { 
-        type: String, 
-        default: 'General' 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Category',
+        required: true 
+    },
+    subCategory: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Category',
+        default: null
     },
     targetAudience: {
         type: String,

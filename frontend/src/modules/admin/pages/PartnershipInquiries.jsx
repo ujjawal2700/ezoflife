@@ -44,9 +44,11 @@ const PartnershipInquiries = () => {
                     <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100">
                             <tr>
-                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Company Name</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Company & Contact</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Location</th>
                                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Type</th>
                                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Proposal Details</th>
+                                <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Website</th>
                                 <th className="px-8 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Submitted</th>
                             </tr>
                         </thead>
@@ -57,6 +59,13 @@ const PartnershipInquiries = () => {
                                         <div className="flex flex-col">
                                             <span className="text-md font-black text-slate-900">{inquiry.companyName}</span>
                                             <span className="text-xs text-primary font-bold mt-1">{inquiry.email}</span>
+                                            <span className="text-[10px] text-slate-500 font-black mt-1 uppercase tracking-wider">{inquiry.phone}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-8 align-top">
+                                        <div className="flex items-center gap-2 text-slate-600">
+                                            <span className="material-symbols-outlined text-sm">location_on</span>
+                                            <span className="text-xs font-bold">{inquiry.location}</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-8 align-top">
@@ -64,10 +73,19 @@ const PartnershipInquiries = () => {
                                             {inquiry.partnershipType}
                                         </span>
                                     </td>
-                                    <td className="px-8 py-8 max-w-md">
+                                    <td className="px-8 py-8 max-w-xs">
                                         <p className="text-sm text-slate-600 font-medium leading-relaxed italic">
                                             "{inquiry.proposal}"
                                         </p>
+                                    </td>
+                                    <td className="px-8 py-8 align-top">
+                                        {inquiry.website ? (
+                                            <a href={inquiry.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs font-bold">
+                                                Visit Site
+                                            </a>
+                                        ) : (
+                                            <span className="text-[10px] text-slate-300 font-black uppercase tracking-widest">N/A</span>
+                                        )}
                                     </td>
                                     <td className="px-8 py-8 align-top">
                                         <div className="flex flex-col">

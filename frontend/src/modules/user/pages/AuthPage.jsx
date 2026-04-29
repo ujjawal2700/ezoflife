@@ -17,6 +17,36 @@ const AuthPage = () => {
   const isLoginValid = loginPhone.length === 10 && /^\d+$/.test(loginPhone);
   const isSignupValid = signupPhone.length === 10 && /^\d+$/.test(signupPhone) && agreedToTnC;
 
+  const handleRequestOtp = async (phone, type, extraData = {}) => {
+    setApiError('');
+    try {
+      const response = await authApi.requestOtp(phone, otpChannel, type, extraData);
+      if (response.message === 'OTP sent successfully') {
+        navigate('/user/otp', { state: { phone, channel: otpChannel } });
+      } else {
+        setApiError(response.message || 'Something went wrong');
+      }
+    } catch (error) {
+      setApiError('Server error. Please try again later.');
+    }
+  };
+
+  // Auto-trigger for Login
+  React.useEffect(() => {
+    if (isLogin && isLoginValid) {
+      handleRequestOtp(loginPhone, 'login');
+    }
+  }, [loginPhone, isLogin, isLoginValid]);
+
+  // Auto-trigger for Signup
+  React.useEffect(() => {
+    if (!isLogin && isSignupValid) {
+      handleRequestOtp(signupPhone, 'signup', { 
+        customerType: isRetail ? 'retail' : 'individual' 
+      });
+    }
+  }, [signupPhone, agreedToTnC, isLogin, isSignupValid, isRetail]);
+
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -168,21 +198,7 @@ const AuthPage = () => {
                       <motion.button 
                         variants={itemVariants}
                         whileTap={isLoginValid ? { scale: 0.98 } : {}}
-                        onClick={async () => {
-                          if (isLoginValid) {
-                            setApiError('');
-                            try {
-                              const response = await authApi.requestOtp(loginPhone, otpChannel, 'login');
-                              if (response.message === 'OTP sent successfully') {
-                                navigate('/user/otp', { state: { phone: loginPhone, channel: otpChannel } });
-                              } else {
-                                setApiError(response.message || 'Something went wrong');
-                              }
-                            } catch (error) {
-                              setApiError('Server error. Please try again later.');
-                            }
-                          }
-                        }}
+                        onClick={() => isLoginValid && handleRequestOtp(loginPhone, 'login')}
                         disabled={!isLoginValid}
                         className={`w-full font-headline font-black py-5 rounded-2xl shadow-xl tracking-widest uppercase text-xs transition-all duration-300 ${isLoginValid ? 'bg-primary-gradient text-on-primary shadow-primary/20' : 'bg-surface-container-high text-outline-variant cursor-not-allowed opacity-50'}`}
                       >
@@ -270,23 +286,7 @@ const AuthPage = () => {
                       <motion.button 
                         variants={itemVariants}
                         whileTap={isSignupValid ? { scale: 0.98 } : {}}
-                        onClick={async () => {
-                          if (isSignupValid) {
-                            setApiError('');
-                            try {
-                              const response = await authApi.requestOtp(signupPhone, otpChannel, 'signup', { 
-                                customerType: isRetail ? 'retail' : 'individual' 
-                              });
-                              if (response.message === 'OTP sent successfully') {
-                                navigate('/user/otp', { state: { phone: signupPhone, channel: otpChannel } });
-                              } else {
-                                setApiError(response.message || 'Something went wrong');
-                              }
-                            } catch (error) {
-                              setApiError('Server error. Please try again later.');
-                            }
-                          }
-                        }}
+                        onClick={() => isSignupValid && handleRequestOtp(signupPhone, 'signup', { customerType: isRetail ? 'retail' : 'individual' })}
                         disabled={!isSignupValid}
                         className={`w-full font-headline font-black py-5 rounded-2xl shadow-xl tracking-widest uppercase text-xs mt-4 transition-all duration-300 ${isSignupValid ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-primary/20' : 'bg-surface-container-high text-outline-variant cursor-not-allowed opacity-50'}`}
                       >

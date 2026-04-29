@@ -53,7 +53,7 @@ export const getCustomerTickets = async (req, res) => {
 export const getAllTickets = async (req, res) => {
     try {
         const tickets = await Ticket.find()
-            .populate('customer', 'displayName phone email')
+            .populate('customer', 'displayName phone email role')
             .populate('order', 'totalAmount status createdAt items')
             .sort({ createdAt: -1 });
         res.status(200).json(tickets);
@@ -132,14 +132,50 @@ export const updateTicketStatus = async (req, res) => {
     }
 };
 
+// Update ticket (Customer)
+export const updateTicket = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const { subject, category, description } = req.body;
+
+        const ticket = await Ticket.findById(ticketId);
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+        
+        if (ticket.status === 'Resolved') {
+            return res.status(400).json({ message: 'Resolved tickets cannot be edited' });
+        }
+
+        ticket.subject = subject || ticket.subject;
+        ticket.category = category || ticket.category;
+        ticket.description = description || ticket.description;
+
+        await ticket.save();
+        res.status(200).json(ticket);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Delete ticket
+export const deleteTicket = async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        const ticket = await Ticket.findByIdAndDelete(ticketId);
+        if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+        res.status(200).json({ message: 'Ticket deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Get single ticket details
 export const getTicketDetails = async (req, res) => {
     try {
         const { ticketId } = req.params;
         const ticket = await Ticket.findById(ticketId)
-            .populate('customer', 'displayName phone email')
+            .populate('customer', 'displayName phone email role')
             .populate('order', 'totalAmount status createdAt items')
-            .populate('messages.sender', 'displayName profileImage');
+            .populate('messages.sender', 'displayName profileImage role');
             
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
         res.status(200).json(ticket);

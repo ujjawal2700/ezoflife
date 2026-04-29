@@ -31,6 +31,11 @@ import b2bOrderRoutes from './src/routes/b2bOrderRoutes.js';
 import masterServiceRoutes from './src/routes/masterServiceRoutes.js';
 import adRoutes from './src/routes/adRoutes.js';
 import logisticsRoutes from './src/routes/logisticsRoutes.js';
+import categoryRoutes from './src/routes/categoryRoutes.js';
+import legalRoutes from './src/routes/legalRoutes.js';
+import supplierRoutes from './src/routes/supplierRoutes.js';
+import geofenceRoutes from './src/routes/geofenceRoutes.js';
+
 import SystemConfig from './src/models/SystemConfig.js';
 import { getSystemConfig, updateSystemConfig } from './src/controllers/adminController.js';
 import { addSpecialist, getAllSpecialists, deleteSpecialist, createRequisition, getAllRequisitions, assignRequisition } from './src/controllers/laborController.js';
@@ -107,12 +112,17 @@ console.log('🛠️ [DEBUG] Loading Master Service Routes...', typeof masterSer
 app.get('/api/master-test', (req, res) => res.json({ msg: 'Master Route System Active' }));
 app.use('/api/master-services', masterServiceRoutes);
 app.use('/api/promotions', promotionRoutes);
+app.use('/api/legal', legalRoutes);
+app.use('/api/supplier', supplierRoutes);
+
 app.use('/api/jobs', jobRoutes);
 app.use('/api/partnerships', partnershipRoutes);
 console.log('🛠️ [DEBUG] Loading B2B Order Routes...', typeof b2bOrderRoutes);
 app.use('/api/b2b-orders', b2bOrderRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/logistics', logisticsRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/geofence', geofenceRoutes);
 
 // Labor Routes
 app.post('/api/labor/add', addSpecialist);
@@ -129,24 +139,36 @@ mongoose.connect(MONGODB_URI)
         console.log('✅ Connected to MongoDB');
         try {
             const User = (await import('./src/models/User.js')).default;
-            const phone = '9926335339';
+            const testUsers = [
+                { phone: '9926335339', role: 'Customer', status: 'approved', displayName: 'Simran Default' },
+                { phone: '9999999991', role: 'Customer', status: 'approved', displayName: 'Test Customer' },
+                { 
+                    phone: '9999999992', role: 'Vendor', status: 'approved', displayName: 'Test Vendor',
+                    isProfileComplete: true,
+                    shopDetails: { name: 'Test Vendor Shop', address: 'Nashik West', city: 'Nashik', gst: 'GST9992' }
+                },
+                { 
+                    phone: '9999999993', role: 'Supplier', status: 'approved', displayName: 'Test Supplier',
+                    isProfileComplete: true,
+                    supplierDetails: { businessName: 'Test Supplier Biz', address: 'Nashik East', city: 'Nashik', gst: 'GST9993' }
+                },
+                { phone: '9999999994', role: 'Admin', status: 'approved', displayName: 'Master Admin' }
+            ];
+
             const otp = '123456';
-            let user = await User.findOne({ phone });
-            if (user) {
-                user.otp = otp;
-                user.otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-                await user.save();
-                console.log(`🚀 [CRITICAL_SEED] SUCCESS: Updated ${phone} with OTP ${otp}`);
-            } else {
-                await new User({
-                    phone,
-                    otp,
-                    otpExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-                    role: 'Customer',
-                    status: 'approved',
-                    isProfileComplete: false
-                }).save();
-                console.log(`🚀 [CRITICAL_SEED] SUCCESS: Registered NEW ${phone} with OTP ${otp}`);
+            const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+            for (const userData of testUsers) {
+                await User.findOneAndUpdate(
+                    { phone: userData.phone },
+                    { 
+                        ...userData,
+                        otp,
+                        otpExpiry
+                    },
+                    { upsert: true, new: true }
+                );
+                console.log(`🚀 [CRITICAL_SEED] SUCCESS: Synchronized ${userData.role} (${userData.phone}) with OTP ${otp}`);
             }
         } catch (e) {
             console.error('❌ [CRITICAL_SEED] FAILED:', e.message);
@@ -313,6 +335,40 @@ app.get('/api/maintenance/seed-labor', async (req, res) => {
             await Specialist.findOneAndUpdate({ name: s.name }, s, { upsert: true });
         }
         res.json({ message: `✅ Successfully seeded ${specialists.length} skilled labor types.` });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/maintenance/fix-master-categories', async (req, res) => {
+    try {
+        const MasterService = (await import('./src/models/MasterService.js')).default;
+        const Category = (await import('./src/models/Category.js')).default;
+        
+        // 1. Find or create the "General" category
+        let generalCat = await Category.findOne({ name: /General/i });
+        if (!generalCat) {
+            generalCat = await new Category({ name: 'General', description: 'Default Category' }).save();
+        }
+
+        // 2. Find services with string category "General"
+        // Since Mongoose might throw error on find if we use string for ObjectId field, 
+        // we use lean() or direct collection access if needed, but let's try standard find first
+        const allServices = await MasterService.find({}).lean();
+        const invalidServices = allServices.filter(s => typeof s.category === 'string' && s.category === 'General');
+        
+        let fixedCount = 0;
+        for (const service of invalidServices) {
+            await MasterService.findByIdAndUpdate(service._id, { category: generalCat._id });
+            fixedCount++;
+        }
+
+        res.json({ 
+            message: 'Maintenance complete', 
+            fixedCount, 
+            generalCategoryId: generalCat._id,
+            totalServices: allServices.length
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

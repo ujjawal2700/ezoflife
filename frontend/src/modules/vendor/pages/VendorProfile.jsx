@@ -12,7 +12,7 @@ const VendorProfile = () => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        libraries: ['places']
+        libraries: ['drawing', 'places']
     });
 
     const [autocomplete, setAutocomplete] = useState(null);
@@ -166,25 +166,44 @@ const VendorProfile = () => {
         <div className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-40 font-sans">
             <main className="max-w-md mx-auto px-6 pt-10 space-y-10">
                 
-                {/* PROFILE HEADER */}
-                <header className="flex items-center gap-6">
-                    <div className="relative">
-                        <div className="w-24 h-24 rounded-[2.2rem] bg-slate-200 border-4 border-white shadow-xl overflow-hidden">
+                {/* PROFILE HEADER - REDESIGNED FOR CUSTOMER LAYOUT */}
+                <header className="flex flex-col items-center text-center space-y-6">
+                    <div className="relative group">
+                        <div className="w-32 h-32 rounded-[2.8rem] bg-white border-[6px] border-white shadow-2xl overflow-hidden relative z-10">
                             <img 
                                 src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=200"} 
-                                alt="Shop"
-                                className="w-full h-full object-cover"
+                                alt="Profile"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-slate-950 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg">
-                            <span className="material-symbols-outlined text-[14px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
+                        <div className="absolute -inset-2 bg-gradient-to-br from-primary/20 to-indigo-500/20 rounded-[3.2rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center border-4 border-white shadow-lg z-20">
+                            <span className="material-symbols-outlined text-[18px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
                         </div>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-black tracking-tighter text-slate-950 leading-none mb-2">{user.shopDetails?.name || user.displayName}</h2>
-                        <div className="flex items-center gap-2 mt-3">
-                            <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${user.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                                STATUS: {user.status.toUpperCase()}
+
+                    <div className="space-y-3">
+                        <div className="space-y-1">
+                            <h2 className="text-3xl font-black tracking-tighter text-slate-950 leading-tight">
+                                {user.shopDetails?.name || user.displayName}
+                            </h2>
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">{user.role || 'Service Partner'}</p>
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-2 pt-2">
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                                <span className="material-symbols-outlined text-sm text-slate-400">call</span>
+                                <span className="text-xs font-black text-slate-900 tracking-widest">{user.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                                <span className="material-symbols-outlined text-sm text-slate-400">mail</span>
+                                <span className="text-xs font-black text-slate-900 tracking-tight lowercase">{user.email || 'partner@ezoflife.in'}</span>
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                            <span className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm ${user.status === 'approved' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
+                                Account {user.status.toUpperCase()}
                             </span>
                         </div>
                     </div>
@@ -196,9 +215,9 @@ const VendorProfile = () => {
                         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Business Details</h3>
                         <button 
                             onClick={() => handleEditClick('shop')}
-                            className="material-symbols-outlined text-slate-300 hover:text-slate-900 transition-colors"
+                            className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-all"
                         >
-                            edit_note
+                            EDIT
                         </button>
                     </div>
                     
@@ -238,9 +257,9 @@ const VendorProfile = () => {
                         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Bank Details</h3>
                         <button 
                             onClick={() => handleEditClick('bank')}
-                            className="material-symbols-outlined text-slate-300 hover:text-slate-900 transition-colors"
+                            className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-white px-5 py-2 rounded-full shadow-lg shadow-white/10 hover:bg-slate-200 transition-all relative z-20"
                         >
-                            edit_note
+                            EDIT
                         </button>
                     </div>
                     

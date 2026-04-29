@@ -8,6 +8,10 @@ const OrdersHistoryPage = () => {
   const [activeTab, setActiveTab] = useState('active');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // DATE FILTER STATES
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const userData = JSON.parse(localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
   const userId = userData._id || userData.id || localStorage.getItem('userId');
@@ -65,9 +69,24 @@ const OrdersHistoryPage = () => {
     orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)), 
   [orders]);
 
-  const pastOrders = useMemo(() => 
-    orders.filter(o => ['Delivered', 'Cancelled'].includes(o.status)), 
-  [orders]);
+  const pastOrders = useMemo(() => {
+    let filtered = orders.filter(o => ['Delivered', 'Cancelled'].includes(o.status));
+    
+    if (startDate || endDate) {
+      filtered = filtered.filter(o => {
+        const orderDate = new Date(o.createdAt).setHours(0,0,0,0);
+        const start = startDate ? new Date(startDate).setHours(0,0,0,0) : null;
+        const end = endDate ? new Date(endDate).setHours(0,0,0,0) : null;
+        
+        if (start && orderDate < start) return false;
+        if (end && orderDate > end) return false;
+        return true;
+      });
+      return filtered; // Show all matches if filtering
+    }
+    
+    return filtered.slice(0, 5); // Default to last 5
+  }, [orders, startDate, endDate]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -81,6 +100,107 @@ const OrdersHistoryPage = () => {
     hidden: { y: 20, opacity: 0 },
     visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
   }), []);
+
+  const handleDownloadInvoice = (order) => {
+    const printWindow = window.open('', '_blank');
+    const orderDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    
+    const invoiceHtml = `
+      <html>
+        <head>
+          <title>Invoice - ${order.orderId || order._id}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #000; padding-bottom: 20px; margin-bottom: 40px; }
+            .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+            .invoice-label { font-size: 24px; font-weight: 900; color: #64748b; text-transform: uppercase; }
+            .meta { display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            .meta-box h4 { font-size: 10px; text-transform: uppercase; color: #94a3b8; margin-bottom: 5px; letter-spacing: 1px; }
+            .meta-box p { font-size: 14px; font-weight: 700; margin: 0; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+            th { text-align: left; background: #f8fafc; padding: 15px; font-size: 12px; text-transform: uppercase; color: #64748b; }
+            td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 500; }
+            .totals { margin-left: auto; width: 300px; }
+            .total-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+            .grand-total { border-top: 2px solid #000; border-bottom: none; padding-top: 15px; margin-top: 10px; font-weight: 900; font-size: 18px; }
+            .footer { margin-top: 60px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 30px; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="logo">SPINZYT.</div>
+            <div class="invoice-label">Invoice</div>
+          </div>
+          
+          <div class="meta">
+            <div class="meta-box">
+              <h4>Order ID</h4>
+              <p>${order.orderId || '#' + order._id?.slice(-6)}</p>
+              <h4 style="margin-top: 15px">Date</h4>
+              <p>${orderDate}</p>
+            </div>
+            <div class="meta-box">
+              <h4>Billed To</h4>
+              <p>${userData.displayName || userData.username || 'Valued Customer'}</p>
+              <h4 style="margin-top: 15px">Vendor</h4>
+              <p>${order.vendor?.displayName || 'Spinzyt Partner'}</p>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Service Item</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(order.items || []).map(item => `
+                <tr>
+                  <td>${item.name}</td>
+                  <td>${item.quantity} ${item.unit || 'pc'}</td>
+                  <td>₹${item.price || 0}</td>
+                  <td>₹${(item.price || 0) * (item.quantity || 1)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <div class="total-row">
+              <span>Subtotal</span>
+              <span>₹${order.totalAmount || 0}</span>
+            </div>
+            <div class="total-row">
+              <span>Taxes (Included)</span>
+              <span>₹0.00</span>
+            </div>
+            <div class="total-row grand-total">
+              <span>Grand Total</span>
+              <span>₹${order.totalAmount?.toFixed(2) || 0}</span>
+            </div>
+          </div>
+
+          <div class="footer">
+            Thank you for taking our services..
+          </div>
+
+          <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+    
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
+  };
 
   return (
     <motion.div 
@@ -226,13 +346,21 @@ const OrdersHistoryPage = () => {
 
                       <div className="flex flex-col gap-3">
                         <motion.button 
-                          whileHover={{ scale: 1.02, backgroundColor: '#000' }}
+                          whileHover={ (order.status === 'Assigned' || order.status === 'Out for Delivery') ? { scale: 1.02, backgroundColor: '#000' } : {} }
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => navigate(`/user/tracking/${order._id || order.id}`)}
-                          className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all"
+                          onClick={() => {
+                            if (order.status === 'Assigned' || order.status === 'Out for Delivery') {
+                              navigate(`/user/tracking/${order._id || order.id}`);
+                            }
+                          }}
+                          className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all ${
+                            (order.status === 'Assigned' || order.status === 'Out for Delivery') 
+                            ? 'bg-slate-900 text-white shadow-xl cursor-pointer' 
+                            : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                          }`}
                         >
                           <span className="material-symbols-outlined text-sm">my_location</span>
-                          Live Tracking
+                          { (order.status === 'Assigned' || order.status === 'Out for Delivery') ? 'Live Tracking' : 'Tracking Unavailable' }
                         </motion.button>
                         
                         <div className="grid grid-cols-2 gap-3">
@@ -272,8 +400,43 @@ const OrdersHistoryPage = () => {
                 exit="hidden"
                 className="space-y-8"
               >
+                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 mb-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="material-symbols-outlined text-primary text-sm">calendar_month</span>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filter by Date</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-300 uppercase ml-2">From</label>
+                      <input 
+                        type="date" 
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-300 uppercase ml-2">To</label>
+                      <input 
+                        type="date" 
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+                  {(startDate || endDate) && (
+                    <button 
+                      onClick={() => { setStartDate(''); setEndDate(''); }}
+                      className="text-[9px] font-black text-rose-500 uppercase tracking-widest w-full py-2 hover:bg-rose-50 rounded-xl transition-all"
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
                 <motion.h4 variants={itemVariants} className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant opacity-30 px-4 flex items-center gap-4">
-                  Archive
+                  {startDate || endDate ? 'Filtered Results' : 'Last 5 Orders'}
                   <div className="flex-grow h-px bg-outline-variant/10"></div>
                 </motion.h4>
 
@@ -328,24 +491,43 @@ const OrdersHistoryPage = () => {
                           </motion.button>
                           <motion.button 
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => window.print()}
-                            className="py-4 border border-slate-200 text-slate-600 rounded-2xl font-black text-[9px] uppercase tracking-[0.15em] flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
+                            onClick={() => handleDownloadInvoice(order)}
+                            className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[8px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-slate-900/10"
                           >
-                            <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-                            Download Invoice PDF
+                            <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                            Get Invoice
                           </motion.button>
                         </div>
                         
                         {order.status === 'Delivered' && (
-                          <div className="grid grid-cols-1 gap-3 mt-3">
-                            <motion.button 
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => navigate(`/user/chat/${order._id}`)}
-                              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-200 transition-all"
-                            >
-                              <span className="material-symbols-outlined text-sm">chat_bubble</span>
-                              Report Issue / Chat
-                            </motion.button>
+                          <div className="space-y-3 mt-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <motion.button 
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate('/user/support/tickets', { 
+                                  state: { 
+                                    preFill: { 
+                                      subject: `Missing Items in Order ${order.orderId || order._id}`,
+                                      category: 'Missing Items',
+                                      description: 'I have received my order but some items are missing. Please investigate.',
+                                      orderId: order._id
+                                    } 
+                                  } 
+                                })}
+                                className="w-full py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-rose-100 hover:bg-rose-100 transition-all"
+                              >
+                                <span className="material-symbols-outlined text-sm">inventory_2</span>
+                                Missing Item Dispute
+                              </motion.button>
+                              <motion.button 
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate(`/user/chat/${order._id}`)}
+                                className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-200 transition-all"
+                              >
+                                <span className="material-symbols-outlined text-sm">chat_bubble</span>
+                                General Chat
+                              </motion.button>
+                            </div>
                             <motion.button 
                               whileTap={{ scale: 0.95 }}
                               onClick={() => navigate(`/user/feedback?orderId=${order._id}&vendorId=${order.vendor?._id || order.vendor}`)}

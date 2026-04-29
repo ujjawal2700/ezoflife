@@ -31,6 +31,8 @@ import VendorReviews from '../pages/VendorReviews';
 import JobManagerPage from '../pages/JobManagerPage';
 import MaterialRequestPage from '../pages/MaterialRequestPage';
 import LaborRequestPage from '../pages/LaborRequestPage';
+import VendorMyServices from '../pages/VendorMyServices';
+import VendorReports from '../pages/VendorReports';
 
 // Profile sub-pages
 import EditProfile from '../pages/EditProfile';
@@ -61,11 +63,13 @@ const VendorRoutes = () => {
         <Route path="/rider-verification/:orderId" element={<RiderVerification />} />
         <Route path="/earnings" element={<Earnings />} />
         <Route path="/services" element={<ServiceManagement />} />
+        <Route path="/my-services" element={<VendorMyServices />} />
         <Route path="/services/add" element={<AddServicePage />} />
         <Route path="/payouts" element={<PayoutSettings />} />
         <Route path="/profile" element={<VendorProfile />} />
         <Route path="/notifications" element={<VendorNotifications />} />
         <Route path="/more" element={<VendorMorePage />} />
+        <Route path="/reports" element={<VendorReports />} />
         <Route path="/order-history" element={<VendorOrderHistory />} />
         
         {/* Sprint 3: Operational Hub */}

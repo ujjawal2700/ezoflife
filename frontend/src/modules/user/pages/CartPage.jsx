@@ -113,16 +113,11 @@ const CartPage = () => {
   }, []);
 
   const [isExpress, setIsExpress] = useState(() => localStorage.getItem('is_express') === 'true');
-  const [garmentPhotos, setGarmentPhotos] = useState([]); // URLs for display
-  const [garmentFiles, setGarmentFiles] = useState([]); // Actual File objects
+  const [garmentPhotos, setGarmentPhotos] = useState(() => {
+    const saved = localStorage.getItem('order_photos');
+    return saved ? JSON.parse(saved) : [];
+  });
   const fileInputRef = useRef(null);
-
-  const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setGarmentFiles(prev => [...prev, ...files]);
-    const newPhotos = files.map(file => URL.createObjectURL(file));
-    setGarmentPhotos(prev => [...prev, ...newPhotos]);
-  };
 
   const availableDates = useMemo(() => {
     const dates = [];
@@ -398,7 +393,7 @@ const CartPage = () => {
     }
   };
 
-  const [specialInstructions, setSpecialInstructions] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState(() => localStorage.getItem('order_notes') || '');
 
   const handlePlaceOrder = async () => {
     try {
@@ -406,15 +401,8 @@ const CartPage = () => {
       const userId = userData._id || userData.id; 
       if (!userId) return alert('Please login');
 
-      // Upload photos first if any
-      let uploadedPhotoUrls = [];
-      if (garmentFiles.length > 0) {
-        setLoading(true);
-        const uploadRes = await mediaApi.bulkUpload(garmentFiles);
-        if (uploadRes.urls) {
-          uploadedPhotoUrls = uploadRes.urls;
-        }
-      }
+      // Photos are already uploaded from Home Page and stored in localStorage
+      const uploadedPhotoUrls = garmentPhotos;
 
       const orderData = {
         customerId: userId,
@@ -443,6 +431,8 @@ const CartPage = () => {
       const response = await orderApi.createOrder(orderData);
       if (response._id) {
         localStorage.removeItem('cart_quantities');
+        localStorage.removeItem('order_photos');
+        localStorage.removeItem('order_notes');
         navigate('/user/confirmation', { state: { order: response } });
       }
     } catch (err) {
@@ -676,85 +666,6 @@ const CartPage = () => {
             </div>
           </div>
 
-          {/* 4. Pre Pickup Photo Upload */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
-            <div className="flex flex-col gap-1">
-              <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
-                <span className="material-symbols-outlined text-black">photo_camera</span>Pre Pickup Photo.
-              </h3>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Optional record for your safety</p>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <input 
-                type="file" 
-                multiple 
-                accept="image/*" 
-                ref={fileInputRef}
-                onChange={handlePhotoUpload}
-                className="hidden" 
-              />
-              <button 
-                onClick={() => fileInputRef.current.click()}
-                className="w-full py-5 rounded-[1.5rem] border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center gap-3 hover:bg-white hover:border-black transition-all group"
-              >
-                <span className="material-symbols-outlined text-slate-400 group-hover:text-black">add_a_photo</span>
-                <span className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-black">Upload Garment Photos 📷</span>
-              </button>
-
-              {garmentPhotos.length > 0 && (
-                <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-                  {garmentPhotos.map((url, i) => (
-                    <div key={i} className="relative shrink-0">
-                      <img src={url} alt="Garment" className="w-20 h-20 rounded-2xl object-cover border border-slate-100 shadow-sm" />
-                        <button 
-                          onClick={() => {
-                            setGarmentPhotos(prev => prev.filter((_, idx) => idx !== i));
-                            setGarmentFiles(prev => prev.filter((_, idx) => idx !== i));
-                          }}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-black text-white rounded-full flex items-center justify-center shadow-lg"
-                        >
-                        <span className="material-symbols-outlined text-[10px] font-black">close</span>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 5. Promo Code Selection */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Promo Code</h3>
-            <div className="flex gap-3">
-              <input 
-                type="text" 
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                placeholder="ENTER COUPON CODE" 
-                className="flex-1 bg-slate-50 border-none rounded-2xl px-6 py-4 text-xs font-black placeholder:text-slate-300 focus:ring-2 focus:ring-black transition-all"
-              />
-              <button 
-                onClick={() => handleApplyPromo()}
-                className="px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-black/20"
-              >
-                Apply
-              </button>
-            </div>
-            {promoError && <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest ml-4">{promoError}</p>}
-            {isPromoApplied && <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest ml-4">Coupon Applied Successfully!</p>}
-          </div>
-
-          {/* 6. Notes / Instructions Section */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Notes / Instructions</h3>
-            <textarea 
-              value={specialInstructions}
-              onChange={(e) => setSpecialInstructions(e.target.value)}
-              placeholder="Any special requests? (e.g. Wash separately, Use mild detergent)"
-              className="w-full bg-slate-50 border-none rounded-3xl px-6 py-5 text-sm font-bold placeholder:text-slate-300 focus:ring-2 focus:ring-black transition-all min-h-[120px] resize-none"
-            />
-          </div>
 
           {/* 7. Price Breakdown & Final Action */}
           <div className="bg-black rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">

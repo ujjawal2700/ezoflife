@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FileCheck, 
@@ -26,16 +27,30 @@ import { adminApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 
 export default function OnboardingApprovals() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const queryParams = new URLSearchParams(location.search);
+  const initialTab = queryParams.get('tab') === 'Supplier' ? 'Supplier' : 'Vendor';
+
   const [rawUsers, setRawUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [isProcessing, setIsProcessing] = useState(null);
-  const [activeTab, setActiveTab] = useState('Vendor'); // Vendor, Supplier
-  const [showDocSelector, setShowDocSelector] = useState(null); // User ID for which doc list is shown
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [showDocSelector, setShowDocSelector] = useState(null);
 
   useEffect(() => {
     fetchPending();
   }, []);
+
+  useEffect(() => {
+    const tabFromUrl = new URLSearchParams(location.search).get('tab') === 'Supplier' ? 'Supplier' : 'Vendor';
+    setActiveTab(tabFromUrl);
+  }, [location.search]);
+
+  const handleTabChange = (tab) => {
+    navigate(`/admin/vendors/approvals?tab=${tab}`);
+  };
 
   const fetchPending = async () => {
     setLoading(true);
@@ -125,7 +140,7 @@ export default function OnboardingApprovals() {
                 {['Vendor', 'Supplier'].map(tab => (
                     <button 
                         key={tab}
-                        onClick={() => setActiveTab(tab)}
+                        onClick={() => handleTabChange(tab)}
                         className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-lg ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
                     >
                         {tab} Requests
@@ -297,9 +312,17 @@ export default function OnboardingApprovals() {
                             </button>
                         </div>
                         
-                        <div className="flex-1 bg-slate-50 flex items-center justify-center p-12 overflow-y-auto">
+                        <div className="flex-1 bg-slate-50 flex items-center justify-center p-6 overflow-y-auto">
                             {selectedDoc.url && selectedDoc.url !== '#' ? (
-                                <img src={selectedDoc.url} alt="Document" className="max-w-full max-h-full object-contain shadow-2xl border-4 border-white rounded-2xl" />
+                                selectedDoc.url.toLowerCase().endsWith('.pdf') ? (
+                                    <iframe 
+                                        src={selectedDoc.url} 
+                                        title="PDF Document" 
+                                        className="w-full h-full rounded-2xl border-4 border-white shadow-2xl bg-white"
+                                    />
+                                ) : (
+                                    <img src={selectedDoc.url} alt="Document" className="max-w-full max-h-full object-contain shadow-2xl border-4 border-white rounded-2xl" />
+                                )
                             ) : (
                                 <div className="text-center p-20 border-4 border-dashed border-slate-200 bg-white rounded-3xl">
                                     <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-6">

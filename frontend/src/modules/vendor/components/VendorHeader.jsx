@@ -32,17 +32,6 @@ const VendorHeader = () => {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
-          {/* 3. Notification Bell */}
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/vendor/notifications')}
-            className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-50 rounded-full relative transition-colors"
-          >
-            <span className="material-symbols-outlined text-[24px]">notifications</span>
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-            )}
-          </motion.button>
 
           {/* 4. Profile Icon */}
           <motion.div 

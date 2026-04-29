@@ -5,7 +5,9 @@ import {
     getAllTickets, 
     addMessage, 
     updateTicketStatus,
-    getTicketDetails 
+    getTicketDetails,
+    updateTicket,
+    deleteTicket
 } from '../controllers/ticketController.js';
 
 const router = express.Router();
@@ -23,6 +25,8 @@ router.get('/order/:orderId', async (req, res) => {
     }
 });
 router.get('/:ticketId', getTicketDetails);
+router.put('/:ticketId', updateTicket);
+router.delete('/:ticketId', deleteTicket);
 router.post('/:ticketId/message', addMessage);
 
 // Admin Routes

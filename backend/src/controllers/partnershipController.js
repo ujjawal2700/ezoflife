@@ -2,8 +2,8 @@ import PartnershipInquiry from '../models/PartnershipInquiry.js';
 
 export const submitPartnershipInquiry = async (req, res) => {
     try {
-        const { companyName, email, partnershipType, proposal } = req.body;
-        const inquiry = new PartnershipInquiry({ companyName, email, partnershipType, proposal });
+        const { companyName, email, phone, location, website, partnershipType, proposal } = req.body;
+        const inquiry = new PartnershipInquiry({ companyName, email, phone, location, website, partnershipType, proposal });
         await inquiry.save();
         res.status(201).json(inquiry);
     } catch (err) {

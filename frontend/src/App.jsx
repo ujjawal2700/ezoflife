@@ -7,6 +7,8 @@ import AdminRoutes from './modules/admin/routes/AdminRoutes'
 import RiderRoutes from './modules/rider/routes/RiderRoutes'
 import ScrollToTop from './shared/components/ScrollToTop'
 import GlobalToast from './shared/components/GlobalToast'
+import LocationPrompt from './shared/components/LocationPrompt'
+import LocationPicker from './shared/components/LocationPicker'
 import './index.css'
 
 function App() {
@@ -14,6 +16,8 @@ function App() {
     <BrowserRouter>
       <ScrollToTop />
       <GlobalToast />
+      <LocationPrompt />
+      <LocationPicker />
       <Routes>
 
 

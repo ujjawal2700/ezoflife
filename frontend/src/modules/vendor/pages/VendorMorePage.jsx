@@ -11,6 +11,7 @@ const VendorMorePage = () => {
       title: "Operations",
       icon: "settings_suggest",
       items: [
+        { icon: "insights", title: "Business Insights", desc: "View Performance Reports", path: "/vendor/reports", color: "primary" },
         { icon: "cancel_schedule_send", title: "Rejected Services", desc: "View blocked requests", path: "/vendor/rejected-services", color: "rose" },
       ]
     },
@@ -21,6 +22,7 @@ const VendorMorePage = () => {
         { icon: "factory", title: "Become a Supplier", desc: "Distribute Materials", path: "/user/become-supplier" },
         { icon: "campaign", title: "Advertise with us", desc: "Digital Media Kit", path: "/user/advertise", color: "primary" },
         { icon: "handshake", title: "Partner with us", desc: "Logistics & Alliances", path: "/user/partnerships", color: "tertiary" },
+        { icon: "notifications_active", title: "Notifications", desc: "Stay updated on orders", path: "/vendor/notifications", color: "amber" },
       ]
     },
     {
@@ -36,6 +38,7 @@ const VendorMorePage = () => {
       icon: "help_center",
       items: [
         { icon: "support_agent", title: "Help Center", desc: "Guides & Tutorials", path: "/user/support" },
+        { icon: "chat", title: "Live Support", desc: "Direct Chat with Support", path: "/user/support/tickets" },
         { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
       ]
     },

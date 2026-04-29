@@ -66,32 +66,26 @@ const HelpCenterPage = () => {
           </div>
         </motion.section>
 
-        {/* FAQ Section */}
-        <section className="space-y-6">
-          <motion.h3 variants={itemVariants} className="font-headline font-black text-[10px] uppercase tracking-[0.3em] text-on-surface ml-2">Frequently Asked</motion.h3>
-          <div className="space-y-4">
-            {loading ? (
-              <div className="py-12 text-center opacity-30 italic text-sm">Loading FAQs...</div>
-            ) : faqs.map((faq, i) => (
-              <motion.div 
-                key={faq._id || i}
-                variants={itemVariants}
-                className="bg-white rounded-[2rem] p-6 border border-outline-variant/10 shadow-sm"
-              >
-                <h4 className="font-black text-sm text-on-surface tracking-tight mb-3 flex items-start gap-3">
-                  <span className="text-primary mt-0.5 font-black text-xs">Q.</span>
-                  {faq.question}
-                </h4>
-                <p className="text-[11px] font-bold text-on-surface-variant leading-relaxed ml-6">
-                  {faq.answer}
-                </p>
-              </motion.div>
-            ))}
-            {!loading && faqs.length === 0 && (
-                <div className="py-12 text-center opacity-30 italic text-sm font-black uppercase tracking-widest">No questions yet.</div>
-            )}
+        <motion.section 
+          variants={itemVariants}
+          className="bg-white p-8 rounded-[2.5rem] border border-outline-variant/10 shadow-sm text-center space-y-6 mt-10"
+        >
+          <div className="w-16 h-16 bg-primary/5 rounded-3xl flex items-center justify-center text-primary mx-auto">
+            <span className="material-symbols-outlined text-3xl">quiz</span>
           </div>
-        </section>
+          <div className="space-y-2">
+            <h3 className="text-xl font-black tracking-tighter uppercase">Looking for FAQs?</h3>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+              We've moved our frequently asked questions to the More menu for better access.
+            </p>
+          </div>
+          <button 
+            onClick={() => navigate('/user/faq')}
+            className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+          >
+            Go to FAQ Section
+          </button>
+        </motion.section>
 
         {/* Social Support */}
         <motion.section variants={itemVariants} className="mt-16 text-center">

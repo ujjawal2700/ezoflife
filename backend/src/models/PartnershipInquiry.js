@@ -9,6 +9,17 @@ const partnershipInquirySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    phone: {
+        type: String,
+        required: true
+    },
+    location: {
+        type: String,
+        required: true
+    },
+    website: {
+        type: String
+    },
     partnershipType: {
         type: String,
         required: true

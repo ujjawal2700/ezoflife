@@ -69,7 +69,7 @@ const UserProfilePage = () => {
         <section className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Address Book</h3>
-            <button onClick={() => navigate('/user/profile/addresses')} className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">Manage</button>
+            <button onClick={() => navigate('/user/profile/addresses')} className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-sm">Edit</button>
           </div>
           
           <div className="space-y-3">
@@ -139,21 +139,6 @@ const UserProfilePage = () => {
           </div>
           
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-6 border-b border-slate-50">
-              <div className="flex items-center gap-4">
-                <span className="material-symbols-outlined text-slate-400">notifications</span>
-                <span className="text-xs font-black uppercase tracking-widest text-slate-900">Push Notifications</span>
-              </div>
-              <div 
-                onClick={() => setNotifications(!notifications)}
-                className={`w-12 h-6 rounded-full relative transition-all duration-300 shadow-inner cursor-pointer ${notifications ? 'bg-emerald-500' : 'bg-slate-200'}`}
-              >
-                <motion.div 
-                  animate={{ x: notifications ? 26 : 4 }}
-                  className="absolute top-1 w-4 h-4 rounded-full bg-white shadow-md"
-                />
-              </div>
-            </div>
 
             {[
               { label: 'Privacy Policy', icon: 'security', path: '/user/privacy' },
@@ -172,19 +157,23 @@ const UserProfilePage = () => {
               </div>
             ))}
 
+          </div>
+        </section>
+
+        {/* Action Footer */}
+        <div className="flex flex-col gap-4 pt-4">
             <button 
               onClick={() => {
                 localStorage.clear();
                 navigate('/user/auth');
                 toast.success('Logged out successfully');
               }}
-              className="w-full flex items-center gap-4 px-6 py-6 text-rose-500 hover:bg-rose-50 transition-all group"
+              className="w-full py-5 bg-rose-50 border border-rose-100 rounded-[2rem] text-[11px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
             >
-              <span className="material-symbols-outlined group-hover:scale-110 transition-transform">logout</span>
-              <span className="text-xs font-black uppercase tracking-widest">Logout Session</span>
+              <span className="material-symbols-outlined text-lg">logout</span>
+              Logout Profile
             </button>
-          </div>
-        </section>
+        </div>
 
         {/* Footer Info */}
         <div className="text-center pt-8 pb-12">

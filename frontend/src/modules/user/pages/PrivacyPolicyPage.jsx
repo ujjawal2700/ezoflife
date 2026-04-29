@@ -1,16 +1,26 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { legalApi } from '../../../lib/api';
 
 const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
+  const [doc, setDoc] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const sections = useMemo(() => [
-    { title: 'Data Collection', content: 'We collect your name, phone number, and address to facilitate laundry pickups and deliveries. Your location data is used only during active orders to provide real-time tracking.' },
-    { title: 'Information Use', content: 'Your data is used to process orders, communicate status updates, and improve our services. We do not sell your personal information to third parties.' },
-    { title: 'Security', content: 'We implement bank-grade encryption and secure storage for your payment and personal details. PCI-DSS compliance is maintained for all financial transactions.' },
-    { title: 'User Rights', content: 'You can request deletion of your account and data at any time through our support center. We retain only what is legally required for tax and audit purposes.' }
-  ], []);
+  useEffect(() => {
+    const fetchDoc = async () => {
+        try {
+            const data = await legalApi.getByType('privacy-policy');
+            setDoc(data);
+        } catch (error) {
+            console.error('Fetch Privacy Policy Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchDoc();
+  }, []);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -44,24 +54,50 @@ const PrivacyPolicyPage = () => {
         >
           <span className="text-[10px] uppercase tracking-[0.3em] text-primary font-black mb-1 block opacity-60">Legal & Care</span>
           <h2 className="text-3xl font-black tracking-tighter leading-none mb-3">Your Privacy,<br/>Our Commitment.</h2>
-          <p className="text-[11px] font-bold text-on-surface-variant opacity-60 mt-4 uppercase tracking-widest leading-relaxed">
-            Last Updated: March 25, 2026
-          </p>
+          {doc && (
+            <p className="text-[11px] font-bold text-on-surface-variant opacity-60 mt-4 uppercase tracking-widest leading-relaxed">
+              Last Updated: {new Date(doc.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </motion.section>
 
-        <section className="space-y-10 px-2">
-          {sections.map((sec, i) => (
-            <motion.div 
-              key={i}
-              variants={itemVariants}
-              className="space-y-4"
-            >
-              <h3 className="font-headline font-black text-lg text-primary tracking-tight leading-none uppercase">{sec.title}</h3>
-              <p className="text-[13px] font-bold text-on-surface-variant opacity-60 leading-relaxed max-w-[90%]">
-                {sec.content}
-              </p>
-            </motion.div>
-          ))}
+        <section className="space-y-10 px-2 min-h-[300px]">
+          {loading ? (
+            <div className="py-20 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Loading policy...</div>
+          ) : (
+            <div className="space-y-8">
+              {doc?.content ? (
+                <div 
+                  className="text-[14px] font-medium text-on-surface-variant leading-relaxed legal-content"
+                  dangerouslySetInnerHTML={{ __html: doc.content }}
+                />
+              ) : (
+                <p className="text-slate-400 italic text-sm">Policy content is currently being updated.</p>
+              )}
+
+              {doc?.pdfUrl && (
+                <motion.div variants={itemVariants} className="pt-8">
+                  <a 
+                    href={doc.pdfUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl shadow-slate-900/10 active:scale-95 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white">picture_as_pdf</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/60 leading-none mb-1">Official Document</p>
+                        <p className="text-sm font-black tracking-tight">View Privacy Policy PDF</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined">chevron_right</span>
+                  </a>
+                </motion.div>
+              )}
+            </div>
+          )}
         </section>
 
         <motion.section variants={itemVariants} className="mt-20 p-8 rounded-[2.5rem] bg-surface-container-low border border-outline-variant/5 text-center">

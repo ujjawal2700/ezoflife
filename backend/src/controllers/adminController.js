@@ -3,16 +3,47 @@ import Job from '../models/Job.js';
 import Promotion from '../models/Promotion.js';
 import Order from '../models/Order.js';
 import SystemConfig from '../models/SystemConfig.js';
+import SupplierApplication from '../models/SupplierApplication.js';
 
 // Get all roles pending approval
 export const getPendingApprovals = async (req, res) => {
     try {
-        const pendingUsers = await User.find({ 
-            role: { $in: ['Vendor', 'Supplier'] }, 
-            status: 'pending'
-        }).select('-otp -otpExpiry').lean();
+        const [pendingVendors, supplierApps] = await Promise.all([
+            User.find({ 
+                role: 'Vendor', 
+                status: 'pending'
+            }).select('-otp -otpExpiry').lean(),
+            SupplierApplication.find({ status: 'Pending' }).populate('user', 'displayName phone email').lean()
+        ]);
         
-        res.status(200).json(pendingUsers);
+        // Transform SupplierApplications to match User-like structure for the frontend table
+        const transformedSuppliers = supplierApps.map(app => ({
+            _id: app._id,
+            role: 'Supplier',
+            displayName: app.fullName,
+            phone: app.phone,
+            email: app.email,
+            createdAt: app.createdAt,
+            supplierDetails: {
+                businessName: app.businessName,
+                address: app.businessAddress,
+                gst: app.gstNumber
+            },
+            documents: [
+                { type: 'GST Certificate', url: app.gstDoc },
+                { type: 'Udyog Aadhaar', url: app.udyogAadharDoc },
+                { type: 'Aadhaar Card', url: app.aadharDoc },
+                { type: 'Address Proof', url: app.addressProofDoc }
+            ].filter(d => d.url), // Only include documents that have a URL
+            applicationId: app._id // Keep original app ID for approval/rejection
+        }));
+
+        const combined = [
+            ...pendingVendors.map(v => ({ ...v, role: 'Vendor' })),
+            ...transformedSuppliers
+        ];
+        
+        res.status(200).json(combined);
     } catch (err) {
         console.error('Get Pending Approvals Error:', err);
         res.status(500).json({ message: 'Error fetching approvals' });
@@ -27,7 +58,8 @@ export const approveVendor = async (req, res) => {
             id, 
             { 
                 status: 'approved',
-                role: 'Vendor' // Flip role to Vendor
+                role: 'Vendor',
+                displayName: (await User.findById(id))?.shopDetails?.name || 'Unnamed Vendor'
             }, 
             { new: true }
         );
@@ -109,17 +141,39 @@ export const getAllSuppliers = async (req, res) => {
 export const approveSupplier = async (req, res) => {
     try {
         const { id } = req.params;
+        
+        // 1. Check if it's a SupplierApplication
+        const application = await SupplierApplication.findById(id);
+        if (application) {
+            application.status = 'Approved';
+            application.reviewedAt = new Date();
+            await application.save();
+
+            const user = await User.findByIdAndUpdate(
+                application.user,
+                { 
+                    role: 'Supplier', 
+                    status: 'approved',
+                    displayName: application.fullName,
+                    email: application.email,
+                    address: application.businessAddress,
+                    isProfileComplete: true
+                },
+                { new: true }
+            );
+            return res.status(200).json({ message: 'Application approved and user profile updated', user });
+        }
+
+        // 2. Fallback to direct User update (legacy)
         const supplier = await User.findByIdAndUpdate(
             id, 
-            { 
-                status: 'approved',
-                role: 'Supplier' // Flip role to Supplier
-            }, 
+            { status: 'approved', role: 'Supplier' }, 
             { new: true }
         );
         if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
-        res.status(200).json({ message: 'Supplier approved and promoted to Supplier role', supplier });
+        res.status(200).json({ message: 'Supplier approved', supplier });
     } catch (err) {
+        console.error('Approve Supplier Error:', err);
         res.status(500).json({ message: 'Error approving supplier' });
     }
 };
@@ -128,10 +182,24 @@ export const approveSupplier = async (req, res) => {
 export const rejectSupplier = async (req, res) => {
     try {
         const { id } = req.params;
+        const { reason } = req.body;
+
+        // 1. Check if it's a SupplierApplication
+        const application = await SupplierApplication.findById(id);
+        if (application) {
+            application.status = 'Rejected';
+            application.rejectionReason = reason || 'Criteria not met';
+            application.reviewedAt = new Date();
+            await application.save();
+            return res.status(200).json({ message: 'Application rejected' });
+        }
+
+        // 2. Fallback to direct User update
         const supplier = await User.findByIdAndUpdate(id, { status: 'rejected' }, { new: true });
         if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
         res.status(200).json({ message: 'Supplier rejected successfully', supplier });
     } catch (err) {
+        console.error('Reject Supplier Error:', err);
         res.status(500).json({ message: 'Error rejecting supplier' });
     }
 };
@@ -458,8 +526,13 @@ export const getSystemConfig = async (req, res) => {
                 value: 50,
                 description: 'Base logistics fee for Normal Delivery mode'
             });
-            await Promise.all([defaultExpress.save(), defaultNormal.save()]);
-            configs = [defaultExpress, defaultNormal];
+            const defaultChat = new SystemConfig({
+                key: 'chat_welcome_message',
+                value: 'Hello! How can we help you today? Please describe your issue.',
+                description: 'First automatic message shown to customers in chat support'
+            });
+            await Promise.all([defaultExpress.save(), defaultNormal.save(), defaultChat.save()]);
+            configs = [defaultExpress, defaultNormal, defaultChat];
         }
         
         res.status(200).json(configs);

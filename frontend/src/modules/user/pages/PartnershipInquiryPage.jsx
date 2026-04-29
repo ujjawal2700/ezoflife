@@ -11,6 +11,9 @@ const PartnershipInquiryPage = () => {
     const [formData, setFormData] = useState({
         companyName: '',
         email: '',
+        phone: '',
+        location: '',
+        website: '',
         partnershipType: 'Logistics',
         proposal: ''
     });
@@ -102,6 +105,46 @@ const PartnershipInquiryPage = () => {
                                             placeholder="partnership@company.com" 
                                             value={formData.email}
                                             onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
+                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Phone Number</label>
+                                        <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                            <input 
+                                                required 
+                                                type="tel" 
+                                                placeholder="+91 ..." 
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Base Location</label>
+                                        <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                            <input 
+                                                required 
+                                                type="text" 
+                                                placeholder="e.g. Mumbai, MH" 
+                                                value={formData.location}
+                                                onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Website (Optional)</label>
+                                    <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                        <input 
+                                            type="url" 
+                                            placeholder="https://company.com" 
+                                            value={formData.website}
+                                            onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
                                             className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>

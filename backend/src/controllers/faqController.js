@@ -13,8 +13,8 @@ export const getAllFAQs = async (req, res) => {
 // Create a new FAQ
 export const createFAQ = async (req, res) => {
     try {
-        const { question, answer, category, order } = req.body;
-        const newFAQ = new FAQ({ question, answer, category, order });
+        const { question, answer, category, order, targetRole } = req.body;
+        const newFAQ = new FAQ({ question, answer, category, order, targetRole });
         await newFAQ.save();
         res.status(201).json(newFAQ);
     } catch (error) {

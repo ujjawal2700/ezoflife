@@ -121,6 +121,7 @@ export const becomeVendor = async (req, res) => {
 
         user.role = 'Vendor';
         user.status = 'pending'; // Global account status
+        user.displayName = shopName || user.displayName;
         user.isProfileComplete = true;
         
         user.shopDetails = {

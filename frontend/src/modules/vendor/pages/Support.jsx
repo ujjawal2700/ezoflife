@@ -1,16 +1,27 @@
-import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import VendorHeader from '../components/VendorHeader';
+import { faqApi } from '../../../lib/api';
 
 const Support = () => {
     const navigate = useNavigate();
+    const [faqs, setFaqs] = React.useState([]);
+    const [loading, setLoading] = React.useState(true);
 
-    const faqs = useMemo(() => [
-        { q: 'How do payouts work?', a: 'Payouts are processed every Friday for all orders completed in the previous week.' },
-        { q: 'Changing service prices', a: 'You can update your service prices anytime from the Services & Pricing menu.' },
-        { q: 'What is rider verification?', a: 'It\'s a security step to ensure the correct rider picks up and delivers orders.' },
-    ], []);
+    React.useEffect(() => {
+        const fetchFaqs = async () => {
+            try {
+                const data = await faqApi.getAll();
+                const vendorFaqs = data.filter(f => !f.targetRole || f.targetRole === 'Vendor' || f.targetRole === 'All');
+                setFaqs(vendorFaqs);
+            } catch (error) {
+                console.error('Fetch Vendor FAQs Error:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFaqs();
+    }, []);
 
     return (
         <div className="bg-[#F8FAFC] text-[#1E293B] min-h-screen pb-32 font-sans">
@@ -31,7 +42,10 @@ const Support = () => {
                         <p className="text-sm text-slate-500 font-medium">Our team is available 24/7 to assist you with any issues.</p>
                     </div>
                     <div className="flex flex-col gap-3">
-                        <button className="w-full py-4 rounded-2xl bg-[#3D5AFE] text-white font-bold text-sm shadow-lg shadow-[#3D5AFE]/20 flex items-center justify-center gap-2 hover:bg-[#304FFE] transition-all">
+                        <button 
+                            onClick={() => navigate('/user/support/tickets')}
+                            className="w-full py-4 rounded-2xl bg-[#3D5AFE] text-white font-bold text-sm shadow-lg shadow-[#3D5AFE]/20 flex items-center justify-center gap-2 hover:bg-[#304FFE] transition-all"
+                        >
                             <span className="material-symbols-outlined text-[20px]">chat</span>
                             Chat with Support
                         </button>
@@ -46,12 +60,17 @@ const Support = () => {
                 <section className="space-y-4">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1">Common Questions</label>
                     <div className="space-y-3">
-                        {faqs.map((faq, i) => (
+                        {loading ? (
+                            <div className="py-8 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">Syncing Knowledge Base...</div>
+                        ) : faqs.map((faq, i) => (
                             <div key={i} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm transition-all hover:bg-slate-50 cursor-pointer">
-                                <h4 className="text-sm font-bold text-slate-800 mb-2">{faq.q}</h4>
-                                <p className="text-xs text-slate-500 font-medium leading-relaxed">{faq.a}</p>
+                                <h4 className="text-sm font-bold text-slate-800 mb-2">{faq.question}</h4>
+                                <p className="text-xs text-slate-500 font-medium leading-relaxed">{faq.answer}</p>
                             </div>
                         ))}
+                        {!loading && faqs.length === 0 && (
+                            <div className="py-8 text-center opacity-30 italic text-xs font-bold uppercase tracking-widest">No FAQs available.</div>
+                        )}
                     </div>
                 </section>
 

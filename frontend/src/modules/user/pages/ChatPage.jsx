@@ -12,6 +12,8 @@ const ChatPage = () => {
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
+    const [displayedWelcome, setDisplayedWelcome] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
     const scrollRef = useRef(null);
     const socketRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -22,24 +24,61 @@ const ChatPage = () => {
     useEffect(() => {
         const initChat = async () => {
             try {
+                // Fetch dynamic welcome message
+                let welcomeMsg = 'Hello! How can we help you?';
+                try {
+                    const { adminApi } = await import('../../../lib/api');
+                    const configs = await adminApi.getConfigs();
+                    const chatConfig = configs.find(c => c.key === 'chat_welcome_message');
+                    if (chatConfig) welcomeMsg = chatConfig.value;
+                } catch (configErr) {
+                    console.error('Failed to fetch chat config:', configErr);
+                }
+
+                const finalMsg = welcomeMsg.replace('{orderId}', orderId);
                 const existingTicket = await ticketApi.getTicketByOrder(orderId);
+                
                 if (existingTicket) {
                     setTicket(existingTicket);
+                    setLoading(false);
                 } else {
+                    // NEW: Typing simulation for first-time chat
+                    setLoading(false); // Stop main loader early to show typing
+                    setIsTyping(true);
+                    
+                    setTimeout(() => {
+                        setIsTyping(false);
+                        let i = 0;
+                        const interval = setInterval(() => {
+                            setDisplayedWelcome(finalMsg.slice(0, i + 1));
+                            i++;
+                            if (i >= finalMsg.length) {
+                                clearInterval(interval);
+                                setTicket({
+                                    status: 'Open',
+                                    messages: [{ 
+                                        id: 'welcome', 
+                                        senderRole: 'Admin', 
+                                        message: finalMsg, 
+                                        isAI: true,
+                                        createdAt: new Date() 
+                                    }]
+                                });
+                            }
+                        }, 30);
+                    }, 1500);
+
+                    // Placeholder ticket while typing
                     setTicket({
                         status: 'Open',
-                        messages: [{ 
-                            id: 'welcome', 
-                            senderRole: 'Admin', 
-                            message: 'Hello! How can we help you with Order ' + orderId + '? Please describe any missing or damaged items.', 
-                            createdAt: new Date() 
-                        }]
+                        messages: []
                     });
                 }
             } catch (err) {
                 console.error('Chat Init Error:', err);
-            } finally {
                 setLoading(false);
+            } finally {
+                // Don't set loading false here if we're doing the typing simulation
             }
         };
 
@@ -192,6 +231,12 @@ const ChatPage = () => {
                         className={`flex ${msg.senderRole === 'Admin' ? 'justify-start' : 'justify-end'}`}
                     >
                         <div className={`max-w-[85%] space-y-2 ${msg.senderRole === 'Admin' ? '' : 'flex flex-col items-end'}`}>
+                            {msg.isAI && (
+                                <div className="flex items-center gap-1.5 px-1">
+                                    <span className="material-symbols-outlined text-[10px] text-primary animate-pulse">auto_awesome</span>
+                                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">AI Assistant</span>
+                                </div>
+                            )}
                             <div className={`p-5 rounded-[2rem] text-[13px] font-bold leading-relaxed shadow-sm ${
                                 msg.senderRole === 'Admin' 
                                     ? 'bg-surface-container-high text-on-surface rounded-tl-none border border-outline-variant/20' 
@@ -207,11 +252,43 @@ const ChatPage = () => {
                                 )}
                             </div>
                             <span className="text-[9px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] px-2">
-                                {msg.senderRole === 'Admin' ? 'Admin Support' : 'You'} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {msg.senderRole === 'Admin' ? (msg.isAI ? 'Spinzyt AI' : 'Admin Support') : 'You'} · {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         </div>
                     </motion.div>
                 ))}
+
+                {isTyping && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                        <div className="max-w-[85%] space-y-2">
+                            <div className="flex items-center gap-1.5 px-1">
+                                <span className="material-symbols-outlined text-[10px] text-primary animate-pulse">auto_awesome</span>
+                                <span className="text-[8px] font-black text-primary uppercase tracking-widest">AI is thinking...</span>
+                            </div>
+                            <div className="p-5 rounded-[2rem] bg-surface-container-high text-on-surface rounded-tl-none border border-outline-variant/20">
+                                <div className="flex gap-1">
+                                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" />
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {displayedWelcome && !ticket?.messages.some(m => m.id === 'welcome') && (
+                    <div className="flex justify-start">
+                        <div className="max-w-[85%] space-y-2">
+                            <div className="flex items-center gap-1.5 px-1">
+                                <span className="material-symbols-outlined text-[10px] text-primary">auto_awesome</span>
+                                <span className="text-[8px] font-black text-primary uppercase tracking-widest">AI Assistant</span>
+                            </div>
+                            <div className="p-5 rounded-[2rem] bg-surface-container-high text-on-surface rounded-tl-none border border-outline-variant/20 shadow-sm">
+                                {displayedWelcome}
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {ticket?.status === 'Resolved' && (
                     <motion.div 

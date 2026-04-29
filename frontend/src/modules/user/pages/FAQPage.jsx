@@ -25,10 +25,20 @@ const FAQPage = () => {
     }, []);
 
     const filteredFaqs = useMemo(() => {
-        return faqs.filter(f => 
-            f.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            f.answer.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+        const userRole = localStorage.getItem('userRole') || 'Customer';
+        const roleMapping = {
+            'customer': 'Customer',
+            'vendor': 'Vendor',
+            'supplier': 'Supplier'
+        };
+        const currentRole = roleMapping[userRole.toLowerCase()] || 'Customer';
+
+        return faqs
+            .filter(f => !f.targetRole || f.targetRole === 'All' || f.targetRole === currentRole)
+            .filter(f => 
+                f.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                f.answer.toLowerCase().includes(searchQuery.toLowerCase())
+            );
     }, [faqs, searchQuery]);
 
     const toggleExpand = (id) => {

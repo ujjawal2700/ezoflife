@@ -116,6 +116,44 @@ const RegisterAsVendorPage = () => {
     }
   };
 
+  const [uploading, setUploading] = useState(false);
+  const handleShopPhotoUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    
+    setUploading(true);
+    try {
+        const uploaded = [];
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('media', file);
+            const response = await fetch(`${BASE_URL}/media/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const res = await response.json();
+            if (res.fileUrl) uploaded.push(res.fileUrl);
+        }
+        setFormData(prev => ({ 
+            ...prev, 
+            shopPhotos: [...(prev.shopPhotos || []), ...uploaded] 
+        }));
+        toast.success('Shop photos added');
+    } catch (error) {
+        console.error('Upload Error:', error);
+        toast.error('Photo upload failed');
+    } finally {
+        setUploading(false);
+    }
+  };
+
+  const removeShopPhoto = (index) => {
+    setFormData(prev => ({
+        ...prev,
+        shopPhotos: prev.shopPhotos.filter((_, i) => i !== index)
+    }));
+  };
+
   const toggleService = (serviceId, basePrice) => {
     setFormData(prev => {
         const newRates = { ...prev.serviceRates };
@@ -343,6 +381,37 @@ const RegisterAsVendorPage = () => {
                                 <p className="text-[10px] font-black uppercase tracking-widest">{formData.aadharDoc ? 'Aadhar Loaded' : 'Aadhar Upload'}</p>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                <section className="space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <span className="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center font-black text-xs">04</span>
+                        <h3 className="font-black text-sm uppercase tracking-widest text-on-surface">Shop Photos</h3>
+                    </div>
+                    <div className="space-y-4">
+                        <label className="w-full p-8 border-2 border-dashed border-outline-variant/20 rounded-[2rem] flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all">
+                            <input type="file" multiple accept="image/*" onChange={handleShopPhotoUpload} className="hidden" />
+                            <span className="material-symbols-outlined text-4xl text-slate-300">add_a_photo</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{uploading ? 'UPLOADING...' : 'UPLOAD SHOP PHOTOS'}</span>
+                        </label>
+
+                        {formData.shopPhotos && formData.shopPhotos.length > 0 && (
+                            <div className="grid grid-cols-3 gap-3">
+                                {formData.shopPhotos.map((url, i) => (
+                                    <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-outline-variant/10 shadow-sm">
+                                        <img src={url} className="w-full h-full object-cover" />
+                                        <button 
+                                            type="button"
+                                            onClick={() => removeShopPhoto(i)}
+                                            className="absolute top-2 right-2 w-6 h-6 bg-black/50 text-white rounded-full flex items-center justify-center backdrop-blur-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-[12px]">close</span>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </section>
 

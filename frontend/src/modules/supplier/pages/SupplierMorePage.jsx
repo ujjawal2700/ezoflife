@@ -29,6 +29,7 @@ const SupplierMorePage = () => {
       icon: "help_center",
       items: [
         { icon: "support_agent", title: "Help Center", desc: "Guides & Tutorials", path: "/user/support" },
+        { icon: "chat", title: "Live Support", desc: "Direct Chat with Support", path: "/user/support/tickets" },
         { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
       ]
     },

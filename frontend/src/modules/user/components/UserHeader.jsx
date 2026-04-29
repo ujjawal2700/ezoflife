@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useNotificationStore from '../../../shared/stores/notificationStore';
+import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const UserHeader = () => {
   const navigate = useNavigate();
   const unreadCount = useNotificationStore((state) => state.unreadCount);
+  const { location, setPickerOpen } = useLocationStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [addressType, setAddressType] = useState('HOME');
   
@@ -29,7 +31,6 @@ const UserHeader = () => {
   };
 
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
-  const detectedAddr = localStorage.getItem('detected_address') || 'Select Location';
 
   const handleSaveAddress = () => {
     const fullAddr = `${addressData.line1}, ${addressData.line2}, ${addressData.city}`;
@@ -52,32 +53,21 @@ const UserHeader = () => {
           </div>
           
           <div className="h-6 w-px bg-slate-200" /> {/* Divider */}
-
+ 
           {/* 2. Current Address (Home/Office) */}
-          <div className="flex flex-col max-w-[150px] md:max-w-[200px] cursor-pointer group" onClick={() => setShowAddressModal(true)}>
+          <div className="flex flex-col max-w-[150px] md:max-w-[200px] cursor-pointer group" onClick={() => setPickerOpen(true)}>
             <div className="flex items-center gap-1">
               <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors group-hover:bg-primary group-hover:text-white">{addressType}</span>
               <span className="material-symbols-outlined text-slate-400 text-[14px] group-hover:text-primary transition-colors">expand_more</span>
             </div>
-            <p className="text-[11px] font-bold text-slate-500 truncate leading-tight mt-0.5 group-hover:text-slate-900 transition-colors">
-              {detectedAddr}
+            <p className="text-[11px] font-black text-slate-950 truncate leading-tight mt-0.5 group-hover:text-primary transition-colors italic">
+              {location ? (location.area || location.city) : 'Select Location'}
             </p>
           </div>
         </div>
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
-          {/* 3. Notification Bell */}
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/user/notifications')}
-            className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-50 rounded-full relative transition-colors"
-          >
-            <span className="material-symbols-outlined text-[24px]">notifications</span>
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-            )}
-          </motion.button>
 
           {/* 4. Profile Icon */}
           <motion.div 

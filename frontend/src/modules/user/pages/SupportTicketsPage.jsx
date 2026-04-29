@@ -1,22 +1,40 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ticketApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 
 const SupportTicketsPage = () => {
     const navigate = useNavigate();
-    const userData = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+    const userData = JSON.parse(
+        localStorage.getItem('user') || 
+        localStorage.getItem('userData') || 
+        localStorage.getItem('vendorData') || 
+        localStorage.getItem('supplierData') || 
+        '{}'
+    );
     const userId = userData._id || userData.id;
+    const userRole = userData.role || 'Customer';
 
     const { ticketId } = useParams();
+    const location = useLocation();
 
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [newTicket, setNewTicket] = useState({ subject: '', category: 'Others', description: '' });
+    const [newTicket, setNewTicket] = useState({ 
+        subject: '', 
+        category: 'Others', 
+        description: '',
+        orderId: ''
+    });
     const [selectedTicket, setSelectedTicket] = useState(null);
     const [chatMessage, setChatMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
+    
+    // Edit/Delete States
+    const [editingTicket, setEditingTicket] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     const chatEndRef = useRef(null);
 
@@ -54,6 +72,18 @@ const SupportTicketsPage = () => {
     }, [ticketId, userId]);
 
     useEffect(() => {
+        if (location.state?.preFill) {
+            setNewTicket({
+                subject: location.state.preFill.subject || '',
+                category: location.state.preFill.category || 'Others',
+                description: location.state.preFill.description || '',
+                orderId: location.state.preFill.orderId || ''
+            });
+            setShowCreateModal(true);
+        }
+    }, [location.state]);
+
+    useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [selectedTicket?.messages]);
 
@@ -61,17 +91,43 @@ const SupportTicketsPage = () => {
         if (!newTicket.subject || !newTicket.description) return;
         try {
             setIsSending(true);
-            const res = await ticketApi.createTicket({ 
-                customer: userId, 
-                ...newTicket 
-            });
-            setTickets([res, ...tickets]);
+            if (editingTicket) {
+                // Update Logic
+                const res = await ticketApi.updateTicket(editingTicket._id, newTicket);
+                setTickets(tickets.map(t => t._id === editingTicket._id ? { ...t, ...res } : t));
+                toast.success('Ticket updated successfully!');
+            } else {
+                // Create Logic
+                const res = await ticketApi.createTicket({ 
+                    customer: userId, 
+                    ...newTicket 
+                });
+                toast.success('Ticket created successfully!');
+                setTickets([res, ...tickets]);
+            }
             setShowCreateModal(false);
-            setNewTicket({ subject: '', category: 'Others', description: '' });
+            setEditingTicket(null);
+            setNewTicket({ subject: '', category: 'Others', description: '', orderId: '' });
         } catch (err) {
-            alert('Failed to create ticket');
+            toast.error(editingTicket ? 'Failed to update ticket' : 'Ticket not created. Please try again.');
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const handleDeleteTicket = async (tid, e) => {
+        e.stopPropagation();
+        if (!window.confirm('Are you sure you want to delete this ticket?')) return;
+        try {
+            setIsDeleting(true);
+            await ticketApi.deleteTicket(tid);
+            setTickets(tickets.filter(t => t._id !== tid));
+            toast.success('Ticket deleted');
+            if (selectedTicket?._id === tid) setSelectedTicket(null);
+        } catch (err) {
+            toast.error('Failed to delete ticket');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -89,7 +145,7 @@ const SupportTicketsPage = () => {
             // Refresh main list to update "lastMessage" preview
             fetchTickets();
         } catch (err) {
-            alert('Failed to send message');
+            toast.error('Failed to send message');
         } finally {
             setIsSending(false);
         }
@@ -99,10 +155,23 @@ const SupportTicketsPage = () => {
         <div className="bg-background text-on-surface min-h-[100dvh] font-body flex flex-col">
             <header className="fixed top-0 z-50 bg-white/80 backdrop-blur-xl w-full flex items-center justify-between px-6 py-4 border-b border-outline-variant/10">
                 <div className="flex items-center">
-                    <button onClick={() => ticketId ? navigate('/user/support/tickets') : navigate(-1)} className="material-symbols-outlined text-on-surface mr-4">
+                    <button 
+                        onClick={() => {
+                            if (ticketId) {
+                                navigate('/user/support/tickets');
+                            } else {
+                                if (userRole === 'Vendor') navigate('/vendor/dashboard');
+                                else if (userRole === 'Supplier') navigate('/supplier/dashboard');
+                                else navigate('/user/more');
+                            }
+                        }} 
+                        className="material-symbols-outlined text-on-surface mr-4"
+                    >
                         {ticketId ? 'close' : 'arrow_back'}
                     </button>
-                    <h1 className="font-headline font-black text-xl text-primary tracking-tighter">Support Pulse</h1>
+                    <h1 className="font-headline font-black text-xl text-primary tracking-tighter">
+                        {userRole === 'Vendor' ? 'Vendor Support' : userRole === 'Supplier' ? 'Supplier Support' : 'Support Pulse'}
+                    </h1>
                 </div>
                 {!ticketId && (
                     <button 
@@ -210,8 +279,30 @@ const SupportTicketsPage = () => {
                                                 {ticket.messages && ticket.messages.length > 0 ? ticket.messages[ticket.messages.length - 1]?.message : 'No messages yet'}
                                             </p>
                                         </div>
-                                        <div className="text-right">
-                                            <span className="material-symbols-outlined text-primary/40">chevron_right</span>
+                                        <div className="flex flex-col gap-2">
+                                            {ticket.status !== 'Resolved' && (
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setEditingTicket(ticket);
+                                                        setNewTicket({
+                                                            subject: ticket.subject,
+                                                            category: ticket.category,
+                                                            description: ticket.description
+                                                        });
+                                                        setShowCreateModal(true);
+                                                    }}
+                                                    className="w-8 h-8 bg-slate-100 text-slate-400 rounded-lg flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all"
+                                                >
+                                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={(e) => handleDeleteTicket(ticket._id, e)}
+                                                className="w-8 h-8 bg-red-50 text-red-400 rounded-lg flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">delete</span>
+                                            </button>
                                         </div>
                                     </motion.button>
                                 ))}
@@ -243,7 +334,9 @@ const SupportTicketsPage = () => {
                             initial={{ y: 50 }} animate={{ y: 0 }} exit={{ y: 50 }}
                             className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl"
                         >
-                            <h3 className="text-2xl font-black tracking-tighter mb-6 uppercase">Raise Concern</h3>
+                            <h3 className="text-2xl font-black tracking-tighter mb-6 uppercase">
+                                {editingTicket ? 'Edit Concern' : 'Raise Concern'}
+                            </h3>
                             <div className="space-y-5">
                                 <div>
                                     <label className="block text-[9px] font-black uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Issue Subject</label>
@@ -274,13 +367,17 @@ const SupportTicketsPage = () => {
                                     />
                                 </div>
                                 <div className="flex gap-4 pt-4">
-                                    <button onClick={() => setShowCreateModal(false)} className="flex-1 py-4 font-black text-[10px] uppercase tracking-widest text-on-surface-variant">Cancel</button>
+                                    <button onClick={() => {
+                                        setShowCreateModal(false);
+                                        setEditingTicket(null);
+                                        setNewTicket({ subject: '', category: 'Others', description: '' });
+                                    }} className="flex-1 py-4 font-black text-[10px] uppercase tracking-widest text-on-surface-variant">Cancel</button>
                                     <button 
                                         onClick={handleCreateTicket}
                                         disabled={isSending || !newTicket.subject || !newTicket.description}
                                         className="flex-1 bg-primary text-on-primary py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all"
                                     >
-                                        Submit Ticket
+                                        {editingTicket ? 'Update Ticket' : 'Submit Ticket'}
                                     </button>
                                 </div>
                             </div>

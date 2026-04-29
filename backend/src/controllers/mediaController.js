@@ -2,22 +2,22 @@ import Media from '../models/Media.js';
 import AdInquiry from '../models/AdInquiry.js';
 
 export const uploadMedia = async (req, res) => {
-    console.log('--- POST Upload Media Kit Requested ---');
+    console.log('--- POST Upload Media Kit Requested (Cloudinary) ---');
     try {
         if (!req.file) {
             console.log('Upload failed: No file provided.');
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        console.log(`Uploading file locally: ${req.file.originalname} to ${req.file.path}`);
+        console.log(`File uploaded to Cloudinary: ${req.file.originalname} at ${req.file.path}`);
         
-        // Construct Local URL dynamically
-        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        // Cloudinary path is the URL
+        const fileUrl = req.file.path;
 
         const newMedia = new Media({
             fileName: req.file.originalname,
             fileUrl: fileUrl,
-            fileType: 'PDF'
+            fileType: req.file.mimetype.includes('pdf') ? 'PDF' : 'IMAGE'
         });
 
         await newMedia.save();
@@ -35,7 +35,7 @@ export const uploadMultipleMedia = async (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
-        const fileUrls = req.files.map(file => `${req.protocol}://${req.get('host')}/uploads/${file.filename}`);
+        const fileUrls = req.files.map(file => file.path);
         res.status(201).json({ urls: fileUrls });
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -67,8 +67,8 @@ export const getLatestMedia = async (req, res) => {
     }
 };export const submitInquiry = async (req, res) => {
     try {
-        const { brandName, phone, budget, timeline } = req.body;
-        const inquiry = new AdInquiry({ brandName, phone, budget, timeline });
+        const { brandName, email, phone, location, budget, timeline } = req.body;
+        const inquiry = new AdInquiry({ brandName, email, phone, location, budget, timeline });
         await inquiry.save();
         res.status(201).json(inquiry);
     } catch (err) {

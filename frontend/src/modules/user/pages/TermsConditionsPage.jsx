@@ -1,16 +1,26 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { legalApi } from '../../../lib/api';
 
 const TermsConditionsPage = () => {
   const navigate = useNavigate();
+  const [doc, setDoc] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const sections = useMemo(() => [
-    { title: 'Service Usage', content: 'By using our services, you agree to provide accurate information and follow our operational protocols. We reserve the right to refuse service if safety or operational standards are not met.' },
-    { title: 'Cancellation & Fees', content: 'Orders can be cancelled free of charge before a rider is assigned for pickup. Late cancellations may incur a fee. We maintain clear billing through our secure vault system.' },
-    { title: 'Item Care', content: 'We handle every garment with extreme care. Any specific care instructions should be mentioned during pickup. Liability for damages is limited to a fixed multiple of the service fee.' },
-    { title: 'Account Governance', content: 'Users are responsible for maintaining the security of their accounts. Any suspicious activity should be reported immediately to our support center.' }
-  ], []);
+  useEffect(() => {
+    const fetchDoc = async () => {
+        try {
+            const data = await legalApi.getByType('terms-conditions');
+            setDoc(data);
+        } catch (error) {
+            console.error('Fetch Terms & Conditions Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchDoc();
+  }, []);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -44,24 +54,50 @@ const TermsConditionsPage = () => {
         >
           <span className="text-[10px] uppercase tracking-[0.3em] text-primary font-black mb-1 block opacity-60">Rules of Engagement</span>
           <h2 className="text-3xl font-black tracking-tighter leading-none mb-3">Service Terms,<br/>Defined Clearly.</h2>
-          <p className="text-[11px] font-bold text-on-surface-variant opacity-60 mt-4 uppercase tracking-widest leading-relaxed">
-            Last Updated: March 25, 2026
-          </p>
+          {doc && (
+            <p className="text-[11px] font-bold text-on-surface-variant opacity-60 mt-4 uppercase tracking-widest leading-relaxed">
+              Last Updated: {new Date(doc.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </motion.section>
 
-        <section className="space-y-10 px-2">
-          {sections.map((sec, i) => (
-            <motion.div 
-              key={i}
-              variants={itemVariants}
-              className="space-y-4"
-            >
-              <h3 className="font-headline font-black text-lg text-primary tracking-tight leading-none uppercase">{sec.title}</h3>
-              <p className="text-[13px] font-bold text-on-surface-variant opacity-60 leading-relaxed max-w-[90%]">
-                {sec.content}
-              </p>
-            </motion.div>
-          ))}
+        <section className="space-y-10 px-2 min-h-[300px]">
+          {loading ? (
+            <div className="py-20 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Loading terms...</div>
+          ) : (
+            <div className="space-y-8">
+              {doc?.content ? (
+                <div 
+                  className="text-[14px] font-medium text-on-surface-variant leading-relaxed legal-content"
+                  dangerouslySetInnerHTML={{ __html: doc.content }}
+                />
+              ) : (
+                <p className="text-slate-400 italic text-sm">Terms and conditions are currently being updated.</p>
+              )}
+
+              {doc?.pdfUrl && (
+                <motion.div variants={itemVariants} className="pt-8">
+                  <a 
+                    href={doc.pdfUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl shadow-slate-900/10 active:scale-95 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                        <span className="material-symbols-outlined text-white">picture_as_pdf</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/60 leading-none mb-1">Official Document</p>
+                        <p className="text-sm font-black tracking-tight">View Terms & Conditions PDF</p>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined">chevron_right</span>
+                  </a>
+                </motion.div>
+              )}
+            </div>
+          )}
         </section>
 
         <motion.section variants={itemVariants} className="mt-20 p-8 rounded-[2.5rem] bg-surface-container-low border border-outline-variant/5 text-center">
