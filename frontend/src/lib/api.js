@@ -7,12 +7,15 @@ export const categoryApi = {
         return res.json();
     },
     getMain: async () => {
-        const res = await fetch(`${BASE_URL}/categories/main`);
-        return res.json();
+        const res = await fetch(`${BASE_URL}/categories`);
+        const data = await res.json();
+        // Return unique main categories
+        return Array.from(new Set(data.map(c => c.mainCategory))).map(name => ({ name }));
     },
-    getSub: async (parentId) => {
-        const res = await fetch(`${BASE_URL}/categories/sub/${parentId}`);
-        return res.json();
+    getSub: async (mainCategory) => {
+        const res = await fetch(`${BASE_URL}/categories`);
+        const data = await res.json();
+        return data.filter(c => c.mainCategory === mainCategory);
     },
     create: async (data) => {
         const res = await fetch(`${BASE_URL}/categories`, {
@@ -639,6 +642,15 @@ export const orderApi = {
             return await response.json();
         } catch (error) {
             console.error('Get Orders Error:', error);
+            throw error;
+        }
+    },
+    getNearbyVendors: async (lat, lng, radius = 10) => {
+        try {
+            const response = await fetch(`${BASE_URL}/orders/nearby-vendors?lat=${lat}&lng=${lng}&radius=${radius}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Nearby Vendors Error:', error);
             throw error;
         }
     },
@@ -1306,7 +1318,9 @@ export const promotionApi = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to create promotion');
+            return result;
         } catch (error) {
             console.error('Create Promo Error:', error);
             throw error;
@@ -1315,7 +1329,9 @@ export const promotionApi = {
     getVendorPromos: async (vendorId) => {
         try {
             const response = await fetch(`${BASE_URL}/promotions/vendor?vendorId=${vendorId}`);
-            return await response.json();
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to fetch vendor promotions');
+            return result;
         } catch (error) {
             console.error('Get Vendor Promos Error:', error);
             throw error;
@@ -1324,9 +1340,24 @@ export const promotionApi = {
     getApplicablePromos: async (vendorId) => {
         try {
             const response = await fetch(`${BASE_URL}/promotions/applicable?vendorId=${vendorId}`);
-            return await response.json();
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to fetch applicable promotions');
+            return result;
         } catch (error) {
             console.error('Get Applicable Promos Error:', error);
+            throw error;
+        }
+    },
+    validate: async (data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/promotions/validate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Validate Promo Error:', error);
             throw error;
         }
     },
@@ -1397,59 +1428,37 @@ export const jobApi = {
 
 export const masterServiceApi = {
     getAll: async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/master-services`);
-            return await response.json();
-        } catch (error) {
-            console.error('Master Service API Error:', error);
-            throw error;
-        }
+        const res = await fetch(`${BASE_URL}/master-services`);
+        return res.json();
+    },
+    getPricingPreview: (areaId, categoryId) => 
+        fetch(`${BASE_URL}/master-services/preview?area_id=${areaId}&category_id=${encodeURIComponent(categoryId)}`)
+        .then(res => res.json()),
+    getVendorRates: async (id) => {
+        const res = await fetch(`${BASE_URL}/master-services/${id}/vendor-rates`);
+        return res.json();
     },
     create: async (data) => {
-        try {
-            const response = await fetch(`${BASE_URL}/master-services`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Create Master Service Error:', error);
-            throw error;
-        }
+        const res = await fetch(`${BASE_URL}/master-services`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return res.json();
     },
     update: async (id, data) => {
-        try {
-            const response = await fetch(`${BASE_URL}/master-services/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Update Master Service Error:', error);
-            throw error;
-        }
+        const res = await fetch(`${BASE_URL}/master-services/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return res.json();
     },
     delete: async (id) => {
-        try {
-            const response = await fetch(`${BASE_URL}/master-services/${id}`, {
-                method: 'DELETE'
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Delete Master Service Error:', error);
-            throw error;
-        }
-    },
-    getVendorRates: async (id) => {
-        try {
-            const response = await fetch(`${BASE_URL}/master-services/${id}/vendors`);
-            return await response.json();
-        } catch (error) {
-            console.error('Get Vendor Rates Error:', error);
-            throw error;
-        }
+        const res = await fetch(`${BASE_URL}/master-services/${id}`, {
+            method: 'DELETE'
+        });
+        return res.json();
     }
 };
 
@@ -1498,5 +1507,32 @@ export const legalApi = {
             body: JSON.stringify(data)
         });
         return await response.json();
+    }
+};
+
+export const geofenceApi = {
+    checkAvailability: async (lat, lng) => {
+        try {
+            const response = await fetch(`${BASE_URL}/geofence/check-availability?lat=${lat}&lng=${lng}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Geofence API Error:', error);
+            throw error;
+        }
+    }
+};
+
+export const areaOverrideApi = {
+    save: async (data) => {
+        const res = await fetch(`${BASE_URL}/area-overrides`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    getByArea: async (areaId) => {
+        const res = await fetch(`${BASE_URL}/area-overrides/area/${areaId}`);
+        return res.json();
     }
 };

@@ -4,8 +4,10 @@ import { useLocationStore } from '../stores/locationStore';
 import { locationService } from '../../lib/locationService';
 import toast from 'react-hot-toast';
 
+import { geofenceApi } from '../../lib/api';
+
 const LocationPrompt = () => {
-  const { isPromptOpen, setPromptOpen, setLocation, setPermissionStatus, setPickerOpen } = useLocationStore();
+  const { isPromptOpen, setPromptOpen, setLocation, setPermissionStatus, setPickerOpen, setZoneData } = useLocationStore();
   const [loading, setLoading] = useState(false);
 
   const handleAllowLocation = async () => {
@@ -17,6 +19,16 @@ const LocationPrompt = () => {
       const addressData = await locationService.reverseGeocode(coords.lat, coords.lng);
       setLocation(addressData);
       
+      // Check for Geofence/Zone
+      try {
+        const zoneInfo = await geofenceApi.checkAvailability(coords.lat, coords.lng);
+        if (zoneInfo.available) {
+          setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
+        }
+      } catch (zoneErr) {
+        console.error('Zone check error:', zoneErr);
+      }
+
       toast.success('Location detected successfully!');
       setPromptOpen(false);
     } catch (error) {

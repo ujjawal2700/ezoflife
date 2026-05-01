@@ -1,35 +1,30 @@
 import mongoose from 'mongoose';
 
 const masterServiceSchema = new mongoose.Schema({
-    name: { 
+    itemName: { 
         type: String, 
         required: true, 
-        unique: true,
         trim: true 
     },
-    icon: { 
-        type: String, 
-        default: 'local_laundry_service' 
+    categoryId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Category',
+        required: true 
     },
     basePrice: { 
         type: Number, 
         required: true,
         default: 0 
     },
-    category: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Category',
-        required: true 
+    discountedPrice: {
+        type: Number,
+        required: true,
+        default: 0
     },
-    subCategory: { 
-        type: mongoose.Schema.Types.ObjectId, 
-        ref: 'Category',
-        default: null
-    },
-    targetAudience: {
+    unit: {
         type: String,
-        enum: ['individual', 'retail', 'both'],
-        default: 'both'
+        enum: ['per_item', 'per_kg'],
+        default: 'per_item'
     },
     description: {
         type: String,
@@ -39,22 +34,22 @@ const masterServiceSchema = new mongoose.Schema({
         type: Boolean, 
         default: true 
     },
-    address: {
+    skuId: {
         type: String,
-        default: ''
+        unique: true,
+        sparse: true
     },
-    location: {
-        lat: { type: Number, default: 0 },
-        lng: { type: Number, default: 0 }
+    icon: { 
+        type: String, 
+        default: 'local_laundry_service' 
     },
     tier: {
         type: String,
         enum: ['Essential', 'Heritage'],
         default: 'Essential'
     },
-    tags: {
-        type: [String],
-        default: []
+    excelCategoryId: {
+        type: Number
     }
 }, { timestamps: true });
 

@@ -257,8 +257,8 @@ const Dashboard = () => {
 
     const categorizedOrders = useMemo(() => {
         return {
-            'Available': allOrders.filter(o => o.status === 'Assigned'),
-            'In Progress': allOrders.filter(o => ['Picked Up', 'In Progress'].includes(o.status)),
+            'Available': [], // Pool orders are handled separately via poolOrders state
+            'In Progress': allOrders.filter(o => ['Assigned', 'Picked Up', 'In Progress'].includes(o.status)),
             'Ready': allOrders.filter(o => ['Ready', 'Out for Delivery', 'Delivered'].includes(o.status))
         };
     }, [allOrders]);
@@ -808,6 +808,19 @@ const Dashboard = () => {
                                                         </div>
                                                     </div>
                                                     
+
+                                                    {activeTab === 'In Progress' && order.status === 'Picked Up' && (
+                                                        <div className="flex items-center gap-2 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-100">
+                                                            <div className="relative">
+                                                                <span className="material-symbols-outlined text-amber-500 text-xl animate-pulse">electric_moped</span>
+                                                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-ping"></span>
+                                                            </div>
+                                                            <div className="flex flex-col">
+                                                                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none">Rider Pickup</p>
+                                                                <p className="text-[8px] font-bold text-amber-400 uppercase mt-1">En Route to Shop</p>
+                                                            </div>
+                                                        </div>
+                                                    )}
 
                                                     {activeTab === 'Completed' && (
                                                         <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">

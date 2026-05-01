@@ -262,9 +262,9 @@ export default function ServiceAreas() {
                         {drawingMode && (
                             <DrawingManager
                                 onPolygonComplete={onPolygonComplete}
+                                drawingMode={window.google?.maps?.drawing?.OverlayType?.POLYGON || 'polygon'}
                                 options={{
                                     drawingControl: false,
-                                    drawingMode: drawingMode === 'polygon' ? 'polygon' : null,
                                     polygonOptions: {
                                         fillColor: '#3b82f6',
                                         fillOpacity: 0.3,
@@ -338,18 +338,22 @@ export default function ServiceAreas() {
                 )}
 
                 {drawingMode && (
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-10 bg-white rounded-[3rem] shadow-2xl border border-slate-200 text-center animate-pulse">
-                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-6">
-                            <Plus size={40} />
+                    <div className="absolute top-8 left-1/2 -translate-x-1/2 p-6 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl border border-slate-200 text-center animate-pulse z-[1000] pointer-events-none">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                                <Plus size={20} />
+                            </div>
+                            <div className="text-left">
+                                <h4 className="text-xs font-black text-slate-900 uppercase tracking-tighter">Drawing Active</h4>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Click on the map to define corners</p>
+                            </div>
+                            <button 
+                                onClick={() => setDrawingMode(null)}
+                                className="ml-4 px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest pointer-events-auto"
+                            >
+                                Cancel
+                            </button>
                         </div>
-                        <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter mb-2">Drawing Active</h4>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Click on the map to define the corners of your zone.</p>
-                        <button 
-                            onClick={() => setDrawingMode(null)}
-                            className="mt-8 px-8 py-3 border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors"
-                        >
-                            Cancel Drawing
-                        </button>
                     </div>
                 )}
             </div>

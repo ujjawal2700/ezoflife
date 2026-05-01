@@ -16,7 +16,8 @@ import {
     deleteOrder,
     createWalkInOrder,
     markOrderReady,
-    verifyHandshake
+    verifyHandshake,
+    handleGetNearbyVendors
 } from '../controllers/orderController.js';
 
 const router = express.Router();
@@ -28,6 +29,7 @@ router.get('/trace', (req, res) => res.json({ msg: 'Order Router is ALIVE' }));
 router.get('/pool', getPoolOrders);
 router.get('/vendor', getVendorOrders);
 router.get('/my', getMyOrders);
+router.get('/nearby-vendors', handleGetNearbyVendors);
 router.post('/vendor-accept/:id', vendorAcceptOrder);
 
 // Create new order

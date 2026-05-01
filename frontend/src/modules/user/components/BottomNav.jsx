@@ -7,7 +7,13 @@ const BottomNav = () => {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const userRole = useMemo(() => (localStorage.getItem('userRole') || 'customer').toLowerCase(), []);
+  const userRole = useMemo(() => {
+    try {
+      return (localStorage.getItem('userRole') || 'customer').toLowerCase();
+    } catch (e) {
+      return 'customer';
+    }
+  }, []);
 
   const navItems = useMemo(() => {
     switch (userRole) {
@@ -45,7 +51,11 @@ const BottomNav = () => {
   const handleNavClick = (path) => {
     // Public paths allowed without login
     const publicPaths = ['/user/home', '/user/more', '/user/land'];
-    const token = localStorage.getItem('token');
+    const getSafeToken = () => {
+      try { return localStorage.getItem('token'); }
+      catch (e) { return null; }
+    };
+    const token = getSafeToken();
 
     if (!token && !publicPaths.includes(path)) {
       navigate('/user/auth');

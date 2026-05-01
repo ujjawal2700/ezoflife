@@ -38,6 +38,8 @@ import ServiceAreas from '../pages/ServiceAreas';
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
+import PricingPreview from '../pages/PricingPreview';
+import AreaPricingOverrides from '../pages/AreaPricingOverrides';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -97,6 +99,9 @@ const AdminRoutes = () => {
         <Route path="/vendor-ranking" element={<VendorRankingEngine />} />
         <Route path="/legal" element={<AdminLegalPage />} />
         <Route path="/geofencing" element={<ServiceAreas />} />
+        <Route path="/pricing-preview" element={<PricingPreview />} />
+        <Route path="/pricing-overrides" element={<AreaPricingOverrides />} />
+        <Route path="/feedback" element={<FeedbackManagement />} />
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 

@@ -5,7 +5,8 @@ import {
     getAllMasterServices, 
     updateMasterService, 
     deleteMasterService,
-    getVendorPricingReport
+    getVendorPricingReport,
+    getPricingPreview
 } from '../controllers/masterServiceController.js';
 
 router.delete('/clear-all', async (req, res) => {
@@ -21,6 +22,7 @@ router.delete('/clear-all', async (req, res) => {
 router.post('/', createMasterService);
 router.get('/', getAllMasterServices);
 router.get('/:serviceId/vendors', getVendorPricingReport);
+router.get('/preview', getPricingPreview);
 router.put('/:id', updateMasterService);
 router.delete('/:id', deleteMasterService);
 

@@ -1,4 +1,5 @@
 console.log('🔥 SERVER IS BOOTING WITH LATEST ADMIN CLEANUP CODE (APR 26)...');
+// Server updated at 2026-04-29T11:58:25
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -35,6 +36,7 @@ import categoryRoutes from './src/routes/categoryRoutes.js';
 import legalRoutes from './src/routes/legalRoutes.js';
 import supplierRoutes from './src/routes/supplierRoutes.js';
 import geofenceRoutes from './src/routes/geofenceRoutes.js';
+import areaOverrideRoutes from './src/routes/areaOverrideRoutes.js';
 
 import SystemConfig from './src/models/SystemConfig.js';
 import { getSystemConfig, updateSystemConfig } from './src/controllers/adminController.js';
@@ -123,6 +125,7 @@ app.use('/api/ads', adRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/geofence', geofenceRoutes);
+app.use('/api/area-overrides', areaOverrideRoutes);
 
 // Labor Routes
 app.post('/api/labor/add', addSpecialist);

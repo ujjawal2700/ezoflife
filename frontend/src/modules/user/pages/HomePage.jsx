@@ -1,20 +1,36 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi } from '../../../lib/api';
+import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const HomePage = () => {
+  console.log('HomePage Rendering');
   const navigate = useNavigate();
-  const { location, setPromptOpen, setPickerOpen } = useLocationStore();
+  const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData } = useLocationStore();
   
   useEffect(() => {
     // Automatically attempt to trigger location prompt if not set
     if (!location) {
       setTimeout(() => setPromptOpen(true), 1500);
+    } else {
+      // Silent re-check geofence to get latest pricing factors
+      const recheckZone = async () => {
+        try {
+          const zoneInfo = await geofenceApi.checkAvailability(location.lat, location.lng);
+          if (zoneInfo.available) {
+            setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
+          } else {
+            setZoneData({ name: null, pricingFactor: 1 });
+          }
+        } catch (err) {
+          console.error('Silent zone check failed:', err);
+        }
+      };
+      recheckZone();
     }
-  }, [location, setPromptOpen]);
+  }, [location, setPromptOpen, setZoneData]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState('Essential'); // 'Essential' or 'Heritage'
@@ -49,8 +65,41 @@ const HomePage = () => {
     return dates;
   }, []);
 
-  const [selectedPickup, setSelectedPickup] = useState(() => localStorage.getItem('pickup_date') || '');
-  const [pickupTime, setPickupTime] = useState(() => localStorage.getItem('pickup_time') || '');
+  const timeSlots = useMemo(() => [
+    '07:00 AM - 09:00 AM', '09:00 AM - 11:00 AM', '11:00 AM - 01:00 PM',
+    '01:00 PM - 03:00 PM', '03:00 PM - 05:00 PM', '05:00 PM - 07:00 PM',
+    '07:00 PM - 09:00 PM', '08:00 PM - 10:00 PM'
+  ], []);
+
+  // Helper to get JS Date from slot string
+  const getSlotDateTime = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return null;
+    const [dayPart, datePart] = dateStr.split(', ');
+    const [timePart] = timeStr.split(' - ');
+    const d = new Date(datePart + ' ' + new Date().getFullYear());
+    
+    let [time, modifier] = timePart.split(' ');
+    let [hours, minutes] = time.split(':');
+    if (hours === '12') hours = '00';
+    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+    
+    d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    return d;
+  };
+
+  const [selectedPickup, setSelectedPickup] = useState(() => {
+    const saved = localStorage.getItem('pickup_date');
+    if (saved) return saved;
+    const today = availableDates[0];
+    return `${today.day}, ${today.date}`;
+  });
+
+  const [pickupTime, setPickupTime] = useState(() => {
+    const saved = localStorage.getItem('pickup_time');
+    if (saved) return saved;
+    return timeSlots[0];
+  });
+
   const [selectedDelivery, setSelectedDelivery] = useState(() => localStorage.getItem('delivery_date') || '');
   const [deliveryTime, setDeliveryTime] = useState(() => localStorage.getItem('delivery_time') || '');
   
@@ -76,13 +125,11 @@ const HomePage = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [uploading, setUploading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [customAddress, setCustomAddress] = useState('');
+  const [showAddressForm, setShowAddressForm] = useState(false);
 
   const isSlotsPicked = selectedPickup && pickupTime && selectedDelivery && deliveryTime;
-
-  const timeSlots = useMemo(() => [
-    '08:00 AM - 10:00 AM', '10:00 AM - 12:00 PM', '12:00 PM - 02:00 PM',
-    '02:00 PM - 04:00 PM', '04:00 PM - 06:00 PM', '06:00 PM - 08:00 PM'
-  ], []);
 
   // PERSIST LOGISTICS
   useEffect(() => {
@@ -119,14 +166,22 @@ const HomePage = () => {
       const userId = userData._id || userData.id;
       if (userId) {
         const profile = await authApi.getProfile(userId);
+        let addrList = [];
+        
+        // 1. Root profile address
         if (profile.address) {
-          // Assume profile address is "HOME" by default or try to parse
-          const addrList = [
-            { id: 'profile_home', type: 'HOME', address: profile.address, location: profile.location || null }
-          ];
-          setSavedAddresses(addrList);
-          if (!pickupAddress) setPickupAddress(addrList[0]);
+          addrList.push({ id: 'profile_root', type: 'Profile', address: profile.address, location: profile.location || null });
         }
+        
+        // 2. Specialized addresses array
+        if (profile.addresses && profile.addresses.length > 0) {
+          profile.addresses.forEach((a, idx) => {
+            addrList.push({ id: a._id || idx, type: a.type.toUpperCase(), address: a.address, location: a.location });
+          });
+        }
+
+        setSavedAddresses(addrList);
+        if (!pickupAddress && addrList.length > 0) setPickupAddress(addrList[0]);
       }
     } catch (err) {
       console.error('Error fetching delivery config/profile:', err);
@@ -208,7 +263,7 @@ const HomePage = () => {
   }, []);
 
   const filteredServices = useMemo(() => {
-    return services.filter(s => {
+    let result = services.filter(s => {
       // Tier filter
       if ((s.tier || 'Essential') !== selectedTier) return false;
       
@@ -229,12 +284,28 @@ const HomePage = () => {
       
       return true;
     });
+
+    // If no category/search is active, limit to 10
+    if (!selectedCategory && !selectedSubCategory && !searchQuery) {
+        return result.slice(0, 10);
+    }
+
+    return result;
   }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory]);
 
   const updateQuantity = (id, delta) => {
     setSelectedQuantities(prev => {
       const current = prev[id] || 0;
       const next = Math.max(0, current + delta);
+      
+      // If adding, try to preserve vendor context
+      if (delta > 0) {
+        const service = services.find(s => (s._id || s.id) === id);
+        if (service?.vendorId) {
+          localStorage.setItem('last_visited_vendor_id', service.vendorId);
+        }
+      }
+
       if (next === 0) {
         const { [id]: _, ...rest } = prev;
         return rest;
@@ -246,9 +317,10 @@ const HomePage = () => {
   const cartItemsCount = useMemo(() => Object.values(selectedQuantities).reduce((acc, q) => acc + q, 0), [selectedQuantities]);
   const cartTotal = useMemo(() => Object.entries(selectedQuantities).reduce((acc, [id, q]) => {
     const service = services.find(s => (s._id || s.id) === id);
-    const price = service?.totalPrice || service?.basePrice || 0;
+    const actualPrice = service?.discountedPrice || service?.totalPrice || service?.basePrice || 0;
+    const price = actualPrice * pricingFactor;
     return acc + price * q; 
-  }, 0), [selectedQuantities, services]);
+  }, 0), [selectedQuantities, services, pricingFactor]);
   
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -290,12 +362,140 @@ const HomePage = () => {
     navigate('/user/service-info', { 
       state: { 
         selectedService: { 
-          id: serviceId, title: service.name, desc: service.description, image: service.image, 
+          id: serviceId, 
+          _id: serviceId,
+          name: service.name,
+          title: service.name, 
+          desc: service.description, 
+          image: service.image, 
+          vendorId: service.vendorId,
+          vendor: service.vendor,
           color: isHeritage ? 'heritage' : (i % 3 === 0 ? 'primary' : i % 3 === 1 ? 'secondary' : 'tertiary'), 
-          price: `₹${service.totalPrice}.00` 
+          price: `₹${service.totalPrice}.00`,
+          totalPrice: service.totalPrice,
+          basePrice: service.basePrice
         } 
       } 
     });
+
+    // Save vendor context for promotions
+    if (service.vendorId) {
+      localStorage.setItem('last_visited_vendor_id', service.vendorId);
+    }
+  };
+
+  const [addressLabel, setAddressLabel] = useState('Home'); // Home, Office, Other
+  const [isSaving, setIsSaving] = useState(false);
+
+  const saveNewAddress = async () => {
+    if (!customAddress) return alert('Please enter address first');
+    
+    setIsSaving(true);
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = userData._id || userData.id;
+      if (!userId) return alert('Please login to save address');
+
+      const profile = await authApi.getProfile(userId);
+      const existingAddresses = profile.addresses || [];
+      
+      const newAddressObj = {
+        type: addressLabel,
+        address: customAddress,
+        location: pickupAddress?.location || null
+      };
+
+      const updatedAddresses = [...existingAddresses, newAddressObj];
+      
+      await authApi.updateProfile(userId, { addresses: updatedAddresses });
+      
+      // Refresh local list
+      const newSaved = [
+        ...savedAddresses,
+        { id: Date.now(), type: addressLabel.toUpperCase(), address: customAddress, location: newAddressObj.location }
+      ];
+      setSavedAddresses(newSaved);
+      setShowAddressForm(false);
+      alert('Address saved successfully!');
+    } catch (error) {
+      console.error('Save Address Error:', error);
+      alert('Failed to save address');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLiveLocation = () => {
+    // If location is already set in header (useLocationStore), use it first
+    if (location) {
+      const addrString = location.fullAddress || 
+                        (location.area ? `${location.area}, ${location.city}` : null) || 
+                        (typeof location === 'string' ? location : 'Detected Location');
+                        
+      const liveAddr = { 
+        id: 'header_location', 
+        type: 'LIVE', 
+        address: addrString, 
+        location: { lat: location.lat, lng: location.lng } 
+      };
+      setPickupAddress(liveAddr);
+      setCustomAddress(liveAddr.address);
+      if (isSameAsPickup) setDropAddress(liveAddr);
+      setShowAddressForm(true);
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Use Google Maps Geocoding API if available, else just coordinates
+          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+          if (apiKey) {
+            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+            const data = await response.json();
+            if (data.results && data.results[0]) {
+              const addr = data.results[0].formatted_address;
+              setCustomAddress(addr);
+              const liveAddr = { id: 'live', type: 'LIVE', address: addr, location: { lat: latitude, lng: longitude } };
+              setPickupAddress(liveAddr);
+              if (isSameAsPickup) setDropAddress(liveAddr);
+              setShowAddressForm(true);
+            }
+          } else {
+            const addr = `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
+            setCustomAddress(addr);
+            const liveAddr = { id: 'live', type: 'LIVE', address: addr, location: { lat: latitude, lng: longitude } };
+            setPickupAddress(liveAddr);
+            if (isSameAsPickup) setDropAddress(liveAddr);
+            setShowAddressForm(true);
+          }
+        } catch (error) {
+          console.error('Error geocoding:', error);
+          alert('Could not get address from location');
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        alert('Location access denied');
+        setIsLocating(false);
+      }
+    );
+  };
+
+  const handleCustomAddressChange = (val) => {
+    setCustomAddress(val);
+    const newAddr = { id: 'custom', type: 'MANUAL', address: val, location: null };
+    setPickupAddress(newAddr);
+    if (isSameAsPickup) setDropAddress(newAddr);
   };
 
   const handleCartClick = () => {
@@ -321,7 +521,7 @@ const HomePage = () => {
   }, [banners.length]);
 
   return (
-    <div className="bg-background text-on-surface min-h-[100dvh] flex flex-col">
+    <div className="text-on-surface min-h-[100dvh] flex flex-col">
       <main className="flex-1 pt-24 pb-36 px-6 max-w-5xl mx-auto w-full overflow-y-auto hide-scrollbar">
         
         {/* 1. TOP PROMO BANNER */}
@@ -349,50 +549,62 @@ const HomePage = () => {
 
         {/* 2. Tier Toggle & Search */}
         <div className="flex flex-col md:flex-row gap-4 mb-10">
-          <div className="bg-slate-50 p-1.5 rounded-[2rem] border border-slate-100 flex gap-1 shadow-sm shrink-0 w-full md:w-auto">
+          <div className="bg-slate-100 p-1.5 rounded-[2rem] border border-slate-200 flex gap-1 shadow-sm shrink-0 w-full md:w-auto">
             {['Essential', 'Heritage'].map(tier => (
-              <button key={tier} onClick={() => setSelectedTier(tier)} className={`flex-1 px-6 md:px-8 py-3 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-xl' : 'text-slate-400'}`}>{tier}</button>
+              <button key={tier} onClick={() => setSelectedTier(tier)} className={`flex-1 px-6 md:px-8 py-3 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-xl' : 'text-slate-500 hover:text-black'}`}>{tier}</button>
             ))}
           </div>
-          <div className={`relative flex-1 flex items-center bg-white rounded-[2rem] px-6 py-4 shadow-sm border ${isHeritage ? 'border-[#D4AF37]/30' : 'border-slate-100'} transition-all`}>
+          <div className={`relative flex-1 flex items-center bg-white rounded-[2rem] px-6 py-4 shadow-sm border ${isHeritage ? 'border-[#D4AF37]/30' : 'border-slate-200'} transition-all`}>
             <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-400'} mr-4`}>search</span>
             <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="bg-transparent border-none focus:ring-0 outline-none p-0 text-sm w-full placeholder:text-slate-300 font-bold" placeholder={isHeritage ? "Search premium care..." : "Search services..."} />
           </div>
         </div>
 
         {/* Categories Section */}
-        <section className="mb-10 w-full overflow-hidden">
-          <div className="flex items-center justify-between mb-4 px-2">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Select Category</h3>
+        <section className="mb-12 w-full overflow-hidden">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.4em]">Select Category</h3>
             {selectedCategory && (
-              <button 
+              <motion.button 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 onClick={() => { setSelectedCategory(null); setSelectedSubCategory(null); setSubCategories([]); }}
-                className="text-[9px] font-black text-primary uppercase tracking-widest"
+                className="text-[10px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-100"
               >
-                Clear All
-              </button>
+                Reset
+              </motion.button>
             )}
           </div>
           
-          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+          <div className="flex gap-4 overflow-x-auto pb-6 hide-scrollbar px-1">
             {categoriesLoading ? (
-              [...Array(4)].map((_, i) => <div key={i} className="min-w-[80px] h-24 bg-white rounded-3xl animate-pulse border border-black/5" />)
+              [...Array(4)].map((_, i) => <div key={i} className="min-w-[115px] h-32 bg-white rounded-[2.5rem] animate-pulse border border-slate-200" />)
             ) : (
               categories.map(cat => (
-                <button 
+                <motion.button 
                   key={cat._id}
+                  whileHover={{ scale: 1.05, y: -4 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => handleCategoryClick(cat)}
-                  className={`flex flex-col items-center gap-3 min-w-[110px] max-w-[110px] p-4 rounded-[2rem] border transition-all ${selectedCategory?._id === cat._id ? 'bg-black text-white border-black shadow-xl shadow-black/10' : 'bg-white text-slate-400 border-black/5 hover:border-black/20'}`}
+                  className={`flex flex-col items-center gap-4 min-w-[115px] max-w-[115px] p-5 rounded-[2.5rem] border-2 transition-all duration-300 ${
+                    selectedCategory?._id === cat._id 
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-[0_20px_40px_rgba(0,0,0,0.3)] ring-4 ring-slate-950/10' 
+                      : 'bg-white text-slate-900 border-slate-200 hover:border-slate-400 shadow-[0_8px_20px_rgba(0,0,0,0.06)]'
+                  }`}
                 >
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${selectedCategory?._id === cat._id ? 'bg-white/20' : 'bg-slate-50'}`}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden shadow-inner transition-colors ${
+                    selectedCategory?._id === cat._id ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200'
+                  }`}>
                     {cat.image ? (
                       <img src={cat.image} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="material-symbols-outlined text-xl">category</span>
+                      <span className={`material-symbols-outlined text-2xl ${selectedCategory?._id === cat._id ? 'text-white' : 'text-slate-600'}`}>category</span>
                     )}
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-widest leading-tight text-center">{cat.name}</span>
-                </button>
+                  <span className={`text-[10px] font-black uppercase tracking-widest leading-none text-center ${selectedCategory?._id === cat._id ? 'text-white' : 'text-slate-900'}`}>
+                    {cat.name}
+                  </span>
+                </motion.button>
               ))
             )}
           </div>
@@ -401,19 +613,25 @@ const HomePage = () => {
           <AnimatePresence>
             {subCategories.length > 0 && (
               <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-6 flex gap-2 overflow-x-auto pb-4 hide-scrollbar px-1"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="mt-8 flex gap-3 overflow-x-auto pb-6 hide-scrollbar px-1"
               >
                 {subCategories.map(sub => (
-                  <button
+                  <motion.button
                     key={sub._id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : sub)}
-                    className={`px-6 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${selectedSubCategory?._id === sub._id ? 'bg-primary text-white border-primary' : 'bg-slate-100 text-slate-400 border-transparent hover:bg-slate-200'}`}
+                    className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 shadow-sm ${
+                      selectedSubCategory?._id === sub._id 
+                        ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' 
+                        : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300 hover:border-slate-400'
+                    }`}
                   >
                     {sub.name}
-                  </button>
+                  </motion.button>
                 ))}
               </motion.div>
             )}
@@ -431,15 +649,39 @@ const HomePage = () => {
                     const qty = selectedQuantities[serviceId] || 0;
                     const isSelected = qty > 0;
                     return (
-                        <motion.div key={serviceId} className={`bg-white rounded-[2.2rem] p-5 flex flex-col items-center text-center gap-4 border ${isSelected ? (isHeritage ? 'border-[#996515] ring-2 ring-[#996515]/10' : 'border-black ring-2 ring-black/10') : 'border-black/5'} shadow-sm group relative overflow-hidden transition-all`}>
-                          <div onClick={() => handleServiceClick(serviceId, service, i)} className={`w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-on-surface cursor-pointer group-hover:bg-black group-hover:text-white transition-all overflow-hidden`}>
-                              {service.image ? <img src={service.image} alt={service.name} className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-2xl">local_laundry_service</span>}
+                        <motion.div key={serviceId} className={`bg-white rounded-[2.5rem] p-6 flex flex-col items-center text-center gap-5 border-2 ${isSelected ? (isHeritage ? 'border-[#996515] bg-[#996515]/5 shadow-xl shadow-[#996515]/10' : 'border-black bg-slate-50 shadow-xl shadow-black/5') : 'border-slate-100'} group relative overflow-hidden transition-all hover:border-slate-300`}>
+                          <div onClick={() => handleServiceClick(serviceId, service, i)} className={`w-16 h-16 rounded-[1.5rem] bg-slate-50 flex items-center justify-center text-on-surface cursor-pointer group-hover:scale-110 transition-all duration-500 overflow-hidden shadow-inner`}>
+                              {service.image ? <img src={service.image} alt={service.name} className="w-full h-full object-cover" /> : <span className={`material-symbols-outlined text-3xl ${isHeritage ? 'text-[#996515]' : 'text-slate-400'}`}>local_laundry_service</span>}
                           </div>
-                          <div><h4 className="font-black text-[13px] leading-tight mb-1 text-slate-900 truncate w-32">{service.name}</h4><p className="text-[10px] font-black text-slate-900 mt-1">₹{service.totalPrice || service.basePrice || 0}</p></div>
-                          <div className="flex items-center justify-between bg-slate-50 p-1 rounded-2xl border border-slate-100 w-full">
-                              <button onClick={() => updateQuantity(serviceId, -1)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white shadow-sm text-slate-400 hover:text-black transition-all active:scale-90"><span className="material-symbols-outlined text-sm font-black">remove</span></button>
-                              <span className="text-[11px] font-black text-slate-900 px-2">{qty}</span>
-                              <button onClick={() => updateQuantity(serviceId, 1)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-white shadow-sm text-slate-400 hover:text-black transition-all active:scale-90"><span className="material-symbols-outlined text-sm font-black">add</span></button>
+                          
+                          <div className="flex-1">
+                            <h4 className="font-black text-[14px] leading-tight mb-2 text-slate-900 line-clamp-2 px-2 uppercase tracking-tight">{service.name || service.itemName}</h4>
+                            <div className="flex flex-col items-center gap-1">
+                              <div className="flex items-center gap-2">
+                                {(service.basePrice || 0) > (service.discountedPrice || 0) && (
+                                  <span className="text-[10px] font-bold text-slate-400 line-through">
+                                    ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                                  </span>
+                                )}
+                                <span className={`text-[15px] font-black ${isHeritage ? 'text-[#996515]' : 'text-slate-900'}`}>
+                                  ₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}
+                                </span>
+                              </div>
+                              {pricingFactor > 1 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                                  <p className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">
+                                    Area Surge {Math.round((pricingFactor - 1) * 100)}%
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between bg-white p-1 rounded-2xl border border-slate-100 w-full shadow-sm">
+                              <button onClick={() => updateQuantity(serviceId, -1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-black hover:bg-slate-100 transition-all active:scale-90"><span className="material-symbols-outlined text-base font-black">remove</span></button>
+                              <span className="text-[13px] font-black text-slate-900 px-3">{qty}</span>
+                              <button onClick={() => updateQuantity(serviceId, 1)} className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-black hover:bg-slate-100 transition-all active:scale-90"><span className="material-symbols-outlined text-base font-black">add</span></button>
                           </div>
                         </motion.div>
                     );
@@ -491,33 +733,69 @@ const HomePage = () => {
                 <AnimatePresence>
                   {isSlotsPicked && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pt-6 border-t border-slate-100">
-                      {/* Pickup Address */}
-                      <div className="space-y-4">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">3. Pickup Address</p>
+                                   {/* Pickup Address */}
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between px-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">3. Pickup Address</p>
+                          <button 
+                            onClick={handleLiveLocation}
+                            disabled={isLocating}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isLocating ? 'bg-slate-100 text-slate-400' : 'bg-primary-gradient text-white shadow-lg'}`}
+                          >
+                            <span className="material-symbols-outlined text-xs">{isLocating ? 'sync' : 'my_location'}</span>
+                            {isLocating ? 'Locating...' : 'Live Location'}
+                          </button>
+                        </div>
+
                         <div className="flex flex-wrap gap-3">
-                          {savedAddresses.map(addr => (
+                          {/* Filter to only show HOME and OFFICE as per request */}
+                          {savedAddresses.filter(a => ['HOME', 'OFFICE'].includes(a.type)).map(addr => (
                             <button 
                               key={addr.id} 
                               onClick={() => { setPickupAddress(addr); if(isSameAsPickup) setDropAddress(addr); }}
-                              className={`px-8 py-5 rounded-[2rem] border-2 transition-all flex items-center gap-3 ${pickupAddress?.id === addr.id ? 'border-black bg-black text-white' : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
+                              className={`px-8 py-5 rounded-[2rem] border-2 transition-all flex items-center gap-3 ${pickupAddress?.address === addr.address ? 'border-black bg-black text-white shadow-xl' : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-300'}`}
                             >
-                              <span className="material-symbols-outlined text-sm">{addr.type === 'HOME' ? 'home' : 'work'}</span>
+                              <span className="material-symbols-outlined text-sm">
+                                {addr.type === 'HOME' ? 'home' : 'business'}
+                              </span>
                               <span className="text-[10px] font-black uppercase tracking-widest">{addr.type}</span>
                             </button>
                           ))}
-                          <button onClick={() => { setActiveSlotType('address_pickup'); navigate('/user/cart'); /* Trigger address modal logic there or here */ }} className="px-8 py-5 rounded-[2rem] border-2 border-dashed border-slate-200 text-slate-400 hover:border-black hover:text-black transition-all flex items-center gap-3">
-                            <span className="material-symbols-outlined text-sm">add_location</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Add New</span>
-                          </button>
+                          
+                          {savedAddresses.filter(a => ['HOME', 'OFFICE'].includes(a.type)).length === 0 && (
+                            <button 
+                              onClick={() => navigate('/user/more')}
+                              className="px-6 py-4 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 flex items-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-sm">add_circle</span>
+                              <span className="text-[9px] font-black uppercase tracking-widest">Add Home/Office in 'More'</span>
+                            </button>
+                          )}
                         </div>
+
                         {pickupAddress && (
-                          <p className="text-[11px] font-bold text-slate-400 italic px-4">Selected: {pickupAddress.address}</p>
+                          <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-start gap-3 mx-2">
+                             <span className="material-symbols-outlined text-emerald-500 text-sm mt-0.5">verified</span>
+                             <p className="text-[11px] font-bold text-emerald-800 leading-relaxed">{pickupAddress.address}</p>
+                          </div>
                         )}
                       </div>
 
                       {/* Dropoff Address Toggle */}
-                      <div className="space-y-4">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">4. Drop-off Address</p>
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between px-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">4. Drop-off Address</p>
+                          {!isSameAsPickup && (
+                            <button 
+                              onClick={handleLiveLocation}
+                              className="flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest bg-primary-gradient text-white shadow-lg transition-all"
+                            >
+                              <span className="material-symbols-outlined text-xs">my_location</span>
+                              Live Location
+                            </button>
+                          )}
+                        </div>
+
                         <div className="flex items-center gap-4 mb-4">
                           <button 
                             onClick={() => { setIsSameAsPickup(true); setDropAddress(pickupAddress); }}
@@ -536,18 +814,25 @@ const HomePage = () => {
                         {!isSameAsPickup && (
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
                             <div className="flex flex-wrap gap-3">
-                              {savedAddresses.map(addr => (
+                              {savedAddresses.filter(a => ['HOME', 'OFFICE'].includes(a.type)).map(addr => (
                                 <button 
                                   key={addr.id} 
                                   onClick={() => setDropAddress(addr)}
-                                  className={`px-8 py-5 rounded-[2rem] border-2 transition-all flex items-center gap-3 ${dropAddress?.id === addr.id ? 'border-black bg-black text-white' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                                  className={`px-8 py-5 rounded-[2rem] border-2 transition-all flex items-center gap-3 ${dropAddress?.address === addr.address ? 'border-black bg-black text-white shadow-lg' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
                                 >
-                                  <span className="material-symbols-outlined text-sm">{addr.type === 'HOME' ? 'home' : 'work'}</span>
+                                  <span className="material-symbols-outlined text-sm">
+                                    {addr.type === 'HOME' ? 'home' : 'business'}
+                                  </span>
                                   <span className="text-[10px] font-black uppercase tracking-widest">{addr.type}</span>
                                 </button>
                               ))}
                             </div>
-                            {dropAddress && <p className="text-[11px] font-bold text-slate-400 italic px-4">Selected Drop: {dropAddress.address}</p>}
+                            {dropAddress && (
+                              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-start gap-3 mx-2">
+                                <span className="material-symbols-outlined text-slate-400 text-sm mt-0.5">location_on</span>
+                                <p className="text-[11px] font-bold text-slate-500 leading-relaxed">{dropAddress.address}</p>
+                              </div>
+                            )}
                           </motion.div>
                         )}
                       </div>
@@ -560,6 +845,60 @@ const HomePage = () => {
                             placeholder="Example: Be careful with the buttons, special stain on collar..."
                             className="w-full bg-slate-50 border border-slate-100 p-5 rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-slate-800 text-xs min-h-[100px] resize-none"
                           />
+                        </div>
+
+                        {/* NEW: PHOTO UPLOAD SECTION */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">6. Garment Photos (Optional)</p>
+                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{orderPhotos.length}/5 Photos</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                            <AnimatePresence>
+                              {orderPhotos.map((url, idx) => (
+                                <motion.div 
+                                  key={url}
+                                  initial={{ scale: 0.8, opacity: 0 }}
+                                  animate={{ scale: 1, opacity: 1 }}
+                                  exit={{ scale: 0.8, opacity: 0 }}
+                                  className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 shadow-sm"
+                                >
+                                  <img src={url} alt="" className="w-full h-full object-cover" />
+                                  <button 
+                                    onClick={() => removePhoto(idx)}
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-sm"
+                                  >
+                                    <span className="material-symbols-outlined text-xs">close</span>
+                                  </button>
+                                </motion.div>
+                              ))}
+                            </AnimatePresence>
+
+                            {orderPhotos.length < 5 && (
+                              <button 
+                                onClick={() => document.getElementById('photo-upload').click()}
+                                disabled={uploading}
+                                className={`aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-1 text-slate-400 hover:border-black hover:text-black transition-all bg-slate-50/50 ${uploading ? 'animate-pulse' : ''}`}
+                              >
+                                <span className="material-symbols-outlined text-xl">
+                                  {uploading ? 'sync' : 'add_a_photo'}
+                                </span>
+                                <span className="text-[8px] font-black uppercase tracking-tighter">
+                                  {uploading ? 'Uploading...' : 'Add Photo'}
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                          <input 
+                            id="photo-upload"
+                            type="file" 
+                            multiple 
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden" 
+                          />
+                          <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest text-center">Upload photos for verification and care tracking</p>
                         </div>
                     </motion.div>
                   )}
@@ -591,16 +930,60 @@ const HomePage = () => {
                 <div className="space-y-6">
                   <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Date</p>
                     <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
-                      {availableDates.map((d, i) => (
-                        <button key={i} onClick={() => activeSlotType === 'pickup' ? setSelectedPickup(`${d.day}, ${d.date}`) : setSelectedDelivery(`${d.day}, ${d.date}`)} className={`min-w-[90px] p-4 rounded-[1.5rem] border transition-all flex flex-col items-center gap-1 ${((activeSlotType === 'pickup' ? selectedPickup : selectedDelivery).includes(d.date)) ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100'}`}><span className="text-[9px] font-black uppercase tracking-widest opacity-60">{d.day}</span><span className="text-sm font-black tracking-tighter">{d.date}</span></button>
-                      ))}
+                      {availableDates.map((d, i) => {
+                        const dateStr = `${d.day}, ${d.date}`;
+                        const isSelected = (activeSlotType === 'pickup' ? selectedPickup : selectedDelivery).includes(d.date);
+                        
+                        // Validation for delivery date
+                        let isDisabled = false;
+                        if (activeSlotType === 'delivery' && selectedPickup && pickupTime) {
+                          const pickupDT = getSlotDateTime(selectedPickup, pickupTime);
+                          const currentDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length - 1]); // Check if even last slot is possible
+                          const minHours = isExpress ? 24 : 72;
+                          const diffHours = (currentDT - pickupDT) / (1000 * 60 * 60);
+                          if (diffHours < minHours) isDisabled = true;
+                        }
+
+                        return (
+                          <button 
+                            key={i} 
+                            disabled={isDisabled}
+                            onClick={() => activeSlotType === 'pickup' ? setSelectedPickup(dateStr) : setSelectedDelivery(dateStr)} 
+                            className={`min-w-[90px] p-4 rounded-[1.5rem] border transition-all flex flex-col items-center gap-1 ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100')}`}
+                          >
+                            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{d.day}</span>
+                            <span className="text-sm font-black tracking-tighter">{d.date}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                  <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Time</p>
+                  <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Time Window (2 Hours)</p>
                     <div className="grid grid-cols-2 gap-2">
-                      {timeSlots.map((slot) => (
-                        <button key={slot} onClick={() => activeSlotType === 'pickup' ? setPickupTime(slot) : setDeliveryTime(slot)} className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${((activeSlotType === 'pickup' ? pickupTime : deliveryTime) === slot) ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{slot}</button>
-                      ))}
+                      {timeSlots.map((slot) => {
+                        const isSelected = (activeSlotType === 'pickup' ? pickupTime : deliveryTime) === slot;
+                        
+                        // Validation for delivery time slot
+                        let isDisabled = false;
+                        if (activeSlotType === 'delivery' && selectedPickup && pickupTime && selectedDelivery) {
+                          const pickupDT = getSlotDateTime(selectedPickup, pickupTime);
+                          const deliveryDT = getSlotDateTime(selectedDelivery, slot);
+                          const minHours = isExpress ? 24 : 72;
+                          const diffHours = (deliveryDT - pickupDT) / (1000 * 60 * 60);
+                          if (diffHours < minHours) isDisabled = true;
+                        }
+
+                        return (
+                          <button 
+                            key={slot} 
+                            disabled={isDisabled}
+                            onClick={() => activeSlotType === 'pickup' ? setPickupTime(slot) : setDeliveryTime(slot)} 
+                            className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-slate-50 text-slate-400 border-slate-100')}`}
+                          >
+                            {slot}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

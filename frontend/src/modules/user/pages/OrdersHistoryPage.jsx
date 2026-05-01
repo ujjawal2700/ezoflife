@@ -206,7 +206,7 @@ const OrdersHistoryPage = () => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-background text-on-background min-h-[100dvh] flex flex-col"
+      className="text-on-background min-h-[100dvh] flex flex-col"
     >
       <main className="pt-24 pb-44 px-6 max-w-2xl mx-auto w-full">
         {loading ? (
@@ -323,21 +323,20 @@ const OrdersHistoryPage = () => {
 
                       {/* Progress Streamline */}
                       <div className="mb-10 px-1 relative z-10">
-                        <div className="flex justify-between text-[8px] text-slate-400 font-black uppercase tracking-widest mb-4">
-                          <span className={['Rider Assigned', 'Picked Up', 'At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Assigned</span>
-                          <span className={['Picked Up', 'At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Picked</span>
-                          <span className={['At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Shop</span>
-                          <span className={['Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Delivery</span>
+                        <div className="flex justify-between text-[7px] md:text-[8px] text-slate-400 font-black uppercase tracking-widest mb-4">
+                          <span className="text-primary">Order Placed</span>
+                          <span className={['Rider Assigned', 'Picked Up', 'At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Rider Assigned</span>
+                          <span className={['At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Service In Progress</span>
+                          <span className={['Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Out for Delivery</span>
                         </div>
                         <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: 
-                                order.status === 'Rider Assigned' ? '20%' : 
-                                order.status === 'Picked Up' ? '40%' : 
-                                order.status === 'Processing at Shop' || order.status === 'At Shop' ? '60%' : 
-                                order.status === 'Out for Delivery' ? '80%' : 
-                                order.status === 'Delivered' ? '100%' : '10%'
+                                order.status === 'Rider Assigned' ? '40%' : 
+                                order.status === 'Picked Up' || order.status === 'At Shop' || order.status === 'Processing' ? '70%' : 
+                                order.status === 'Out for Delivery' ? '100%' : 
+                                order.status === 'Delivered' ? '100%' : '15%'
                             }}
                             className="absolute top-0 left-0 h-full bg-primary shadow-[0_0_20px_rgba(115,224,201,0.5)] rounded-full transition-all duration-1000" 
                           />

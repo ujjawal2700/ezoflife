@@ -56,7 +56,7 @@ const FAQPage = () => {
     }), []);
 
     return (
-        <div className="bg-background text-on-surface min-h-screen pb-32 font-body">
+        <div className="bg-slate-50/50 text-on-surface min-h-screen pb-32 font-body">
             <header className="px-6 pt-4 flex items-center mb-8">
                 <div className="flex items-center gap-4">
                     <motion.button 

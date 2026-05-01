@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MASTER_SERVICES } from '../../../shared/data/sharedData';
 import { orderApi, serviceApi, authApi, promotionApi, masterServiceApi, mediaApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
-import { GoogleMap, useLoadScript, Marker, Autocomplete } from '@react-google-maps/api';
+import { useLocationStore } from '../../../shared/stores/locationStore';
 
-const libraries = ['places'];
+import { Autocomplete } from '@react-google-maps/api';
+
 const mapContainerStyle = { width: '100%', height: '400px' };
-const defaultCenter = { lat: 28.4595, lng: 77.0266 }; // Gurgaon
+const defaultCenter = { lat: 22.7196, lng: 75.8577 }; // Indore as default
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   const [applicablePromos, setApplicablePromos] = useState([]);
   const [appliedPromoData, setAppliedPromoData] = useState(null);
+  const [detectedVendorId, setDetectedVendorId] = useState(null);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -64,14 +66,82 @@ const CartPage = () => {
     });
   }, [services, quantities]);
 
+  // Combined Address/Map States
+  const [mapLocation, setMapLocation] = useState(defaultCenter);
+  const [mapAddress, setMapAddress] = useState('');
+
   useEffect(() => {
-    if (cartItems.length > 0) {
-        const vendorId = cartItems[0].vendorId;
-        if (vendorId) {
-            promotionApi.getApplicablePromos(vendorId).then(setApplicablePromos).catch(console.error);
+    const detectAndFetchPromos = async () => {
+        const detectVendorId = () => {
+            let vid = null;
+            // 1. Try from cart items
+            if (cartItems.length > 0) {
+                for (const item of cartItems) {
+                    vid = item.vendorId || 
+                          item.vendor?._id || 
+                          item.vendor?.id || 
+                          (item._id && typeof item._id === 'object' ? item._id.vendorId : null) ||
+                          item.userId;
+
+                    if (vid && vid !== 'undefined' && vid !== 'null' && vid.length > 10) {
+                        console.log('🔍 CartPage: Detected Vendor ID from Cart Items:', vid);
+                        return vid;
+                    }
+                }
+            }
+
+            // 2. Try from localStorage (Shop Context)
+            const storageKeys = ['last_visited_vendor_id', 'selected_vendor_id', 'current_shop_id', 'vendor_id', 'vendorData'];
+            for (const key of storageKeys) {
+                let val = localStorage.getItem(key);
+                if (val) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        val = parsed._id || parsed.id || val;
+                    } catch (e) {}
+                    if (val && val !== 'undefined' && val !== 'null' && typeof val === 'string' && val.length > 10) {
+                        console.log(`💾 CartPage: Detected Vendor ID from LocalStorage (${key}):`, val);
+                        return val;
+                    }
+                }
+            }
+            return null;
+        };
+
+        let vId = detectVendorId();
+        
+        // 3. Fallback: Find Nearest Vendor if no ID detected (Crucial for Master Services)
+        if (!vId && mapLocation?.lat) {
+            console.log('🔄 CartPage: No explicit Vendor ID, searching for nearby vendors...');
+            try {
+                const nearby = await orderApi.getNearbyVendors(mapLocation.lat, mapLocation.lng, 15); // Search up to 15km
+                if (nearby && nearby.length > 0) {
+                    vId = nearby[0].id;
+                    console.log('📍 CartPage: Fallback to nearest vendor:', nearby[0].name, vId);
+                }
+            } catch (err) {
+                console.warn('⚠️ CartPage: Fallback vendor search failed:', err);
+            }
         }
-    }
-  }, [cartItems]);
+
+        if (vId && vId !== 'undefined' && vId !== 'null') {
+            setDetectedVendorId(vId); // Store for promo application
+            console.log('🚀 CartPage: Fetching promos for Vendor:', vId);
+            try {
+                const data = await promotionApi.getApplicablePromos(vId);
+                console.log('🎁 CartPage: Fetched Promos:', data);
+                if (Array.isArray(data)) setApplicablePromos(data);
+            } catch (err) {
+                console.error('❌ CartPage: Promo Fetch Error:', err);
+            }
+        } else {
+            setDetectedVendorId(null);
+            console.warn('⚠️ CartPage: No Vendor ID detected (even after fallback) for promo fetching');
+        }
+    };
+
+    detectAndFetchPromos();
+  }, [cartItems, services, mapLocation]);
 
   const [billingUnits, setBillingUnits] = useState({});
 
@@ -93,16 +163,14 @@ const CartPage = () => {
   }, [quantities]);
   
   const [expressChargeConfig, setExpressChargeConfig] = useState(0);
-  const [normalLogisticsConfig, setNormalLogisticsConfig] = useState(0); // Default to 0 to detect fetch
+  const [normalLogisticsConfig, setNormalLogisticsConfig] = useState(0);
   
   useEffect(() => {
     const fetchConfig = async () => {
         try {
             const configs = await shippingConfigApi.getConfig();
-            
             const surcharge = configs.find(c => c.key === 'express_surcharge');
             if (surcharge) setExpressChargeConfig(Number(surcharge.value));
-
             const normalFee = configs.find(c => c.key === 'normal_logistics_fee');
             if (normalFee) setNormalLogisticsConfig(Number(normalFee.value));
         } catch (err) {
@@ -128,7 +196,6 @@ const CartPage = () => {
       let dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
       if (i === 0) dayLabel = 'TODAY';
       if (i === 1) dayLabel = 'TOMORROW';
-      
       dates.push({
         day: dayLabel,
         date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -143,98 +210,28 @@ const CartPage = () => {
   const [selectedDelivery, setSelectedDelivery] = useState(() => localStorage.getItem('delivery_date') || `${availableDates[1].day}, ${availableDates[1].date}`);
   const [deliveryTime, setDeliveryTime] = useState(() => localStorage.getItem('delivery_time') || '06:00 PM - 08:00 PM');
   
-  const [showPicker, setShowPicker] = useState(false);
-  const [activePicking, setActivePicking] = useState('pickup');
-
-  const timeSlots = useMemo(() => [
-    '08:00 AM - 10:00 AM',
-    '10:00 AM - 12:00 PM',
-    '12:00 PM - 02:00 PM',
-    '02:00 PM - 04:00 PM',
-    '04:00 PM - 06:00 PM',
-    '06:00 PM - 08:00 PM'
-  ], []);
-
-  const [showFullCalendar, setShowFullCalendar] = useState(false);
-  const [viewDate, setViewDate] = useState(new Date());
-  const [custPickup, setCustPickup] = useState(null);
-  const [custDelivery, setCustDelivery] = useState(null);
-
-  const [showAddressPicker, setShowAddressPicker] = useState(false);
-  const [showMapPicker, setShowMapPicker] = useState(false);
-  const [mapLocation, setMapLocation] = useState(defaultCenter);
-  const [mapAddress, setMapAddress] = useState('');
-  
-  // Detailed Address States
-  const [addrDetails, setAddrDetails] = useState({
-    type: 'HOME',
-    line1: '',
-    line2: '',
-    floor: '',
-    landmark: '',
-    pincode: '',
-    city: '',
-    state: ''
-  });
-
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries
-  });
-
-  const autocompleteRef = useRef(null);
-  const mapRef = useRef(null);
-
-  const reverseGeocode = useCallback((lat, lng) => {
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        setMapAddress(results[0].formatted_address);
-      }
-    });
-  }, []);
-
-  const onPlaceSelected = () => {
-    const place = autocompleteRef.current.getPlace();
-    if (place.geometry) {
-      const newPos = {
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng()
-      };
-      setMapLocation(newPos);
-      setMapAddress(place.formatted_address);
-      mapRef.current?.panTo(newPos);
-    }
-  };
-
-  const onMarkerDragEnd = (e) => {
-    const newPos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-    setMapLocation(newPos);
-    reverseGeocode(newPos.lat, newPos.lng);
-  };
+  const [promoCode, setPromoCode] = useState('');
+  const [isPromoApplied, setIsPromoApplied] = useState(false);
+  const [promoError, setPromoError] = useState('');
 
   const [addresses, setAddresses] = useState([]);
   const [selectedPickupAddress, setSelectedPickupAddress] = useState(null);
   const [selectedDropAddress, setSelectedDropAddress] = useState(null);
   const [isSameAddress, setIsSameAddress] = useState(true);
-  const [activeAddressType, setActiveAddressType] = useState('pickup');
   const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const syncAddresses = async () => {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = userData._id || userData.id;
-      
       const localPickup = JSON.parse(localStorage.getItem('pickup_address') || 'null');
       const localDrop = JSON.parse(localStorage.getItem('drop_address') || 'null');
       const detectedAddr = localStorage.getItem('detected_address');
       const detectedCoords = JSON.parse(localStorage.getItem('detected_coords') || 'null');
 
       let initialAddresses = [];
-      
       if (localPickup) initialAddresses.push(localPickup);
       if (localDrop && localDrop.id !== localPickup?.id) initialAddresses.push(localDrop);
-
       if (detectedAddr && !localPickup) {
           initialAddresses.push({ 
             id: 'current_set', 
@@ -257,112 +254,65 @@ const CartPage = () => {
             if (!initialAddresses.some(a => a.address === profile.address)) {
               initialAddresses.push(profileAddr);
             }
+            if (profile.location) setMapLocation(profile.location);
           }
         } catch (error) {
           console.error('Error fetching profile address:', error);
         }
       }
-
       setAddresses(initialAddresses);
-      
       if (localPickup) setSelectedPickupAddress(localPickup);
       else if (initialAddresses.length > 0) setSelectedPickupAddress(initialAddresses[0]);
-
       if (localDrop) setSelectedDropAddress(localDrop);
       else if (initialAddresses.length > 0) setSelectedDropAddress(initialAddresses[0]);
     };
-
     syncAddresses();
   }, []);
-
-  const confirmMapAddress = async () => {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    const userId = userData._id || userData.id;
-    if (!userId) {
-        alert('Please login to save address');
-        return;
-    }
-
-    const fullAddress = `${addrDetails.line1}, ${addrDetails.line2}${addrDetails.floor ? `, Floor: ${addrDetails.floor}` : ''}${addrDetails.landmark ? `, Near ${addrDetails.landmark}` : ''}, ${addrDetails.city}, ${addrDetails.state} - ${addrDetails.pincode}`;
-
-    try {
-        const newAddr = { 
-            id: Date.now(), 
-            type: addrDetails.type, 
-            address: fullAddress, 
-            location: mapLocation,
-            details: addrDetails
-        };
-        
-        await authApi.updateProfile(userId, { 
-            address: fullAddress,
-            location: mapLocation 
-        });
-
-        setAddresses(prev => [newAddr, ...prev]);
-        localStorage.setItem('address_is_full', 'true');
-
-        if (activeAddressType === 'pickup') {
-            setSelectedPickupAddress(newAddr);
-            if (isSameAddress) setSelectedDropAddress(newAddr);
-        } else {
-            setSelectedDropAddress(newAddr);
-        }
-
-        setShowMapPicker(false);
-        setShowAddressPicker(false);
-    } catch (error) {
-        console.error('Save address error:', error);
-        alert('Failed to save address');
-    }
-  };
-
-  const [promoCode, setPromoCode] = useState('');
-  const [isPromoApplied, setIsPromoApplied] = useState(false);
-  const [promoError, setPromoError] = useState('');
-
-  const handleCalendarSelect = (day) => {
-    const selected = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
-    const dayLabel = selected.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-    const dateStr = selected.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const formattedDate = `${dayLabel}, ${dateStr}`;
-    const isStandard = availableDates.some(ad => `${ad.day}, ${ad.date}` === formattedDate);
-
-    if (activePicking === 'pickup') {
-      setSelectedPickup(formattedDate);
-      setCustPickup(isStandard ? null : { day: 'CUSTOM', date: dateStr });
-    } else {
-      setSelectedDelivery(formattedDate);
-      setCustDelivery(isStandard ? null : { day: 'CUSTOM', date: dateStr });
-    }
-    setShowFullCalendar(false);
-  };
 
   const updateQuantity = (id, delta) => {
     setQuantities(prev => {
       const current = prev[id] || 0;
       const newVal = Math.max(0, current + delta);
       const next = { ...prev };
-      if (newVal === 0) {
-        delete next[id];
-      } else {
-        next[id] = newVal;
-      }
+      if (newVal === 0) delete next[id];
+      else next[id] = newVal;
       return next;
     });
   };
 
+  const { pricingFactor, zone } = useLocationStore();
+
   const getItemPrice = (item) => {
-    return item.totalPrice || item.basePrice || 0;
+    // Priority: discountedPrice -> totalPrice -> basePrice
+    const price = item.discountedPrice || item.totalPrice || item.basePrice || 0;
+    return Math.round(price * (pricingFactor || 1));
   };
 
   const subtotal = useMemo(() => cartItems.reduce((acc, item) => {
     return acc + (getItemPrice(item) * (quantities[item._id || item.id] || 0));
-  }, 0), [cartItems, quantities, billingUnits]);
+  }, 0), [cartItems, quantities]);
 
   const logisticsFee = normalLogisticsConfig;
   const currentExpressFee = isExpress ? expressChargeConfig : 0;
-  const grandTotal = useMemo(() => (subtotal + logisticsFee + currentExpressFee), [subtotal, logisticsFee, currentExpressFee]);
+  
+  // Dynamic Tax Calculation based on DB items
+  const taxAmount = useMemo(() => {
+    // 1. Calculate GST on items
+    const itemsTax = cartItems.reduce((acc, item) => {
+      const qty = quantities[item._id || item.id] || 0;
+      const price = getItemPrice(item);
+      const itemGst = item.gst !== undefined ? item.gst : 0.18; // Use DB GST or fallback to 18%
+      return acc + (price * qty * itemGst);
+    }, 0);
+
+    // 2. Calculate GST on logistics (Standard 18%)
+    const logisticsTax = (logisticsFee + currentExpressFee) * 0.18;
+
+    return itemsTax + logisticsTax;
+  }, [cartItems, quantities, logisticsFee, currentExpressFee]);
+
+  const taxableAmount = subtotal + logisticsFee + currentExpressFee;
+  const grandTotal = useMemo(() => (taxableAmount + taxAmount), [taxableAmount, taxAmount]);
   
   const discount = useMemo(() => {
       if (!isPromoApplied || !appliedPromoData) return 0;
@@ -372,24 +322,38 @@ const CartPage = () => {
 
   const finalTotal = useMemo(() => Math.max(0, grandTotal - discount), [grandTotal, discount]);
 
-  const handleApplyPromo = (code) => {
+  const handleApplyPromo = async (code) => {
     const targetCode = typeof code === 'string' ? code : promoCode;
-    const promo = applicablePromos.find(p => p.code.toUpperCase() === targetCode.toUpperCase());
+    if (!targetCode) return;
     
-    if (promo) {
-      if (subtotal < promo.minOrderValue) {
-          setPromoError(`Min order ₹${promo.minOrderValue} required`);
-          setIsPromoApplied(false);
-          return;
-      }
-      setAppliedPromoData(promo);
-      setIsPromoApplied(true);
-      setPromoError('');
-      setPromoCode(promo.code);
-    } else {
-      setPromoError('Invalid code');
-      setIsPromoApplied(false);
-      setAppliedPromoData(null);
+    const vendorId = detectedVendorId;
+    if (!vendorId) {
+        console.warn('❌ Cannot apply promo: No valid Vendor ID detected');
+        setPromoError('Vendor context missing. Please refresh cart.');
+        return;
+    }
+
+    try {
+        const response = await promotionApi.validate({
+            code: targetCode,
+            vendorId,
+            orderValue: subtotal
+        });
+
+        if (response.message) {
+            setPromoError(response.message);
+            setIsPromoApplied(false);
+            setAppliedPromoData(null);
+        } else {
+            setAppliedPromoData(response);
+            setIsPromoApplied(true);
+            setPromoError('');
+            setPromoCode(response.code);
+        }
+    } catch (err) {
+        setPromoError('Invalid or Expired Code');
+        setIsPromoApplied(false);
+        setAppliedPromoData(null);
     }
   };
 
@@ -400,9 +364,6 @@ const CartPage = () => {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = userData._id || userData.id; 
       if (!userId) return alert('Please login');
-
-      // Photos are already uploaded from Home Page and stored in localStorage
-      const uploadedPhotoUrls = garmentPhotos;
 
       const orderData = {
         customerId: userId,
@@ -425,7 +386,7 @@ const CartPage = () => {
         promoApplied: isPromoApplied ? appliedPromoData?._id : null,
         discountAmount: discount,
         specialInstructions,
-        customerPhotos: uploadedPhotoUrls
+        customerPhotos: garmentPhotos
       };
 
       const response = await orderApi.createOrder(orderData);
@@ -509,9 +470,13 @@ const CartPage = () => {
                 </div>
 
                 <div className="bg-black rounded-[2.5rem] p-8 text-white space-y-4 shadow-xl">
-                  <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40">
-                    <span>Grand Total</span>
-                    <span className="text-white">₹{finalTotal.toFixed(0)}</span>
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
+                    <span>Tax (10%)</span>
+                    <span className="text-white">₹{taxAmount.toFixed(0)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40 border-t border-white/10 pt-4">
+                    <span>Final Total</span>
+                    <span className="text-white text-lg">₹{finalTotal.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-4 border-t border-white/10">
                     <div className="flex flex-col">
@@ -543,7 +508,6 @@ const CartPage = () => {
       <motion.main className="max-w-5xl mx-auto px-6 pt-24 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
         <div className="flex flex-col gap-10">
           
-          {/* 1. Item Summary Detail - TOP */}
           <div className="pl-4 border-l-4 border-black">
             <h2 className="font-headline text-3xl font-black tracking-tighter leading-none mb-1 text-slate-900 uppercase">Your Summary.</h2>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{cartItems.length} services selected</p>
@@ -559,12 +523,10 @@ const CartPage = () => {
 
               return (
                 <div key={itemId} className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-5 border border-slate-100 shadow-sm relative overflow-hidden group">
-                  {/* Icon Box */}
                   <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-[1.5rem] bg-slate-50 flex items-center justify-center text-slate-900 border border-slate-100 shrink-0">
                     <span className="material-symbols-outlined text-xl md:text-2xl">{item.icon || 'local_laundry_service'}</span>
                   </div>
 
-                  {/* Content Area */}
                   <div className="flex-1 min-w-0 w-full">
                     <div className="flex items-center gap-2 mb-3 md:mb-4">
                       <h3 className="font-black text-md md:text-lg text-slate-900 uppercase tracking-tight leading-none truncate">{item.name}</h3>
@@ -574,7 +536,6 @@ const CartPage = () => {
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
-                      {/* QTY CONTROL */}
                       <div className="bg-slate-50 rounded-[2rem] px-1.5 py-1 flex items-center gap-2 md:gap-4 border border-slate-100/50 shadow-inner w-full sm:w-auto justify-between sm:justify-start">
                         <button 
                           onClick={() => updateQuantity(itemId, -1)}
@@ -620,7 +581,6 @@ const CartPage = () => {
             })}
           </div>
 
-          {/* 2. ORDER CONTEXT INFO (Display Only) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
              <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] space-y-4">
                 <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Logistics Priority</p>
@@ -645,7 +605,78 @@ const CartPage = () => {
              </div>
           </div>
 
-          {/* 3. Address Preview (Display Only) */}
+
+          {/* Offers & Promos Section */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-black">confirmation_number</span>
+                    <h3 className="font-headline font-black text-xl text-slate-900 uppercase tracking-tighter">Offers & Promos.</h3>
+                </div>
+            </div>
+            
+            <div className="flex gap-2">
+                <input 
+                    type="text" 
+                    placeholder="Enter Promo Code"
+                    value={promoCode}
+                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                    className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest outline-none focus:bg-white focus:ring-2 ring-black/5 transition-all"
+                />
+                <button 
+                    onClick={handleApplyPromo}
+                    className={`px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'bg-black text-white'}`}
+                >
+                    {isPromoApplied ? 'APPLIED' : 'APPLY'}
+                </button>
+            </div>
+            
+            {promoError && <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest px-2">{promoError}</p>}
+            {isPromoApplied && (
+                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between animate-pulse">
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Savings of ₹{discount.toFixed(0)} Applied!</p>
+                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-emerald-400"><span className="material-symbols-outlined text-sm">cancel</span></button>
+                </div>
+            )}
+            
+            {applicablePromos.length > 0 && !isPromoApplied && (
+                <div className="space-y-4">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Available Offers:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {applicablePromos.map(p => {
+                            const isLocked = subtotal < p.minOrderValue;
+                            return (
+                                <button 
+                                    key={p._id} 
+                                    disabled={isLocked}
+                                    onClick={() => handleApplyPromo(p.code)} 
+                                    className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col items-start gap-2 text-left group ${isLocked ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed' : 'bg-white border-emerald-100 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/10'}`}
+                                >
+                                    <div className="flex items-center justify-between w-full">
+                                        <span className={`text-xs font-black uppercase tracking-widest ${isLocked ? 'text-slate-400' : 'text-emerald-600'}`}>
+                                            {p.code}
+                                        </span>
+                                        {isLocked && (
+                                            <span className="material-symbols-outlined text-slate-300 text-sm">lock</span>
+                                        )}
+                                    </div>
+                                    <p className={`text-lg font-black tracking-tighter ${isLocked ? 'text-slate-400' : 'text-slate-900'}`}>
+                                        SAVE {p.discountType === 'Flat' ? `₹${p.discountValue}` : `${p.discountValue}%`}
+                                    </p>
+                                    <div className="flex items-center justify-between w-full mt-1">
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                            {isLocked ? `Add ₹${(p.minOrderValue - subtotal).toFixed(0)} more` : `Applicable on your order`}
+                                        </p>
+                                        {!isLocked && <span className="text-[8px] font-black bg-emerald-500 text-white px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">Apply</span>}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+          </div>
+
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
@@ -666,59 +697,59 @@ const CartPage = () => {
             </div>
           </div>
 
-
-          {/* 7. Price Breakdown & Final Action */}
-          <div className="bg-black rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
-            <div className="flex flex-col gap-1 mb-8">
-              <h3 className="font-headline font-black text-2xl text-white uppercase tracking-tighter">Price Breakdown.</h3>
-              <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Clear pricing transparency</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between text-sm font-black uppercase tracking-widest text-white/60">
-                <span>Items Total</span>
-                <span className="text-white">₹{subtotal.toFixed(0)}</span>
-              </div>
-              
-              <div className="flex justify-between text-sm font-black uppercase tracking-widest text-white/60">
-                <span>Delivery Fee</span>
-                <span className="text-white">₹{normalLogisticsConfig.toFixed(0)}</span>
-              </div>
-
-              {isExpress && (
-                <div className="flex justify-between text-sm font-black uppercase tracking-widest text-amber-400">
-                  <span>Express Fee</span>
-                  <span>₹{expressChargeConfig.toFixed(0)}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between text-sm font-black uppercase tracking-widest text-white/60">
-                <span>Taxes (GST)</span>
-                <span className="text-white">₹{(grandTotal * 0.05).toFixed(0)}</span>
-              </div>
-
-              <div className="h-px bg-white/10 my-4"></div>
-
-              <div className="flex justify-between items-center py-2">
-                <div className="flex flex-col">
-                  <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Advance Payable (5%)</p>
-                  <p className="text-3xl font-black text-white tracking-tighter">₹{(finalTotal * 0.05).toFixed(0)}</p>
-                </div>
-                <div className="text-right flex flex-col">
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Remaining After Delivery</p>
-                  <p className="text-2xl font-black text-white tracking-tighter mt-1">₹{(finalTotal * 0.95).toFixed(0)}</p>
-                </div>
-              </div>
-            </div>
-
-            <button 
-              onClick={handlePlaceOrder} 
-              className="w-full mt-10 bg-white text-black font-black py-6 rounded-[1.5rem] text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all hover:bg-amber-400 hover:text-black transition-colors"
-            >
-              Confirm Booking
-            </button>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
+            <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
+              <span className="material-symbols-outlined text-black">description</span>Special Instructions.
+            </h3>
+            <textarea 
+              value={specialInstructions}
+              onChange={(e) => {
+                setSpecialInstructions(e.target.value);
+                localStorage.setItem('order_notes', e.target.value);
+              }}
+              placeholder="Any specific care instructions for your clothes?"
+              className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] p-6 text-xs font-bold outline-none focus:bg-white focus:ring-2 ring-black/5 min-h-[120px] transition-all"
+            />
           </div>
 
+          <div className="bg-black text-white rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] -mr-32 -mt-32" />
+            
+            <div className="relative z-10 space-y-6">
+              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest opacity-40">
+                <span>Subtotal</span>
+                <span>₹{subtotal.toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest opacity-40">
+                <span>Delivery {isExpress ? '(Express)' : '(Normal)'}</span>
+                <span>₹{(logisticsFee + currentExpressFee).toFixed(0)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest opacity-40">
+                <span>Service Tax (10%)</span>
+                <span>₹{taxAmount.toFixed(0)}</span>
+              </div>
+              {isPromoApplied && (
+                <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-emerald-400">
+                  <span>Promo Discount ({appliedPromoData.code})</span>
+                  <span>- ₹{discount.toFixed(0)}</span>
+                </div>
+              )}
+              
+              <div className="pt-6 border-t border-white/10 flex justify-between items-end">
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1">Final Amount</p>
+                  <p className="text-5xl font-black tracking-tighter">₹{finalTotal.toFixed(0)}</p>
+                </div>
+                <button 
+                  onClick={() => setShowPreview(true)}
+                  disabled={cartItems.length === 0}
+                  className="bg-white text-black px-10 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all hover:bg-emerald-400 hover:text-white"
+                >
+                  PREVIEW ORDER
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </motion.main>
     </motion.div>

@@ -1,14 +1,22 @@
 import mongoose from 'mongoose';
 
 const serviceAreaSchema = new mongoose.Schema({
-    name: { 
+    areaName: { 
         type: String, 
         required: true,
         trim: true
     },
-    description: { 
+    city: { 
         type: String,
         trim: true
+    },
+    multiplier: { 
+        type: Number, 
+        default: 1.0 
+    },
+    isActive: { 
+        type: Boolean, 
+        default: true 
     },
     boundary: {
         type: {
@@ -22,21 +30,20 @@ const serviceAreaSchema = new mongoose.Schema({
             required: true
         }
     },
-    isActive: { 
-        type: Boolean, 
-        default: true 
-    },
     color: { 
         type: String, 
-        default: '#3b82f6' // Default Blue for UI
-    },
-    pricingFactor: { 
-        type: Number, 
-        default: 1.0 
+        default: '#3b82f6' 
     },
     minimumOrderValue: { 
         type: Number, 
         default: 0 
+    },
+    pincodes: {
+        type: [String],
+        default: []
+    },
+    excelFenceId: {
+        type: Number
     }
 }, { timestamps: true });
 

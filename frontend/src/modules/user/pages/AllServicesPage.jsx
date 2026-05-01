@@ -2,9 +2,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { serviceApi, BASE_URL } from '../../../lib/api';
+import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const AllServicesPage = () => {
   const navigate = useNavigate();
+  const { pricingFactor } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,14 +123,23 @@ const AllServicesPage = () => {
                 exit={{ opacity: 0, scale: 0.95 }}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/user/service-info', { state: { selectedService: { 
-                  id: service._id, 
-                  title: service.name, 
-                  desc: service.description, 
-                  image: service.image, 
-                  color: 'primary', 
-                  price: `₹${service.totalPrice}/${service.unit}` 
-                } } })}
+                onClick={() => {
+                  if (service.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
+                  navigate('/user/service-info', { state: { selectedService: { 
+                    id: service._id, 
+                    _id: service._id,
+                    title: service.name, 
+                    name: service.name,
+                    desc: service.description, 
+                    image: service.image, 
+                    vendorId: service.vendorId,
+                    color: 'primary', 
+                    price: `₹${service.totalPrice}/${service.unit}`,
+                    totalPrice: service.discountedPrice || service.basePrice,
+                    discountedPrice: service.discountedPrice,
+                    basePrice: service.basePrice
+                  } } });
+                }}
                 className="bg-white rounded-[2.5rem] p-7 border border-outline-variant/10 shadow-sm flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-primary/5 transition-all"
               >
                 <div className="flex items-center gap-6">
@@ -142,7 +153,16 @@ const AllServicesPage = () => {
                   <div>
                     <h3 className="font-headline font-black text-lg text-on-surface leading-tight mb-1">{service.name}</h3>
                     <p className="text-on-surface-variant text-[11px] font-bold opacity-60 leading-relaxed line-clamp-1">{service.description}</p>
-                    <div className="mt-2 text-[10px] font-black text-primary uppercase tracking-widest">₹{service.totalPrice}/{service.unit}</div>
+                    <div className="mt-2 flex items-center gap-2">
+                      {(service.basePrice || 0) > (service.discountedPrice || 0) && (
+                        <span className="text-[10px] font-bold text-slate-400 line-through">
+                          ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                        </span>
+                      )}
+                      <span className="text-[12px] font-black text-primary uppercase tracking-widest">
+                        ₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}/{service.unit?.replace('_', ' ')}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-all opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0">chevron_right</span>

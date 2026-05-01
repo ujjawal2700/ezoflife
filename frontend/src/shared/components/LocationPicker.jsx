@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocationStore } from '../stores/locationStore';
 import { locationService } from '../../lib/locationService';
 import toast from 'react-hot-toast';
+import { geofenceApi } from '../../lib/api';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -18,8 +19,8 @@ const center = {
   lng: 75.8577
 };
 
-const LocationPicker = () => {
-  const { isPickerOpen, setPickerOpen, setLocation, location: currentLoc } = useLocationStore();
+const LocationPicker = ({ isLoaded }) => {
+  const { isPickerOpen, setPickerOpen, setLocation, location: currentLoc, setZoneData } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [mapCenter, setMapCenter] = useState(currentLoc ? { lat: currentLoc.lat, lng: currentLoc.lng } : center);
@@ -35,12 +36,6 @@ const LocationPicker = () => {
     city: currentLoc?.city || '',
     pincode: '',
     type: 'HOME'
-  });
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: API_KEY,
-    libraries: ['drawing', 'places']
   });
 
   const autocompleteService = useRef(null);
@@ -122,6 +117,19 @@ const LocationPicker = () => {
     try {
       const addressData = await locationService.reverseGeocode(markerPos.lat, markerPos.lng);
       setLocation(addressData);
+      
+      // Check for Geofence/Zone
+      try {
+        const zoneInfo = await geofenceApi.checkAvailability(markerPos.lat, markerPos.lng);
+        if (zoneInfo.available) {
+          setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
+        } else {
+          setZoneData({ name: null, pricingFactor: 1 });
+        }
+      } catch (zoneErr) {
+        console.error('Zone check error:', zoneErr);
+      }
+
       toast.success('Location updated!');
       setPickerOpen(false);
     } catch (error) {
@@ -223,12 +231,14 @@ const LocationPicker = () => {
                         clickableIcons: false
                       }}
                     >
-                      <Marker 
-                        position={markerPos} 
-                        draggable={true} 
-                        onDragEnd={onMarkerDragEnd}
-                        animation={window.google.maps.Animation.DROP}
-                      />
+                      {window.google && (
+                        <Marker 
+                          position={markerPos} 
+                          draggable={true} 
+                          onDragEnd={onMarkerDragEnd}
+                          animation={window.google?.maps?.Animation?.DROP}
+                        />
+                      )}
                     </GoogleMap>
                     
                     {/* Map Overlays */}
@@ -334,7 +344,7 @@ const LocationPicker = () => {
                     </div>
 
                     <button 
-                      onClick={() => {
+                      onClick={async () => {
                         const full = `${manualAddress.line1}, ${manualAddress.line2}, ${manualAddress.city}`;
                         setLocation({
                           fullAddress: full,
@@ -343,6 +353,16 @@ const LocationPicker = () => {
                           lat: markerPos.lat,
                           lng: markerPos.lng
                         });
+
+                        try {
+                          const zoneInfo = await geofenceApi.checkAvailability(markerPos.lat, markerPos.lng);
+                          if (zoneInfo.available) {
+                            setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
+                          } else {
+                            setZoneData({ name: null, pricingFactor: 1 });
+                          }
+                        } catch (zoneErr) {}
+
                         setPickerOpen(false);
                         toast.success('Address saved!');
                       }}

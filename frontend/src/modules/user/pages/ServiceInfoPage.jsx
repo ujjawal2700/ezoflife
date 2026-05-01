@@ -5,6 +5,7 @@ import UserHeader from '../components/UserHeader';
 import BottomNav from '../components/BottomNav';
 
 const ServiceInfoPage = () => {
+  const { pricingFactor } = useLocationStore();
   const navigate = useNavigate();
   const location = useLocation();
   const service = location.state?.selectedService;
@@ -74,9 +75,18 @@ const ServiceInfoPage = () => {
             </p>
             
             <div className="flex gap-4 mt-8">
-              <div className="bg-surface-container-low border border-outline-variant/10 px-5 py-3 rounded-2xl">
-                <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant opacity-40 mb-1">Starting Rate</p>
-                <p className="text-xl font-black text-primary">{service.price || '₹99/kg'}</p>
+              <div className="bg-surface-container-low border border-outline-variant/10 px-6 py-4 rounded-[2rem] flex items-center gap-4">
+                <div className="flex flex-col">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant opacity-40 mb-1">Starting Rate</p>
+                  <div className="flex items-center gap-3">
+                    {(service.basePrice || 0) > (service.discountedPrice || 0) && (
+                      <span className="text-sm font-bold text-slate-400 line-through">
+                        ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                      </span>
+                    )}
+                    <p className="text-2xl font-black text-primary">₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</p>
+                  </div>
+                </div>
               </div>
               <div className="bg-surface-container-low border border-outline-variant/10 px-5 py-3 rounded-2xl">
                 <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant opacity-40 mb-1">Method</p>

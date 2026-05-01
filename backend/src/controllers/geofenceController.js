@@ -3,22 +3,22 @@ import ServiceArea from '../models/ServiceArea.js';
 // Admin: Create a new service area
 export const createServiceArea = async (req, res) => {
     try {
-        const { name, description, coordinates, color, pricingFactor, minimumOrderValue } = req.body;
+        const { areaName, city, coordinates, color, multiplier, minimumOrderValue } = req.body;
 
         // Validation
-        if (!name || !coordinates || !Array.isArray(coordinates)) {
+        if (!areaName || !coordinates || !Array.isArray(coordinates)) {
             return res.status(400).json({ message: 'Missing required fields or invalid coordinates' });
         }
 
         const newArea = new ServiceArea({
-            name,
-            description,
+            areaName,
+            city,
             boundary: {
                 type: 'Polygon',
                 coordinates: [coordinates] // Wrap in another array for GeoJSON Polygon
             },
             color,
-            pricingFactor,
+            multiplier: multiplier || 1.0,
             minimumOrderValue
         });
 
@@ -107,8 +107,8 @@ export const checkLocationAvailability = async (req, res) => {
         res.status(200).json({
             available: true,
             areaId: area._id,
-            name: area.name,
-            pricingFactor: area.pricingFactor,
+            name: area.areaName,
+            pricingFactor: area.multiplier || 1.0,
             minimumOrderValue: area.minimumOrderValue
         });
     } catch (err) {

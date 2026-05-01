@@ -28,7 +28,7 @@ const UserProfilePage = () => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-40 font-sans"
+      className="text-slate-900 min-h-screen pb-40 font-sans"
     >
       <main className="max-w-md mx-auto px-6 pt-12 space-y-10">
         

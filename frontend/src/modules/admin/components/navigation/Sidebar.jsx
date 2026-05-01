@@ -79,6 +79,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                         { label: 'Services', path: '/admin/services' },
                         { label: 'Master Services', path: '/admin/master-services' },
                         { label: 'Category Management', path: '/admin/categories' },
+                        { label: 'Pricing Preview', path: '/admin/pricing-preview' },
+                        { label: 'Area Pricing Overrides', path: '/admin/pricing-overrides' },
                         { label: 'Edit Rates', path: '/admin/pricing' },
                         { label: 'Essential Fee', path: '/admin/pricing?type=essential' },
                         { label: 'Heritage Fee', path: '/admin/pricing?type=heritage' },
@@ -123,6 +125,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 { icon: ShieldAlert, label: 'Legal & Policy', path: '/admin/legal' },
                 { icon: Rocket, label: 'Splash Ads', path: '/admin/ads' },
                 { icon: Handshake, label: 'Partnerships', path: '/admin/partnerships' },
+                { icon: Star, label: 'Customer Feedback', path: '/admin/feedback' },
             ]
         },
         {

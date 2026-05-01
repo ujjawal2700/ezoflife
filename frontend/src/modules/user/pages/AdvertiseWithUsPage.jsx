@@ -47,7 +47,7 @@ const AdvertiseWithUsPage = () => {
     }), []);
 
     return (
-        <div className="bg-background text-on-surface min-h-[100dvh] pb-24 flex flex-col overflow-x-hidden font-body">
+        <div className="bg-slate-50/50 text-on-surface min-h-[100dvh] pb-24 flex flex-col overflow-x-hidden font-body">
             <header className="px-6 pt-4 flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <motion.button 

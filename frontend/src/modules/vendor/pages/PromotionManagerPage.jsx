@@ -10,8 +10,12 @@ const PromotionManagerPage = () => {
     const [promos, setPromos] = useState([]);
     const [editingPromo, setEditingPromo] = useState(null);
 
-    const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
-    const vendorId = vendorData?._id || vendorData?.id;
+    const vendorId = useMemo(() => {
+        const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+        const vendorData = JSON.parse(vendorDataRaw);
+        const id = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id || localStorage.getItem('vendor_id');
+        return id ? String(id) : null;
+    }, []);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -48,13 +52,25 @@ const PromotionManagerPage = () => {
                 return;
             }
 
+            const expiryDate = new Date(formData.expiryDate);
+            expiryDate.setHours(23, 59, 59, 999);
+
             const payload = {
                 ...formData,
                 vendorId,
-                expiryDate: new Date(formData.expiryDate)
+                expiryDate
             };
 
-            await promotionApi.create(payload);
+            console.log('🚀 Creating Promotion with payload:', payload);
+
+            if (!payload.vendorId) {
+                console.error('❌ Vendor ID is missing in promotion payload');
+                alert('Session error: Vendor ID not found. Please re-login.');
+                return;
+            }
+
+            const response = await promotionApi.create(payload);
+            console.log('✅ Promotion created successfully:', response);
             setIsCreating(false);
             setFormData({
                 title: '',

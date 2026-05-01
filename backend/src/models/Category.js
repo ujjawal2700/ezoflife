@@ -1,27 +1,25 @@
 import mongoose from 'mongoose';
 
 const categorySchema = new mongoose.Schema({
-    name: { 
-        type: String, 
-        required: true, 
-        trim: true 
-    },
-    image: { 
-        type: String, 
-        default: '' 
-    },
-    parentCategory: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',
-        default: null
-    },
-    description: {
+    mainCategory: {
         type: String,
-        default: ''
+        required: true,
+        trim: true
     },
-    isActive: { 
-        type: Boolean, 
-        default: true 
+    subCategory: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    image: {
+        type: String
+    },
+    excelCategoryId: {
+        type: Number
     }
 }, { timestamps: true });
 

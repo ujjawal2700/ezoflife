@@ -17,7 +17,13 @@ const UserLayout = () => {
   const navigate = useNavigate();
   const currentPath = location.pathname.replace(/\/$/, '') || '/user';
   
-  const userRole = useMemo(() => (localStorage.getItem('userRole') || 'customer').toLowerCase(), []);
+  const userRole = useMemo(() => {
+    try {
+      return (localStorage.getItem('userRole') || 'customer').toLowerCase();
+    } catch (e) {
+      return 'customer';
+    }
+  }, []);
 
   // Vendor-specific state & logic
   const { incomingRequest, setIncomingRequest, clearIncomingRequest } = useVendorOrderStore();
@@ -25,7 +31,15 @@ const UserLayout = () => {
   const [timeLeft, setTimeLeft] = useState(45);
   const { addNotification } = useNotificationStore();
 
-  const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
+  const getSafeStorage = (key) => {
+    try {
+      return JSON.parse(localStorage.getItem(key) || '{}');
+    } catch (e) {
+      return {};
+    }
+  };
+
+  const vendorData = getSafeStorage('vendorData');
   const vendorId = vendorData?._id || vendorData?.id;
 
   // Timer logic for incoming request (Vendor Only)
@@ -55,7 +69,7 @@ const UserLayout = () => {
 
     // Socket Logic (Global Notifications & Vendor Requests)
     useEffect(() => {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        const userData = getSafeStorage('user');
         const userId = userData._id || userData.id;
         
         if (!userId) {
@@ -77,9 +91,15 @@ const UserLayout = () => {
         if (socket.connected) joinRooms();
         socket.on('connect', joinRooms);
 
-        // 1. Browser Notification Permission
-        if (Notification.permission === 'default') {
-            Notification.requestPermission();
+        // 1. Browser Notification Permission (Safe check for Safari)
+        if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+            // Note: Safari mobile only allows requestPermission via user gesture
+            // but we wrap it to avoid crashes
+            try {
+                Notification.requestPermission();
+            } catch (e) {
+                console.warn('Notification.requestPermission failed:', e);
+            }
         }
 
         // 2. Handle Push Notifications (Socket fallback)
@@ -158,7 +178,7 @@ const UserLayout = () => {
       setAcceptingId(orderId);
       await orderApi.vendorAcceptOrder(orderId, vendorId);
       clearIncomingRequest();
-      navigate(`/vendor/order/${orderId}`);
+      navigate('/vendor/dashboard');
     } catch (err) {
       alert('Order already taken or error occurred.');
     } finally {
@@ -234,7 +254,7 @@ const UserLayout = () => {
   };
   
    return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-slate-50/50">
       {showHeader && renderHeader()}
       <div className="flex-1">
         <Outlet />
@@ -260,7 +280,14 @@ const UserLayout = () => {
                 className="bg-white w-full max-w-md rounded-[3rem] shadow-[0_40px_80px_-15px_rgba(0,0,0,0.5)] border border-slate-100 relative z-[5001] overflow-y-auto max-h-[92vh] hide-scrollbar"
               >
                 {/* Theme Bar */}
-                <div className="h-2 bg-[#73e0c9] sticky top-0 z-20"></div>
+                <div className="h-2 bg-[#73e0c9] sticky top-0 z-20 flex justify-end">
+                    <button 
+                        onClick={() => clearIncomingRequest()}
+                        className="absolute -top-4 -right-4 w-10 h-10 bg-white rounded-full shadow-xl border border-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors z-30"
+                    >
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
                 
                 <div className="p-7 space-y-6">
                   {/* Header: Timer & ID */}

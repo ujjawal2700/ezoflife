@@ -9,15 +9,24 @@ import ScrollToTop from './shared/components/ScrollToTop'
 import GlobalToast from './shared/components/GlobalToast'
 import LocationPrompt from './shared/components/LocationPrompt'
 import LocationPicker from './shared/components/LocationPicker'
+import { useJsApiLoader } from '@react-google-maps/api'
 import './index.css'
 
+const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places'];
+
 function App() {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES
+  });
+
   return (
     <BrowserRouter>
       <ScrollToTop />
       <GlobalToast />
       <LocationPrompt />
-      <LocationPicker />
+      <LocationPicker isLoaded={isLoaded} />
       <Routes>
 
 

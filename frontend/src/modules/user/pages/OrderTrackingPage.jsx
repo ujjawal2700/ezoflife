@@ -105,40 +105,35 @@ const OrderTrackingPage = () => {
   const timelineSteps = useMemo(() => {
     const status = order?.status || 'Pending';
     const steps = [
-      { label: 'Confirmed', time: 'Received', icon: 'check_circle', status: 'pending', stepNum: 'Step 1 of 5' },
-      { label: 'Pickup', time: 'In Route', icon: 'electric_moped', status: 'pending', stepNum: 'Step 2 of 5' },
-      { label: 'Processing', time: 'In Shop', icon: 'local_laundry_service', status: 'pending', stepNum: 'Step 3 of 5' },
-      { label: 'Ready', time: 'Packing', icon: 'verified_user', status: 'pending', stepNum: 'Step 4 of 5' },
-      { label: 'Delivering', time: 'Final Leg', icon: 'handshake', status: 'pending', stepNum: 'Step 5 of 5' }
+      { label: 'Order Placed', time: 'Received', icon: 'check_circle', status: 'pending', stepNum: 'Step 1 of 4' },
+      { label: 'Rider Assigned', time: 'Pending', icon: 'electric_moped', status: 'pending', stepNum: 'Step 2 of 4' },
+      { label: 'Service In Progress', time: 'In Shop', icon: 'local_laundry_service', status: 'pending', stepNum: 'Step 3 of 4' },
+      { label: 'Out for Delivery', time: 'Final Leg', icon: 'handshake', status: 'pending', stepNum: 'Step 4 of 4' }
     ];
 
-    if (['Pending', 'Assigned'].includes(status)) {
-      steps[0].status = 'active'; 
-    }
+    // Status Mapping Logic
+    steps[0].status = 'completed'; // Order is always placed if we are here
     
-    if (status === 'Assigned') steps[1].status = 'active';
-    if (status === 'Picked Up') {
+    if (['Pending', 'Confirmed'].includes(status)) {
+        steps[0].status = 'active';
+    }
+
+    if (status === 'Assigned' || status === 'Rider Assigned') {
+      steps[0].status = 'completed';
+      steps[1].status = 'active';
+    }
+
+    if (['Picked Up', 'At Shop', 'In Progress', 'Processing'].includes(status)) {
       steps[0].status = 'completed';
       steps[1].status = 'completed';
       steps[2].status = 'active';
     }
-    if (status === 'In Progress') {
-      steps[0].status = 'completed';
-      steps[1].status = 'completed';
-      steps[2].status = 'active';
-    }
-    if (status === 'Ready') {
+
+    if (status === 'Ready' || status === 'Out for Delivery') {
       steps[0].status = 'completed';
       steps[1].status = 'completed';
       steps[2].status = 'completed';
       steps[3].status = 'active';
-    }
-    if (status === 'Out for Delivery') {
-      steps[0].status = 'completed';
-      steps[1].status = 'completed';
-      steps[2].status = 'completed';
-      steps[3].status = 'completed';
-      steps[4].status = 'active';
     }
 
     if (status === 'Payment Pending' || status === 'Delivered') {

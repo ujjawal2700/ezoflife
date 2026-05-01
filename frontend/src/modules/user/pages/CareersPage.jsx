@@ -96,7 +96,7 @@ const CareersPage = () => {
     }), []);
 
     return (
-        <div className="bg-background text-on-surface min-h-screen pb-32 font-body">
+        <div className="bg-slate-50/50 text-on-surface min-h-screen pb-32 font-body">
             <header className="px-6 pt-4 flex items-center mb-8 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -mr-32 -mt-32"></div>
                 

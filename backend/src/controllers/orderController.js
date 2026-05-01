@@ -60,8 +60,9 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4) =
             if (distance <= radiusKm) {
                 nearbyVendors.push({
                     id: vendor._id,
-                    name: vendor.shopDetails?.shopName || vendor.displayName,
-                    distance: distance.toFixed(2)
+                    name: vendor.shopDetails?.name || vendor.displayName,
+                    distance: distance.toFixed(2),
+                    location: vendor.location
                 });
             }
         }
@@ -69,6 +70,22 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4) =
     } catch (err) {
         console.error('Nearby Vendors Error:', err);
         return [];
+    }
+};
+
+/**
+ * Express Controller Wrapper for getNearbyVendors
+ */
+export const handleGetNearbyVendors = async (req, res) => {
+    try {
+        const { lat, lng, radius } = req.query;
+        if (!lat || !lng) {
+            return res.status(400).json({ message: 'Latitude and Longitude are required' });
+        }
+        const vendors = await getNearbyVendors(lat, lng, radius || 10); // Default 10km for browsing
+        res.json(vendors);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 };
 

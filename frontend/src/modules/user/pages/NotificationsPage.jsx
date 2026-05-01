@@ -35,7 +35,7 @@ const NotificationsPage = () => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-background text-on-background min-h-[100dvh] pb-32 font-body"
+      className="bg-slate-50/50 text-on-background min-h-[100dvh] pb-32 font-body"
     >
       <main className="max-w-2xl mx-auto px-6 pt-8">
         <motion.header 

@@ -6,7 +6,57 @@ import UserHeader from '../components/UserHeader';
 const PaymentSelectionPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { amount = 0, orderId = '', orderNumber = '' } = location.state || {};
+  const { amount: initialAmount = 0, orderId = '', orderNumber = '' } = location.state || {};
+  const [order, setOrder] = React.useState(null);
+  const [loading, setLoading] = React.useState(!!orderId);
+
+  React.useEffect(() => {
+    if (orderId) {
+      const { orderApi } = import('../../../lib/api'); // Dynamic import for safety
+      import('../../../lib/api').then(({ orderApi }) => {
+          orderApi.getById(orderId).then(res => {
+            setOrder(res);
+            setLoading(false);
+          }).catch(err => {
+            console.error('Error fetching order for payment breakdown:', err);
+            setLoading(false);
+          });
+      });
+    }
+  }, [orderId]);
+
+  const amount = order ? order.totalAmount : initialAmount;
+
+  const taxBreakdown = React.useMemo(() => {
+    if (!order || !order.items) {
+      // Fallback to legacy 10% if order data not available
+      return {
+        subtotal: amount * 0.9,
+        tax: amount * 0.1,
+        logistics: 0
+      };
+    }
+
+    const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const logistics = order.deliveryCharge || 0;
+    
+    // Calculate items tax
+    const itemsTax = order.items.reduce((acc, item) => {
+        // Note: The order items should ideally have the GST value from when they were ordered
+        // If not, we fallback to 18%
+        const itemGst = item.gst !== undefined ? item.gst : 0.18;
+        return acc + (item.price * item.quantity * itemGst);
+    }, 0);
+
+    // Logistics Tax (18%)
+    const logisticsTax = logistics * 0.18;
+
+    return {
+      subtotal,
+      logistics,
+      tax: itemsTax + logisticsTax
+    };
+  }, [order, amount]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -39,6 +89,14 @@ const PaymentSelectionPage = () => {
           } 
       });
   };
+
+  if (loading) {
+      return (
+          <div className="min-h-screen bg-background flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          </div>
+      );
+  }
 
   return (
     <motion.div 
@@ -91,9 +149,9 @@ const PaymentSelectionPage = () => {
             className="bg-white rounded-[2.5rem] p-10 flex flex-col justify-center space-y-4 shadow-sm border border-outline-variant/10"
           >
             {[
-              { label: 'Subtotal', value: `₹${(amount * 0.9).toFixed(2)}`, color: 'on-surface' },
-              { label: 'Logistics', value: 'FREE', color: 'primary' },
-              { label: 'Service Tax', value: `₹${(amount * 0.1).toFixed(2)}`, color: 'on-surface' }
+              { label: 'Subtotal', value: `₹${taxBreakdown.subtotal.toFixed(2)}`, color: 'on-surface' },
+              { label: 'Logistics', value: taxBreakdown.logistics > 0 ? `₹${taxBreakdown.logistics.toFixed(2)}` : 'FREE', color: 'primary' },
+              { label: 'Service Tax', value: `₹${taxBreakdown.tax.toFixed(2)}`, color: 'on-surface' }
             ].map((item, idx) => (
               <div key={idx} className="flex justify-between items-center group/line">
                 <span className="text-xs font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">{item.label}</span>

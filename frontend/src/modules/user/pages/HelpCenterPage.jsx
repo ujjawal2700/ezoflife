@@ -40,9 +40,9 @@ const HelpCenterPage = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="bg-background text-on-background min-h-[100dvh] flex flex-col font-body"
+      className="bg-slate-50/50 text-on-background min-h-[100dvh] flex flex-col font-body"
     >
-      <header className="fixed top-0 z-50 bg-white/70 backdrop-blur-xl w-full flex items-center px-6 py-4 border-b border-outline-variant/10">
+      <header className="fixed top-0 z-50 bg-slate-50/70 backdrop-blur-xl w-full flex items-center px-6 py-4 border-b border-outline-variant/10">
         <button onClick={() => navigate(-1)} className="material-symbols-outlined text-on-surface mr-4">arrow_back</button>
         <h1 className="font-headline font-black text-xl text-primary tracking-tighter">Help Center</h1>
       </header>

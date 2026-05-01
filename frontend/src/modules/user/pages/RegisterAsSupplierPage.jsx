@@ -125,8 +125,8 @@ const RegisterAsSupplierPage = () => {
 
   if (showLanding) {
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-background min-h-[100dvh] flex flex-col font-body pb-32">
-          <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md p-6 border-b border-outline-variant/10">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-slate-50/50 min-h-[100dvh] flex flex-col font-body pb-32">
+          <header className="fixed top-0 left-0 right-0 z-50 bg-slate-50/80 backdrop-blur-md p-6 border-b border-outline-variant/10">
             <div className="max-w-2xl mx-auto flex items-center justify-between">
               <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface"><span className="material-symbols-outlined">arrow_back</span></button>
               <h1 className="font-headline font-black text-lg tracking-tighter uppercase">Supplier Program</h1>
@@ -157,8 +157,8 @@ const RegisterAsSupplierPage = () => {
   }
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-background text-on-background min-h-[100dvh] flex flex-col font-body">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 pt-6 pb-4 border-b border-outline-variant/10">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-slate-50/50 text-on-background min-h-[100dvh] flex flex-col font-body">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-50/80 backdrop-blur-md px-6 pt-6 pb-4 border-b border-outline-variant/10">
         <div className="max-w-2xl mx-auto">
             <div className="flex items-center justify-between mb-6">
                 <button onClick={() => step === 1 ? setShowLanding(true) : setStep(prev => prev - 1)} className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface">

@@ -1,18 +1,29 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
-import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
+import { Autocomplete } from '@react-google-maps/api';
 
 const AddressesPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: ['drawing', 'places']
-  });
+  const [isLoaded, setIsLoaded] = useState(!!window.google);
+
+  React.useEffect(() => {
+    if (window.google) {
+      setIsLoaded(true);
+    } else {
+      const interval = setInterval(() => {
+        if (window.google) {
+          setIsLoaded(true);
+          clearInterval(interval);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
   const [autocomplete, setAutocomplete] = useState(null);
   
   const initialAddresses = useMemo(() => {

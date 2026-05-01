@@ -30,7 +30,17 @@ const UserHeader = () => {
     }
   };
 
-  const userData = JSON.parse(localStorage.getItem('user') || '{}');
+  const getSafeStorage = (key) => {
+    try {
+      const item = localStorage.getItem(key);
+      if (!item) return {};
+      return JSON.parse(item);
+    } catch (e) {
+      return {};
+    }
+  };
+
+  const userData = getSafeStorage('user');
 
   const handleSaveAddress = () => {
     const fullAddr = `${addressData.line1}, ${addressData.line2}, ${addressData.city}`;
