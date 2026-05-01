@@ -230,6 +230,41 @@ export const createOrder = async (req, res) => {
                         totalAmount: newOrder.totalAmount
                     });
                 });
+                // --- REAL FIREBASE PUSH NOTIFICATION FOR VENDORS ---
+                try {
+                    const admin = (await import('../utils/firebaseAdmin.js')).default;
+                    const vendorIds = nearbyVendors.map(v => v.id);
+                    console.log(`📡 [FCM_DEBUG] Found ${vendorIds.length} nearby vendors:`, vendorIds);
+                    
+                    // Filter: Only notify APPROVED vendors
+                    const vendorUsers = await User.find({ 
+                        _id: { $in: vendorIds },
+                        status: 'approved'
+                    });
+
+                    for (const vendorUser of vendorUsers) {
+                        if (vendorUser.fcmToken) {
+                            console.log(`🚀 [FCM_PUSH] Sending New Order to Vendor: ${vendorUser.phone} | Token: ${vendorUser.fcmToken.substring(0, 15)}...`);
+                            const message = {
+                                notification: {
+                                    title: 'New Order Available! 🧺',
+                                    body: `you have received new order`
+                                },
+                                data: {
+                                    orderId: newOrder._id.toString(),
+                                    type: 'NEW_ORDER'
+                                },
+                                token: vendorUser.fcmToken
+                            };
+                            await admin.messaging().send(message);
+                            console.log(`🚀 [FCM_PUSH] Vendor Push Success for ${vendorUser.phone}`);
+                        } else {
+                            console.log(`⚠️ [FCM_PUSH] Vendor ${vendorUser.phone} has NO FCM Token`);
+                        }
+                    }
+                } catch (pushErr) {
+                    console.error('❌ [FCM_PUSH] Vendor notification error:', pushErr.message);
+                }
             } catch (notifErr) {
                 console.error('Notification Insert Error:', notifErr.message);
             }
@@ -411,6 +446,46 @@ export const updateOrderStatus = async (req, res) => {
             .populate('customer', 'displayName phone address email')
             .populate('vendor', 'shopDetails address location')
             .populate('rider', 'displayName phone location');
+
+        // --- REAL FIREBASE PUSH NOTIFICATION ---
+        console.log(`📡 [FCM_DEBUG] updateOrderStatus status: ${status} for order: ${updatedOrder.orderId}`);
+        if (status === 'In Progress') {
+            let customerId = updatedOrder.customer;
+            if (customerId && typeof customerId === 'object') {
+                customerId = customerId._id || customerId.id || customerId;
+            }
+            customerId = customerId?.toString();
+
+            if (customerId) {
+                console.log(`📡 [FCM_DEBUG] Found customerId for handover: ${customerId}`);
+                try {
+                    const admin = (await import('../utils/firebaseAdmin.js')).default;
+                    const customer = await User.findById(customerId);
+                    
+                    if (customer && customer.fcmToken) {
+                        console.log(`🚀 [FCM_PUSH] Sending Start Processing Notification to ${customer.phone}`);
+                        const message = {
+                            notification: {
+                                title: 'Service Started! 🧺',
+                                body: `your cloth service is start`
+                            },
+                            data: {
+                                orderId: updatedOrder.orderId.toString(),
+                                type: 'SERVICE_START'
+                            },
+                            token: customer.fcmToken
+                        };
+
+                        await admin.messaging().send(message);
+                        console.log(`🚀 [FCM_PUSH] Start Processing Success`);
+                    } else {
+                        console.log(`⚠️ [FCM_PUSH] Skipping Handover - Token missing`);
+                    }
+                } catch (pushErr) {
+                    console.error('❌ [FCM_PUSH] Handover error:', pushErr.message);
+                }
+            }
+        }
             
         // Socket.io: Notify rooms
         const io = getIO();
@@ -483,8 +558,7 @@ export const getPoolOrders = async (req, res) => {
         // Find all Pending orders that have no vendor yet AND were created after this vendor was approved (or created recently)
         const orders = await Order.find({ 
             status: 'Pending', 
-            vendor: null,
-            createdAt: { $gte: vendor.updatedAt } // Only orders created after vendor's last status update (Approval)
+            vendor: null
         }).populate('customer', 'displayName address location');
         
         const pool = orders.filter(order => {
@@ -595,6 +669,29 @@ export const vendorAcceptOrder = async (req, res) => {
                         if (token) {
                             updatedOrder.shipmentDetails.pickupTokenNumber = token;
                             console.log(`✅ [SHIPROCKET] Pickup Scheduled! Token: ${token}`);
+
+                            // Send "Rider Assigned" notification for Shiprocket flow
+                            try {
+                                const admin = (await import('../utils/firebaseAdmin.js')).default;
+                                const customerData = await User.findById(updatedOrder.customer);
+                                if (customerData && customerData.fcmToken) {
+                                    const riderMessage = {
+                                        notification: {
+                                            title: 'Rider Assigned! 🛵',
+                                            body: `your rider is assigned`
+                                        },
+                                        data: {
+                                            orderId: updatedOrder.orderId.toString(),
+                                            type: 'RIDER_ASSIGNED'
+                                        },
+                                        token: customerData.fcmToken
+                                    };
+                                    await admin.messaging().send(riderMessage);
+                                    console.log(`🚀 [FCM_PUSH] Shiprocket Rider assigned notification sent to ${customerData.phone}`);
+                                }
+                            } catch (err) {
+                                console.error('❌ [FCM_PUSH] Shiprocket Rider notification error:', err.message);
+                            }
                         }
                     }
                 }
@@ -627,15 +724,50 @@ export const vendorAcceptOrder = async (req, res) => {
         });
 
         // Notify the CUSTOMER specifically
-        const customerId = updatedOrder.customer?.toString() || updatedOrder.customer;
+        let customerId = updatedOrder.customer;
+        if (customerId && typeof customerId === 'object') {
+            customerId = customerId._id || customerId.id || customerId;
+        }
+        customerId = customerId?.toString();
+
         if (customerId) {
             console.log(`🔔 [NOTIFICATION] Notifying Customer: ${customerId}`);
             io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
             io.to(`user_${customerId}`).emit('push_notification', {
-                title: 'Order Confirmed! 🚀',
-                body: `Your order has been accepted and a rider is assigned for pickup.`,
+                title: 'Order Accepted! ✅',
+                body: `Your order is accepted by vendor`,
                 orderId: updatedOrder.orderId
             });
+
+            // --- REAL FIREBASE PUSH NOTIFICATION ---
+            try {
+                console.log(`📡 [FCM_DEBUG] Starting push process for order: ${updatedOrder.orderId}`);
+                const admin = (await import('../utils/firebaseAdmin.js')).default;
+                const customer = await User.findById(customerId);
+                
+                if (customer && customer.fcmToken) {
+                    console.log(`📡 [FCM_DEBUG] Found token for ${customer.phone}: ${customer.fcmToken.substring(0, 20)}...`);
+                    const message = {
+                        notification: {
+                            title: 'Order Accepted! ✅',
+                            body: `Your order is accepted by vendor`
+                        },
+                        data: {
+                            orderId: updatedOrder.orderId.toString(),
+                            type: 'ORDER_ACCEPTED'
+                        },
+                        token: customer.fcmToken
+                    };
+
+                    const response = await admin.messaging().send(message);
+                    console.log(`🚀 [FCM_PUSH] Success! Message ID: ${response}`);
+                } else {
+                    console.log(`⚠️ [FCM_PUSH] Skipping push - Customer or token missing for ID: ${customerId}`);
+                }
+            } catch (pushErr) {
+                console.error('❌ [FCM_PUSH] Error sending push notification:', pushErr.message);
+                if (pushErr.stack) console.error(pushErr.stack);
+            }
         }
 
         res.status(200).json(updatedOrder);
@@ -673,6 +805,50 @@ export const acceptOrder = async (req, res) => {
         const io = getIO();
         io.to(`order_${id}`).emit('order_status_update', updatedOrder);
         io.emit('rider_pool_update', { orderId: id, action: 'removed' });
+
+        // --- REAL FIREBASE PUSH NOTIFICATION ---
+        console.log(`📡 [FCM_DEBUG] acceptOrder hit for order: ${updatedOrder.orderId}`);
+        let customerId = updatedOrder.customer;
+        if (customerId && typeof customerId === 'object') {
+            customerId = customerId._id || customerId.id || customerId;
+        }
+        customerId = customerId?.toString();
+
+        if (customerId) {
+            console.log(`📡 [FCM_DEBUG] Found customerId for Rider Assigned: ${customerId}`);
+            io.to(`user_${customerId}`).emit('push_notification', {
+                title: 'Rider Assigned! 🛵',
+                body: `your rider is assigned`,
+                orderId: updatedOrder.orderId
+            });
+
+            try {
+                const admin = (await import('../utils/firebaseAdmin.js')).default;
+                const customer = await User.findById(customerId);
+                
+                if (customer && customer.fcmToken) {
+                    console.log(`🚀 [FCM_PUSH] Sending Rider Assigned Notification to ${customer.phone}`);
+                    const message = {
+                        notification: {
+                            title: 'Rider Assigned! 🛵',
+                            body: `your rider is assigned`
+                        },
+                        data: {
+                            orderId: updatedOrder.orderId.toString(),
+                            type: 'RIDER_ASSIGNED'
+                        },
+                        token: customer.fcmToken
+                    };
+
+                    await admin.messaging().send(message);
+                    console.log(`🚀 [FCM_PUSH] Rider Assignment Success`);
+                } else {
+                    console.log(`⚠️ [FCM_PUSH] Skipping Rider Assigned - Token missing`);
+                }
+            } catch (pushErr) {
+                console.error('❌ [FCM_PUSH] Rider notification error:', pushErr.message);
+            }
+        }
 
         res.status(200).json(updatedOrder);
     } catch (err) {

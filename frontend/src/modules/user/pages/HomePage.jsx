@@ -4,11 +4,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
+import { locationService } from '../../../lib/locationService';
+import { requestForToken } from '../../../lib/firebase';
 
 const HomePage = () => {
   console.log('HomePage Rendering');
   const navigate = useNavigate();
   const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData } = useLocationStore();
+
+  // FCM TOKEN REGISTRATION
+  useEffect(() => {
+    const registerToken = async () => {
+      try {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = userData._id || userData.id;
+        
+        if (userId) {
+          const fcmToken = await requestForToken();
+          if (fcmToken) {
+            await authApi.updateFcmToken(userId, fcmToken);
+          }
+        }
+      } catch (err) {
+        console.error('FCM Registration Error:', err);
+      }
+    };
+
+    registerToken();
+  }, []);
   
   useEffect(() => {
     // Automatically attempt to trigger location prompt if not set
@@ -213,7 +236,16 @@ const HomePage = () => {
         console.error('Fetch error:', err);
       }
 
-      const filtered = data.filter(s => {
+      const filtered = data.map(s => {
+        // Normalize Category & SubCategory
+        const catObj = s.categoryId || s.category;
+        return {
+          ...s,
+          name: s.name || s.itemName,
+          mainCategory: catObj?.mainCategory || (typeof catObj === 'string' ? catObj : null),
+          subCategoryName: catObj?.subCategory || (typeof s.subCategory === 'string' ? s.subCategory : s.subCategory?.name)
+        };
+      }).filter(s => {
         const isActive = s.status === 'Active' || s.isActive === true;
         const isApproved = s.isMaster || s.approvalStatus === 'Approved';
         const target = (s.targetAudience || 'both').toLowerCase();
@@ -270,16 +302,14 @@ const HomePage = () => {
       // Search filter
       if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       
-      // Category filter
+      // Category filter (Main Category name comparison)
       if (selectedCategory) {
-        const sCatId = s.category?._id || s.category;
-        if (sCatId !== selectedCategory._id) return false;
+        if (s.mainCategory !== selectedCategory.name) return false;
       }
       
       // Sub-category filter
       if (selectedSubCategory) {
-        const sSubCatId = s.subCategory?._id || s.subCategory;
-        if (sSubCatId !== selectedSubCategory._id) return false;
+        if (s.subCategoryName !== selectedSubCategory.name) return false;
       }
       
       return true;
@@ -315,12 +345,17 @@ const HomePage = () => {
   };
 
   const cartItemsCount = useMemo(() => Object.values(selectedQuantities).reduce((acc, q) => acc + q, 0), [selectedQuantities]);
-  const cartTotal = useMemo(() => Object.entries(selectedQuantities).reduce((acc, [id, q]) => {
-    const service = services.find(s => (s._id || s.id) === id);
-    const actualPrice = service?.discountedPrice || service?.totalPrice || service?.basePrice || 0;
-    const price = actualPrice * pricingFactor;
-    return acc + price * q; 
-  }, 0), [selectedQuantities, services, pricingFactor]);
+  const cartTotal = useMemo(() => {
+    return Object.entries(selectedQuantities).reduce((acc, [id, q]) => {
+      // Find service in both master and custom services
+      const service = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
+      if (!service) return acc;
+      
+      const actualPrice = service.discountedPrice || service.totalPrice || service.basePrice || 0;
+      const price = actualPrice * (pricingFactor || 1);
+      return acc + (price * q); 
+    }, 0);
+  }, [selectedQuantities, services, pricingFactor]);
   
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -451,44 +486,32 @@ const HomePage = () => {
     }
 
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    locationService.getCurrentCoordinates()
+      .then(async (coords) => {
         try {
-          // Use Google Maps Geocoding API if available, else just coordinates
-          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-          if (apiKey) {
-            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
-            const data = await response.json();
-            if (data.results && data.results[0]) {
-              const addr = data.results[0].formatted_address;
-              setCustomAddress(addr);
-              const liveAddr = { id: 'live', type: 'LIVE', address: addr, location: { lat: latitude, lng: longitude } };
-              setPickupAddress(liveAddr);
-              if (isSameAsPickup) setDropAddress(liveAddr);
-              setShowAddressForm(true);
-            }
-          } else {
-            const addr = `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`;
-            setCustomAddress(addr);
-            const liveAddr = { id: 'live', type: 'LIVE', address: addr, location: { lat: latitude, lng: longitude } };
-            setPickupAddress(liveAddr);
-            if (isSameAsPickup) setDropAddress(liveAddr);
-            setShowAddressForm(true);
-          }
+          const addressData = await locationService.reverseGeocode(coords.lat, coords.lng);
+          setCustomAddress(addressData.fullAddress);
+          const liveAddr = { 
+            id: 'live', 
+            type: 'LIVE', 
+            address: addressData.fullAddress, 
+            location: { lat: coords.lat, lng: coords.lng } 
+          };
+          setPickupAddress(liveAddr);
+          if (isSameAsPickup) setDropAddress(liveAddr);
+          setShowAddressForm(true);
         } catch (error) {
           console.error('Error geocoding:', error);
           alert('Could not get address from location');
         } finally {
           setIsLocating(false);
         }
-      },
-      (error) => {
+      })
+      .catch((error) => {
         console.error('Geolocation error:', error);
-        alert('Location access denied');
+        alert('Location access denied or timed out');
         setIsLocating(false);
-      }
-    );
+      });
   };
 
   const handleCustomAddressChange = (val) => {
@@ -576,32 +599,32 @@ const HomePage = () => {
             )}
           </div>
           
-          <div className="flex gap-4 overflow-x-auto pb-6 hide-scrollbar px-1">
+          <div className="flex gap-4 overflow-x-auto pb-8 hide-scrollbar px-1">
             {categoriesLoading ? (
-              [...Array(4)].map((_, i) => <div key={i} className="min-w-[115px] h-32 bg-white rounded-[2.5rem] animate-pulse border border-slate-200" />)
+              [...Array(4)].map((_, i) => <div key={i} className="min-w-[120px] h-36 bg-white rounded-[2.5rem] animate-pulse border border-slate-100" />)
             ) : (
               categories.map(cat => (
                 <motion.button 
-                  key={cat._id}
-                  whileHover={{ scale: 1.05, y: -4 }}
+                  key={cat.name}
+                  whileHover={{ y: -5 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => handleCategoryClick(cat)}
-                  className={`flex flex-col items-center gap-4 min-w-[115px] max-w-[115px] p-5 rounded-[2.5rem] border-2 transition-all duration-300 ${
-                    selectedCategory?._id === cat._id 
-                      ? 'bg-slate-950 text-white border-slate-950 shadow-[0_20px_40px_rgba(0,0,0,0.3)] ring-4 ring-slate-950/10' 
-                      : 'bg-white text-slate-900 border-slate-200 hover:border-slate-400 shadow-[0_8px_20px_rgba(0,0,0,0.06)]'
+                  className={`flex flex-col items-center gap-3 min-w-[120px] max-w-[120px] p-6 rounded-[2.8rem] border-2 transition-all duration-500 ${
+                    selectedCategory?.name === cat.name 
+                      ? 'bg-slate-950 text-white border-slate-950 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)]' 
+                      : 'bg-white text-slate-900 border-slate-100 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] hover:border-slate-200'
                   }`}
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden shadow-inner transition-colors ${
-                    selectedCategory?._id === cat._id ? 'bg-white/20' : 'bg-slate-100 group-hover:bg-slate-200'
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner transition-all duration-500 ${
+                    selectedCategory?.name === cat.name ? 'bg-white/20 rotate-6' : 'bg-slate-50'
                   }`}>
-                    {cat.image ? (
-                      <img src={cat.image} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className={`material-symbols-outlined text-2xl ${selectedCategory?._id === cat._id ? 'text-white' : 'text-slate-600'}`}>category</span>
-                    )}
+                    <span className={`material-symbols-outlined text-2xl ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
+                      {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' : 
+                       cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' : 
+                       cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
+                    </span>
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-widest leading-none text-center ${selectedCategory?._id === cat._id ? 'text-white' : 'text-slate-900'}`}>
+                  <span className={`text-[9px] font-black uppercase tracking-[0.15em] leading-tight text-center ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-900'}`}>
                     {cat.name}
                   </span>
                 </motion.button>
@@ -623,14 +646,14 @@ const HomePage = () => {
                     key={sub._id}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : sub)}
+                    onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : { ...sub, name: sub.subCategory })}
                     className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 shadow-sm ${
                       selectedSubCategory?._id === sub._id 
                         ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20' 
                         : 'bg-slate-200 text-slate-800 border-slate-300 hover:bg-slate-300 hover:border-slate-400'
                     }`}
                   >
-                    {sub.name}
+                    {sub.subCategory}
                   </motion.button>
                 ))}
               </motion.div>

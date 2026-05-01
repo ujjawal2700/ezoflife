@@ -12,6 +12,7 @@ const OrdersHistoryPage = () => {
   // DATE FILTER STATES
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   const userData = JSON.parse(localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
   const userId = userData._id || userData.id || localStorage.getItem('userId');
@@ -399,40 +400,62 @@ const OrdersHistoryPage = () => {
                 exit="hidden"
                 className="space-y-8"
               >
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 mb-8">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="material-symbols-outlined text-primary text-sm">calendar_month</span>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filter by Date</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-300 uppercase ml-2">From</label>
-                      <input 
-                        type="date" 
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[8px] font-black text-slate-300 uppercase ml-2">To</label>
-                      <input 
-                        type="date" 
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
-                      />
-                    </div>
-                  </div>
-                  {(startDate || endDate) && (
-                    <button 
-                      onClick={() => { setStartDate(''); setEndDate(''); }}
-                      className="text-[9px] font-black text-rose-500 uppercase tracking-widest w-full py-2 hover:bg-rose-50 rounded-xl transition-all"
+                {/* Date Filter Toggle Button */}
+                <motion.button
+                  variants={itemVariants}
+                  onClick={() => setShowDateFilter(!showDateFilter)}
+                  className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all mb-4 ${
+                    showDateFilter || startDate || endDate
+                      ? 'bg-primary text-white shadow-lg'
+                      : 'bg-white text-slate-900 border border-slate-200'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">calendar_month</span>
+                  {startDate || endDate ? 'Date Filter Active' : 'Filter By Date'}
+                  <span className="material-symbols-outlined text-sm transition-transform duration-300" style={{ transform: showDateFilter ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                </motion.button>
+
+                <AnimatePresence>
+                  {showDateFilter && (
+                    <motion.div 
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
                     >
-                      Clear Filters
-                    </button>
+                      <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 mb-8">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-black text-slate-300 uppercase ml-2">From</label>
+                            <input 
+                              type="date" 
+                              value={startDate}
+                              onChange={(e) => setStartDate(e.target.value)}
+                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[8px] font-black text-slate-300 uppercase ml-2">To</label>
+                            <input 
+                              type="date" 
+                              value={endDate}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                          </div>
+                        </div>
+                        {(startDate || endDate) && (
+                          <button 
+                            onClick={() => { setStartDate(''); setEndDate(''); }}
+                            className="text-[9px] font-black text-rose-500 uppercase tracking-widest w-full py-2 hover:bg-rose-50 rounded-xl transition-all"
+                          >
+                            Clear Filters
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
 
                 <motion.h4 variants={itemVariants} className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant opacity-30 px-4 flex items-center gap-4">
                   {startDate || endDate ? 'Filtered Results' : 'Last 5 Orders'}

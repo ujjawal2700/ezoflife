@@ -359,6 +359,33 @@ export const getStatus = async (req, res) => {
     }
 };
 
+// Update FCM Token
+export const updateFcmToken = async (req, res) => {
+    try {
+        const { userId, fcmToken } = req.body;
+        if (!userId || !fcmToken) {
+            return res.status(400).json({ message: 'User ID and FCM Token are required' });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { fcmToken },
+            { new: true }
+        );
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        console.log(`🔑 [FCM] Token updated for user: ${updatedUser.phone}`);
+        res.status(200).json({ message: 'FCM Token updated successfully' });
+    } catch (err) {
+        console.error('Update FCM Token Error:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+// Admin Login
 export const adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;

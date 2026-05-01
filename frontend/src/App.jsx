@@ -10,6 +10,8 @@ import GlobalToast from './shared/components/GlobalToast'
 import LocationPrompt from './shared/components/LocationPrompt'
 import LocationPicker from './shared/components/LocationPicker'
 import { useJsApiLoader } from '@react-google-maps/api'
+import { onMessageListener } from './lib/firebase'
+import toast from 'react-hot-toast'
 import './index.css'
 
 const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places'];
@@ -20,6 +22,20 @@ function App() {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries: GOOGLE_MAPS_LIBRARIES
   });
+
+  React.useEffect(() => {
+    onMessageListener()
+      .then((payload) => {
+        if (payload) {
+          toast.success(`${payload.notification.title}: ${payload.notification.body}`, {
+            duration: 6000,
+            position: 'top-right',
+            icon: '🔔'
+          });
+        }
+      })
+      .catch((err) => console.log('failed: ', err));
+  }, []);
 
   return (
     <BrowserRouter>

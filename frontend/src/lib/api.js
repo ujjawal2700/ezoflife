@@ -9,13 +9,15 @@ export const categoryApi = {
     getMain: async () => {
         const res = await fetch(`${BASE_URL}/categories`);
         const data = await res.json();
-        // Return unique main categories
-        return Array.from(new Set(data.map(c => c.mainCategory))).map(name => ({ name }));
+        // Return unique main categories with name as id
+        return Array.from(new Set(data.map(c => c.mainCategory)))
+            .filter(Boolean)
+            .map(name => ({ _id: name, name }));
     },
-    getSub: async (mainCategory) => {
+    getSub: async (mainCategoryName) => {
         const res = await fetch(`${BASE_URL}/categories`);
         const data = await res.json();
-        return data.filter(c => c.mainCategory === mainCategory);
+        return data.filter(c => c.mainCategory === mainCategoryName);
     },
     create: async (data) => {
         const res = await fetch(`${BASE_URL}/categories`, {
@@ -210,6 +212,19 @@ export const authApi = {
             return await response.json();
         } catch (error) {
             console.error('Update Documents API Error:', error);
+            throw error;
+        }
+    },
+    updateFcmToken: async (userId, fcmToken) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/update-fcm-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, fcmToken })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update FCM Token Error:', error);
             throw error;
         }
     }

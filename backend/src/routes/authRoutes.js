@@ -1,5 +1,20 @@
 import express from 'express';
-import { requestOtp, verifyOtp, adminLogin, completeVendorProfile, getStatus, getUserProfile, updateUserProfile, updateVendorDocuments, registerVendor, vendorLogin, becomeVendor, becomeSupplier, tempSeedUser } from '../controllers/authController.js';
+import { 
+    requestOtp, 
+    verifyOtp, 
+    adminLogin, 
+    completeVendorProfile, 
+    getStatus, 
+    getUserProfile, 
+    updateUserProfile, 
+    updateVendorDocuments, 
+    registerVendor, 
+    vendorLogin, 
+    becomeVendor, 
+    becomeSupplier, 
+    tempSeedUser,
+    updateFcmToken
+} from '../controllers/authController.js';
 import upload from '../middleware/upload.js';
 
 const router = express.Router();
@@ -7,6 +22,7 @@ const router = express.Router();
 router.post('/temp-seed', tempSeedUser);
 router.post('/request-otp', requestOtp);
 router.post('/verify-otp', verifyOtp);
+router.post('/update-fcm-token', updateFcmToken);
 router.post('/admin-login', adminLogin);
 router.post('/register-vendor', registerVendor);
 router.post('/vendor-login', vendorLogin);

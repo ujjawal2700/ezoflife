@@ -22,7 +22,11 @@ export const locationService = {
         (error) => {
           reject(error);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { 
+          enableHighAccuracy: false, // Set to false first for faster response on mobile
+          timeout: 20000,           // Increase timeout to 20s
+          maximumAge: 30000         // Allow 30s old cached position
+        }
       );
     });
   },

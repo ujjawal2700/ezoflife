@@ -119,6 +119,10 @@ const userSchema = new mongoose.Schema({
     isOnline: {
         type: Boolean,
         default: false
+    },
+    fcmToken: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true });
 

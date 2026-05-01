@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useLocationStore } from '../../../shared/stores/locationStore';
 import UserHeader from '../components/UserHeader';
 import BottomNav from '../components/BottomNav';
 

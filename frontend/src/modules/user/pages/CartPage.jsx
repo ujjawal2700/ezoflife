@@ -32,8 +32,16 @@ const CartPage = () => {
         ]);
         
         const combinedData = [
-          ...(Array.isArray(masterRes) ? masterRes.map(s => ({ ...s, isMaster: true })) : []),
-          ...(Array.isArray(customRes) ? customRes.map(s => ({ ...s, isMaster: false })) : [])
+          ...(Array.isArray(masterRes) ? masterRes.map(s => ({ 
+            ...s, 
+            isMaster: true,
+            name: s.itemName || s.name // Normalize name for validation
+          })) : []),
+          ...(Array.isArray(customRes) ? customRes.map(s => ({ 
+            ...s, 
+            isMaster: false,
+            name: s.name || s.itemName 
+          })) : [])
         ];
         
         setServices(combinedData);
@@ -369,7 +377,7 @@ const CartPage = () => {
         customerId: userId,
         items: cartItems.map(item => ({
           serviceId: item._id || item.id,
-          name: item.name,
+          name: item.name || item.itemName || 'Service Item',
           quantity: quantities[item._id || item.id],
           price: getItemPrice(item),
           unit: billingUnits[item._id || item.id]
@@ -433,8 +441,8 @@ const CartPage = () => {
             >
               <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div className="flex flex-col gap-1">
-                  <h3 className="font-headline font-black text-2xl text-slate-900 uppercase tracking-tighter">Booking Preview.</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verify your details before payment</p>
+                  <h3 className="font-headline font-black text-2xl text-slate-900 uppercase tracking-tighter">Order Summary.</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Rider Assignment</p>
                 </div>
                 <button onClick={() => setShowPreview(false)} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 shadow-sm hover:text-rose-500 transition-all">
                   <span className="material-symbols-outlined">close</span>
@@ -442,6 +450,17 @@ const CartPage = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-8 space-y-8 hide-scrollbar">
+                {/* Status Card */}
+                <div className="bg-amber-50 border border-amber-100 p-5 rounded-3xl flex items-center gap-4">
+                  <div className="w-10 h-10 bg-amber-400 rounded-full flex items-center justify-center text-white shrink-0">
+                    <span className="material-symbols-outlined text-sm">hail</span>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Current Status</p>
+                    <p className="text-xs font-bold text-amber-900 uppercase">Awaiting Rider Assignment</p>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Services & Items</p>
                   <div className="space-y-3">
@@ -457,34 +476,27 @@ const CartPage = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Pickup Address</p>
-                    <p className="text-xs font-bold text-slate-900 leading-relaxed">{selectedPickupAddress?.address}</p>
+                <div className="bg-slate-950 rounded-[2.5rem] p-8 text-white space-y-6 shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl" />
+                  
+                  <div className="space-y-3 relative z-10">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
+                      <span>Gross Amount</span>
+                      <span className="text-white">₹{finalTotal.toFixed(0)}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40 border-t border-white/10 pt-3">
+                      <span>Status</span>
+                      <span className="text-amber-400">PENDING</span>
+                    </div>
                   </div>
-                  <div className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Scheduling</p>
-                    <p className="text-xs font-bold text-slate-900">Pickup: {selectedPickup}</p>
-                    <p className="text-xs font-bold text-slate-900 mt-1">Delivery: {selectedDelivery}</p>
-                  </div>
-                </div>
 
-                <div className="bg-black rounded-[2.5rem] p-8 text-white space-y-4 shadow-xl">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
-                    <span>Tax (10%)</span>
-                    <span className="text-white">₹{taxAmount.toFixed(0)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs font-black uppercase tracking-widest text-white/40 border-t border-white/10 pt-4">
-                    <span>Final Total</span>
-                    <span className="text-white text-lg">₹{finalTotal.toFixed(0)}</span>
-                  </div>
-                  <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                  <div className="pt-6 border-t border-white/10 flex justify-between items-center relative z-10">
                     <div className="flex flex-col">
-                      <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-1">Pay Now (Advance)</p>
-                      <p className="text-4xl font-black text-white tracking-tighter">₹{(finalTotal * 0.05).toFixed(0)}</p>
+                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Paid Amount (Advance)</p>
+                      <p className="text-3xl font-black text-white tracking-tighter">₹{(finalTotal * 0.05).toFixed(0)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Pay After Delivery</p>
+                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Remaining Amount</p>
                       <p className="text-2xl font-black text-white/60 tracking-tighter">₹{(finalTotal * 0.95).toFixed(0)}</p>
                     </div>
                   </div>
@@ -495,9 +507,9 @@ const CartPage = () => {
                 <button 
                   onClick={handlePlaceOrder}
                   disabled={loading}
-                  className={`w-full py-6 rounded-[1.5rem] bg-black text-white font-black text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all hover:bg-emerald-500 flex items-center justify-center gap-3 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={`w-full py-6 rounded-[1.5rem] bg-black text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all hover:bg-emerald-500 flex items-center justify-center gap-3 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  {loading ? 'PROCESSING...' : 'PROCEED TO PAYMENT'}
+                  {loading ? 'PROCESSING...' : 'CONFIRM ORDER'}
                 </button>
               </div>
             </motion.div>
@@ -712,41 +724,50 @@ const CartPage = () => {
             />
           </div>
 
-          <div className="bg-black text-white rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] -mr-32 -mt-32" />
+          <div className="bg-slate-950 text-white rounded-[3.5rem] p-8 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.5)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 blur-[120px] -mr-40 -mt-40" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 blur-[100px] -ml-32 -mb-32" />
             
-            <div className="relative z-10 space-y-6">
-              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest opacity-40">
-                <span>Subtotal</span>
-                <span>₹{subtotal.toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest opacity-40">
-                <span>Delivery {isExpress ? '(Express)' : '(Normal)'}</span>
-                <span>₹{(logisticsFee + currentExpressFee).toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest opacity-40">
-                <span>Service Tax (10%)</span>
-                <span>₹{taxAmount.toFixed(0)}</span>
-              </div>
-              {isPromoApplied && (
-                <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest text-emerald-400">
-                  <span>Promo Discount ({appliedPromoData.code})</span>
-                  <span>- ₹{discount.toFixed(0)}</span>
+            <div className="relative z-10 space-y-8">
+              <div className="space-y-5">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
+                  <span>Subtotal</span>
+                  <span className="text-white">₹{subtotal.toFixed(0)}</span>
                 </div>
-              )}
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
+                  <span>Delivery {isExpress ? '(Express)' : '(Normal)'}</span>
+                  <span className="text-white">₹{(logisticsFee + currentExpressFee).toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
+                  <span>Service Tax (GST)</span>
+                  <span className="text-white">₹{taxAmount.toFixed(0)}</span>
+                </div>
+                {isPromoApplied && (
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">
+                    <span>Promo Discount</span>
+                    <span>- ₹{discount.toFixed(0)}</span>
+                  </div>
+                )}
+              </div>
               
-              <div className="pt-6 border-t border-white/10 flex justify-between items-end">
-                <div className="flex flex-col">
-                  <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1">Final Amount</p>
-                  <p className="text-5xl font-black tracking-tighter">₹{finalTotal.toFixed(0)}</p>
+              <div className="pt-8 border-t border-white/10">
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-2">Final Amount to Pay</p>
+                    <p className="text-6xl font-black tracking-tighter bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">₹{finalTotal.toFixed(0)}</p>
+                  </div>
+                  
+                  <motion.button 
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowPreview(true)}
+                    disabled={cartItems.length === 0}
+                    className="w-full bg-white text-slate-950 py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(255,255,255,0.15)] flex items-center justify-center gap-4 group transition-all"
+                  >
+                    PREVIEW ORDER
+                    <span className="material-symbols-outlined text-lg group-hover:translate-x-2 transition-transform">arrow_forward</span>
+                  </motion.button>
                 </div>
-                <button 
-                  onClick={() => setShowPreview(true)}
-                  disabled={cartItems.length === 0}
-                  className="bg-white text-black px-10 py-5 rounded-[1.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all hover:bg-emerald-400 hover:text-white"
-                >
-                  PREVIEW ORDER
-                </button>
               </div>
             </div>
           </div>

@@ -2,9 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import VendorHeader from '../components/VendorHeader';
-import { orderApi } from '../../../lib/api';
+import { orderApi, authApi } from '../../../lib/api';
 import useNotificationStore from '../../../shared/stores/notificationStore';
 import socket from '../../../lib/socket';
+import { requestForToken } from '../../../lib/firebase';
 
 const IncomingTimer = ({ duration, onExpire }) => {
     const [timeLeft, setTimeLeft] = useState(duration);
@@ -226,10 +227,31 @@ const Dashboard = () => {
     useEffect(() => {
         if (!vendorId) return;
 
+        // --- FCM TOKEN REGISTRATION ---
+        const setupNotifications = async () => {
+            try {
+                const token = await requestForToken();
+                if (token) {
+                    await authApi.updateFcmToken(vendorId, token);
+                    console.log('✅ Vendor FCM Token Updated');
+                }
+            } catch (err) {
+                console.error('❌ Vendor FCM Registration Error:', err);
+            }
+        };
+        setupNotifications();
+
         fetchAllData();
         // Socket will connect automatically
 
+        socket.on('connect', () => {
+            console.log('🔌 [SOCKET] Connected to server');
+            socket.emit('join_room', 'vendors_pool');
+            socket.emit('join_room', `user_${vendorId}`);
+        });
+
         socket.on('pool_update', (data) => {
+            console.log('📦 [SOCKET] Pool update received:', data);
             if (data.action === 'removed') {
                 setPoolOrders(prev => prev.filter(o => o._id !== data.orderId));
             } else {
@@ -238,12 +260,9 @@ const Dashboard = () => {
         });
 
         socket.on('new_order_available', (data) => {
-            console.log('🔔 [SOCKET] New order broadcast received:', data);
-            // SECURITY: Only show to approved vendors
-            if (vendorData?.status === 'approved' && !ignoredOrders.includes(data.orderId)) {
-                setIncomingOrder(data);
-                fetchPoolOrders(); // Refresh list too
-            }
+            console.log('🔔 [SOCKET] New order received real-time:', data);
+            setIncomingOrder(data);
+            fetchPoolOrders(); 
         });
 
         const interval = setInterval(fetchAllData, 1800000); // Polling as fallback (30 minutes)
@@ -372,8 +391,16 @@ const Dashboard = () => {
                                         </div>
                                         <h3 className="text-4xl font-black text-slate-900 tracking-tighter mt-4 leading-none">New Request</h3>
                                     </div>
-                                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                                        <span className="material-symbols-outlined text-3xl">notifications_active</span>
+                                    <div className="flex flex-col gap-3">
+                                        <button 
+                                            onClick={() => setIncomingOrder(null)}
+                                            className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all shadow-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-2xl font-black">close</span>
+                                        </button>
+                                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
+                                            <span className="material-symbols-outlined text-3xl">notifications_active</span>
+                                        </div>
                                     </div>
                                 </div>
 
