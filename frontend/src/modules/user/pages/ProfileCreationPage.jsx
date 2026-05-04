@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker, StandaloneSearchBox } from '@react-google-maps/api';
 import { authApi } from '../../../lib/api';
 
-const libraries = ['drawing', 'places'];
+const libraries = ['drawing', 'places', 'geometry'];
 const mapContainerStyle = { width: '100%', height: '100%' };
 const defaultCenter = { lat: 28.4595, lng: 77.0266 }; // Gurgaon
 

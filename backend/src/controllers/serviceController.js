@@ -5,11 +5,15 @@ import SystemConfig from '../models/SystemConfig.js';
 // Get all services
 export const getAllServices = async (req, res) => {
     try {
-        const { approvedOnly, vendorId } = req.query;
+        const { approvedOnly, vendorId, serviceType } = req.query;
         let query = {};
         
         if (approvedOnly === 'true') {
             query.approvalStatus = 'Approved';
+        }
+
+        if (serviceType) {
+            query.serviceType = serviceType;
         }
 
         if (vendorId && vendorId !== 'undefined' && vendorId !== 'null') {

@@ -34,12 +34,15 @@ import B2BEscrowManagement from '../pages/B2BEscrowManagement';
 import VendorRankingEngine from '../pages/VendorRankingEngine';
 import AdminLegalPage from '../pages/AdminLegalPage';
 import ServiceAreas from '../pages/ServiceAreas';
+import AdminSupplierRequestsPage from '../pages/AdminSupplierRequestsPage';
+import AdminSupplierRequestDetailPage from '../pages/AdminSupplierRequestDetailPage';
 
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
 import PricingPreview from '../pages/PricingPreview';
 import AreaPricingOverrides from '../pages/AreaPricingOverrides';
+import CustomerPayments from '../pages/CustomerPayments';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -102,6 +105,9 @@ const AdminRoutes = () => {
         <Route path="/pricing-preview" element={<PricingPreview />} />
         <Route path="/pricing-overrides" element={<AreaPricingOverrides />} />
         <Route path="/feedback" element={<FeedbackManagement />} />
+        <Route path="/customer-payments" element={<CustomerPayments />} />
+        <Route path="/supplier-requests" element={<AdminSupplierRequestsPage />} />
+        <Route path="/supplier-requests/:id" element={<AdminSupplierRequestDetailPage />} />
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 

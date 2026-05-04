@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi, BASE_URL } from '../../../lib/api';
+import { serviceApi, masterServiceApi, BASE_URL } from '../../../lib/api';
 
 const SearchResultsPage = () => {
   const navigate = useNavigate();
@@ -14,9 +14,12 @@ const SearchResultsPage = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        const customerType = (userData.customerType || localStorage.getItem('userType') || 'individual').toLowerCase();
+
         const [masterRes, vendorRes] = await Promise.all([
-            fetch(`${BASE_URL}/master-services`).then(res => res.json()),
-            serviceApi.getAll()
+            masterServiceApi.getAll({ serviceType: customerType }),
+            serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
         ]);
         
         // Combine and filter: Only show Approved or Master services

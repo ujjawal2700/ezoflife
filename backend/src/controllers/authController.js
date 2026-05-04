@@ -5,6 +5,51 @@ import bcrypt from 'bcryptjs';
 // Mock OTP Generator - Hardcoded to 123456 for Testing
 const generateOTP = () => '123456';
 
+export const getVendorEarnings = async (req, res) => {
+    try {
+        const { vendorId } = req.query;
+        if (!vendorId) return res.status(400).json({ message: 'Vendor ID is required' });
+
+        const Order = (await import('../models/Order.js')).default;
+        const Payout = (await import('../models/Payout.js')).default;
+        const User = (await import('../models/User.js')).default;
+
+        const vendor = await User.findById(vendorId).select('displayName shopDetails').lean();
+        if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+
+        // Vendor Earnings = baseWithArea + expressSurcharge from priceBreakdown
+        const orders = await Order.find({ 
+            vendor: vendorId,
+            status: { $in: ['Ready', 'Delivered', 'Out for Delivery'] }
+        }).select('priceBreakdown status orderId createdAt').lean();
+        
+        const totalEarnings = orders.reduce((acc, curr) => {
+            const breakdown = curr.priceBreakdown || {};
+            return acc + (breakdown.baseWithArea || 0) + (breakdown.expressSurcharge || 0);
+        }, 0);
+        
+        // Total Paid by Admin to Vendor
+        const payouts = await Payout.find({ vendor: vendorId, status: 'Completed' }).select('amount paidAt').lean();
+        const totalPaid = payouts.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+        
+        const pendingBalance = totalEarnings - totalPaid;
+
+        res.status(200).json({
+            _id: vendorId,
+            displayName: vendor.displayName,
+            shopName: vendor.shopDetails?.name || 'N/A',
+            totalOrders: orders.length,
+            totalEarnings,
+            totalPaid,
+            pendingBalance,
+            lastPayout: payouts.length > 0 ? payouts[payouts.length - 1].paidAt : null
+        });
+    } catch (err) {
+        console.error('Get Vendor Earnings Error:', err);
+        res.status(500).json({ message: 'Error fetching earnings', error: err.message });
+    }
+};
+
 export const requestOtp = async (req, res) => {
     try {
         const { phone, channel, mode, customerType } = req.body; 

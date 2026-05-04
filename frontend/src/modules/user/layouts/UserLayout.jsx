@@ -123,26 +123,9 @@ const UserLayout = () => {
 
         socket.on('push_notification', handlePushNotification);
         
-        // 3. Handle Payment Trigger (Phase 3)
-        if (userId) {
-            console.log(`[DEBUG] Joining user room: user_${userId}`);
-            socket.emit('join_user_room', userId);
-        }
-
-        const handlePaymentTrigger = (data) => {
-            console.log('💰 [DEBUG] Payment Trigger Received:', data);
-            toast.success(data.message || 'Items delivered! Proceed to payment.', { icon: '💰', duration: 8000 });
-            // Automatically redirect to payment page
-            navigate('/user/payment', { 
-                state: { 
-                    orderId: data.orderId, 
-                    amount: data.amount,
-                    orderNumber: data.orderNumber
-                } 
-            });
-        };
-
-        socket.on('payment_trigger', handlePaymentTrigger);
+        // 3. Handle Payment Trigger - DISABLED per user request (Upfront payment flow)
+        // const handlePaymentTrigger = (data) => { ... };
+        // socket.on('payment_trigger', handlePaymentTrigger);
 
         // --- Vendor Specific ---
         const handleNewOrder = async (data) => {
@@ -169,7 +152,7 @@ const UserLayout = () => {
             socket.off('connect', joinRooms);
             socket.off('push_notification', handlePushNotification);
             socket.off('new_order_available', handleNewOrder);
-            socket.off('payment_trigger', handlePaymentTrigger);
+            // socket.off('payment_trigger', handlePaymentTrigger);
         };
     }, [userRole, addNotification, setIncomingRequest]);
 
@@ -218,25 +201,6 @@ const UserLayout = () => {
     '/user/auth', 
     '/user/otp',
     '/user/splash', 
-    '/user/success', 
-    '/user/confirmation', 
-    '/user/tracking', 
-    '/user/verification', 
-    '/user/payment', 
-    '/user/success-feedback',
-    '/user/notifications',
-    '/user/profile/edit',
-    '/user/profile/addresses',
-    '/user/services',
-    '/user/chat',
-    '/user/cart',
-    '/user/partnerships',
-    '/user/advertise',
-    '/user/faq',
-    '/user/terms',
-    '/user/careers',
-    '/user/review',
-    '/user/support',
     '/user/land',
     '/land'
   ];
@@ -256,7 +220,7 @@ const UserLayout = () => {
    return (
     <div className="flex flex-col min-h-screen bg-slate-50/50">
       {showHeader && renderHeader()}
-      <div className="flex-1">
+      <div className={`flex-1 ${showNav ? 'pb-32' : ''}`}>
         <Outlet />
       </div>
       {showNav && <BottomNav />}

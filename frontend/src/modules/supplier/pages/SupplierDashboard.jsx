@@ -54,6 +54,27 @@ const SupplierDashboard = () => {
 
     const dashboardTabs = useMemo(() => ['Incoming Orders', 'History', 'Logistics'], []);
 
+    const aggregatedStats = useMemo(() => {
+        const stats = {};
+        orders.forEach(order => {
+            // Only aggregate if not delivered yet
+            if (order.status !== 'Delivered') {
+                order.items.forEach(item => {
+                    const name = item.name.toLowerCase();
+                    if (!stats[name]) stats[name] = { quantity: 0, unit: 'Units' };
+                    stats[name].quantity += item.quantity;
+                    
+                    // Simple unit detection
+                    if (name.includes('detergent')) stats[name].unit = 'KG';
+                    else if (name.includes('softener') || name.includes('liquid')) stats[name].unit = 'Ltr';
+                    else if (name.includes('hanger') || name.includes('bag')) stats[name].unit = 'Units';
+                    else stats[name].unit = 'Qty';
+                });
+            }
+        });
+        return Object.entries(stats).map(([name, data]) => ({ name, ...data }));
+    }, [orders]);
+
     return (
         <div className="bg-background text-on-surface min-h-screen pb-60 font-body">
             {/* Header */}
@@ -107,34 +128,21 @@ const SupplierDashboard = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-y-8 gap-x-6">
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Detergent</p>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-2xl font-black text-white tracking-tighter">450</span>
-                                        <span className="text-[10px] font-black text-indigo-400 uppercase">KG</span>
+                                {aggregatedStats.length === 0 ? (
+                                    <div className="col-span-2 py-4 opacity-40 text-white text-[10px] font-black uppercase tracking-widest text-center italic">
+                                        No items to aggregate yet
                                     </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Laundry Bags</p>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-2xl font-black text-white tracking-tighter">1,200</span>
-                                        <span className="text-[10px] font-black text-emerald-400 uppercase">Units</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Total Softener</p>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-2xl font-black text-white tracking-tighter">90</span>
-                                        <span className="text-[10px] font-black text-rose-400 uppercase">Ltr</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Packaging Rolls</p>
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-2xl font-black text-white tracking-tighter">35</span>
-                                        <span className="text-[10px] font-black text-amber-400 uppercase">Qty</span>
-                                    </div>
-                                </div>
+                                ) : (
+                                    aggregatedStats.slice(0, 4).map((stat, idx) => (
+                                        <div key={idx} className="space-y-1.5">
+                                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate">{stat.name}</p>
+                                            <div className="flex items-baseline gap-1.5">
+                                                <span className="text-2xl font-black text-white tracking-tighter">{stat.quantity.toLocaleString()}</span>
+                                                <span className={`text-[10px] font-black uppercase ${idx % 2 === 0 ? 'text-indigo-400' : 'text-emerald-400'}`}>{stat.unit}</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
 
                             <button className="w-full mt-10 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-2">
@@ -330,7 +338,7 @@ const SupplierDashboard = () => {
                                                 <h4 className="font-headline font-black text-on-surface">{order.vendor?.displayName || 'Unknown Vendor'}</h4>
                                                 <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mt-1">{order.b2bOrderId}</p>
                                             </div>
-                                            <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${order.status === 'Pending' ? 'bg-amber-100 text-amber-600' : 'bg-primary/10 text-primary'}`}>
+                                            <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${order.status === 'Locked' ? 'bg-indigo-100 text-indigo-600' : 'bg-primary/10 text-primary'}`}>
                                                 {order.status}
                                             </span>
                                         </div>

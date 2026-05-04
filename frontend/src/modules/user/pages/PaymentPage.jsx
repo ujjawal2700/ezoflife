@@ -25,11 +25,11 @@ const PaymentSelectionPage = () => {
     }
   }, [orderId]);
 
-  const amount = order ? order.totalAmount : initialAmount;
+  const amount = order ? (order.advanceAmount || order.totalAmount) : initialAmount;
+  const isPartial = order && order.advanceAmount && order.advanceAmount < order.totalAmount;
 
   const taxBreakdown = React.useMemo(() => {
     if (!order || !order.items) {
-      // Fallback to legacy 10% if order data not available
       return {
         subtotal: amount * 0.9,
         tax: amount * 0.1,
@@ -39,16 +39,10 @@ const PaymentSelectionPage = () => {
 
     const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const logistics = order.deliveryCharge || 0;
-    
-    // Calculate items tax
     const itemsTax = order.items.reduce((acc, item) => {
-        // Note: The order items should ideally have the GST value from when they were ordered
-        // If not, we fallback to 18%
         const itemGst = item.gst !== undefined ? item.gst : 0.18;
         return acc + (item.price * item.quantity * itemGst);
     }, 0);
-
-    // Logistics Tax (18%)
     const logisticsTax = logistics * 0.18;
 
     return {
@@ -79,7 +73,6 @@ const PaymentSelectionPage = () => {
   ];
 
   const handleFinalizePayment = () => {
-      // Mock payment finalize
       navigate('/user/success-feedback', { 
           state: { 
               orderId,
@@ -117,7 +110,7 @@ const PaymentSelectionPage = () => {
             Payment <br/><span className="text-primary tracking-tighter">Gateway</span>
           </h1>
           <p className="text-xs font-bold text-on-surface-variant opacity-60 leading-relaxed max-w-[280px]">
-            Your transition to freshness is almost complete. Select your method.
+            {isPartial ? `Pay advance of ₹${amount.toFixed(0)} to confirm your order.` : 'Your transition to freshness is almost complete.'}
           </p>
         </motion.section>
 
@@ -133,14 +126,15 @@ const PaymentSelectionPage = () => {
             className="bg-primary/5 rounded-[2.5rem] p-10 flex flex-col justify-between min-h-[220px] relative overflow-hidden border border-primary/10 group shadow-sm shadow-primary/5"
           >
             <div className="z-10">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 opacity-60">Amount to Pay</p>
-              <p className="text-5xl font-black text-on-surface tracking-tighter leading-none">₹{amount.toFixed(2)}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 opacity-60">
+                {isPartial ? 'Advance Amount' : 'Amount to Pay'}
+              </p>
+              <p className="text-5xl font-black text-on-surface tracking-tighter leading-none">₹{amount.toFixed(0)}</p>
             </div>
             <div className="z-10 flex gap-2 items-center text-on-surface-variant opacity-60">
               <span className="material-symbols-outlined text-sm font-black" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
               <span className="text-[9px] font-black uppercase tracking-[0.2em]">Insured Transaction</span>
             </div>
-            {/* Aesthetic Glow */}
             <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none group-hover:scale-110 transition-transform"></div>
           </motion.div>
 
@@ -149,24 +143,21 @@ const PaymentSelectionPage = () => {
             className="bg-white rounded-[2.5rem] p-10 flex flex-col justify-center space-y-4 shadow-sm border border-outline-variant/10"
           >
             {[
-              { label: 'Subtotal', value: `₹${taxBreakdown.subtotal.toFixed(2)}`, color: 'on-surface' },
-              { label: 'Logistics', value: taxBreakdown.logistics > 0 ? `₹${taxBreakdown.logistics.toFixed(2)}` : 'FREE', color: 'primary' },
-              { label: 'Service Tax', value: `₹${taxBreakdown.tax.toFixed(2)}`, color: 'on-surface' }
+              { label: 'Order Total', value: `₹${(order?.totalAmount || initialAmount).toFixed(0)}`, color: 'on-surface-variant' },
+              { label: 'Paid Now', value: `₹${amount.toFixed(0)}`, color: 'primary' },
+              { label: 'Remaining', value: isPartial ? `₹${(order.dueAmount).toFixed(0)}` : '₹0', color: isPartial ? 'tertiary' : 'on-surface' }
             ].map((item, idx) => (
               <div key={idx} className="flex justify-between items-center group/line">
-                <span className="text-xs font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">{item.label}</span>
-                <span className={`font-black tracking-tight text-${item.color}`}>
+                <span className="text-[10px] font-black text-on-surface-variant opacity-60 uppercase tracking-widest">{item.label}</span>
+                <span className={`text-sm font-black tracking-tight text-${item.color}`}>
                   {item.value}
                 </span>
               </div>
             ))}
             <div className="h-px bg-outline-variant/5 my-2"></div>
-            <button 
-              onClick={() => navigate(-1)}
-              className="text-[9px] font-black text-primary uppercase tracking-widest text-left hover:underline"
-            >
-              Check Order Details
-            </button>
+            <p className="text-[9px] font-bold text-slate-400 italic uppercase tracking-widest leading-relaxed">
+                {isPartial ? 'Pay advance to initiate pickup. Balance will be due after service completion.' : 'Full payment required for this service tier.'}
+            </p>
           </motion.div>
         </motion.div>
 

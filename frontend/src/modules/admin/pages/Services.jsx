@@ -58,7 +58,8 @@ export default function Services() {
     tier: 'Essential',
     status: 'Active',
     image: '',
-    description: ''
+    description: '',
+    serviceType: 'normal'
   });
 
   const openModal = (service = null) => {
@@ -72,7 +73,8 @@ export default function Services() {
         tier: service.tier || 'Essential',
         status: service.status,
         image: service.image || '',
-        description: service.description || ''
+        description: service.description || '',
+        serviceType: service.serviceType || 'normal'
       });
     } else {
       setEditingService(null);
@@ -84,7 +86,8 @@ export default function Services() {
         tier: 'Essential',
         status: 'Active',
         image: '',
-        description: ''
+        description: '',
+        serviceType: 'normal'
       });
     }
     setIsModalOpen(true);
@@ -376,6 +379,22 @@ export default function Services() {
                       <option value="Suspended">Suspended</option>
                     </select>
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Flow Type (Mode)</label>
+                    <div className="flex gap-2">
+                      {['normal', 'retail'].map(t => (
+                        <button 
+                          key={t}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, serviceType: t })}
+                          className={`flex-1 py-2.5 rounded-sm text-[9px] font-black uppercase tracking-widest border transition-all ${formData.serviceType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-400'}`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
                 </div>
 
                 <div className="space-y-2">

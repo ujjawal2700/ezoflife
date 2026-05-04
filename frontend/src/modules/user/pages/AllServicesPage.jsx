@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi, BASE_URL } from '../../../lib/api';
+import { serviceApi, masterServiceApi, BASE_URL } from '../../../lib/api';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const AllServicesPage = () => {
@@ -14,9 +14,12 @@ const AllServicesPage = () => {
   const fetchServices = async () => {
     try {
       setLoading(true);
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      const customerType = (userData.customerType || localStorage.getItem('userType') || 'individual').toLowerCase();
+
       const [masterRes, customRes] = await Promise.all([
-        fetch(`${BASE_URL}/master-services`).then(res => res.json()),
-        serviceApi.getAll({ approvedOnly: true })
+        masterServiceApi.getAll({ serviceType: customerType }),
+        serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
       ]);
 
       const combined = [

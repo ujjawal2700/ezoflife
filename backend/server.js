@@ -1,10 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 console.log('🔥 SERVER IS BOOTING WITH LATEST ADMIN CLEANUP CODE (APR 26)...');
 // Server updated at 2026-04-29T11:58:25
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import http from 'http';
 import fs from 'fs';
 
@@ -42,15 +44,19 @@ import SystemConfig from './src/models/SystemConfig.js';
 import { getSystemConfig, updateSystemConfig } from './src/controllers/adminController.js';
 import { addSpecialist, getAllSpecialists, deleteSpecialist, createRequisition, getAllRequisitions, assignRequisition } from './src/controllers/laborController.js';
 
+import { initPickupScheduler } from './src/jobs/pickupScheduler.js';
+import { startOrderAggregationJob } from './src/jobs/orderAggregationJob.js';
 import { initSocket } from './src/socket.js';
-
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
 // Initialize Socket.io
 initSocket(server);
+
+// Initialize Jobs
+initPickupScheduler();
+startOrderAggregationJob();
 
 // Middleware
 const allowedOrigins = [

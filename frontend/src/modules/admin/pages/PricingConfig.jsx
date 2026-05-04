@@ -14,7 +14,8 @@ import {
   Award,
   Layers,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import MetricRow from '../components/cards/MetricRow';
@@ -33,6 +34,15 @@ export default function PricingConfig() {
   const [essentialFee, setEssentialFee] = useState(20);
   const [heritageFee, setHeritageFee] = useState(150);
   const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(500);
+  
+  // Global Multipliers
+  const [basePriceMultiplier, setBasePriceMultiplier] = useState(1.0);
+  const [isBaseActive, setIsBaseActive] = useState(false);
+  const [discountedPriceMultiplier, setDiscountedPriceMultiplier] = useState(1.0);
+  const [isDiscountedActive, setIsDiscountedActive] = useState(false);
+  const [gstPercentage, setGstPercentage] = useState(18);
+  const [advancePercentage, setAdvancePercentage] = useState(100);
+  const [deliveryDay, setDeliveryDay] = useState('Sunday');
 
   // Refs for auto-scrolling
   const sectionRefs = {
@@ -62,6 +72,25 @@ export default function PricingConfig() {
 
       const threshold = data.find(c => c.key === 'free_delivery_threshold');
       if (threshold) setFreeDeliveryThreshold(threshold.value);
+
+      const bMult = data.find(c => c.key === 'global_base_price_multiplier');
+      if (bMult) setBasePriceMultiplier(bMult.value);
+      const bActive = data.find(c => c.key === 'is_global_base_multiplier_active');
+      if (bActive) setIsBaseActive(bActive.value === true || bActive.value === 'true');
+
+      const dMult = data.find(c => c.key === 'global_discounted_price_multiplier');
+      if (dMult) setDiscountedPriceMultiplier(dMult.value);
+      const dActive = data.find(c => c.key === 'is_global_discounted_multiplier_active');
+      if (dActive) setIsDiscountedActive(dActive.value === true || dActive.value === 'true');
+
+      const gst = data.find(c => c.key === 'gst_percentage');
+      if (gst) setGstPercentage(gst.value);
+
+      const advance = data.find(c => c.key === 'advance_percentage');
+      if (advance) setAdvancePercentage(advance.value);
+
+      const dDay = data.find(c => c.key === 'delivery_day');
+      if (dDay) setDeliveryDay(dDay.value);
     } catch (err) {
       toast.error('Failed to load system configuration');
     } finally {
@@ -92,7 +121,14 @@ export default function PricingConfig() {
         shippingConfigApi.updateConfig('normal_logistics_fee', Number(normalLogisticsFee)),
         shippingConfigApi.updateConfig('essential_fee', Number(essentialFee)),
         shippingConfigApi.updateConfig('heritage_fee', Number(heritageFee)),
-        shippingConfigApi.updateConfig('free_delivery_threshold', Number(freeDeliveryThreshold))
+        shippingConfigApi.updateConfig('free_delivery_threshold', Number(freeDeliveryThreshold)),
+        shippingConfigApi.updateConfig('global_base_price_multiplier', Number(basePriceMultiplier)),
+        shippingConfigApi.updateConfig('is_global_base_multiplier_active', isBaseActive),
+        shippingConfigApi.updateConfig('global_discounted_price_multiplier', Number(discountedPriceMultiplier)),
+        shippingConfigApi.updateConfig('is_global_discounted_multiplier_active', isDiscountedActive),
+        shippingConfigApi.updateConfig('gst_percentage', Number(gstPercentage)),
+        shippingConfigApi.updateConfig('advance_percentage', Number(advancePercentage)),
+        shippingConfigApi.updateConfig('delivery_day', deliveryDay)
       ]);
       toast.success('Pricing policies updated successfully');
       fetchData();
@@ -173,7 +209,7 @@ export default function PricingConfig() {
                             className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
                         />
                     </div>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic leading-relaxed">Calculated as a percentage of the total order value for standard timelines.</p>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Calculated as a percentage of the total order value for standard timelines.</p>
                 </div>
 
                 <div ref={sectionRefs.express} className="space-y-4 transition-all duration-500">
@@ -189,7 +225,7 @@ export default function PricingConfig() {
                             className="w-full pl-10 pr-4 py-4 bg-amber-50/30 border border-amber-100 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none transition-all"
                         />
                     </div>
-                    <p className="text-[9px] text-amber-600 font-bold uppercase tracking-widest italic leading-relaxed">Additional percentage added for priority/express fulfillment.</p>
+                    <p className="text-[9px] text-amber-600 font-bold uppercase tracking-widest leading-relaxed">Additional percentage added for priority/express fulfillment.</p>
                 </div>
 
                 <div className="space-y-4">
@@ -205,12 +241,80 @@ export default function PricingConfig() {
                             className="w-full pl-10 pr-4 py-4 bg-rose-50/30 border border-rose-100 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-rose-500 outline-none transition-all"
                         />
                     </div>
-                    <p className="text-[9px] text-rose-600 font-bold uppercase tracking-widest italic leading-relaxed">Orders above this value will qualify for 100% shipping waiver.</p>
+                    <p className="text-[9px] text-rose-600 font-bold uppercase tracking-widest leading-relaxed">Orders above this value will qualify for 100% shipping waiver.</p>
                 </div>
             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Global Base Multiplier */}
+            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm">
+                <div className="p-6 bg-blue-50/30 border-b border-blue-100 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-sm">
+                            <Layers size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-[11px] font-black text-blue-900 uppercase tracking-widest">Global Base Multiplier</h3>
+                            <p className="text-[9px] font-bold text-blue-600/60 uppercase tracking-widest mt-1">Global_Base_Price_Multiplier</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setIsBaseActive(!isBaseActive)}
+                        className={`w-12 h-6 rounded-full transition-all flex items-center px-1 ${isBaseActive ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                    >
+                        <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                    </button>
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold">x</span>
+                        <input 
+                            type="number" step="0.1"
+                            value={basePriceMultiplier}
+                            onChange={(e) => setBasePriceMultiplier(e.target.value)}
+                            disabled={!isBaseActive}
+                            className={`w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all ${!isBaseActive && 'opacity-50'}`}
+                        />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Multiplies the original (strikethrough) price across all services.</p>
+                </div>
+            </div>
+
+            {/* Global Discounted Multiplier */}
+            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm">
+                <div className="p-6 bg-emerald-50/30 border-b border-emerald-100 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-emerald-600 text-white flex items-center justify-center rounded-sm">
+                            <Sparkles size={18} />
+                        </div>
+                        <div>
+                            <h3 className="text-[11px] font-black text-emerald-900 uppercase tracking-widest">Global Discounted Multiplier</h3>
+                            <p className="text-[9px] font-bold text-emerald-600/60 uppercase tracking-widest mt-1">Global_Discounted_Price_Multiplier</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={() => setIsDiscountedActive(!isDiscountedActive)}
+                        className={`w-12 h-6 rounded-full transition-all flex items-center px-1 ${isDiscountedActive ? 'bg-emerald-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                    >
+                        <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                    </button>
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold">x</span>
+                        <input 
+                            type="number" step="0.1"
+                            value={discountedPriceMultiplier}
+                            onChange={(e) => setDiscountedPriceMultiplier(e.target.value)}
+                            disabled={!isDiscountedActive}
+                            className={`w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all ${!isDiscountedActive && 'opacity-50'}`}
+                        />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Multiplies the discounted (final) price across all services.</p>
+                </div>
+            </div>
+
             {/* Essential Fee Card */}
             <div ref={sectionRefs.essential} className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
                 <div className="p-6 bg-emerald-50/30 border-b border-emerald-100 flex items-center gap-4">
@@ -231,12 +335,6 @@ export default function PricingConfig() {
                             onChange={(e) => setEssentialFee(e.target.value)}
                             className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
                         />
-                    </div>
-                    <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-sm border border-slate-100">
-                        <Info size={14} className="text-slate-400 mt-0.5" />
-                        <p className="text-[9px] text-slate-500 font-bold leading-relaxed uppercase tracking-widest">
-                            Applied to 'Essential' tier services as a processing percentage per order line.
-                        </p>
                     </div>
                 </div>
             </div>
@@ -262,13 +360,82 @@ export default function PricingConfig() {
                             className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
                         />
                     </div>
-                    <div className="flex items-start gap-3 p-4 bg-slate-50 rounded-sm border border-slate-100">
-                        <Award size={14} className="text-slate-400 mt-0.5" />
-                        <p className="text-[9px] text-slate-500 font-bold leading-relaxed uppercase tracking-widest">
-                            Applied to 'Heritage' tier services as a premium handling percentage.
-                        </p>
+                </div>
+            </div>
+
+            {/* GST Config Card */}
+            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
+                <div className="p-6 bg-rose-50/30 border-b border-rose-100 flex items-center gap-4">
+                    <div className="w-10 h-10 bg-rose-600 text-white flex items-center justify-center rounded-sm">
+                        <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                        <h3 className="text-[11px] font-black text-rose-900 uppercase tracking-widest">GST Configuration (%)</h3>
+                        <p className="text-[9px] font-bold text-rose-600/60 uppercase tracking-widest mt-1">Standard Government Taxation</p>
                     </div>
                 </div>
+                <div className="p-8 space-y-6">
+                    <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold">%</span>
+                        <input 
+                            type="number" 
+                            value={gstPercentage}
+                            onChange={(e) => setGstPercentage(e.target.value)}
+                            className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
+                        />
+                    </div>
+                </div>
+            </div>
+            
+            {/* Advance Payment Card */}
+            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
+                <div className="p-6 bg-slate-100 border-b border-slate-200 flex items-center gap-4">
+                    <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center rounded-sm">
+                        <CreditCard size={18} />
+                    </div>
+                    <div>
+                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Advance Payment (%)</h3>
+                        <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1">Required deposit amount</p>
+                    </div>
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="relative group">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold">%</span>
+                        <input 
+                            type="number" 
+                            value={advancePercentage}
+                            onChange={(e) => setAdvancePercentage(e.target.value)}
+                            className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
+                        />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* Global Delivery Day Card */}
+        <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
+            <div className="p-6 bg-indigo-50/30 border-b border-indigo-100 flex items-center gap-4">
+                <div className="w-10 h-10 bg-indigo-600 text-white flex items-center justify-center rounded-sm">
+                    <Clock size={18} />
+                </div>
+                <div>
+                    <h3 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">B2B Delivery Cycle Day</h3>
+                    <p className="text-[9px] font-bold text-indigo-600/60 uppercase tracking-widest mt-1">Aggregated Fulfillment Schedule</p>
+                </div>
+            </div>
+            <div className="p-8 space-y-6">
+                <select 
+                    value={deliveryDay}
+                    onChange={(e) => setDeliveryDay(e.target.value)}
+                    className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all appearance-none cursor-pointer"
+                >
+                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                        <option key={day} value={day}>{day}</option>
+                    ))}
+                </select>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed">
+                    Suppliers will only deliver B2B aggregated orders on this day. Cutoff is 24 hours prior.
+                </p>
             </div>
         </div>
 
@@ -281,9 +448,9 @@ export default function PricingConfig() {
                         <ShieldCheck size={20} className="text-emerald-400" />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em]">System Operational Protocol</span>
                     </div>
-                    <h3 className="text-2xl font-black tracking-tighter leading-none italic">Pricing Integrity Policy</h3>
+                    <h3 className="text-2xl font-black tracking-tighter leading-none">Pricing Integrity Policy</h3>
                     <p className="text-white/60 text-[10px] font-bold leading-relaxed uppercase tracking-widest">
-                        Any changes to fees and surcharges are synchronized across the entire network in real-time. Please ensure accuracy before deploying new rates as they directly impact customer checkout values.
+                        Sync all rates across the platform.
                     </p>
                 </div>
                 <button 
@@ -377,7 +544,7 @@ export default function PricingConfig() {
             </div>
             
             <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Showing active fee overrides for strategic vendor partners</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Showing active fee overrides for strategic vendor partners</p>
                 <div className="flex items-center gap-2">
                     <button className="w-8 h-8 flex items-center justify-center rounded-sm border border-slate-200 text-slate-400 hover:bg-white disabled:opacity-30" disabled>
                         <ChevronRight size={14} className="rotate-180" />

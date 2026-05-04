@@ -54,7 +54,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     path: '/admin/vendors/approvals',
                     subItems: [
                         { label: 'Vendor Requests', path: '/admin/vendors/approvals' },
-                        { label: 'Supplier Requests', path: '/admin/vendors/approvals?tab=Supplier' },
+                        { label: 'Supplier Requests', path: '/admin/supplier-requests' },
                     ]
                 },
                 { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
@@ -65,6 +65,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     path: '/admin/payments',
                     subItems: [
                         { label: 'Customer Payments', path: '/admin/payments?tab=customer' },
+                        { label: 'Customer Analytics', path: '/admin/customer-payments' },
                         { label: 'Vendor Payouts', path: '/admin/payments?tab=vendor' },
                         { label: 'Supplier Payouts', path: '/admin/payments?tab=supplier' },
                         { label: 'Pending COD', path: '/admin/payments?tab=cod' },

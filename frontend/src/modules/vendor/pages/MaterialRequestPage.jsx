@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { materialApi, b2bOrderApi } from '../../../lib/api';
 
 const MaterialRequestPage = () => {
     const navigate = useNavigate();
@@ -12,18 +13,9 @@ const MaterialRequestPage = () => {
         const fetchSupplies = async () => {
             try {
                 setLoading(true);
-                // Branded 3-second wait as requested
-                setTimeout(() => {
-                    const mockSupplies = [
-                        { id: 1, name: 'Premium Liquid Detergent', category: 'Chemicals', price: 450, unit: '5L Can', image: 'https://img.freepik.com/free-photo/laundry-detergent-bottles-with-towels_23-2148419614.jpg', stock: 'In Stock' },
-                        { id: 2, name: 'Eco-Friendly Packing Bags', category: 'Packaging', price: 120, unit: '100 Units', image: 'https://img.freepik.com/free-photo/white-paper-bags-concept_23-2148111956.jpg', stock: 'In Stock' },
-                        { id: 3, name: 'Softener & Fragrance', category: 'Chemicals', price: 320, unit: '2L Bottle', image: 'https://img.freepik.com/free-photo/colorful-towels-bottles-softener_23-2148419611.jpg', stock: 'Limited' },
-                        { id: 4, name: 'Ironing Board Covers', category: 'Equipment', price: 280, unit: 'Piece', image: 'https://img.freepik.com/free-photo/ironing-board-with-iron-inside_23-2148111964.jpg', stock: 'In Stock' },
-                        { id: 5, name: 'Branding Sticker Rolls', category: 'Packaging', price: 500, unit: '1000 Tags', image: 'https://img.freepik.com/free-vector/realistic-roll-sticky-tape_1284-33100.jpg', stock: 'In Stock' },
-                    ];
-                    setMaterials(mockSupplies);
-                    setLoading(false);
-                }, 3000); // 3 Seconds branded wait
+                const data = await materialApi.getAll();
+                setMaterials(data);
+                setLoading(false);
             } catch (err) {
                 console.error('Error fetching supplies:', err);
                 setLoading(false);
@@ -104,7 +96,7 @@ const MaterialRequestPage = () => {
                             >
                                 {/* Categories Filter */}
                                 <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                                    {['All Supplies', 'Chemicals', 'Packaging', 'Equipment'].map((cat, i) => (
+                                    {['All Supplies', ...new Set(materials.map(m => m.category))].map((cat, i) => (
                                         <button key={i} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${i === 0 ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-primary/20'}`}>
                                             {cat}
                                         </button>
@@ -115,12 +107,16 @@ const MaterialRequestPage = () => {
                                 <div className="grid grid-cols-1 gap-4">
                                     {materials.map((item) => (
                                         <motion.div 
-                                            key={item.id}
+                                            key={item._id}
                                             layout
                                             className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-5 hover:border-primary/20 transition-all group"
                                         >
-                                            <div className="w-24 h-24 rounded-3xl bg-slate-50 overflow-hidden shrink-0 border border-slate-50 shadow-inner">
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                            <div className="w-24 h-24 rounded-3xl bg-slate-50 overflow-hidden shrink-0 border border-slate-50 shadow-inner flex items-center justify-center">
+                                                {item.image ? (
+                                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-4xl text-slate-200">inventory_2</span>
+                                                )}
                                             </div>
                                             
                                             <div className="flex-1 min-w-0">
@@ -129,23 +125,23 @@ const MaterialRequestPage = () => {
                                                     {item.stock === 'Limited' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>}
                                                 </div>
                                                 <h3 className="text-sm font-black text-slate-900 truncate tracking-tight">{item.name}</h3>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{item.unit}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{item.stock}</p>
                                                 
                                                 <div className="flex items-center justify-between mt-3">
                                                     <p className="text-base font-black text-slate-900">₹{item.price}</p>
                                                     
                                                     <div className="flex items-center bg-slate-50 rounded-xl p-1 gap-3 border border-slate-100">
                                                         <button 
-                                                            onClick={() => updateQuantity(item.id, -1)}
+                                                            onClick={() => updateQuantity(item._id, -1)}
                                                             className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
                                                         >
                                                             <span className="material-symbols-outlined text-sm">remove</span>
                                                         </button>
                                                         <span className="text-xs font-black text-slate-900 w-4 text-center tabular-nums">
-                                                            {cart[item.id] || 0}
+                                                            {cart[item._id] || 0}
                                                         </span>
                                                         <button 
-                                                            onClick={() => updateQuantity(item.id, 1)}
+                                                            onClick={() => updateQuantity(item._id, 1)}
                                                             className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors"
                                                         >
                                                             <span className="material-symbols-outlined text-sm">add</span>
@@ -177,9 +173,46 @@ const MaterialRequestPage = () => {
                                 <p className="text-xl font-black text-white tracking-tight">{totalItems} Items</p>
                             </div>
                             <button 
-                                onClick={() => {
-                                    alert('Request submitted to Material Supplier! Check history for updates.');
-                                    navigate('/vendor/dashboard');
+                                onClick={async () => {
+                                    try {
+                                        const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+                                        const vendorData = JSON.parse(vendorDataRaw);
+                                        const vendorId = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id;
+                                        
+                                        // Find more info if missing
+                                        const city = vendorData.shopDetails?.city || vendorData.city || 'Unknown';
+                                        const pincode = vendorData.shopDetails?.pincode || vendorData.pincode || '';
+
+                                        const orderItems = Object.entries(cart)
+                                            .filter(([_, qty]) => qty > 0)
+                                            .map(([id, qty]) => {
+                                                const material = materials.find(m => m._id === id);
+                                                return {
+                                                    materialId: id,
+                                                    name: material.name,
+                                                    quantity: qty,
+                                                    price: material.price
+                                                };
+                                            });
+
+                                        const totalAmount = orderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+                                        const payload = {
+                                            vendorId,
+                                            items: orderItems,
+                                            totalAmount,
+                                            city,
+                                            pincode,
+                                            shippingAddress: `${city}, ${pincode}`
+                                        };
+
+                                        await b2bOrderApi.placeOrder(payload);
+                                        alert('Request submitted to Material Pool! Nearby suppliers will be notified.');
+                                        navigate('/vendor/dashboard');
+                                    } catch (err) {
+                                        console.error('Submission Error:', err);
+                                        alert(err.message || 'Failed to place request');
+                                    }
                                 }}
                                 className="flex-1 h-14 bg-primary text-white rounded-[1.4rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:bg-white hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-3"
                             >

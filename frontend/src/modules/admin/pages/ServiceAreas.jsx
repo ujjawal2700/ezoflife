@@ -8,19 +8,16 @@ import PageHeader from '../components/common/PageHeader';
 import toast from 'react-hot-toast';
 import { BASE_URL } from '../../../lib/api';
 
-const libraries = ['drawing', 'places'];
+const libraries = ['drawing', 'places', 'geometry'];
 const mapContainerStyle = { width: '100%', height: '600px' };
 const defaultCenter = { lat: 19.9975, lng: 73.7898 }; // Nashik default
 
 export default function ServiceAreas() {
   const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [drawingMode, setDrawingMode] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [newAreaName, setNewAreaName] = useState('');
-  const [newAreaDescription, setNewAreaDescription] = useState('');
-  const [pricingFactor, setPricingFactor] = useState(1.0);
+  const [drawingMode, setDrawingMode] = useState(null);
   
   const mapRef = useRef(null);
   const drawingManagerRef = useRef(null);

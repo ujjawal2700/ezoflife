@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import VendorHeader from '../components/VendorHeader';
-import { orderApi, authApi } from '../../../lib/api';
+import { orderApi, authApi, vendorPaymentApi } from '../../../lib/api';
 import useNotificationStore from '../../../shared/stores/notificationStore';
 import socket from '../../../lib/socket';
 import { requestForToken } from '../../../lib/firebase';
@@ -26,16 +26,36 @@ const IncomingTimer = ({ duration, onExpire }) => {
 };
 
 const PoolOrderCard = ({ order, onAccept, acceptingId, onReject }) => {
-    const [timeLeft, setTimeLeft] = useState(30);
+    const calculateTimeLeft = () => {
+        const created = new Date(order.createdAt).getTime();
+        const now = new Date().getTime();
+        const diff = Math.floor((created + 60 * 60 * 1000 - now) / 1000);
+        return Math.max(0, diff);
+    };
+
+    const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
 
     useEffect(() => {
         if (timeLeft <= 0) {
             onReject(order._id);
             return;
         }
-        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        const timer = setInterval(() => {
+            const next = calculateTimeLeft();
+            setTimeLeft(next);
+            if (next <= 0) {
+                clearInterval(timer);
+                onReject(order._id);
+            }
+        }, 1000);
         return () => clearInterval(timer);
-    }, [timeLeft]);
+    }, [order.createdAt]);
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const totalArticles = order.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0;
     const approxEarnings = (order.totalAmount * 0.85).toFixed(0); // Assuming 15% commission
@@ -54,9 +74,9 @@ const PoolOrderCard = ({ order, onAccept, acceptingId, onReject }) => {
                 <span className="text-[10px] font-black bg-slate-900 text-white px-3.5 py-2 rounded-xl uppercase tracking-widest shadow-md">
                     {order.orderId}
                 </span>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${timeLeft < 10 ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                    <span className={`w-2 h-2 rounded-full ${timeLeft < 10 ? 'bg-rose-500 animate-ping' : 'bg-slate-300'}`}></span>
-                    <p className="text-[10px] font-black uppercase tracking-widest tabular-nums">00:{timeLeft.toString().padStart(2, '0')}</p>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${timeLeft < 300 ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                    <span className={`w-2 h-2 rounded-full ${timeLeft < 300 ? 'bg-rose-500 animate-ping' : 'bg-slate-300'}`}></span>
+                    <p className="text-[10px] font-black uppercase tracking-widest tabular-nums">{formatTime(timeLeft)}</p>
                 </div>
             </div>
 
@@ -169,6 +189,7 @@ const Dashboard = () => {
     });
     const [loading, setLoading] = useState(true);
     const [acceptingId, setAcceptingId] = useState(null);
+    const [summary, setSummary] = useState(null);
     const { fetchNotifications } = useNotificationStore();
 
     const [startDate, setStartDate] = useState('');
@@ -214,8 +235,13 @@ const Dashboard = () => {
 
     const fetchAllData = async () => {
         try {
+            const [ordersRes, summaryRes] = await Promise.all([
+                orderApi.getVendorOrders(vendorId),
+                vendorPaymentApi.getEarningsSummary(vendorId)
+            ]);
+            setAllOrders(ordersRes);
+            setSummary(summaryRes);
             await Promise.all([
-                fetchOrders(),
                 fetchPoolOrders(),
                 fetchNotifications(vendorId, 'vendor')
             ]);
@@ -588,22 +614,22 @@ const Dashboard = () => {
                             <div className="relative z-10">
                                 <div className="flex items-center justify-between mb-8">
                                     <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] leading-none">Net Revenue</p>
-                                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter mt-1">Today's Earnings</h3>
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] leading-none">Wallet Balance</p>
+                                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter mt-1">Pending Payout</h3>
                                     </div>
                                     <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-900/20">
-                                        <span className="material-symbols-outlined text-3xl">payments</span>
+                                        <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
                                     </div>
                                 </div>
                                 
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-2xl font-black text-slate-300 tracking-tight leading-none">₹</span>
-                                    <h2 className="text-7xl font-black tracking-tighter leading-none text-slate-900">{dailyEarnings.toLocaleString()}</h2>
+                                    <h2 className="text-7xl font-black tracking-tighter leading-none text-slate-900">{(summary?.pendingBalance || 0).toLocaleString()}</h2>
                                     
-                                    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl border ${dailyEarnings > 0 ? 'bg-slate-900 border-slate-900 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'} transition-all ml-4`}>
-                                        <span className="material-symbols-outlined text-sm font-black">{dailyEarnings > 0 ? 'trending_up' : 'info'}</span>
+                                    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl border ${(summary?.pendingBalance || 0) > 0 ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'} transition-all ml-4`}>
+                                        <span className="material-symbols-outlined text-sm font-black">{(summary?.pendingBalance || 0) > 0 ? 'verified' : 'info'}</span>
                                         <span className="text-[10px] font-black uppercase tracking-widest">
-                                            {dailyEarnings > 0 ? 'Active' : 'No Sales'}
+                                            {(summary?.pendingBalance || 0) > 0 ? 'Available' : 'Settled'}
                                         </span>
                                     </div>
                                 </div>
@@ -612,16 +638,16 @@ const Dashboard = () => {
                                 <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
                                     <div className="flex items-center gap-10">
                                         <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Your Payout</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Earnings</p>
                                             <p className="text-lg font-black text-slate-900 mt-1">
-                                                ₹{(dailyEarnings * 0.85).toFixed(0)}
+                                                ₹{(summary?.totalEarnings || 0).toLocaleString()}
                                             </p>
                                         </div>
                                         <div className="w-px h-10 bg-slate-100"></div>
                                         <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fees (15%)</p>
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Received</p>
                                             <p className="text-lg font-black text-slate-900 mt-1">
-                                                ₹{(dailyEarnings * 0.15).toFixed(0)}
+                                                ₹{(summary?.totalPaid || 0).toLocaleString()}
                                             </p>
                                         </div>
                                     </div>
@@ -665,74 +691,17 @@ const Dashboard = () => {
                                 {activeTab === 'Available' ? (
                                     // 1. AVAILABLE TAB: Nearby Orders
                                     poolOrders.length > 0 ? (
-                                        poolOrders.map((order) => (
-                                            <motion.div 
-                                                key={order._id}
-                                                layout
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6 relative overflow-hidden group"
-                                            >
-                                                {/* Card Content Header */}
-                                                <div className="flex justify-between items-center">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="bg-slate-900 text-white px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md">{order.orderId}</span>
-                                                        <span className="bg-rose-50 text-rose-500 px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-rose-100 flex items-center gap-1.5">
-                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                                                            Nearby
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{order.distance || '1.2'} KM AWAY</p>
-                                                </div>
-
-                                                <div className="flex gap-5">
-                                                    <div className="w-16 h-16 bg-slate-50 rounded-[1.5rem] flex items-center justify-center text-slate-400 shrink-0 border border-slate-100 shadow-inner">
-                                                        <span className="material-symbols-outlined text-3xl">local_laundry_service</span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer Area</p>
-                                                        <h4 className="text-xl font-black text-slate-900 tracking-tight truncate">{order.customerArea || order.pickupAddress?.split(',')[0] || 'Malviya Nagar'}</h4>
-                                                        <div className="flex flex-wrap gap-2 mt-3">
-                                                            {order.items?.map((item, idx) => (
-                                                                <span key={idx} className="bg-slate-50 px-3 py-1.5 rounded-xl text-[10px] font-black text-slate-600 uppercase tracking-tight border border-slate-100">{item.name}</span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4 py-5 border-y border-slate-50">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-xl bg-primary/5 flex items-center justify-center text-primary"><span className="material-symbols-outlined text-xl">schedule</span></div>
-                                                        <div>
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pickup Time</p>
-                                                            <p className="text-[11px] font-black text-slate-900 mt-0.5">{order.pickupSlot?.time || 'ASAP'}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400"><span className="material-symbols-outlined text-xl">inventory_2</span></div>
-                                                        <div>
-                                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Quantity</p>
-                                                            <p className="text-[11px] font-black text-slate-900 mt-0.5">{order.items?.reduce((a,c) => a + c.quantity, 0) || 0} Articles</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center justify-between gap-6 pt-2">
-                                                    <div>
-                                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Est. Earning</p>
-                                                        <p className="text-3xl font-black text-slate-900 tracking-tighter mt-2">₹{(order.totalAmount * 0.85).toFixed(0)}</p>
-                                                    </div>
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleVendorAccept(order._id); }}
-                                                        disabled={acceptingId === order._id}
-                                                        className="flex-1 py-5 rounded-[1.6rem] bg-primary text-white font-black text-[12px] uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:bg-black transition-all active:scale-95"
-                                                    >
-                                                        {acceptingId === order._id ? 'ACCEPTING...' : 'ACCEPT ORDER'}
-                                                    </button>
-                                                </div>
-                                            </motion.div>
-                                        ))
+                                        <div className="flex flex-col gap-6">
+                                            {poolOrders.map((order) => (
+                                                <PoolOrderCard 
+                                                    key={order._id}
+                                                    order={order}
+                                                    onAccept={handleVendorAccept}
+                                                    acceptingId={acceptingId}
+                                                    onReject={handleIgnoreOrder}
+                                                />
+                                            ))}
+                                        </div>
                                     ) : (
                                         <div className="py-24 text-center opacity-30">
                                             <span className="material-symbols-outlined text-6xl mb-4 animate-pulse">radar</span>

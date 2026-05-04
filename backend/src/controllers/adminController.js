@@ -4,6 +4,7 @@ import Promotion from '../models/Promotion.js';
 import Order from '../models/Order.js';
 import SystemConfig from '../models/SystemConfig.js';
 import SupplierApplication from '../models/SupplierApplication.js';
+import Payout from '../models/Payout.js';
 
 // Get all roles pending approval
 export const getPendingApprovals = async (req, res) => {
@@ -516,23 +517,16 @@ export const getSystemConfig = async (req, res) => {
         
         // Auto-seed if empty
         if (configs.length === 0) {
-            const defaultExpress = new SystemConfig({
-                key: 'express_surcharge',
-                value: 99,
-                description: 'Flat surcharge for Express Delivery mode'
-            });
-            const defaultNormal = new SystemConfig({
-                key: 'normal_logistics_fee',
-                value: 50,
-                description: 'Base logistics fee for Normal Delivery mode'
-            });
-            const defaultChat = new SystemConfig({
-                key: 'chat_welcome_message',
-                value: 'Hello! How can we help you today? Please describe your issue.',
-                description: 'First automatic message shown to customers in chat support'
-            });
-            await Promise.all([defaultExpress.save(), defaultNormal.save(), defaultChat.save()]);
-            configs = [defaultExpress, defaultNormal, defaultChat];
+            const defaults = [
+                { key: 'express_multiplier', value: 1.5, description: 'Multiplier for Express Delivery (Multiplicative Formula)' },
+                { key: 'platform_multiplier', value: 1.1, description: 'Platform Aggregator Fee Multiplier' },
+                { key: 'gst_percent', value: 18, description: 'GST Percentage' },
+                { key: 'normal_logistics_fee', value: 50, description: 'Base logistics fee for Normal Delivery mode' },
+                { key: 'chat_welcome_message', value: 'Hello! How can we help you today?', description: 'Welcome message' },
+                { key: 'delivery_day', value: 'Sunday', description: 'Global Delivery Day for B2B Supplier Orders' }
+            ];
+            await SystemConfig.insertMany(defaults);
+            configs = await SystemConfig.find();
         }
         
         res.status(200).json(configs);
@@ -610,5 +604,133 @@ export const clearAllOrders = async (req, res) => {
     } catch (err) {
         console.error('Clear All Orders Error:', err);
         res.status(500).json({ message: 'Internal server error during order cleanup' });
+    }
+};
+
+// Get payment summary for all customers
+export const getCustomerPaymentSummary = async (req, res) => {
+    try {
+        const customers = await User.find({ role: 'Customer' }).select('displayName phone email').lean();
+        
+        const summary = await Promise.all(customers.map(async (cust) => {
+            const orders = await Order.find({ customer: cust._id }).select('totalAmount advanceAmount dueAmount status paymentStatus').lean();
+            
+            const totalOrders = orders.length;
+            const totalSpent = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+            const totalAdvancePaid = orders.reduce((acc, curr) => acc + (curr.advanceAmount || 0), 0);
+            
+            // COD Paid: Only if status is Delivered
+            const totalCodPaid = orders
+                .filter(o => o.status === 'Delivered')
+                .reduce((acc, curr) => acc + (curr.dueAmount || 0), 0);
+            
+            const totalPaid = totalAdvancePaid + totalCodPaid;
+            const pendingBalance = totalSpent - totalPaid;
+
+            return {
+                _id: cust._id,
+                displayName: cust.displayName,
+                phone: cust.phone,
+                email: cust.email,
+                totalOrders,
+                totalSpent,
+                totalAdvancePaid,
+                totalCodPaid,
+                totalPaid,
+                pendingBalance
+            };
+        }));
+
+        res.status(200).json(summary);
+    } catch (err) {
+        console.error('Get Customer Payment Summary Error:', err);
+        res.status(500).json({ message: 'Error fetching payment summary', error: err.message });
+    }
+};
+
+// Get payment summary for all vendors
+export const getVendorPaymentSummary = async (req, res) => {
+    try {
+        const vendors = await User.find({ role: 'Vendor', status: 'approved' }).select('displayName phone email shopDetails').lean();
+        
+        const summary = await Promise.all(vendors.map(async (vendor) => {
+            // Vendor Earnings = baseWithArea + expressSurcharge from priceBreakdown
+            // Only for Ready or Delivered orders (where work is done)
+            const orders = await Order.find({ 
+                vendor: vendor._id,
+                status: { $in: ['Ready', 'Delivered', 'Out for Delivery'] }
+            }).select('priceBreakdown status orderId').lean();
+            
+            const totalEarnings = orders.reduce((acc, curr) => {
+                const breakdown = curr.priceBreakdown || {};
+                return acc + (breakdown.baseWithArea || 0) + (breakdown.expressSurcharge || 0);
+            }, 0);
+            
+            // Total Paid by Admin to Vendor
+            const payouts = await Payout.find({ vendor: vendor._id, status: 'Completed' }).select('amount').lean();
+            const totalPaid = payouts.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+            
+            const pendingBalance = totalEarnings - totalPaid;
+
+            return {
+                _id: vendor._id,
+                displayName: vendor.displayName,
+                shopName: vendor.shopDetails?.name || 'N/A',
+                phone: vendor.phone,
+                email: vendor.email,
+                totalOrders: orders.length,
+                totalEarnings,
+                totalPaid,
+                pendingBalance,
+                lastPayout: payouts.length > 0 ? payouts[payouts.length - 1].paidAt : null
+            };
+        }));
+
+        res.status(200).json(summary);
+    } catch (err) {
+        console.error('Get Vendor Payment Summary Error:', err);
+        res.status(500).json({ message: 'Error fetching vendor payment summary', error: err.message });
+    }
+};
+
+// Record a new payout to a vendor
+export const recordVendorPayout = async (req, res) => {
+    try {
+        const { vendorId, amount, transactionId, paymentMethod, notes } = req.body;
+        
+        if (!vendorId || !amount || !transactionId) {
+            return res.status(400).json({ message: 'Vendor, Amount and Transaction ID are required' });
+        }
+
+        const payout = new Payout({
+            vendor: vendorId,
+            amount,
+            transactionId,
+            paymentMethod,
+            notes,
+            status: 'Completed'
+        });
+
+        await payout.save();
+
+        res.status(201).json({
+            message: 'Payout recorded successfully',
+            payout
+        });
+    } catch (err) {
+        console.error('Record Payout Error:', err);
+        res.status(500).json({ message: 'Error recording payout', error: err.message });
+    }
+};
+
+// Get payout history for a specific vendor
+export const getVendorPayoutHistory = async (req, res) => {
+    try {
+        const { vendorId } = req.params;
+        const payouts = await Payout.find({ vendor: vendorId }).sort({ paidAt: -1 }).lean();
+        res.status(200).json(payouts);
+    } catch (err) {
+        console.error('Get Payout History Error:', err);
+        res.status(500).json({ message: 'Error fetching payout history', error: err.message });
     }
 };

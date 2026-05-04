@@ -14,7 +14,7 @@ import { onMessageListener } from './lib/firebase'
 import toast from 'react-hot-toast'
 import './index.css'
 
-const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places'];
+const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places', 'geometry'];
 
 function App() {
   const { isLoaded } = useJsApiLoader({

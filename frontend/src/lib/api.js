@@ -621,6 +621,37 @@ export const adminApi = {
             console.error('Update Config Error:', error);
             throw error;
         }
+    },
+    getCustomerPayments: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/customer-payments`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Customer Payments Error:', error);
+            throw error;
+        }
+    },
+    getVendorPayments: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/vendor-payments`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Vendor Payments Error:', error);
+            throw error;
+        }
+    },
+    recordVendorPayout: async (data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/record-vendor-payout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Record Payout Error:', error);
+            throw error;
+        }
     }
 };
 
@@ -635,6 +666,19 @@ export const orderApi = {
             return await response.json();
         } catch (error) {
             console.error('Create Order Error:', error);
+            throw error;
+        }
+    },
+    createRazorpayOrder: async (data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/orders/razorpay`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Create Razorpay Order Error:', error);
             throw error;
         }
     },
@@ -1442,8 +1486,9 @@ export const jobApi = {
 
 
 export const masterServiceApi = {
-    getAll: async () => {
-        const res = await fetch(`${BASE_URL}/master-services`);
+    getAll: async (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        const res = await fetch(`${BASE_URL}/master-services${query ? `?${query}` : ''}`);
         return res.json();
     },
     getPricingPreview: (areaId, categoryId) => 
@@ -1549,5 +1594,26 @@ export const areaOverrideApi = {
     getByArea: async (areaId) => {
         const res = await fetch(`${BASE_URL}/area-overrides/area/${areaId}`);
         return res.json();
+    }
+};
+
+export const vendorPaymentApi = {
+    getEarningsSummary: async (vendorId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/vendor-earnings?vendorId=${vendorId}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Vendor Earnings Error:', error);
+            throw error;
+        }
+    },
+    getPayoutHistory: async (vendorId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/vendor-payouts/${vendorId}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Payout History Error:', error);
+            throw error;
+        }
     }
 };

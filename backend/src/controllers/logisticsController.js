@@ -85,20 +85,18 @@ export const verifyHandshake = async (req, res) => {
         } else if (phase === 'Reverse') {
             order.status = 'Out for Delivery';
         } else if (phase === 'Completion') {
-            order.status = 'Payment Pending';
+            order.status = 'Delivered';
             
-            // Emit payment trigger to customer
+            // Notify customer of status update
             const { getIO } = await import('../socket.js');
             const io = getIO();
             if (io) {
                 const customerId = order.customer._id || order.customer;
                 const targetRoom = `user_${customerId.toString()}`;
-                console.log(`[DEBUG] Emitting payment_trigger to room: ${targetRoom}`);
-                io.to(targetRoom).emit('payment_trigger', {
-                    orderId: order._id,
-                    orderNumber: order.orderId,
-                    amount: order.totalAmount,
-                    message: 'Items delivered successfully. Please complete the payment.'
+                console.log(`[DEBUG] Notifying delivery to room: ${targetRoom}`);
+                io.to(targetRoom).emit('order_status_update', {
+                    ...order.toObject(),
+                    status: 'Delivered'
                 });
             }
         }

@@ -5,6 +5,17 @@ import gsap from 'gsap';
 import { orderApi, logisticsApi } from '../../../lib/api';
 import socket from '../../../lib/socket';
 import { toast } from 'react-hot-toast';
+import { GoogleMap, useJsApiLoader, Marker, Polyline } from '@react-google-maps/api';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+const defaultCenter = {
+  lat: 22.7196,
+  lng: 75.8577
+};
 
 const OrderTrackingPage = () => {
   const { id } = useParams();
@@ -15,13 +26,25 @@ const OrderTrackingPage = () => {
   const [isHandshakeModalOpen, setIsHandshakeModalOpen] = useState(false);
   const [handshakeOtp, setHandshakeOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [riderLocation, setRiderLocation] = useState(null);
   const mapRef = useRef(null);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ['drawing', 'places', 'geometry']
+  });
 
   const fetchOrder = async (isManual = false) => {
     try {
       if (isManual) setRefreshing(true);
       const data = await orderApi.getById(id);
-      if (data) setOrder(data);
+      if (data) {
+          setOrder(data);
+          if (data.rider?.location) {
+              setRiderLocation(data.rider.location);
+          }
+      }
     } catch (err) {
       console.error('Error tracking order:', err);
     } finally {
@@ -64,7 +87,6 @@ const OrderTrackingPage = () => {
     fetchOrder();
 
     // Socket.io Real-time Setup
-    // Join a specific room for this order
     socket.emit('join_room', `order_${id}`);
 
     const handleStatusUpdate = (updatedOrder) => {
@@ -72,22 +94,33 @@ const OrderTrackingPage = () => {
       setOrder(updatedOrder);
     };
 
+    const handleRiderLocationUpdate = (location) => {
+      console.log('📍 Real-time rider location received:', location);
+      setRiderLocation(location);
+    };
+
     socket.on('order_status_update', handleStatusUpdate);
+    socket.on('rider_location_update', handleRiderLocationUpdate);
 
     return () => {
       socket.off('order_status_update', handleStatusUpdate);
+      socket.off('rider_location_update', handleRiderLocationUpdate);
     };
   }, [id]);
 
-  useEffect(() => {
-    // Subtle map pan effect on mount
-    if (mapRef.current) {
-      gsap.fromTo(mapRef.current, 
-        { scale: 1.1, x: -20 }, 
-        { scale: 1, x: 0, duration: 20, repeat: -1, yoyo: true, ease: "sine.inOut" }
-      );
-    }
-  }, []);
+  const mapCenter = useMemo(() => {
+    if (riderLocation?.lat) return { lat: riderLocation.lat, lng: riderLocation.lng };
+    if (order?.pickupLocation?.lat) return { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng };
+    return defaultCenter;
+  }, [riderLocation, order]);
+
+  const path = useMemo(() => {
+    if (!riderLocation?.lat || !order?.pickupLocation?.lat) return [];
+    return [
+        { lat: riderLocation.lat, lng: riderLocation.lng },
+        { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }
+    ];
+  }, [riderLocation, order]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -193,12 +226,66 @@ const OrderTrackingPage = () => {
           variants={itemVariants}
           className="relative w-full h-[380px] md:h-[450px] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 bg-surface-container-high group"
         >
-          <div ref={mapRef} className="w-full h-full">
-            <img 
-              className="w-full h-full object-cover" 
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDF7e8jeY2LD4d2hKiUogAbVuYWLcVpG7wZrf3GKLK5s3M0QB7kMbs6rcWZ6eeQ9x0wLAL9apbjAXddI6jx0pEbibzP6BtwgSf0UUW-zo8d919_y5iNbXE0e38_GSZ0ScKtAxV-Ctu47Vg2KbYmpABWbgFSD31steTynOyYgwobtwmAczqUD5nCXyb7lFwSO1H0R9s6NJ6c3yH_lJaQUsVkd4nTROLWIku9gmw_LEtB406W2MF5zGxp4C3t9RbCbgpIHv57SLdZXDM" 
-              alt="Map" 
-            />
+          <div className="w-full h-full bg-slate-200">
+            {isLoaded ? (
+                <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={mapCenter}
+                    zoom={15}
+                    options={{
+                        disableDefaultUI: true,
+                        styles: [
+                            {
+                                "featureType": "all",
+                                "elementType": "labels.text.fill",
+                                "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
+                            },
+                            {
+                                "featureType": "administrative.country",
+                                "elementType": "geometry",
+                                "stylers": [{ "visibility": "on" }]
+                            }
+                        ]
+                    }}
+                >
+                    {riderLocation && (
+                        <Marker 
+                            position={{ lat: riderLocation.lat, lng: riderLocation.lng }}
+                            icon={{
+                                url: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png',
+                                scaledSize: new window.google.maps.Size(40, 40)
+                            }}
+                        />
+                    )}
+
+                    {order?.pickupLocation && (
+                        <Marker 
+                            position={{ lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }}
+                            label="Pickup"
+                        />
+                    )}
+
+                    {path.length > 0 && (
+                        <Polyline 
+                            path={path}
+                            options={{
+                                strokeColor: "#5b4ae3",
+                                strokeOpacity: 0.8,
+                                strokeWeight: 4,
+                                icons: [{
+                                    icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 },
+                                    offset: '0',
+                                    repeat: '20px'
+                                }]
+                            }}
+                        />
+                    )}
+                </GoogleMap>
+            ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary" />
+                </div>
+            )}
           </div>
           
           {/* Rider Overlay Card */}
@@ -228,7 +315,6 @@ const OrderTrackingPage = () => {
                 </div>
               </div>
             </div>
-            {/* Action buttons removed as per user request */}
           </motion.div>
         </motion.section>
 
@@ -406,16 +492,30 @@ const OrderTrackingPage = () => {
             </div>
           </div>
 
-          <div className="bg-primary p-8 rounded-[2.5rem] text-on-primary flex flex-col justify-between relative overflow-hidden shadow-xl shadow-primary/20">
+          <div className={`${order?.status === 'Delivered' ? 'bg-emerald-500' : 'bg-primary'} p-8 rounded-[2.5rem] text-on-primary flex flex-col justify-between relative overflow-hidden shadow-xl shadow-primary/20`}>
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
             <div className="relative z-10">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">Logistics Address</span>
-              <h3 className="font-headline font-black text-xl mt-3 leading-tight tracking-tight">{order?.pickupAddress || order?.address || 'Searching location...'}</h3>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">
+                {order?.status === 'Delivered' ? 'Service Completed' : 'Logistics Address'}
+              </span>
+              <h3 className="font-headline font-black text-xl mt-3 leading-tight tracking-tight">
+                {order?.status === 'Delivered' ? 'Your garments are home!' : (order?.pickupAddress || order?.address || 'Searching location...')}
+              </h3>
             </div>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="mt-10 relative z-10 cursor-pointer">
-              <button className="w-full bg-white text-primary py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-black/10">
-                Modify Drop-off
-              </button>
+              {order?.status === 'Delivered' ? (
+                <button 
+                  onClick={() => navigate(`/user/feedback?orderId=${order._id}&vendorId=${order.vendor?._id || order.vendor}`)}
+                  className="w-full bg-white text-emerald-600 py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-black/10 flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                  Rate Your Experience
+                </button>
+              ) : (
+                <button className="w-full bg-white text-primary py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-black/10">
+                  Modify Drop-off
+                </button>
+              )}
             </motion.div>
           </div>
         </motion.section>

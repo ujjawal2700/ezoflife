@@ -8,17 +8,61 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder'
 });
 
-// Place B2B Order with Pincode Matching
+// Place B2B Order with Aggregation & Cycle Logic
+import SystemConfig from '../models/SystemConfig.js';
+import { getNextDeliveryDate, generateCycleId, isBeforeCutoff } from '../utils/cycleHelper.js';
+
 export const placeB2BOrder = async (req, res) => {
     try {
         const { vendorId, items, shippingAddress, totalAmount, pincode, city } = req.body;
 
-        console.log('--- 🔍 [B2B_POOL_ROUTING] PLACING ORDER IN POOL ---');
-        console.log(`📍 Params: Pincode=${pincode}, City=${city}`);
+        // 1. Get Global Delivery Day
+        const config = await SystemConfig.findOne({ key: 'delivery_day' });
+        const deliveryDayName = config ? config.value : 'Sunday'; // Default to Sunday
+
+        // 2. Calculate Delivery Date & Cycle
+        const deliveryDate = getNextDeliveryDate(deliveryDayName);
+        const cycleId = generateCycleId(deliveryDate);
+
+        console.log(`📦 [B2B_AGGREGATION] Processing order for Cycle: ${cycleId}, Date: ${deliveryDate.toDateString()}`);
+
+        // 3. Check for existing "Open" order for this vendor in this cycle
+        let order = await B2BOrder.findOne({
+            vendor: vendorId,
+            cycleId: cycleId,
+            status: 'Open'
+        });
+
+        if (order) {
+            console.log(`🔄 [B2B_AGGREGATION] Found existing open order ${order.b2bOrderId}. Aggregating items.`);
+            
+            // Aggregate items
+            items.forEach(newItem => {
+                const existingItem = order.items.find(i => i.materialId?.toString() === newItem.materialId?.toString());
+                if (existingItem) {
+                    existingItem.quantity += newItem.quantity;
+                    // Update price if it changed? For now, we assume it's consistent or we update the total
+                } else {
+                    order.items.push(newItem);
+                }
+            });
+
+            order.totalAmount += Number(totalAmount);
+            order.shippingAddress = shippingAddress; // Use latest address
+            await order.save();
+
+            return res.status(200).json({ 
+                message: 'Items aggregated into your existing delivery cycle!',
+                order 
+            });
+        }
+
+        // 4. No existing order, create new one
+        console.log('✨ [B2B_AGGREGATION] No open order found. Creating new one.');
 
         const searchPincode = pincode?.toString().trim();
 
-        // Check if AT LEAST ONE supplier exists in this region
+        // Check for suppliers in region
         const supplierCount = await User.countDocuments({
             role: 'Supplier',
             status: 'approved',
@@ -30,34 +74,35 @@ export const placeB2BOrder = async (req, res) => {
         });
 
         if (supplierCount === 0) {
-            console.error('❌ NO SUPPLIERS FOUND IN REGION');
             return res.status(404).json({ 
                 message: 'No approved suppliers currently active in your region.' 
             });
         }
 
-        // Create Order (Don't assign a supplier yet - IT'S IN THE POOL)
-        const order = new B2BOrder({
+        order = new B2BOrder({
             vendor: vendorId,
             items,
             shippingAddress,
             totalAmount,
             pincode: searchPincode,
-            status: 'Pending',
+            status: 'Open',
+            cycleId,
+            deliveryDay: deliveryDayName,
+            deliveryDate,
             paymentStatus: 'Pending',
             escrowStatus: 'Held'
         });
 
         await order.save();
-        console.log(`✅ Order ${order.b2bOrderId} placed in regional pool for ${supplierCount} suppliers.`);
-
+        
         res.status(201).json({ 
-            message: 'Order broadcasted to regional suppliers!',
+            message: 'Order created for the upcoming delivery cycle!',
             order
         });
+
     } catch (err) {
-        console.error('💥 [B2B_POOL_CRASH]:', err);
-        res.status(500).json({ message: 'Internal server error while routing order', error: err.message });
+        console.error('💥 [B2B_AGGREGATION_ERROR]:', err);
+        res.status(500).json({ message: 'Internal server error while placing order', error: err.message });
     }
 };
 
@@ -79,7 +124,7 @@ export const getSupplierOrders = async (req, res) => {
                 { supplier: supplierId }, // Already claimed
                 { 
                     supplier: null, 
-                    status: 'Pending',
+                    status: 'Locked',
                     $or: [
                         { pincode: pincode },
                         { city: new RegExp(city || '', 'i') }

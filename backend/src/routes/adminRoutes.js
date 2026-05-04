@@ -23,7 +23,11 @@ import {
     deleteUser,
     clearAllUsers,
     clearAllServices,
-    clearAllOrders
+    clearAllOrders,
+    getCustomerPaymentSummary,
+    getVendorPaymentSummary,
+    recordVendorPayout,
+    getVendorPayoutHistory
 } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
 
@@ -49,6 +53,10 @@ router.post('/approve-vendor/:id', approveVendor);
 router.post('/reject-vendor/:id', rejectVendor);
 router.delete('/users-clear-all', clearAllUsers);
 router.post('/orders-clear-all', clearAllOrders);
+router.get('/customer-payments', getCustomerPaymentSummary);
+router.get('/vendor-payments', getVendorPaymentSummary);
+router.post('/record-vendor-payout', recordVendorPayout);
+router.get('/vendor-payouts/:vendorId', getVendorPayoutHistory);
 
 // Supplier Management
 router.get('/suppliers', getAllSuppliers);

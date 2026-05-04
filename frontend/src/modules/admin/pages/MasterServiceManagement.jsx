@@ -20,7 +20,8 @@ const MasterServiceManagement = () => {
         isActive: true,
         icon: 'local_laundry_service',
         tier: 'Essential',
-        skuId: ''
+        skuId: '',
+        serviceType: 'normal'
     });
 
     const [categories, setCategories] = useState([]);
@@ -74,7 +75,8 @@ const MasterServiceManagement = () => {
                 isActive: service.isActive !== undefined ? service.isActive : true,
                 icon: service.icon || 'local_laundry_service',
                 tier: service.tier || 'Essential',
-                skuId: service.skuId || ''
+                skuId: service.skuId || '',
+                serviceType: service.serviceType || 'normal'
             });
         } else {
             setCurrentService(null);
@@ -89,7 +91,8 @@ const MasterServiceManagement = () => {
                 isActive: true,
                 icon: 'local_laundry_service',
                 tier: 'Essential',
-                skuId: ''
+                skuId: '',
+                serviceType: 'normal'
             });
         }
         setIsModalOpen(true);
@@ -263,19 +266,36 @@ const MasterServiceManagement = () => {
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit</label>
-                                    <div className="flex gap-2">
-                                        {['per_item', 'per_kg'].map(u => (
-                                            <button
-                                                key={u}
-                                                type="button"
-                                                onClick={() => setFormData({...formData, unit: u})}
-                                                className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.unit === u ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
-                                            >
-                                                {u.replace('_', ' ')}
-                                            </button>
-                                        ))}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Unit</label>
+                                        <div className="flex gap-2">
+                                            {['per_item', 'per_kg'].map(u => (
+                                                <button
+                                                    key={u}
+                                                    type="button"
+                                                    onClick={() => setFormData({...formData, unit: u})}
+                                                    className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.unit === u ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
+                                                >
+                                                    {u.replace('_', ' ')}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Flow Type</label>
+                                        <div className="flex gap-2">
+                                            {['normal', 'retail'].map(t => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => setFormData({...formData, serviceType: t})}
+                                                    className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${formData.serviceType === t ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
+                                                >
+                                                    {t}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
 

@@ -152,7 +152,6 @@ const HomePage = () => {
   const [customAddress, setCustomAddress] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
 
-  const isSlotsPicked = selectedPickup && pickupTime && selectedDelivery && deliveryTime;
 
   // PERSIST LOGISTICS
   useEffect(() => {
@@ -224,8 +223,8 @@ const HomePage = () => {
       
       try {
         const [masterRes, customRes] = await Promise.all([
-          masterServiceApi.getAll(),
-          serviceApi.getAll({ approvedOnly: true })
+          masterServiceApi.getAll({ serviceType: customerType }),
+          serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
         ]);
         
         data = [
@@ -294,6 +293,8 @@ const HomePage = () => {
     fetchCategories();
   }, []);
 
+  const [showMoreServices, setShowMoreServices] = useState(false);
+
   const filteredServices = useMemo(() => {
     let result = services.filter(s => {
       // Tier filter
@@ -315,13 +316,13 @@ const HomePage = () => {
       return true;
     });
 
-    // If no category/search is active, limit to 10
-    if (!selectedCategory && !selectedSubCategory && !searchQuery) {
+    // If no category/search is active, limit to 10 by default
+    if (!selectedCategory && !selectedSubCategory && !searchQuery && !showMoreServices) {
         return result.slice(0, 10);
     }
 
     return result;
-  }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory]);
+  }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory, showMoreServices]);
 
   const updateQuantity = (id, delta) => {
     setSelectedQuantities(prev => {
@@ -356,6 +357,31 @@ const HomePage = () => {
       return acc + (price * q); 
     }, 0);
   }, [selectedQuantities, services, pricingFactor]);
+
+  // NEW: Smart scheduling logic for delivery
+  const maxServiceTime = useMemo(() => {
+    let max = 1;
+    Object.keys(selectedQuantities).forEach(id => {
+      const s = services.find(srv => (srv._id?.toString() === id || srv.id?.toString() === id));
+      if (s?.serviceTime && s.serviceTime > max) max = s.serviceTime;
+    });
+    return max;
+  }, [selectedQuantities, services]);
+
+  useEffect(() => {
+    if (!selectedPickup) return;
+    const pickupIndex = availableDates.findIndex(d => `${d.day}, ${d.date}` === selectedPickup);
+    if (pickupIndex !== -1) {
+      const deliveryIndex = Math.min(pickupIndex + maxServiceTime, availableDates.length - 1);
+      const deliveryD = availableDates[deliveryIndex];
+      setSelectedDelivery(`${deliveryD.day}, ${deliveryD.date}`);
+      
+      // Default to same time slot as pickup if not set
+      if (!deliveryTime && pickupTime) {
+          setDeliveryTime(pickupTime);
+      }
+    }
+  }, [selectedPickup, maxServiceTime, availableDates, pickupTime, deliveryTime]);
   
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -663,7 +689,11 @@ const HomePage = () => {
 
         {/* 3. Service Selection Grid */}
         <section className="mb-10 w-full">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.4em]">Available Services</h3>
+          </div>
+          
+          <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 ${showMoreServices ? 'max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
             {loading ? (
                 [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-5 h-48 border border-black/5 animate-pulse" />)
             ) : (
@@ -711,6 +741,30 @@ const HomePage = () => {
                 })
             )}
           </div>
+          
+          {/* View All Button */}
+          {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
+            <div className="flex justify-center mt-8">
+              <button 
+                onClick={() => setShowMoreServices(true)}
+                className="px-8 py-3 rounded-2xl bg-white border-2 border-slate-100 text-slate-900 font-black text-[10px] uppercase tracking-widest hover:border-black transition-all shadow-sm flex items-center gap-2 group"
+              >
+                View All Services
+                <span className="material-symbols-outlined text-sm group-hover:translate-y-0.5 transition-transform">expand_more</span>
+              </button>
+            </div>
+          )}
+
+          {showMoreServices && (
+            <div className="flex justify-center mt-6">
+              <button 
+                onClick={() => setShowMoreServices(false)}
+                className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[9px] uppercase tracking-widest hover:text-slate-900 transition-all"
+              >
+                Show Less
+              </button>
+            </div>
+          )}
         </section>
 
         {/* 4. LOGISTICS SETUP CARD */}
@@ -740,21 +794,21 @@ const HomePage = () => {
                         <span className="material-symbols-outlined text-sm">schedule</span>
                         <p className={`text-[9px] font-black uppercase tracking-widest ${selectedPickup ? 'text-white/40' : 'text-slate-400'}`}>Pickup Slot</p>
                       </div>
-                      <p className="text-sm font-black truncate">{selectedPickup ? `${selectedPickup} @ ${pickupTime}` : 'Select Date & Time'}</p>
+                      <p className="text-sm font-black truncate">{selectedPickup ? (pickupTime ? `${selectedPickup} @ ${pickupTime}` : selectedPickup) : 'Select Date & Time'}</p>
                     </button>
                     <button onClick={() => { setActiveSlotType('delivery'); setShowSlotPicker(true); }} className={`p-6 rounded-[2.5rem] border-2 text-left transition-all ${selectedDelivery ? 'bg-slate-900 text-white border-transparent' : 'bg-slate-50 border-slate-100 hover:border-black'}`}>
                       <div className="flex items-center gap-3 mb-1">
                         <span className="material-symbols-outlined text-sm">local_shipping</span>
                         <p className={`text-[9px] font-black uppercase tracking-widest ${selectedDelivery ? 'text-white/40' : 'text-slate-400'}`}>Delivery Slot</p>
                       </div>
-                      <p className="text-sm font-black truncate">{selectedDelivery ? `${selectedDelivery} @ ${deliveryTime}` : 'Select Date & Time'}</p>
+                      <p className="text-sm font-black truncate">{selectedDelivery ? (deliveryTime ? `${selectedDelivery} @ ${deliveryTime}` : selectedDelivery) : 'Select Date & Time'}</p>
                     </button>
                   </div>
                 </div>
 
-                {/* 4.3 Sequential Address Flow - NEW */}
+                {/* 4.3 Sequential Address Flow - RELAXED CONDITION */}
                 <AnimatePresence>
-                  {isSlotsPicked && (
+                  {(selectedPickup || selectedDelivery) && (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8 pt-6 border-t border-slate-100">
                                    {/* Pickup Address */}
                       <div className="space-y-6">

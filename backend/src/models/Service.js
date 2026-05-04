@@ -63,6 +63,15 @@ const serviceSchema = new mongoose.Schema({
     tags: {
         type: [String],
         default: []
+    },
+    completionTime: {
+        type: Number,
+        default: 1
+    },
+    serviceType: {
+        type: String,
+        enum: ['individual', 'retail'],
+        default: 'individual'
     }
 }, { timestamps: true });
 

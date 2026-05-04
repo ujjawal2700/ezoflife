@@ -170,15 +170,24 @@ const CartPage = () => {
     }
   }, [quantities]);
   
-  const [expressChargeConfig, setExpressChargeConfig] = useState(0);
+  const [expressMultiplier, setExpressMultiplier] = useState(1);
+  const [platformMultiplier, setPlatformMultiplier] = useState(1);
+  const [gstPercent, setGstPercent] = useState(18);
+  const [advanceConfigPerc, setAdvanceConfigPerc] = useState(100);
   const [normalLogisticsConfig, setNormalLogisticsConfig] = useState(0);
   
   useEffect(() => {
     const fetchConfig = async () => {
         try {
             const configs = await shippingConfigApi.getConfig();
-            const surcharge = configs.find(c => c.key === 'express_surcharge');
-            if (surcharge) setExpressChargeConfig(Number(surcharge.value));
+            const exMult = configs.find(c => c.key === 'express_multiplier');
+            if (exMult) setExpressMultiplier(Number(exMult.value));
+            const platMult = configs.find(c => c.key === 'platform_multiplier');
+            if (platMult) setPlatformMultiplier(Number(platMult.value));
+            const gst = configs.find(c => c.key === 'gst_percent');
+            if (gst) setGstPercent(Number(gst.value));
+            const advance = configs.find(c => c.key === 'advance_percentage');
+            if (advance) setAdvanceConfigPerc(Number(advance.value));
             const normalFee = configs.find(c => c.key === 'normal_logistics_fee');
             if (normalFee) setNormalLogisticsConfig(Number(normalFee.value));
         } catch (err) {
@@ -227,6 +236,61 @@ const CartPage = () => {
   const [selectedDropAddress, setSelectedDropAddress] = useState(null);
   const [isSameAddress, setIsSameAddress] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Online'); // Default to Online
+
+  const timeInfo = useMemo(() => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    
+    if (currentHour >= 6 && currentHour < 12) {
+      return {
+        message: "Pickup will be scheduled for today.",
+        color: "bg-emerald-50 text-emerald-700 border-emerald-100",
+        indicator: "bg-emerald-500",
+        icon: "check_circle",
+        probability: "High Probability"
+      };
+    } else if (currentHour >= 12 && currentHour < 15) {
+      return {
+        message: "Trying for today pickup, based on courier availability.",
+        color: "bg-amber-50 text-amber-700 border-amber-100",
+        indicator: "bg-amber-500",
+        icon: "schedule",
+        probability: "Medium Probability"
+      };
+    } else if (currentHour >= 15 && currentHour < 18) {
+      return {
+        message: "Late request! Pickup will likely happen tomorrow.",
+        color: "bg-orange-50 text-orange-700 border-orange-100",
+        indicator: "bg-orange-500",
+        icon: "history",
+        probability: "Low Probability"
+      };
+    } else {
+      return {
+        message: "Pickup will be scheduled for tomorrow.",
+        color: "bg-rose-50 text-rose-700 border-rose-100",
+        indicator: "bg-rose-500",
+        icon: "event",
+        probability: "Next Day Scheduled"
+      };
+    }
+  }, []);
+
+  const maxServiceTime = useMemo(() => {
+    if (cartItems.length === 0) return 1;
+    return cartItems.reduce((max, item) => Math.max(max, item.completionTime || 1), 1);
+  }, [cartItems]);
+
+  useEffect(() => {
+    // When selectedPickup or maxServiceTime changes, update selectedDelivery
+    const pickupIndex = availableDates.findIndex(d => `${d.day}, ${d.date}` === selectedPickup);
+    if (pickupIndex !== -1) {
+      const deliveryIndex = Math.min(pickupIndex + maxServiceTime, availableDates.length - 1);
+      const deliveryD = availableDates[deliveryIndex];
+      setSelectedDelivery(`${deliveryD.day}, ${deliveryD.date}`);
+    }
+  }, [selectedPickup, maxServiceTime, availableDates]);
 
   useEffect(() => {
     const syncAddresses = async () => {
@@ -296,31 +360,21 @@ const CartPage = () => {
     return Math.round(price * (pricingFactor || 1));
   };
 
-  const subtotal = useMemo(() => cartItems.reduce((acc, item) => {
-    return acc + (getItemPrice(item) * (quantities[item._id || item.id] || 0));
-  }, 0), [cartItems, quantities]);
-
-  const logisticsFee = normalLogisticsConfig;
-  const currentExpressFee = isExpress ? expressChargeConfig : 0;
+  const areaMultiplier = 1; // Default to 1, can be linked to location later
   
-  // Dynamic Tax Calculation based on DB items
-  const taxAmount = useMemo(() => {
-    // 1. Calculate GST on items
-    const itemsTax = cartItems.reduce((acc, item) => {
-      const qty = quantities[item._id || item.id] || 0;
-      const price = getItemPrice(item);
-      const itemGst = item.gst !== undefined ? item.gst : 0.18; // Use DB GST or fallback to 18%
-      return acc + (price * qty * itemGst);
+  // V_Items = (Base * Area * Express * Platform)
+  const currentExpressMultiplier = isExpress ? expressMultiplier : 1;
+  
+  const V_Items = useMemo(() => {
+    return cartItems.reduce((acc, item) => {
+        const itemBase = getItemPrice(item) * (quantities[item._id || item.id] || 0);
+        return acc + (itemBase * areaMultiplier * currentExpressMultiplier * platformMultiplier);
     }, 0);
+  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, platformMultiplier]);
 
-    // 2. Calculate GST on logistics (Standard 18%)
-    const logisticsTax = (logisticsFee + currentExpressFee) * 0.18;
-
-    return itemsTax + logisticsTax;
-  }, [cartItems, quantities, logisticsFee, currentExpressFee]);
-
-  const taxableAmount = subtotal + logisticsFee + currentExpressFee;
-  const grandTotal = useMemo(() => (taxableAmount + taxAmount), [taxableAmount, taxAmount]);
+  const V = V_Items + normalLogisticsConfig;
+  const taxAmount = V * (gstPercent / 100);
+  const grandTotal = V + taxAmount;
   
   const discount = useMemo(() => {
       if (!isPromoApplied || !appliedPromoData) return 0;
@@ -329,6 +383,26 @@ const CartPage = () => {
   }, [isPromoApplied, appliedPromoData, grandTotal]);
 
   const finalTotal = useMemo(() => Math.max(0, grandTotal - discount), [grandTotal, discount]);
+
+  const priceBreakdown = useMemo(() => {
+    const baseWithArea = cartItems.reduce((acc, item) => {
+        return acc + (getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier);
+    }, 0);
+    
+    // Multiplicative logic breakdown
+    const expressSurcharge = baseWithArea * platformMultiplier * (currentExpressMultiplier - 1);
+    const platformFee = baseWithArea * currentExpressMultiplier * (platformMultiplier - 1);
+    
+    return {
+        baseWithArea,
+        expressSurcharge,
+        platformFee,
+        logisticsFee: normalLogisticsConfig,
+        gstAmount: taxAmount
+    };
+  }, [cartItems, quantities, areaMultiplier, platformMultiplier, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
+
+  const subtotal = priceBreakdown.baseWithArea;
 
   const handleApplyPromo = async (code) => {
     const targetCode = typeof code === 'string' ? code : promoCode;
@@ -373,6 +447,68 @@ const CartPage = () => {
       const userId = userData._id || userData.id; 
       if (!userId) return alert('Please login');
 
+      const advanceAmount = Math.round(finalTotal * (advanceConfigPerc / 100));
+
+      if (paymentMethod === 'Online' && advanceAmount > 0) {
+        const loadScript = (src) => {
+          return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+          });
+        };
+
+        const res = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+        if (!res) {
+          alert('Razorpay SDK failed to load');
+          return;
+        }
+
+        const rzpOrder = await orderApi.createRazorpayOrder({
+          amount: advanceAmount
+        });
+
+        console.log('📦 [CART] Razorpay Order received from backend:', rzpOrder);
+
+        if (!rzpOrder || !rzpOrder.id) {
+          console.error('❌ [CART] Razorpay order creation failed:', rzpOrder);
+          alert('Failed to create Razorpay order. Check your backend configuration.');
+          return;
+        }
+
+        const options = {
+          key: rzpOrder.keyId,
+          amount: rzpOrder.amount,
+          currency: rzpOrder.currency,
+          name: 'EzOfLife',
+          description: `Advance Payment`,
+          order_id: rzpOrder.id,
+          handler: async function (response) {
+            await finalizeOrder(userId, response.razorpay_payment_id, 'Online');
+          },
+          prefill: {
+            name: userData.displayName || '',
+            email: userData.email || '',
+            contact: userData.phone || ''
+          },
+          theme: { color: '#000000' }
+        };
+
+        const paymentObject = new window.Razorpay(options);
+        paymentObject.open();
+      } else {
+        await finalizeOrder(userId, null, 'COD');
+      }
+    } catch (err) {
+      alert('Error initiating order');
+    }
+  };
+
+  const finalizeOrder = async (userId, paymentId, method) => {
+    try {
+      setLoading(true);
       const orderData = {
         customerId: userId,
         items: cartItems.map(item => ({
@@ -389,8 +525,12 @@ const CartPage = () => {
         dropAddress: isSameAddress ? (selectedPickupAddress?.address || '') : (selectedDropAddress?.address || ''),
         dropLocation: isSameAddress ? (selectedPickupAddress?.location || defaultCenter) : (selectedDropAddress?.location || defaultCenter),
         totalAmount: finalTotal,
+        paymentStatus: method === 'Online' ? 'Paid' : 'Pending',
+        paymentMethod: method,
+        razorpayPaymentId: paymentId,
         deliveryMode: isExpress ? 'Express' : 'Normal',
-        deliveryCharge: logisticsFee + currentExpressFee,
+        deliveryCharge: normalLogisticsConfig,
+        areaMultiplier: areaMultiplier,
         promoApplied: isPromoApplied ? appliedPromoData?._id : null,
         discountAmount: discount,
         specialInstructions,
@@ -402,10 +542,13 @@ const CartPage = () => {
         localStorage.removeItem('cart_quantities');
         localStorage.removeItem('order_photos');
         localStorage.removeItem('order_notes');
-        navigate('/user/confirmation', { state: { order: response } });
+        // Go directly to tracking as per user request
+        navigate(`/user/tracking/${response._id}`);
       }
     } catch (err) {
-      alert('Error placing order');
+      alert('Error finalizing order');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -464,6 +607,24 @@ const CartPage = () => {
                 <div className="space-y-4">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Services & Items</p>
                   <div className="space-y-3">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
+                        <span className="material-symbols-outlined text-sm">local_shipping</span>
+                      </div>
+                      <span className="text-[11px] font-black text-slate-900 uppercase">Pickup</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedPickup} • {pickupTime}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
+                        <span className="material-symbols-outlined text-sm">local_laundry_service</span>
+                      </div>
+                      <span className="text-[11px] font-black text-slate-900 uppercase">Delivery</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedDelivery} • {deliveryTime}</span>
+                  </div>
                     {cartItems.map(item => (
                       <div key={item._id || item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <div className="flex items-center gap-3">
@@ -480,24 +641,71 @@ const CartPage = () => {
                   <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl" />
                   
                   <div className="space-y-3 relative z-10">
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40">
-                      <span>Gross Amount</span>
-                      <span className="text-white">₹{finalTotal.toFixed(0)}</span>
+                    <div className="flex flex-col gap-2 bg-white/5 p-4 rounded-2xl border border-white/5">
+                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
+                        <span>Base Rate (incl. Area)</span>
+                        <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
+                      </div>
+                      {isExpress && (
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-emerald-400">
+                          <span>Express Surcharge</span>
+                          <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
+                        <span>Platform Aggregator Fee</span>
+                        <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
+                        <span>Logistics Fee</span>
+                        <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
+                      </div>
+                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-amber-400">
+                        <span>GST ({gstPercent}%)</span>
+                        <span>₹{priceBreakdown.gstAmount.toFixed(0)}</span>
+                      </div>
+                      {isPromoApplied && (
+                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-rose-400 border-t border-white/10 pt-2">
+                          <span>Promo Discount</span>
+                          <span>-₹{discount.toFixed(0)}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/40 border-t border-white/10 pt-3">
-                      <span>Status</span>
-                      <span className="text-amber-400">PENDING</span>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Total Payable</span>
+                      <span className="text-2xl font-black text-white tracking-tighter">₹{finalTotal.toFixed(0)}</span>
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-t border-white/10 pt-4">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Select Payment Method</span>
+                      <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
+                        <button 
+                          onClick={() => setPaymentMethod('Online')}
+                          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${paymentMethod === 'Online' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:text-white'}`}
+                        >
+                          <span className="material-symbols-outlined text-sm">payments</span>
+                          Online
+                        </button>
+                        <button 
+                          onClick={() => setPaymentMethod('COD')}
+                          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${paymentMethod === 'COD' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-white/40 hover:text-white'}`}
+                        >
+                          <span className="material-symbols-outlined text-sm">handshake</span>
+                          COD
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   <div className="pt-6 border-t border-white/10 flex justify-between items-center relative z-10">
                     <div className="flex flex-col">
                       <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Paid Amount (Advance)</p>
-                      <p className="text-3xl font-black text-white tracking-tighter">₹{(finalTotal * 0.05).toFixed(0)}</p>
+                      <p className="text-3xl font-black text-white tracking-tighter">₹{(finalTotal * (advanceConfigPerc / 100)).toFixed(0)}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Remaining Amount</p>
-                      <p className="text-2xl font-black text-white/60 tracking-tighter">₹{(finalTotal * 0.95).toFixed(0)}</p>
+                      <p className="text-2xl font-black text-white/60 tracking-tighter">₹{(finalTotal * (1 - advanceConfigPerc / 100)).toFixed(0)}</p>
                     </div>
                   </div>
                 </div>
@@ -524,6 +732,25 @@ const CartPage = () => {
             <h2 className="font-headline text-3xl font-black tracking-tighter leading-none mb-1 text-slate-900 uppercase">Your Summary.</h2>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{cartItems.length} services selected</p>
           </div>
+
+          {/* Smart Pickup Status Info */}
+          <motion.div 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className={`p-6 rounded-[2.5rem] border ${timeInfo.color} flex flex-col md:flex-row items-center gap-5 shadow-sm`}
+          >
+            <div className={`w-14 h-14 rounded-full ${timeInfo.indicator} flex items-center justify-center text-white shadow-lg shrink-0`}>
+              <span className="material-symbols-outlined text-2xl">{timeInfo.icon}</span>
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pickup Expectation</p>
+              <h4 className="font-black text-base md:text-xl tracking-tight leading-tight whitespace-normal break-words">{timeInfo.message}</h4>
+            </div>
+            <div className="px-6 py-3 bg-white/50 rounded-2xl border border-white/20 backdrop-blur-sm shrink-0 w-full md:w-auto">
+              <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Status Probability</p>
+              <p className="text-xs font-black uppercase tracking-tighter whitespace-normal">{timeInfo.probability}</p>
+            </div>
+          </motion.div>
 
           <div className="space-y-4">
             {cartItems.map((item) => {
@@ -602,19 +829,30 @@ const CartPage = () => {
                 </div>
                 <p className="text-[11px] font-medium text-white/60">Preferences set on Home Page</p>
              </div>
-             <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] space-y-4 shadow-sm">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Scheduling</p>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-slate-900 uppercase">Pickup:</span>
-                    <span className="text-[11px] font-bold text-slate-500">{selectedPickup} • {pickupTime}</span>
+             <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] space-y-5 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-700" />
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest relative z-10">Smart Scheduling</p>
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
+                        <span className="material-symbols-outlined text-sm">local_shipping</span>
+                      </div>
+                      <span className="text-[11px] font-black text-slate-900 uppercase">Pickup</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedPickup} • {pickupTime}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black text-slate-900 uppercase">Delivery:</span>
-                    <span className="text-[11px] font-bold text-slate-500">{selectedDelivery} • {deliveryTime}</span>
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
+                        <span className="material-symbols-outlined text-sm">local_laundry_service</span>
+                      </div>
+                      <span className="text-[11px] font-black text-slate-900 uppercase">Delivery</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedDelivery} • {deliveryTime}</span>
                   </div>
                 </div>
-             </div>
+              </div>
           </div>
 
 
@@ -689,23 +927,63 @@ const CartPage = () => {
             )}
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
                 <span className="material-symbols-outlined text-black">location_on</span>Address Details.
               </h3>
-              <button onClick={() => navigate('/user/home')} className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-4 py-2 rounded-xl">Change on Home</button>
+              <button 
+                onClick={() => setIsSameAddress(!isSameAddress)} 
+                className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${isSameAddress ? 'bg-slate-100 text-slate-400' : 'bg-primary text-white shadow-lg shadow-primary/20'}`}
+              >
+                {isSameAddress ? 'Deliver to same address' : 'Different Drop Address'}
+              </button>
             </div>
-            <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm shrink-0">
-                <span className="material-symbols-outlined text-xl">directions_run</span>
+
+            <div className="space-y-4">
+              {/* Pickup Address */}
+              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <span className="material-symbols-outlined text-4xl">upload</span>
+                </div>
+                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm shrink-0">
+                  <span className="material-symbols-outlined text-xl">directions_run</span>
+                </div>
+                <div className="min-w-0 relative z-10">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Pickup Location</p>
+                  <p className="text-sm font-bold text-slate-900 truncate">
+                    {selectedPickupAddress?.address || 'Set in Home Page'}
+                  </p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Delivery Location</p>
-                <p className="text-sm font-bold text-slate-900 truncate">
-                  {selectedPickupAddress?.address || 'Set in Home Page'}
-                </p>
-              </div>
+
+              {/* Drop Address (Conditional) */}
+              {!isSameAddress && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 flex items-center gap-4 relative overflow-hidden group"
+                >
+                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity text-primary">
+                    <span className="material-symbols-outlined text-4xl">download</span>
+                  </div>
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm shrink-0">
+                    <span className="material-symbols-outlined text-xl">home_pin</span>
+                  </div>
+                  <div className="min-w-0 relative z-10 flex-1">
+                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-0.5">Drop-off Location</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">
+                      {selectedDropAddress?.address || 'Select different address...'}
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => navigate('/user/home')}
+                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-primary shadow-sm hover:scale-110 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-sm">edit</span>
+                  </button>
+                </motion.div>
+              )}
             </div>
           </div>
 
@@ -731,16 +1009,26 @@ const CartPage = () => {
             <div className="relative z-10 space-y-8">
               <div className="space-y-5">
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
-                  <span>Subtotal</span>
-                  <span className="text-white">₹{subtotal.toFixed(0)}</span>
+                  <span>Base Items Total</span>
+                  <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
+                </div>
+                {priceBreakdown.expressSurcharge > 0 && (
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40 text-primary">
+                    <span>Express Surcharge</span>
+                    <span className="text-white">₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
+                  <span>Platform & Admin Fee</span>
+                  <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
-                  <span>Delivery {isExpress ? '(Express)' : '(Normal)'}</span>
-                  <span className="text-white">₹{(logisticsFee + currentExpressFee).toFixed(0)}</span>
+                  <span>Logistic Fee</span>
+                  <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
                   <span>Service Tax (GST)</span>
-                  <span className="text-white">₹{taxAmount.toFixed(0)}</span>
+                  <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
                 </div>
                 {isPromoApplied && (
                   <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">

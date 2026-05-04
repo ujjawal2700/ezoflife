@@ -61,7 +61,7 @@ const UserRoutes = () => {
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/tracking/:id" element={<OrderTrackingPage />} />
         <Route path="/verification" element={<DeliveryVerificationPage />} />
-        <Route path="/payment" element={<PaymentSelectionPage />} />
+        {/* <Route path="/payment" element={<PaymentSelectionPage />} /> Removed per user request */}
         <Route path="/success-feedback" element={<SuccessFeedbackPage />} />
         <Route path="/orders" element={<OrdersHistoryPage />} />
         <Route path="/support/tickets/:ticketId?" element={<SupportTicketsPage />} />

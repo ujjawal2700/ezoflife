@@ -59,6 +59,14 @@ const orderSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    advanceAmount: {
+        type: Number,
+        default: 0
+    },
+    dueAmount: {
+        type: Number,
+        default: 0
+    },
     paymentStatus: {
         type: String,
         enum: ['Pending', 'Paid'],
@@ -143,7 +151,29 @@ const orderSchema = new mongoose.Schema({
         phone: String,
         photo: String
     },
-    customerPhotos: [{ type: String }]
+    priceBreakdown: {
+        baseWithArea: { type: Number, default: 0 },
+        expressSurcharge: { type: Number, default: 0 },
+        platformFee: { type: Number, default: 0 },
+        logisticsFee: { type: Number, default: 0 },
+        gstAmount: { type: Number, default: 0 }
+    },
+    customerPhotos: [{ type: String }],
+    pickupStatus: {
+        type: String,
+        enum: ['none', 'scheduled', 'requested', 'picked', 'failed', 'rescheduled'],
+        default: 'none'
+    },
+    pickupExpectedDate: Date,
+    pickupTriggerTime: Date,
+    deliveryTriggerTime: Date,
+    deliveryStatus: {
+        type: String,
+        enum: ['none', 'scheduled', 'requested', 'delivered', 'failed'],
+        default: 'none'
+    },
+    serviceTime: { type: Number, default: 0 },
+    fallbackEnabled: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Pre-save hook to generate a unique readable order ID like #EZ-8291

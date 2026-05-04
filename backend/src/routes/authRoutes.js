@@ -13,7 +13,8 @@ import {
     becomeVendor, 
     becomeSupplier, 
     tempSeedUser,
-    updateFcmToken
+    updateFcmToken,
+    getVendorEarnings
 } from '../controllers/authController.js';
 import upload from '../middleware/upload.js';
 
@@ -50,5 +51,7 @@ router.post('/become-supplier/:id', (req, res, next) => {
         next();
     });
 }, becomeSupplier);
+
+router.get('/vendor-earnings', getVendorEarnings);
 
 export default router;

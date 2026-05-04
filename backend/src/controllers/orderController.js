@@ -3,10 +3,15 @@ import Order from '../models/Order.js';
 import User from '../models/User.js';
 import axios from 'axios';
 import Notification from '../models/Notification.js';
+import { calculateTriggerTime } from '../utils/timeUtils.js';
 import fs from 'fs';
 import { getIO } from '../socket.js';
 import { sendWalkInWhatsApp } from '../utils/whatsappHelper.js';
 import ShiprocketService from '../services/ShiprocketService.js';
+import Razorpay from 'razorpay';
+import { calculateOrderPrice } from '../utils/pricingEngine.js';
+import MasterService from '../models/MasterService.js';
+import Service from '../models/Service.js';
 
 
 const logToFile = (msg) => {
@@ -151,6 +156,41 @@ export const getNearbyRiders = async (customerLat, customerLng, radiusKm = 4) =>
     }
 };
 
+export const createRazorpayOrder = async (req, res) => {
+    try {
+        const { amount, currency = 'INR' } = req.body;
+        console.log('💳 [RAZORPAY] Received request for amount:', amount);
+
+        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+            console.error('❌ [RAZORPAY] Keys are missing in .env');
+            return res.status(500).json({ message: 'Razorpay keys not configured on server' });
+        }
+        
+        const instance = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+        });
+
+        const options = {
+            amount: Math.round(amount * 100), // Razorpay expects amount in paise
+            currency: currency,
+            receipt: `receipt_${Date.now()}`
+        };
+
+        console.log('💳 [RAZORPAY] Creating order with options:', options);
+        const order = await instance.orders.create(options);
+        console.log('💳 [RAZORPAY] Order created successfully:', order.id);
+        
+        res.status(200).json({
+            ...order,
+            keyId: process.env.RAZORPAY_KEY_ID
+        });
+    } catch (error) {
+        console.error('❌ [RAZORPAY] Error:', error);
+        res.status(500).json({ message: 'Error creating Razorpay order', error: error.message });
+    }
+};
+
 export const createOrder = async (req, res) => {
     try {
         const { 
@@ -171,9 +211,104 @@ export const createOrder = async (req, res) => {
 
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
 
-        // Search vendors near pickup location
-        const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3);
+        // 1. Fetch pricing multipliers from SystemConfig
+        const SystemConfig = (await import('../models/SystemConfig.js')).default;
+        const [
+            expressMult,
+            platformMult,
+            gstPerc,
+            advanceConfig
+        ] = await Promise.all([
+            SystemConfig.findOne({ key: 'express_multiplier' }),
+            SystemConfig.findOne({ key: 'platform_multiplier' }),
+            SystemConfig.findOne({ key: 'gst_percent' }),
+            SystemConfig.findOne({ key: 'advance_percentage' })
+        ]);
+
+        const multipliers = {
+            expressMultiplier: deliveryMode === 'Express' ? (Number(expressMult?.value) || 1.5) : 1,
+            platformMultiplier: Number(platformMult?.value) || 1.1,
+            gstPercent: Number(gstPerc?.value) || 18,
+            advancePerc: Number(advanceConfig?.value) || 100,
+            areaMultiplier: req.body.areaMultiplier || 1 // Should be passed from frontend based on location
+        };
+
+        // 2. Calculate Pricing for each item and overall
+        let totalCalculatedV = 0;
+        let totalGstAmount = 0;
+        let finalPriceBreakdown = {
+            baseWithArea: 0,
+            expressSurcharge: 0,
+            platformFee: 0,
+            logisticsFee: Number(deliveryCharge) || 0,
+            gstAmount: 0
+        };
+
+        const processedItems = items.map(item => {
+            const pricing = calculateOrderPrice({
+                baseRate: item.price * item.quantity,
+                areaMultiplier: multipliers.areaMultiplier,
+                expressMultiplier: multipliers.expressMultiplier,
+                platformMultiplier: multipliers.platformMultiplier,
+                logisticsFee: 0, // Logistics is added once at the end
+                gstPercent: multipliers.gstPercent
+            });
+
+            // Aggregate breakdown
+            finalPriceBreakdown.baseWithArea += pricing.breakdown.baseWithArea;
+            finalPriceBreakdown.expressSurcharge += pricing.breakdown.expressSurcharge;
+            finalPriceBreakdown.platformFee += pricing.breakdown.platformFee;
+            
+            totalCalculatedV += pricing.V;
+            return { ...item, pricing };
+        });
+
+        // --- DROP-OFF CALCULATION ---
+        const itemIds = items.map(i => i.serviceId);
+        const [masterSvcs, customSvcs] = await Promise.all([
+            MasterService.find({ _id: { $in: itemIds.filter(id => id.length > 20) } }).select('completionTime'),
+            Service.find({ _id: { $in: itemIds.filter(id => id.length > 20) } }).select('completionTime')
+        ]);
+        const allSvcs = [...masterSvcs, ...customSvcs];
+        const maxServiceTime = allSvcs.reduce((max, svc) => Math.max(max, svc.completionTime || 1), 1);
         
+        // Auto-calculate drop-off date if not provided or to validate
+        const pickupDateObj = new Date(pickupSlot.date);
+        const dropOffDate = new Date(pickupDateObj);
+        dropOffDate.setDate(dropOffDate.getDate() + maxServiceTime);
+        
+        // Update deliverySlot date if it was empty or just for consistency
+        if (!deliverySlot.date) {
+            deliverySlot.date = dropOffDate.toISOString().split('T')[0];
+        }
+
+        // Smart Pickup Logic
+        const now = new Date();
+        const currentHour = now.getHours();
+        let pickupExpectedDate = new Date();
+        let fallbackEnabled = false;
+
+        if (currentHour < 12) {
+            // Morning: Same day
+        } else if (currentHour < 15) {
+            // Afternoon: Try same day, fallback enabled
+            fallbackEnabled = true;
+        } else {
+            // Evening/Night: Next day
+            pickupExpectedDate.setDate(pickupExpectedDate.getDate() + 1);
+        }
+
+        const triggerTime = calculateTriggerTime(pickupSlot?.date, pickupSlot?.time);
+
+        // Add logistics to V once
+        const finalV = totalCalculatedV + finalPriceBreakdown.logisticsFee;
+        const finalGst = finalV * (multipliers.gstPercent / 100);
+        finalPriceBreakdown.gstAmount = finalGst;
+
+        const finalTotal = finalV + finalGst;
+        const calculatedAdvance = (finalTotal * (multipliers.advancePerc / 100));
+        const calculatedDue = finalTotal - calculatedAdvance;
+
         const newOrder = new Order({
             customer: customerId,
             items,
@@ -183,14 +318,23 @@ export const createOrder = async (req, res) => {
             pickupLocation,
             dropAddress,
             dropLocation,
-            totalAmount,
+            totalAmount: Math.round(finalTotal),
+            advanceAmount: Math.round(calculatedAdvance),
+            dueAmount: Math.round(calculatedDue),
             deliveryMode: deliveryMode || 'Normal',
-            deliveryCharge: deliveryCharge || 0,
+            deliveryCharge: Number(deliveryCharge) || 0,
             promoApplied: req.body.promoApplied || null,
             discountAmount: req.body.discountAmount || 0,
             specialInstructions: specialInstructions || '',
             customerPhotos: customerPhotos || [],
-            status: 'Pending'
+            priceBreakdown: finalPriceBreakdown,
+            status: 'Pending',
+            pickupExpectedDate: pickupExpectedDate,
+            pickupTriggerTime: triggerTime,
+            deliveryStatus: 'none',
+            serviceTime: maxServiceTime,
+            fallbackEnabled: fallbackEnabled,
+            pickupStatus: 'none'
         });
 
         await newOrder.save();
@@ -203,6 +347,8 @@ export const createOrder = async (req, res) => {
             distance: 'Global'
         });
         logToFile(`Global broadcast sent for Order ${newOrder.orderId}`);
+
+        const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3);
 
         const notifications = nearbyVendors.map(vendor => ({
             recipient: vendor.id,
@@ -344,54 +490,14 @@ export const updateOrderStatus = async (req, res) => {
         const updateData = { status };
 
         if (status === 'Ready') {
-            console.log(`[LOGISTICS] Order ${order.orderId} marked as READY. Triggering Shiprocket Drop-off...`);
+            console.log(`[LOGISTICS] Order ${order.orderId} marked as READY. Scheduling delivery trigger...`);
             
-            // 🚀 SHIPROCKET FORWARD FLOW (Drop-off: Vendor -> Customer)
-            if (order.shipmentDetails && !order.deliveryShipmentDetails?.shipmentId) {
-                try {
-                    const customer = await User.findById(order.customer);
-                    
-                    // 1. Create Forward Order (Pickup: Vendor, Drop: Customer)
-                    const fwdOrder = await ShiprocketService.createForwardOrder(order, customer);
-                    
-                    if (fwdOrder && fwdOrder.shipment_id) {
-                        const deliveryShipment = {
-                            shipmentId: fwdOrder.shipment_id,
-                            orderId: fwdOrder.order_id,
-                            lastStatus: 'CREATED'
-                        };
-                        
-                        // 2. Check Serviceability from Vendor/Hub Pincode (452010)
-                        const serviceability = await ShiprocketService.checkServiceability(order.vendor?.shopDetails?.pincode || '452010', false);
-                        
-                        if (serviceability?.data?.available_courier_companies?.length > 0) {
-                            const bestCourier = serviceability.data.available_courier_companies[0];
-                            
-                            // 3. Assign AWB
-                            const awbData = await ShiprocketService.generateAWB(fwdOrder.shipment_id, bestCourier.courier_company_id);
-                            if (awbData?.response?.data?.awb_code) {
-                                deliveryShipment.awbCode = awbData.response.data.awb_code;
-                                deliveryShipment.courierName = bestCourier.courier_name;
-                                
-                                // 4. Schedule Pickup from Vendor
-                                const pickupData = await ShiprocketService.generatePickup(fwdOrder.shipment_id);
-                                const token = pickupData?.response?.data?.pickup_token_number || pickupData?.pickup_token_number;
-                                if (token) {
-                                    deliveryShipment.pickupTokenNumber = token;
-                                    console.log(`✅ [SHIPROCKET] Drop-off Scheduled! Token: ${token}`);
-                                }
-                            }
-                        }
-                        updateData.deliveryShipmentDetails = deliveryShipment;
-                    }
-                } catch (srError) {
-                    console.error('⚠️ [SHIPROCKET_DROP_OFF_ERROR]:', srError.message);
-                }
-            }
+            const deliveryTriggerTime = calculateTriggerTime(order.deliverySlot?.date, order.deliverySlot?.time);
+            updateData.deliveryTriggerTime = deliveryTriggerTime;
+            updateData.deliveryStatus = 'scheduled';
 
-            // Internal Rider Search (Keeping as fallback or secondary notification)
-            const vLat = order.vendor?.location?.lat || 22.7984; 
-            const vLng = order.vendor?.location?.lng || 75.9225;
+            const vLat = order.vendor?.location?.lat || 22.7196; 
+            const vLng = order.vendor?.location?.lng || 75.8577;
             const nearbyRiders = await getNearbyRiders(vLat, vLng, 4);
             updateData.nearbyRiders = nearbyRiders;
             updateData.rider = null; 
@@ -555,10 +661,26 @@ export const getPoolOrders = async (req, res) => {
         const vLat = vendor.location?.lat || 0;
         const vLng = vendor.location?.lng || 0;
 
-        // Find all Pending orders that have no vendor yet AND were created after this vendor was approved (or created recently)
+        // Auto-reject orders older than 1 hour
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        const expiredResult = await Order.updateMany(
+            { 
+                status: 'Pending', 
+                vendor: null, 
+                createdAt: { $lt: oneHourAgo } 
+            },
+            { $set: { status: 'Cancelled' } }
+        );
+
+        if (expiredResult.modifiedCount > 0) {
+            console.log(`🕒 [EXPIRY] Auto-cancelled ${expiredResult.modifiedCount} stale orders in pool.`);
+        }
+
+        // Find all active Pending orders (within 1 hour window)
         const orders = await Order.find({ 
             status: 'Pending', 
-            vendor: null
+            vendor: null,
+            createdAt: { $gte: oneHourAgo }
         }).populate('customer', 'displayName address location');
         
         const pool = orders.filter(order => {
@@ -590,118 +712,21 @@ export const vendorAcceptOrder = async (req, res) => {
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         const updatedOrder = await Order.findByIdAndUpdate(
             id, 
-            { vendor: vendorId, status: 'Assigned', pickupOtp }, 
+            { vendor: vendorId, status: 'Assigned', pickupOtp, pickupStatus: 'scheduled' }, 
             { new: true }
         ).populate('customer', 'displayName phone address location');
+
+        const vendor = await User.findById(vendorId);
 
         // Remove availability notifications for other vendors
         await Notification.deleteMany({ orderId: id, type: 'order_available' });
 
-        // Notify nearby riders (within 4km as per user request)
+
+        // Update nearby riders in order for dashboard listing (Internal Pool)
         const nearbyRiders = await getNearbyRiders(updatedOrder.pickupLocation.lat, updatedOrder.pickupLocation.lng, 4);
-        
-        const vendor = await User.findById(vendorId);
-
-        if (nearbyRiders.length > 0) {
-            const riderNotifs = nearbyRiders.map(rider => {
-                const earnings = 20 + (parseFloat(rider.distance) * 5); // Base 20 + 5/km
-                return {
-                    recipient: rider.id,
-                    role: 'rider',
-                    title: 'New Pickup Task',
-                    message: `Pickup: ${updatedOrder.pickupAddress} | Drop: ${vendor?.shopDetails?.address || 'Vendor'}`,
-                    type: 'order_placed',
-                    orderId: id,
-                    payload: {
-                        customer: updatedOrder.customer?.displayName || 'Customer',
-                        from: updatedOrder.pickupAddress,
-                        to: vendor?.shopDetails?.address || vendor?.address || 'Vendor Shop',
-                        dist: rider.distance,
-                        pay: earnings.toFixed(2),
-                        displayId: updatedOrder.orderId
-                    }
-                };
-            });
-            await Notification.insertMany(riderNotifs);
-        }
-
-        // Update nearby riders in order for dashboard listing
         updatedOrder.nearbyRiders = nearbyRiders;
-        
-        // --- SHIPROCKET AUTOMATION TRIGGER ---
-        try {
-            const customer = await User.findById(updatedOrder.customer);
-            const isRetail = customer.customerType === 'retail';
-            
-            console.log(`🚚 [SHIPROCKET] Initiating shipment for ${customer.customerType} order: ${updatedOrder.orderId}`);
-            
-            // 1. Create Return Order in Shiprocket
-            // For Individual -> isQC = true, For Retail -> isQC = false
-            const srOrder = await ShiprocketService.createReturnOrder(updatedOrder, customer, !isRetail);
-            
-            if (srOrder && srOrder.shipment_id) {
-                updatedOrder.shipmentDetails = {
-                    shipmentId: srOrder.shipment_id,
-                    orderId: srOrder.order_id,
-                    isQC: !isRetail,
-                    lastStatus: 'CREATED'
-                };
-                
-                // 2. Check Serviceability for QC (Optional auto-assign logic)
-                const serviceability = await ShiprocketService.checkServiceability(customer.pincode, !isRetail);
-                
-                if (serviceability && serviceability.data && serviceability.data.available_courier_companies.length > 0) {
-                    const bestCourier = serviceability.data.available_courier_companies[0];
-                    console.log(`📦 [SHIPROCKET] Best Courier Found: ${bestCourier.courier_name}`);
-                    
-                    // 3. Assign AWB
-                    const awbData = await ShiprocketService.generateAWB(srOrder.shipment_id, bestCourier.courier_company_id);
-                    if (awbData && awbData.response && awbData.response.data) {
-                        updatedOrder.shipmentDetails.awbCode = awbData.response.data.awb_code;
-                        updatedOrder.shipmentDetails.courierName = bestCourier.courier_name;
-                        
-                        // 4. Schedule Pickup (Trigger QC Checklist flow as per client request)
-                        console.log(`📅 [SHIPROCKET] Scheduling pickup for shipment: ${srOrder.shipment_id}`);
-                        const pickupData = await ShiprocketService.generatePickup(srOrder.shipment_id);
-                        
-                        // Extract pickup token from mock or real response
-                        const token = pickupData?.response?.data?.pickup_token_number || pickupData?.pickup_token_number;
-                        if (token) {
-                            updatedOrder.shipmentDetails.pickupTokenNumber = token;
-                            console.log(`✅ [SHIPROCKET] Pickup Scheduled! Token: ${token}`);
-
-                            // Send "Rider Assigned" notification for Shiprocket flow
-                            try {
-                                const admin = (await import('../utils/firebaseAdmin.js')).default;
-                                const customerData = await User.findById(updatedOrder.customer);
-                                if (customerData && customerData.fcmToken) {
-                                    const riderMessage = {
-                                        notification: {
-                                            title: 'Rider Assigned! 🛵',
-                                            body: `your rider is assigned`
-                                        },
-                                        data: {
-                                            orderId: updatedOrder.orderId.toString(),
-                                            type: 'RIDER_ASSIGNED'
-                                        },
-                                        token: customerData.fcmToken
-                                    };
-                                    await admin.messaging().send(riderMessage);
-                                    console.log(`🚀 [FCM_PUSH] Shiprocket Rider assigned notification sent to ${customerData.phone}`);
-                                }
-                            } catch (err) {
-                                console.error('❌ [FCM_PUSH] Shiprocket Rider notification error:', err.message);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (srError) {
-            console.error('⚠️ [SHIPROCKET_INTEGRATION_ERROR]:', srError.message);
-            // We don't block the order acceptance if Shiprocket fails, but we log it
-        }
-
         await updatedOrder.save();
+
 
         // Socket.io updates
         const io = getIO();
@@ -1042,26 +1067,24 @@ export const verifyHandshake = async (req, res) => {
         }
 
         if (phase === 'Completion') {
-            order.status = 'Payment Pending';
+            order.status = 'Delivered';
             
-            // Emit payment trigger to customer
+            // Emit completion update (not payment trigger)
             const io = getIO();
             if (io) {
                 const customerId = order.customer._id || order.customer;
                 const targetRoom = `user_${customerId.toString()}`;
-                console.log(`[DEBUG] Emitting payment_trigger to room: ${targetRoom}`);
-                io.to(targetRoom).emit('payment_trigger', {
-                    orderId: order._id,
-                    orderNumber: order.orderId,
-                    amount: order.totalAmount,
-                    message: 'Items delivered successfully. Please complete the payment.'
+                console.log(`[DEBUG] Notifying customer of delivery in room: ${targetRoom}`);
+                io.to(targetRoom).emit('order_status_update', {
+                    ...order.toObject(),
+                    status: 'Delivered',
+                    message: 'Items delivered successfully! Please rate your experience.'
                 });
             }
 
             console.log('\n========================================');
-            console.log('💰 [PAYMENT] TRIGGERED FOR CUSTOMER');
+            console.log('✅ [DELIVERY] COMPLETED FOR CUSTOMER');
             console.log(`📦 Order: ${order.orderId}`);
-            console.log(`💵 Amount Due: ₹${order.totalAmount}`);
             console.log(`🎯 Target User: ${order.customer.toString()}`);
             console.log('========================================\n');
         }

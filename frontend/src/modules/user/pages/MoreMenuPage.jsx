@@ -6,37 +6,48 @@ import toast from 'react-hot-toast';
 const MoreMenuPage = () => {
   const navigate = useNavigate();
 
-  const menuSections = useMemo(() => [
-    {
-      title: "Partnerships & Updates",
-      icon: "handshake",
-      items: [
-        { icon: "storefront", title: "Become a Vendor", desc: "Onboard Physical Shop", path: "/user/become-vendor" },
-        { icon: "factory", title: "Become a Supplier", desc: "Distribute Materials", path: "/user/become-supplier" },
-        { icon: "campaign", title: "Advertise with us", desc: "Digital Media Kit", path: "/user/advertise", color: "primary" },
-        { icon: "handshake", title: "Partner with us", desc: "Logistics & Alliances", path: "/user/partnerships", color: "tertiary" },
-        { icon: "notifications", title: "Notifications", desc: "View Alerts & Updates", path: "/user/notifications", color: "primary" },
-        { icon: "location_on", title: "Saved Addresses", desc: "Home, Office & more", path: "/user/profile/addresses", color: "primary" },
-        { icon: "reviews", title: "App Feedback", desc: "Share your experience", path: "/user/feedback", color: "tertiary" },
-      ]
-    },
-    {
-      title: "Ecosystem",
-      icon: "lan",
-      items: [
-        { icon: "work", title: "Careers", desc: "Join the team", path: "/user/careers", color: "tertiary" },
-        { icon: "share", title: "Refer us", desc: "Invite friends & family", path: "/user/referral", color: "secondary" }
-      ]
-    },
-    {
-      title: "Help & Support",
-      icon: "help_center",
-      items: [
-        { icon: "support_agent", title: "Help Center", desc: "Guides & Tutorials", path: "/user/support" },
-        { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
-      ]
-    },
-  ], []);
+  const userRaw = localStorage.getItem('user') || '{}';
+  const user = JSON.parse(userRaw);
+  const isVendor = user.role?.toLowerCase() === 'vendor';
+  const isSupplier = user.role?.toLowerCase() === 'supplier';
+  const isPartner = isVendor || isSupplier;
+
+  const menuSections = useMemo(() => {
+    const sections = [
+        {
+          title: "Partnerships & Updates",
+          icon: "handshake",
+          items: [
+            ...(!isPartner ? [
+              { icon: "storefront", title: "Become a Vendor", desc: "Onboard Physical Shop", path: "/user/become-vendor" },
+              { icon: "factory", title: "Become a Supplier", desc: "Distribute Materials", path: "/user/become-supplier" }
+            ] : []),
+            { icon: "campaign", title: "Advertise with us", desc: "Digital Media Kit", path: "/user/advertise", color: "primary" },
+            { icon: "handshake", title: "Partner with us", desc: "Logistics & Alliances", path: "/user/partnerships", color: "tertiary" },
+            { icon: "notifications", title: "Notifications", desc: "View Alerts & Updates", path: "/user/notifications", color: "primary" },
+            { icon: "location_on", title: "Saved Addresses", desc: "Home, Office & more", path: "/user/profile/addresses", color: "primary" },
+            { icon: "reviews", title: "App Feedback", desc: "Share your experience", path: "/user/feedback", color: "tertiary" },
+          ]
+        },
+        {
+          title: "Ecosystem",
+          icon: "lan",
+          items: [
+            { icon: "work", title: "Careers", desc: "Join the team", path: "/user/careers", color: "tertiary" },
+            { icon: "share", title: "Refer us", desc: "Invite friends & family", path: "/user/referral", color: "secondary" }
+          ]
+        },
+        {
+          title: "Help & Support",
+          icon: "help_center",
+          items: [
+            { icon: "support_agent", title: "Help Center", desc: "Guides & Tutorials", path: "/user/support" },
+            { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
+          ]
+        },
+      ];
+    return sections;
+  }, [isVendor, isSupplier]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

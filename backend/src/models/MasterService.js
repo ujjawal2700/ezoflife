@@ -50,6 +50,15 @@ const masterServiceSchema = new mongoose.Schema({
     },
     excelCategoryId: {
         type: Number
+    },
+    completionTime: {
+        type: Number,
+        default: 1
+    },
+    serviceType: {
+        type: String,
+        enum: ['individual', 'retail'],
+        default: 'individual'
     }
 }, { timestamps: true });
 

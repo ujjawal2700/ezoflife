@@ -12,7 +12,7 @@ const VendorProfile = () => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        libraries: ['drawing', 'places']
+        libraries: ['drawing', 'places', 'geometry']
     });
 
     const [autocomplete, setAutocomplete] = useState(null);
@@ -345,6 +345,48 @@ const VendorProfile = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+                </section>
+
+                {/* 5. LEGAL & POLICIES SECTION */}
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>
+                        <span className="material-symbols-outlined text-slate-200">policy</span>
+                    </div>
+
+                    <div className="bg-white rounded-[2.8rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+                        <button 
+                            onClick={() => navigate('/user/terms')}
+                            className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-xl">gavel</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">Terms of Service</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rules & Regulations</p>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
+                        </button>
+
+                        <button 
+                            onClick={() => navigate('/user/privacy')}
+                            className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-xl">verified_user</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">Privacy Policy</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Data Protection Protocol</p>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
+                        </button>
                     </div>
                 </section>
 

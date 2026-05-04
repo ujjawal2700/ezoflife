@@ -24,11 +24,62 @@ import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
 import MetricRow from '../components/cards/MetricRow';
+import { adminApi } from '../../../lib/api';
 
 export default function Payments() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('Customer Payments');
   const [searchQuery, setSearchQuery] = useState('');
+  const [customerData, setCustomerData] = useState([]);
+  const [vendorData, setVendorData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAllData = async () => {
+    try {
+        setLoading(true);
+        const [cRes, vRes] = await Promise.all([
+            adminApi.getCustomerPayments(),
+            adminApi.getVendorPayments()
+        ]);
+        setCustomerData(cRes);
+        setVendorData(vRes);
+    } catch (err) {
+        console.error('Error fetching payment data:', err);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  const handleReconcile = async (row) => {
+    if (activeTab !== 'Vendor Payouts') return;
+    
+    const amount = window.prompt(`Enter payout amount for ${row.customer}:`, row.pendingBalance);
+    if (!amount || isNaN(amount)) return;
+
+    const txnId = window.prompt(`Enter Transaction ID / Reference:`);
+    if (!txnId) return;
+
+    try {
+        setLoading(true);
+        await adminApi.recordVendorPayout({
+            vendorId: row.id,
+            amount: parseFloat(amount),
+            transactionId: txnId,
+            paymentMethod: 'UPI',
+            notes: 'Admin Manual Settlement'
+        });
+        alert('Payout recorded successfully');
+        fetchAllData();
+    } catch (err) {
+        alert('Failed to record payout');
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const tabMap = {
     customer: 'Customer Payments',
@@ -53,9 +104,35 @@ export default function Payments() {
     'Refunds'
   ];
 
-  // Mock data for different tabs
+  // Mock data for other tabs, live for Customer & Vendor
   const paymentsData = useMemo(() => {
-    // In a real app, these would come from specific API calls based on activeTab
+    if (activeTab === 'Customer Payments') {
+        return customerData.map(item => ({
+            ...item,
+            id: item._id,
+            transactionId: `LEDGER-${item.phone.slice(-4)}`,
+            date: 'Live Data',
+            amount: item.totalSpent,
+            status: item.pendingBalance > 0 ? 'Pending' : 'Paid',
+            customer: item.displayName,
+            method: 'LEDGER'
+        }));
+    }
+
+    if (activeTab === 'Vendor Payouts') {
+        return vendorData.map(item => ({
+            ...item,
+            id: item._id,
+            transactionId: item.lastPayout ? `LAST: ${new Date(item.lastPayout).toLocaleDateString()}` : 'No Previous Payout',
+            date: 'Live Analytics',
+            amount: item.pendingBalance,
+            status: item.pendingBalance > 0 ? 'Pending' : 'Settled',
+            customer: item.displayName,
+            shop: item.shopName,
+            method: 'TRANSFER'
+        }));
+    }
+
     return mockAdminData.payoutRequests.map(item => ({
         ...item,
         type: activeTab,
@@ -63,14 +140,40 @@ export default function Payments() {
         customer: 'RAHUL SHARMA',
         transactionId: `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
     }));
-  }, [activeTab]);
+  }, [activeTab, customerData, vendorData]);
 
-  const stats = useMemo(() => [
-    { label: 'Total Inflow', value: '₹4.2M', change: 'This Month', trend: 'up', icon: ArrowDownLeft, color: 'emerald-400' },
-    { label: 'Total Outflow', value: '₹2.8M', change: 'Settlements', trend: 'up', icon: ArrowUpRight, color: 'rose-400' },
-    { label: 'Escrow Balance', value: '₹1.1M', change: 'System Held', trend: 'up', icon: Wallet, color: 'white' },
-    { label: 'Refund Volume', value: '₹42K', change: 'Last 7 Days', trend: 'down', icon: RefreshCcw, color: 'amber-400' }
-  ], []);
+  const stats = useMemo(() => {
+    if (activeTab === 'Customer Payments') {
+        const totalSpent = customerData.reduce((acc, curr) => acc + (curr.totalSpent || 0), 0);
+        const totalAdvance = customerData.reduce((acc, curr) => acc + (curr.totalAdvancePaid || 0), 0);
+        
+        return [
+            { label: 'Total Sales', value: `₹${(totalSpent/1000).toFixed(1)}K`, change: 'All Time', trend: 'up', icon: ArrowDownLeft, color: 'emerald-400' },
+            { label: 'Advance Paid', value: `₹${(totalAdvance/1000).toFixed(1)}K`, change: 'Collected', trend: 'up', icon: ArrowUpRight, color: 'sky-400' },
+            { label: 'Pending COD', value: `₹${((totalSpent - totalAdvance)/1000).toFixed(1)}K`, change: 'In Field', trend: 'down', icon: Wallet, color: 'white' },
+            { label: 'Total Customers', value: customerData.length.toString(), change: 'Registered', trend: 'up', icon: RefreshCcw, color: 'amber-400' }
+        ];
+    }
+
+    if (activeTab === 'Vendor Payouts') {
+        const totalEarned = vendorData.reduce((acc, curr) => acc + (curr.totalEarnings || 0), 0);
+        const totalPaid = vendorData.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
+        
+        return [
+            { label: 'Total Earnings', value: `₹${(totalEarned/1000).toFixed(1)}K`, change: 'Vendor Share', trend: 'up', icon: ArrowDownLeft, color: 'emerald-400' },
+            { label: 'Total Settled', value: `₹${(totalPaid/1000).toFixed(1)}K`, change: 'Paid out', trend: 'up', icon: ArrowUpRight, color: 'sky-400' },
+            { label: 'Pending Payout', value: `₹${((totalEarned - totalPaid)/1000).toFixed(1)}K`, change: 'Due now', trend: 'down', icon: Wallet, color: 'white' },
+            { label: 'Active Vendors', value: vendorData.length.toString(), change: 'Partners', trend: 'up', icon: RefreshCcw, color: 'amber-400' }
+        ];
+    }
+
+    return [
+        { label: 'Total Inflow', value: '₹4.2M', change: 'This Month', trend: 'up', icon: ArrowDownLeft, color: 'emerald-400' },
+        { label: 'Total Outflow', value: '₹2.8M', change: 'Settlements', trend: 'up', icon: ArrowUpRight, color: 'rose-400' },
+        { label: 'Escrow Balance', value: '₹1.1M', change: 'System Held', trend: 'up', icon: Wallet, color: 'white' },
+        { label: 'Refund Volume', value: '₹42K', change: 'Last 7 Days', trend: 'down', icon: RefreshCcw, color: 'amber-400' }
+    ];
+  }, [activeTab, customerData, vendorData]);
 
   const columns = useMemo(() => [
     { 
@@ -135,8 +238,11 @@ export default function Payments() {
           <button className="p-2 bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all rounded-sm">
             <Download size={14} />
           </button>
-          {row.status === 'Pending' && (
-             <button className="px-4 py-2 bg-primary text-white text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all rounded-sm shadow-lg shadow-slate-200">
+          {row.status === 'Pending' && activeTab === 'Vendor Payouts' && (
+             <button 
+                onClick={() => handleReconcile(row)}
+                className="px-4 py-2 bg-primary text-white text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all rounded-sm shadow-lg shadow-slate-200"
+             >
                Reconcile
              </button>
           )}
@@ -187,6 +293,7 @@ export default function Payments() {
           title={activeTab.toUpperCase()}
           columns={columns}
           data={paymentsData}
+          loading={loading}
           onAction={(row) => console.log('Viewing txn', row.id)}
         />
       </div>

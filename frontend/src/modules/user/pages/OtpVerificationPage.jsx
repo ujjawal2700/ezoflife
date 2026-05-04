@@ -79,6 +79,7 @@ const OtpVerificationPage = () => {
           safeStorage.setItem('userData', JSON.stringify(user));
           safeStorage.setItem('userId', user._id || user.id);
           safeStorage.setItem('userRole', actingRole);
+          safeStorage.setItem('userType', user.customerType || 'individual');
 
           // Force Page Refresh or specific redirect
           if (actingRole === 'vendor') {

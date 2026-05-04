@@ -21,8 +21,20 @@ const b2bOrderSchema = new mongoose.Schema({
     ],
     status: {
         type: String,
-        enum: ['Pending', 'Accepted', 'Dispatched', 'Delivered', 'Cancelled', 'Settled'],
-        default: 'Pending'
+        enum: ['Open', 'Locked', 'Pending', 'Accepted', 'Dispatched', 'Delivered', 'Cancelled', 'Settled'],
+        default: 'Open'
+    },
+    cycleId: {
+        type: String,
+        required: true
+    },
+    deliveryDay: {
+        type: String,
+        required: true
+    },
+    deliveryDate: {
+        type: Date,
+        required: true
     },
     pincode: { 
         type: String, 

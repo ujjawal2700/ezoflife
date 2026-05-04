@@ -17,7 +17,8 @@ import {
     createWalkInOrder,
     markOrderReady,
     verifyHandshake,
-    handleGetNearbyVendors
+    handleGetNearbyVendors,
+    createRazorpayOrder
 } from '../controllers/orderController.js';
 
 const router = express.Router();
@@ -35,6 +36,7 @@ router.post('/vendor-accept/:id', vendorAcceptOrder);
 // Create new order
 router.post('/', createOrder);
 router.post('/walk-in', createWalkInOrder);
+router.post('/razorpay', createRazorpayOrder);
 
 // Update order status
 router.patch('/status/:id', updateOrderStatus);
