@@ -428,7 +428,10 @@ const OrdersHistoryPage = () => {
                           <div className="space-y-1">
                             <label className="text-[8px] font-black text-slate-300 uppercase ml-2">From</label>
                             <input 
-                              type="date" 
+                              type={startDate ? "date" : "text"} 
+                              placeholder="DD/MM/YYYY"
+                              onFocus={(e) => e.target.type = 'date'}
+                              onBlur={(e) => !startDate && (e.target.type = 'text')}
                               value={startDate}
                               onChange={(e) => setStartDate(e.target.value)}
                               className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
@@ -437,7 +440,10 @@ const OrdersHistoryPage = () => {
                           <div className="space-y-1">
                             <label className="text-[8px] font-black text-slate-300 uppercase ml-2">To</label>
                             <input 
-                              type="date" 
+                              type={endDate ? "date" : "text"} 
+                              placeholder="DD/MM/YYYY"
+                              onFocus={(e) => e.target.type = 'date'}
+                              onBlur={(e) => !endDate && (e.target.type = 'text')}
                               value={endDate}
                               onChange={(e) => setEndDate(e.target.value)}
                               className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"

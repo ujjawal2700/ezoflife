@@ -13,39 +13,46 @@ const AuthPage = () => {
   const [agreedToTnC, setAgreedToTnC] = useState(false);
   const [apiError, setApiError] = useState('');
   const [isRetail, setIsRetail] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [lastRequestedPhone, setLastRequestedPhone] = useState('');
 
   const isLoginValid = loginPhone.length === 10 && /^\d+$/.test(loginPhone);
   const isSignupValid = signupPhone.length === 10 && /^\d+$/.test(signupPhone) && agreedToTnC;
 
   const handleRequestOtp = async (phone, type, extraData = {}) => {
+    if (loading || lastRequestedPhone === phone) return;
+    setLoading(true);
     setApiError('');
     try {
       const response = await authApi.requestOtp(phone, otpChannel, type, extraData);
       if (response.message === 'OTP sent successfully') {
+        setLastRequestedPhone(phone);
         navigate('/user/otp', { state: { phone, channel: otpChannel } });
       } else {
         setApiError(response.message || 'Something went wrong');
       }
     } catch (error) {
       setApiError('Server error. Please try again later.');
+    } finally {
+      setLoading(false);
     }
   };
 
   // Auto-trigger for Login
   React.useEffect(() => {
-    if (isLogin && isLoginValid) {
+    if (isLogin && isLoginValid && !loading && lastRequestedPhone !== loginPhone) {
       handleRequestOtp(loginPhone, 'login');
     }
-  }, [loginPhone, isLogin, isLoginValid]);
+  }, [loginPhone, isLogin, isLoginValid, loading, lastRequestedPhone]);
 
   // Auto-trigger for Signup
   React.useEffect(() => {
-    if (!isLogin && isSignupValid) {
+    if (!isLogin && isSignupValid && !loading && lastRequestedPhone !== signupPhone) {
       handleRequestOtp(signupPhone, 'signup', { 
         customerType: isRetail ? 'retail' : 'individual' 
       });
     }
-  }, [signupPhone, agreedToTnC, isLogin, isSignupValid, isRetail]);
+  }, [signupPhone, agreedToTnC, isLogin, isSignupValid, isRetail, loading, lastRequestedPhone]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
@@ -186,24 +193,22 @@ const AuthPage = () => {
                             placeholder="000 000 0000" 
                             type="tel"
                             maxLength={10}
+                            disabled={loading}
                             value={loginPhone}
                             onChange={(e) => setLoginPhone(e.target.value.replace(/\D/g, ''))}
                           />
+                          {loading && (
+                            <div className="pr-4">
+                              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            </div>
+                          )}
                         </div>
                         {loginPhone.length > 0 && !isLoginValid && (
                             <p className="text-[9px] text-error font-bold mt-2 ml-1 animate-pulse">Enter a valid 10-digit number</p>
                         )}
                       </motion.div>
 
-                      <motion.button 
-                        variants={itemVariants}
-                        whileTap={isLoginValid ? { scale: 0.98 } : {}}
-                        onClick={() => isLoginValid && handleRequestOtp(loginPhone, 'login')}
-                        disabled={!isLoginValid}
-                        className={`w-full font-headline font-black py-5 rounded-2xl shadow-xl tracking-widest uppercase text-xs transition-all duration-300 ${isLoginValid ? 'bg-primary-gradient text-on-primary shadow-primary/20' : 'bg-surface-container-high text-outline-variant cursor-not-allowed opacity-50'}`}
-                      >
-                        Send Code
-                      </motion.button>
+                      {/* Button removed per user request for automatic flow */}
                       
                       {apiError && isLogin && (
                         <p className="text-[10px] text-error font-black text-center mt-2 animate-pulse">{apiError}</p>
@@ -218,7 +223,7 @@ const AuthPage = () => {
                         Start your journey to pristine fabrics today.
                       </p>
                     </motion.div>
-
+ 
                     <div className="space-y-4">
                       {/* OTP Channel Selector */}
                       <motion.div variants={itemVariants} className="flex bg-surface-container-low p-1 rounded-2xl border border-slate-300 mb-2">
@@ -233,7 +238,7 @@ const AuthPage = () => {
                           </button>
                         ))}
                       </motion.div>
- 
+  
                       <motion.div variants={itemVariants}>
                         <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2.5 ml-1">Phone Number</label>
                         <div className={`flex items-center bg-surface-container-low rounded-2xl p-1 border border-slate-300 focus-within:bg-white focus-within:ring-2 ${signupPhone.length > 0 && signupPhone.length !== 10 ? 'focus-within:ring-error/20 ring-error/10' : 'focus-within:ring-primary/20'}`}>
@@ -243,15 +248,21 @@ const AuthPage = () => {
                             placeholder="000 000 0000" 
                             type="tel" 
                             maxLength={10}
+                            disabled={loading}
                             value={signupPhone}
                             onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, ''))}
                           />
+                          {loading && (
+                            <div className="pr-4">
+                              <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            </div>
+                          )}
                         </div>
                         {signupPhone.length > 0 && signupPhone.length !== 10 && (
                             <p className="text-[9px] text-error font-bold mt-2 ml-1">Enter a valid 10-digit number</p>
                         )}
                       </motion.div>
-
+ 
                       {/* Business/Retail Selection */}
                       <motion.div 
                         variants={itemVariants}
@@ -269,7 +280,7 @@ const AuthPage = () => {
                            />
                         </div>
                       </motion.div>
-
+ 
                       {/* T&C Checkbox */}
                       <motion.div variants={itemVariants} className="flex items-start gap-3 px-1 py-1">
                         <button 
@@ -282,17 +293,9 @@ const AuthPage = () => {
                           I agree to the <span className="text-primary underline cursor-pointer">Terms & Conditions</span> and provide consent.
                         </p>
                       </motion.div>
-
-                      <motion.button 
-                        variants={itemVariants}
-                        whileTap={isSignupValid ? { scale: 0.98 } : {}}
-                        onClick={() => isSignupValid && handleRequestOtp(signupPhone, 'signup', { customerType: isRetail ? 'retail' : 'individual' })}
-                        disabled={!isSignupValid}
-                        className={`w-full font-headline font-black py-5 rounded-2xl shadow-xl tracking-widest uppercase text-xs mt-4 transition-all duration-300 ${isSignupValid ? 'bg-gradient-to-br from-primary to-primary-container text-on-primary shadow-primary/20' : 'bg-surface-container-high text-outline-variant cursor-not-allowed opacity-50'}`}
-                      >
-                        Create Account
-                      </motion.button>
-
+ 
+                      {/* Button removed per user request for automatic flow */}
+                      
                       {apiError && !isLogin && (
                         <p className="text-[10px] text-error font-black text-center mt-4 animate-pulse">{apiError}</p>
                       )}

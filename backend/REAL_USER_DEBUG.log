@@ -12655,3 +12655,22 @@
 2026-05-04T09:16:56.647Z - 📡 [TRAFFIC] 2:46:56 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82162&role=vendor
 2026-05-04T09:33:08.925Z - 📡 [TRAFFIC] 3:03:08 pm | GET /api/b2b-orders/supplier/69f1d2bc2c76f5ab4ec82162
 2026-05-04T09:33:09.218Z - 📡 [TRAFFIC] 3:03:09 pm | GET /api/b2b-orders/supplier/69f1d2bc2c76f5ab4ec82162
+2026-05-04T09:38:51.662Z - 📡 [TRAFFIC] 3:08:51 pm | GET /api/geofence/check-availability?lat=24.0386&lng=78.9613
+2026-05-04T09:38:51.669Z - SOCKET_JOIN - Client bPfq0Zd8GuGJCqGcAAAx -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-04T09:38:51.671Z - 📡 [TRAFFIC] 3:08:51 pm | GET /api/admin/config
+2026-05-04T09:38:51.675Z - 📡 [TRAFFIC] 3:08:51 pm | GET /api/master-services?serviceType=individual
+2026-05-04T09:38:51.679Z - 📡 [TRAFFIC] 3:08:51 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-04T09:38:51.683Z - 📡 [TRAFFIC] 3:08:51 pm | GET /api/categories
+2026-05-04T09:38:51.689Z - SOCKET_JOIN - Client bPfq0Zd8GuGJCqGcAAAx -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-04T09:38:54.571Z - 📡 [TRAFFIC] 3:08:54 pm | GET /api/admin/config
+2026-05-04T09:38:54.577Z - 📡 [TRAFFIC] 3:08:54 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-04T09:38:54.687Z - 📡 [TRAFFIC] 3:08:54 pm | GET /api/geofence/check-availability?lat=24.0386&lng=78.9613
+2026-05-04T09:38:54.829Z - 📡 [TRAFFIC] 3:08:54 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-04T09:38:54.943Z - 📡 [TRAFFIC] 3:08:54 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-04T09:38:55.752Z - 📡 [TRAFFIC] 3:08:55 pm | GET /api/categories
+2026-05-04T09:38:56.522Z - 📡 [TRAFFIC] 3:08:56 pm | GET /api/master-services?serviceType=individual
+2026-05-04T09:46:51.555Z - 📡 [TRAFFIC] 3:16:51 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82162
+2026-05-04T09:46:51.557Z - 📡 [TRAFFIC] 3:16:51 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82162
+2026-05-04T09:46:52.111Z - 📡 [TRAFFIC] 3:16:52 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82162
+2026-05-04T09:46:52.113Z - 📡 [TRAFFIC] 3:16:52 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82162&role=vendor
+2026-05-04T09:51:07.403Z - 📡 [TRAFFIC] 3:21:07 pm | GET /uploads//uploads/ads/ad-1776840922950-642798316.mp4
