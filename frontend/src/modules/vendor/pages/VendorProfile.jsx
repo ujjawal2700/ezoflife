@@ -163,7 +163,7 @@ const VendorProfile = () => {
     if (!user) return null;
 
     return (
-        <div className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-40 font-sans">
+        <div className="text-slate-900 min-h-screen pb-40 font-sans">
             <main className="max-w-md mx-auto px-6 pt-10 space-y-10">
                 
                 {/* PROFILE HEADER - REDESIGNED FOR CUSTOMER LAYOUT */}

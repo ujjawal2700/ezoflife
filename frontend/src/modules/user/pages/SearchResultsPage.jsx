@@ -90,7 +90,7 @@ const SearchResultsPage = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="max-w-2xl mx-auto px-6 pt-24 pb-36 w-full"
+        className="max-w-2xl mx-auto px-6 pt-16 pb-36 w-full"
       >
         <motion.div variants={itemVariants} className="mb-8">
             <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mb-4 opacity-60">

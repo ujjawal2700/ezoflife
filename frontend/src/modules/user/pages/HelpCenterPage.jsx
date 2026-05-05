@@ -47,7 +47,7 @@ const HelpCenterPage = () => {
         <h1 className="font-headline font-black text-xl text-primary tracking-tighter">Help Center</h1>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 pt-24 pb-36 w-full">
+      <main className="max-w-2xl mx-auto px-6 pt-16 pb-36 w-full">
         {/* Support Hero */}
         <motion.section 
           variants={itemVariants}

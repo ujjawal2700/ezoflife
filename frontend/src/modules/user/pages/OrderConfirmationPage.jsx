@@ -15,7 +15,15 @@ const OrderConfirmationPage = () => {
   useEffect(() => {
     if (!order) {
       navigate('/user/cart');
+      return;
     }
+
+    // AUTOMATIC REDIRECT TO TRACKING AFTER 60 SECONDS
+    const timer = setTimeout(() => {
+        navigate(`/user/tracking/${order._id || order.id}`);
+    }, 60000);
+
+    return () => clearTimeout(timer);
   }, [order, navigate]);
 
   useEffect(() => {
@@ -135,18 +143,37 @@ const OrderConfirmationPage = () => {
                   <motion.div 
                     key={idx}
                     whileHover={{ scale: 1.01 }}
-                    className="flex items-center justify-between p-5 bg-white rounded-3xl shadow-xs border border-outline-variant/5"
+                    className="flex flex-col gap-4 p-5 bg-white rounded-3xl shadow-xs border border-outline-variant/5"
                   >
-                    <div className="flex items-center gap-5">
-                      <div className={`w-14 h-14 rounded-2xl bg-primary-container/40 flex items-center justify-center text-primary`}>
-                        <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_laundry_service</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-5">
+                        <div className={`w-14 h-14 rounded-2xl bg-primary-container/40 flex items-center justify-center text-primary overflow-hidden`}>
+                          {item.image ? (
+                            <img src={item.image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>local_laundry_service</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-black text-on-surface text-[15px]">{item.name}</p>
+                          <p className="text-xs text-on-surface-variant font-bold opacity-60">{item.quantity} {item.unit || 'pcs'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-black text-on-surface text-[15px]">{item.name}</p>
-                        <p className="text-xs text-on-surface-variant font-bold opacity-60">{item.quantity} {item.unit || 'pcs'}</p>
-                      </div>
+                      <p className="font-headline font-black text-primary">₹{(item.finalUnitPrice * item.quantity).toFixed(2)}</p>
                     </div>
-                    <p className="font-headline font-black text-primary">₹{(item.price * item.quantity).toFixed(2)}</p>
+
+                    {item.photos?.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest px-1">{item.photos.length} Garment Photos</p>
+                        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                          {item.photos.map((photo, pIdx) => (
+                            <div key={pIdx} className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
+                              <img src={photo} className="w-full h-full object-cover" alt="" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -164,7 +191,7 @@ const OrderConfirmationPage = () => {
               <div className="space-y-5 mb-10">
                 <div className="flex justify-between text-sm md:text-md">
                   <span className="text-on-surface-variant font-bold opacity-60">Total Order Value</span>
-                  <span className="font-black text-on-surface">₹{order?.totalAmount?.toFixed(2)}</span>
+                  <span className="font-black text-on-surface">₹{(order?.totalAmount || 0).toFixed(2)}</span>
                 </div>
                 
                 <div className="pt-8 mt-6 border-t border-outline-variant/10 flex justify-between items-end">

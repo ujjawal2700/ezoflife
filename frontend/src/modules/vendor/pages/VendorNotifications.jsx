@@ -36,7 +36,7 @@ const VendorNotifications = () => {
     }), []);
 
     return (
-        <div className="bg-[#F8FAFC] text-[#1E293B] min-h-screen pb-32 font-sans">
+        <div className="text-[#1E293B] min-h-screen pb-32 font-sans">
 
             <motion.main 
                 initial={{ opacity: 0, y: 10 }}

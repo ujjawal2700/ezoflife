@@ -219,7 +219,7 @@ const OrderTrackingPage = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-grow pt-24 pb-36 px-6 max-w-5xl mx-auto w-full space-y-8"
+        className="flex-grow pt-16 pb-36 px-6 max-w-5xl mx-auto w-full space-y-8"
       >
         {/* Map Section */}
         <motion.section 
@@ -389,6 +389,53 @@ const OrderTrackingPage = () => {
           </div>
         </motion.section>
 
+        {/* Articles List with Photos (Always Visible for Active Order) */}
+        <motion.section variants={itemVariants} className="bg-white rounded-[2.5rem] p-8 border border-outline-variant/10 shadow-sm space-y-6">
+            <div className="flex justify-between items-center">
+                <h3 className="font-headline font-black text-xl text-primary tracking-tighter uppercase">Order Articles</h3>
+                <span className="material-symbols-outlined text-primary">inventory_2</span>
+            </div>
+            
+            <div className="space-y-6">
+              {order?.items?.map((item, idx) => (
+                <div key={idx} className="space-y-3">
+                  <div className="flex justify-between items-center px-2">
+                    <p className="font-black text-slate-900 uppercase tracking-tight text-sm">
+                      {item.name} <span className="text-slate-400 ml-2">x{item.quantity}</span>
+                    </p>
+                    {item.photos?.length > 0 && (
+                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">
+                        {item.photos.length} Verification Photos
+                      </span>
+                    )}
+                  </div>
+
+                  {item.photos?.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {item.photos.map((photo, pIdx) => (
+                        <motion.div 
+                          key={pIdx}
+                          whileHover={{ scale: 1.02 }}
+                          className="aspect-square rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden relative group cursor-pointer"
+                        >
+                          <img 
+                            src={photo} 
+                            className="w-full h-full object-cover"
+                            alt={`${item.name} photo ${pIdx + 1}`}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">No photos uploaded for this item</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+        </motion.section>
+
         {/* Pickup Verification (Phase 1: Customer enters OTP from Rider) */}
         {order?.status === 'Assigned' && (
           <motion.section 
@@ -448,28 +495,6 @@ const OrderTrackingPage = () => {
               </div>
             </div>
 
-            {/* Verification Photos Card */}
-            <div className="bg-white rounded-[2.5rem] p-8 border border-outline-variant/10 shadow-sm space-y-6">
-                <div className="flex justify-between items-center">
-                    <h3 className="font-headline font-black text-xl text-primary tracking-tighter uppercase">Verify Returned Articles</h3>
-                    <span className="material-symbols-outlined text-primary">photo_library</span>
-                </div>
-                <p className="text-xs font-bold text-on-surface-variant opacity-60 leading-relaxed">
-                    Compare your items against the original photos taken during pickup.
-                </p>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                        <div key={i} className="aspect-square rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden relative group cursor-pointer">
-                            <img 
-                                src={`https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?q=80&w=200&auto=format&fit=crop&sig=${i}`} 
-                                className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity"
-                                alt="Pickup Verification"
-                            />
-                        </div>
-                    ))}
-                </div>
-            </div>
           </motion.section>
         )}
 

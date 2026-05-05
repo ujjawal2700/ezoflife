@@ -318,16 +318,29 @@ export const b2bOrderApi = {
             throw error;
         }
     },
-    updateStatus: async (id, status) => {
+    updateStatus: async (id, data) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/${id}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status })
+                body: JSON.stringify(data)
             });
             return await response.json();
         } catch (error) {
             console.error('Update B2B Status Error:', error);
+            throw error;
+        }
+    },
+    bulkUpdateStatus: async (data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/b2b-orders/bulk-status-update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Bulk Update B2B Status Error:', error);
             throw error;
         }
     },
@@ -374,6 +387,15 @@ export const b2bOrderApi = {
             return await response.json();
         } catch (error) {
             console.error('Release Payment Error:', error);
+            throw error;
+        }
+    },
+    getTimeline: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/b2b-orders/timeline`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Timeline Error:', error);
             throw error;
         }
     }
@@ -600,7 +622,7 @@ export const adminApi = {
             throw error;
         }
     },
-    getConfigs: async () => {
+    getConfig: async () => {
         try {
             const response = await fetch(`${BASE_URL}/admin/config`);
             return await response.json();

@@ -382,7 +382,7 @@ const Dashboard = () => {
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-background text-on-background min-h-screen pb-32 font-body"
+            className="text-on-background min-h-screen pb-32 font-body"
         >
 
 
@@ -597,7 +597,7 @@ const Dashboard = () => {
             </AnimatePresence>
 
             {/* 🚀 MAIN CONTENT AREA */}
-            <main className="max-w-xl mx-auto px-6 pt-6 space-y-8">
+            <main className="max-w-xl mx-auto px-6 pt-24 space-y-8 min-h-screen">
                 
                 {/* 0. EARNINGS TODAY (BLACK & WHITE PREMIUM) */}
                 <section>

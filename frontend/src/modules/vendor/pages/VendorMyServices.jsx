@@ -162,7 +162,7 @@ const VendorMyServices = () => {
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-slate-50 text-slate-900 min-h-screen pb-40 font-sans"
+            className="text-slate-900 min-h-screen pb-40 font-sans"
         >
             <main className="max-w-xl mx-auto px-6 pt-10 space-y-10">
                 <header className="flex items-center justify-between">

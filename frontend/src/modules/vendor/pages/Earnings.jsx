@@ -87,7 +87,7 @@ const Earnings = () => {
 
     if (loading) {
         return (
-            <div className="bg-[#F8FAFC] min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
@@ -97,7 +97,7 @@ const Earnings = () => {
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-32 font-body"
+            className="text-slate-900 min-h-screen pb-32 font-body"
         >
             <header className="bg-white px-6 py-6 border-b border-slate-100 sticky top-0 z-50 flex items-center gap-4">
                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="p-2 hover:bg-slate-50 rounded-full">

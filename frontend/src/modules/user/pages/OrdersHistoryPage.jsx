@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { orderApi } from '../../../lib/api';
+import { orderApi, adminApi } from '../../../lib/api';
 
 const OrdersHistoryPage = () => {
   const navigate = useNavigate();
@@ -17,40 +17,48 @@ const OrdersHistoryPage = () => {
   const userData = JSON.parse(localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
   const userId = userData._id || userData.id || localStorage.getItem('userId');
 
+  const [invoiceSettings, setInvoiceSettings] = useState(null);
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
       console.log('📡 Fetching orders for UserID:', userId);
-      const data = await orderApi.getMyOrders(userId);
-      
-      // Mock orders for demonstration
-      const mockPastOrders = [
-        {
-          _id: 'mock_1',
-          orderId: '#SPZ-9901',
-          status: 'Delivered',
-          totalAmount: 1250.00,
-          createdAt: new Date('2024-04-12'),
-          serviceTier: 'Heritage',
-          items: [{ name: 'Premium Dry Clean' }, { name: 'Silk Saree Care' }],
-          vendor: { displayName: 'Spinzyt Luxury Hub' }
-        },
-        {
-          _id: 'mock_2',
-          orderId: '#SPZ-8842',
-          status: 'Cancelled',
-          totalAmount: 450.00,
-          createdAt: new Date('2024-04-05'),
-          serviceTier: 'Essential',
-          items: [{ name: 'Regular Wash' }, { name: 'Steam Iron' }],
-          vendor: { displayName: 'City Express Laundry' }
-        }
-      ];
+      // Fetch orders and config independently to avoid blocking orders if config fails
+      try {
+        const data = await orderApi.getMyOrders(userId);
+        console.log('✅ Received orders count:', data?.length || 0);
+        
+        // Mock orders for demonstration
+        const mockPastOrders = [
+          {
+            _id: 'mock_1',
+            orderId: '#SPZ-9901',
+            status: 'Delivered',
+            totalAmount: 1250.00,
+            createdAt: new Date('2024-04-12'),
+            serviceTier: 'Heritage',
+            items: [{ name: 'Premium Dry Clean', quantity: 2, price: 500 }, { name: 'Silk Saree Care', quantity: 1, price: 250 }],
+            vendor: { displayName: 'Spinzyt Luxury Hub' }
+          }
+        ];
+        
+        setOrders([...(data || []), ...mockPastOrders]);
+      } catch (orderErr) {
+        console.error('❌ Error fetching orders:', orderErr);
+        setOrders([]);
+      }
 
-      console.log('✅ Received orders count:', data?.length || 0);
-      setOrders([...(data || []), ...mockPastOrders]);
+      try {
+        const configs = await adminApi.getConfig();
+        if (Array.isArray(configs)) {
+          const invConfig = configs.find(c => c.key === 'invoice_settings');
+          if (invConfig) setInvoiceSettings(invConfig.value);
+        }
+      } catch (configErr) {
+        console.warn('⚠️ Could not fetch invoice settings, using defaults');
+      }
     } catch (err) {
-      console.error('❌ Error fetching orders:', err);
+      console.error('❌ Error in fetchOrders main loop:', err);
     } finally {
       setLoading(false);
     }
@@ -106,6 +114,19 @@ const OrdersHistoryPage = () => {
     const printWindow = window.open('', '_blank');
     const orderDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     
+    // Default fallback settings if none exist
+    const cfg = invoiceSettings || {
+      showLogo: true,
+      showVendorDetails: true,
+      showTerms: true,
+      customTerms: 'Thank you for taking our services..',
+      invoiceNote: 'This is a computer generated invoice.',
+      showTaxes: false,
+      accentColor: '#000000',
+      businessName: 'SPINZYT',
+      contactEmail: 'support@spinzyt.com'
+    };
+
     const invoiceHtml = `
       <html>
         <head>
@@ -113,8 +134,8 @@ const OrdersHistoryPage = () => {
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
             body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #000; padding-bottom: 20px; margin-bottom: 40px; }
-            .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid ${cfg.accentColor}; padding-bottom: 20px; margin-bottom: 40px; }
+            .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; display: ${cfg.showLogo ? 'block' : 'none'}; }
             .invoice-label { font-size: 24px; font-weight: 900; color: #64748b; text-transform: uppercase; }
             .meta { display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
             .meta-box h4 { font-size: 10px; text-transform: uppercase; color: #94a3b8; margin-bottom: 5px; letter-spacing: 1px; }
@@ -124,13 +145,15 @@ const OrdersHistoryPage = () => {
             td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 500; }
             .totals { margin-left: auto; width: 300px; }
             .total-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-            .grand-total { border-top: 2px solid #000; border-bottom: none; padding-top: 15px; margin-top: 10px; font-weight: 900; font-size: 18px; }
+            .grand-total { border-top: 2px solid ${cfg.accentColor}; border-bottom: none; padding-top: 15px; margin-top: 10px; font-weight: 900; font-size: 18px; color: ${cfg.accentColor}; }
             .footer { margin-top: 60px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 30px; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+            .terms { font-size: 10px; font-weight: 900; color: #1e293b; margin-bottom: 5px; display: ${cfg.showTerms ? 'block' : 'none'}; }
+            .note { font-size: 8px; font-weight: 500; color: #94a3b8; }
           </style>
         </head>
         <body>
           <div class="header">
-            <div class="logo">SPINZYT.</div>
+            <div class="logo">${cfg.businessName}.</div>
             <div class="invoice-label">Invoice</div>
           </div>
           
@@ -144,8 +167,10 @@ const OrdersHistoryPage = () => {
             <div class="meta-box">
               <h4>Billed To</h4>
               <p>${userData.displayName || userData.username || 'Valued Customer'}</p>
-              <h4 style="margin-top: 15px">Vendor</h4>
-              <p>${order.vendor?.displayName || 'Spinzyt Partner'}</p>
+              ${cfg.showVendorDetails ? `
+                <h4 style="margin-top: 15px">Vendor</h4>
+                <p>${order.vendor?.displayName || ''}</p>
+              ` : ''}
             </div>
           </div>
 
@@ -175,18 +200,56 @@ const OrdersHistoryPage = () => {
               <span>Subtotal</span>
               <span>₹${order.totalAmount || 0}</span>
             </div>
-            <div class="total-row">
-              <span>Taxes (Included)</span>
-              <span>₹0.00</span>
-            </div>
+            ${(cfg.showServiceFee && order.priceBreakdown?.serviceFee) ? `
+              <div class="total-row">
+                <span>Service Fee</span>
+                <span>₹${order.priceBreakdown.serviceFee}</span>
+              </div>
+            ` : ''}
+            ${(cfg.showDeliveryFee && order.priceBreakdown?.logisticsFee) ? `
+              <div class="total-row">
+                <span>Logistics Fee</span>
+                <span>₹${order.priceBreakdown.logisticsFee}</span>
+              </div>
+            ` : ''}
+            ${(cfg.showSurge && order.priceBreakdown?.expressSurcharge) ? `
+              <div class="total-row" style="color: #e11d48;">
+                <span>Express Surcharge</span>
+                <span>₹${order.priceBreakdown.expressSurcharge}</span>
+              </div>
+            ` : ''}
+            ${(cfg.showDiscount && order.priceBreakdown?.discount) ? `
+              <div class="total-row" style="color: #059669;">
+                <span>Discount</span>
+                <span>- ₹${order.priceBreakdown.discount}</span>
+              </div>
+            ` : ''}
+            ${cfg.showTaxes ? `
+              <div class="total-row">
+                <span>Taxes (18%)</span>
+                <span>₹${((order.totalAmount || 0) * 0.18).toFixed(2)}</span>
+              </div>
+            ` : ''}
             <div class="total-row grand-total">
               <span>Grand Total</span>
               <span>₹${order.totalAmount?.toFixed(2) || 0}</span>
             </div>
+            ${(cfg.showAdvance && order.advanceAmount) ? `
+              <div class="total-row" style="color: #059669; font-weight: 700;">
+                <span>Advance Paid</span>
+                <span>₹${order.advanceAmount}</span>
+              </div>
+              <div class="total-row" style="color: #e11d48; font-weight: 900;">
+                <span>Due at Delivery</span>
+                <span>₹${order.dueAmount || 0}</span>
+              </div>
+            ` : ''}
           </div>
 
           <div class="footer">
-            Thank you for taking our services..
+            <div class="terms">${cfg.customTerms}</div>
+            <div class="note">${cfg.invoiceNote}</div>
+            <div style="margin-top: 15px; font-size: 9px; color: #64748b;">${cfg.contactEmail}</div>
           </div>
 
           <script>
@@ -209,7 +272,7 @@ const OrdersHistoryPage = () => {
       animate={{ opacity: 1 }}
       className="text-on-background min-h-[100dvh] flex flex-col"
     >
-      <main className="pt-24 pb-44 px-6 max-w-2xl mx-auto w-full">
+      <main className="pt-16 pb-44 px-6 max-w-2xl mx-auto w-full">
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center">
              <motion.div 
@@ -280,18 +343,24 @@ const OrdersHistoryPage = () => {
                       <div className="flex justify-between items-start mb-8 relative z-10">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 mb-3">
-                            <motion.span 
-                              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                              transition={{ duration: 2, repeat: Infinity }}
-                              className="w-2.5 h-2.5 rounded-full bg-primary"
-                            ></motion.span>
-                            <span className="text-primary font-black text-[10px] tracking-[0.2em] uppercase">{order.status || 'Processing'}</span>
+                            {order.status && !['Processing', 'Pending'].includes(order.status) && (
+                              <>
+                                <motion.span 
+                                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                  className="w-2.5 h-2.5 rounded-full bg-primary"
+                                ></motion.span>
+                                <span className="text-primary font-black text-[10px] tracking-[0.2em] uppercase">{order.status}</span>
+                              </>
+                            )}
                           </div>
                           <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                          <div className="flex items-center gap-2 mt-2 opacity-60">
-                            <span className="material-symbols-outlined text-[14px]">storefront</span>
-                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{order.vendor?.displayName || 'Spinzyt Partner'}</p>
-                          </div>
+                          {order.vendor?.displayName && (
+                            <div className="flex items-center gap-2 mt-2 opacity-60">
+                              <span className="material-symbols-outlined text-[14px]">storefront</span>
+                              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{order.vendor.displayName}</p>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <p className="text-2xl font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
@@ -344,43 +413,36 @@ const OrdersHistoryPage = () => {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2">
                         <motion.button 
-                          whileHover={ (order.status === 'Assigned' || order.status === 'Out for Delivery') ? { scale: 1.02, backgroundColor: '#000' } : {} }
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            if (order.status === 'Assigned' || order.status === 'Out for Delivery') {
-                              navigate(`/user/tracking/${order._id || order.id}`);
-                            }
-                          }}
-                          className={`w-full py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all ${
+                          onClick={() => (order.status === 'Assigned' || order.status === 'Out for Delivery') && navigate(`/user/tracking/${order._id || order.id}`)}
+                          className={`flex-[1.5] py-3.5 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
                             (order.status === 'Assigned' || order.status === 'Out for Delivery') 
-                            ? 'bg-slate-900 text-white shadow-xl cursor-pointer' 
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10' 
+                            : 'bg-slate-50 text-slate-300 cursor-not-allowed'
                           }`}
                         >
-                          <span className="material-symbols-outlined text-sm">my_location</span>
-                          { (order.status === 'Assigned' || order.status === 'Out for Delivery') ? 'Live Tracking' : 'Tracking Unavailable' }
+                          <span className="material-symbols-outlined text-[14px]">my_location</span>
+                          {(order.status === 'Assigned' || order.status === 'Out for Delivery') ? 'Track' : 'Track'}
                         </motion.button>
                         
-                        <div className="grid grid-cols-2 gap-3">
-                          <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate('/user/verification', { state: { orderId: order._id || order.id } })}
-                            className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-sm">photo_library</span>
-                            View Articles
-                          </motion.button>
-                          <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate(`/user/chat/${order._id}`)}
-                            className="py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
-                          >
-                            <span className="material-symbols-outlined text-sm">chat_bubble</span>
-                            Chat Support
-                          </motion.button>
-                        </div>
+                        <motion.button 
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate('/user/verification', { state: { orderId: order._id || order.id } })}
+                          className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">inventory</span>
+                          Articles
+                        </motion.button>
+
+                        <motion.button 
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate(`/user/chat/${order._id}`)}
+                          className="w-11 h-11 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-all shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-lg">chat</span>
+                        </motion.button>
                       </div>
                     </motion.div>
                   ))
@@ -495,13 +557,30 @@ const OrdersHistoryPage = () => {
                         </div>
                       </div>
 
-                      <div className="bg-slate-50/80 rounded-2xl p-5 mb-8 border border-slate-100/50">
-                        <div className="flex items-center gap-2 mb-2">
-                           <span className="material-symbols-outlined text-[14px] text-slate-400">inventory_2</span>
-                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Package Details</p>
+                      <details className="group bg-slate-50/80 rounded-2xl border border-slate-100/50 mb-8 overflow-hidden transition-all">
+                        <summary className="list-none p-5 cursor-pointer flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[14px] text-slate-400">inventory_2</span>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Package Details</p>
+                          </div>
+                          <span className="material-symbols-outlined text-slate-400 text-sm group-open:rotate-180 transition-transform">expand_more</span>
+                        </summary>
+                        <div className="px-5 pb-5 space-y-3">
+                          {order.items && order.items.length > 0 ? (
+                            order.items.map((item, idx) => (
+                              <div key={idx} className="flex justify-between items-center bg-white/50 p-3 rounded-xl border border-slate-100">
+                                <div>
+                                  <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{item.name}</p>
+                                  <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Qty: {item.quantity || 1}</p>
+                                </div>
+                                <p className="text-[10px] font-black text-slate-900">₹{(item.price || 0) * (item.quantity || 1)}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-[10px] font-bold text-slate-400 italic">No item details available</p>
+                          )}
                         </div>
-                        <p className="text-[11px] font-bold text-slate-600 leading-relaxed line-clamp-1">{order.items?.map(i => i.name).join(', ') || 'Service Request Bundle'}</p>
-                      </div>
+                      </details>
 
                       <div className="flex flex-col gap-3">
                         <div className="grid grid-cols-2 gap-3">

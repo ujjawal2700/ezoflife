@@ -183,7 +183,7 @@ const SupportTicketsPage = () => {
                 )}
             </header>
 
-            <main className="flex-grow pt-24 pb-32 px-6 max-w-2xl mx-auto w-full">
+            <main className="flex-grow pt-16 pb-32 px-6 max-w-2xl mx-auto w-full">
                 {selectedTicket ? (
                     /* Chat Interface */
                     <div className="flex flex-col h-full">

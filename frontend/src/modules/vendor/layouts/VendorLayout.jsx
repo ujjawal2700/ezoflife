@@ -116,10 +116,10 @@ const VendorLayout = () => {
     const showHeader = !hideHeaderRoutes.some(path => currentPath.startsWith(path));
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#F8FAFC]">
+        <div className="admin-theme flex flex-col min-h-screen">
             {showHeader && <VendorHeader />}
             
-            <main className={`flex-1 pb-24 ${showHeader ? 'pt-20' : ''}`}>
+            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? 'pt-20' : ''}`}>
                 <Outlet />
             </main>
 

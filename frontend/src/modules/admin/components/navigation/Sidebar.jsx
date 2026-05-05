@@ -148,6 +148,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
         {
             group: 'Settings', items: [
                 { icon: Settings, label: 'Settings', path: '/admin/settings' },
+                { icon: FileText, label: 'Invoice Design', path: '/admin/invoice-settings' },
             ]
         }
     ];

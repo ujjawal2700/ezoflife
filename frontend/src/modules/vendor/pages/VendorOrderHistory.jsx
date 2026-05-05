@@ -53,14 +53,14 @@ const VendorOrderHistory = () => {
 
     if (loading) {
         return (
-            <div className="bg-[#F8FAFC] min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center">
                 <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     return (
-        <div className="bg-[#F8FAFC] text-[#1E293B] min-h-screen pb-32 font-sans">
+        <div className="text-[#1E293B] min-h-screen pb-32 font-sans">
 
             <motion.main 
                 initial={{ opacity: 0 }} 

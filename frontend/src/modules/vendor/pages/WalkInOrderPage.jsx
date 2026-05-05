@@ -103,7 +103,7 @@ const WalkInOrderPage = () => {
     };
 
     return (
-        <div className="bg-[#F8FAFC] text-slate-900 min-h-[100dvh] pb-44 flex flex-col overflow-x-hidden font-sans">
+        <div className="text-slate-900 min-h-[100dvh] pb-44 flex flex-col overflow-x-hidden font-sans">
             <header className="px-6 pt-4 flex items-center gap-4 mb-8">
                 <motion.button 
                     whileTap={{ scale: 0.9 }}

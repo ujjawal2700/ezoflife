@@ -40,6 +40,10 @@ const b2bOrderSchema = new mongoose.Schema({
         type: String, 
         required: true 
     },
+    city: {
+        type: String,
+        required: false
+    },
     shippingAddress: {
         type: String,
         required: true

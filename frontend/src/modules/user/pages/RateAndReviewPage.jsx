@@ -37,7 +37,7 @@ const RateAndReviewPage = () => {
         <h1 className="font-headline font-black text-xl text-primary tracking-tighter">Rate & Review</h1>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 pt-24 pb-36 w-full flex-1 flex flex-col items-center">
+      <main className="max-w-2xl mx-auto px-6 pt-16 pb-36 w-full flex-1 flex flex-col items-center">
         {!isSubmitted ? (
             <motion.div 
               variants={containerVariants}

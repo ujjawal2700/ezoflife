@@ -43,6 +43,7 @@ import CategoryManagement from '../pages/CategoryManagement';
 import PricingPreview from '../pages/PricingPreview';
 import AreaPricingOverrides from '../pages/AreaPricingOverrides';
 import CustomerPayments from '../pages/CustomerPayments';
+import AdminInvoiceSettings from '../pages/AdminInvoiceSettings';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -108,6 +109,7 @@ const AdminRoutes = () => {
         <Route path="/customer-payments" element={<CustomerPayments />} />
         <Route path="/supplier-requests" element={<AdminSupplierRequestsPage />} />
         <Route path="/supplier-requests/:id" element={<AdminSupplierRequestDetailPage />} />
+        <Route path="/invoice-settings" element={<AdminInvoiceSettings />} />
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 

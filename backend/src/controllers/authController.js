@@ -506,12 +506,15 @@ export const updateUserProfile = async (req, res) => {
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Surgical update: handle nested objects correctly
+        // Surgical update using Mongoose .set() to ensure nested paths are tracked
         Object.keys(updates).forEach(key => {
             if (typeof updates[key] === 'object' && updates[key] !== null && !Array.isArray(updates[key])) {
-                user[key] = { ...user[key], ...updates[key] };
+                // For objects, we can merge or use path notation. Path notation is safer.
+                Object.keys(updates[key]).forEach(subKey => {
+                    user.set(`${key}.${subKey}`, updates[key][subKey]);
+                });
             } else {
-                user[key] = updates[key];
+                user.set(key, updates[key]);
             }
         });
 

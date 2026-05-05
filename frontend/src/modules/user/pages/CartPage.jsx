@@ -542,8 +542,14 @@ const CartPage = () => {
         localStorage.removeItem('cart_quantities');
         localStorage.removeItem('order_photos');
         localStorage.removeItem('order_notes');
-        // Go directly to tracking as per user request
-        navigate(`/user/tracking/${response._id}`);
+        
+        if (method === 'Online') {
+          // Go to Confirmation (Review) page first for Online success
+          navigate('/user/confirmation', { state: { order: response } });
+        } else {
+          // Go directly to tracking for COD
+          navigate(`/user/tracking/${response._id}`);
+        }
       }
     } catch (err) {
       alert('Error finalizing order');
@@ -566,193 +572,75 @@ const CartPage = () => {
         </div>
       </header>
 
-      {/* Booking Preview Modal */}
-      <AnimatePresence>
-        {showPreview && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4"
-          >
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-headline font-black text-2xl text-slate-900 uppercase tracking-tighter">Order Summary.</h3>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Awaiting Rider Assignment</p>
-                </div>
-                <button onClick={() => setShowPreview(false)} className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-400 shadow-sm hover:text-rose-500 transition-all">
-                  <span className="material-symbols-outlined">close</span>
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 hide-scrollbar">
-                {/* Status Card */}
-                <div className="bg-amber-50 border border-amber-100 p-5 rounded-3xl flex items-center gap-4">
-                  <div className="w-10 h-10 bg-amber-400 rounded-full flex items-center justify-center text-white shrink-0">
-                    <span className="material-symbols-outlined text-sm">hail</span>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Current Status</p>
-                    <p className="text-xs font-bold text-amber-900 uppercase">Awaiting Rider Assignment</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">Services & Items</p>
-                  <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
-                        <span className="material-symbols-outlined text-sm">local_shipping</span>
-                      </div>
-                      <span className="text-[11px] font-black text-slate-900 uppercase">Pickup</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedPickup} • {pickupTime}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
-                        <span className="material-symbols-outlined text-sm">local_laundry_service</span>
-                      </div>
-                      <span className="text-[11px] font-black text-slate-900 uppercase">Delivery</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedDelivery} • {deliveryTime}</span>
-                  </div>
-                    {cartItems.map(item => (
-                      <div key={item._id || item.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-slate-400">check_circle</span>
-                          <span className="font-bold text-sm text-slate-900">{item.name} × {quantities[item._id || item.id]}</span>
-                        </div>
-                        <span className="font-black text-slate-900">₹{getItemPrice(item) * quantities[item._id || item.id]}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-slate-950 rounded-[2.5rem] p-8 text-white space-y-6 shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 blur-3xl" />
-                  
-                  <div className="space-y-3 relative z-10">
-                    <div className="flex flex-col gap-2 bg-white/5 p-4 rounded-2xl border border-white/5">
-                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
-                        <span>Base Rate (incl. Area)</span>
-                        <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
-                      </div>
-                      {isExpress && (
-                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-emerald-400">
-                          <span>Express Surcharge</span>
-                          <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
-                        <span>Platform Aggregator Fee</span>
-                        <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
-                      </div>
-                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/40">
-                        <span>Logistics Fee</span>
-                        <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
-                      </div>
-                      <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-amber-400">
-                        <span>GST ({gstPercent}%)</span>
-                        <span>₹{priceBreakdown.gstAmount.toFixed(0)}</span>
-                      </div>
-                      {isPromoApplied && (
-                        <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-rose-400 border-t border-white/10 pt-2">
-                          <span>Promo Discount</span>
-                          <span>-₹{discount.toFixed(0)}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-between items-center pt-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Total Payable</span>
-                      <span className="text-2xl font-black text-white tracking-tighter">₹{finalTotal.toFixed(0)}</span>
-                    </div>
-
-                    <div className="flex flex-col gap-3 border-t border-white/10 pt-4">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Select Payment Method</span>
-                      <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
-                        <button 
-                          onClick={() => setPaymentMethod('Online')}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${paymentMethod === 'Online' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-white/40 hover:text-white'}`}
-                        >
-                          <span className="material-symbols-outlined text-sm">payments</span>
-                          Online
-                        </button>
-                        <button 
-                          onClick={() => setPaymentMethod('COD')}
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 ${paymentMethod === 'COD' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'text-white/40 hover:text-white'}`}
-                        >
-                          <span className="material-symbols-outlined text-sm">handshake</span>
-                          COD
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-white/10 flex justify-between items-center relative z-10">
-                    <div className="flex flex-col">
-                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Paid Amount (Advance)</p>
-                      <p className="text-3xl font-black text-white tracking-tighter">₹{(finalTotal * (advanceConfigPerc / 100)).toFixed(0)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-1">Remaining Amount</p>
-                      <p className="text-2xl font-black text-white/60 tracking-tighter">₹{(finalTotal * (1 - advanceConfigPerc / 100)).toFixed(0)}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-8 bg-slate-50 border-t border-slate-100">
-                <button 
-                  onClick={handlePlaceOrder}
-                  disabled={loading}
-                  className={`w-full py-6 rounded-[1.5rem] bg-black text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all hover:bg-emerald-500 flex items-center justify-center gap-3 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {loading ? 'PROCESSING...' : 'CONFIRM ORDER'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.main className="max-w-5xl mx-auto px-6 pt-24 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
+      <motion.main className="max-w-5xl mx-auto px-6 pt-16 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
         <div className="flex flex-col gap-10">
-          
-          <div className="pl-4 border-l-4 border-black">
-            <h2 className="font-headline text-3xl font-black tracking-tighter leading-none mb-1 text-slate-900 uppercase">Your Summary.</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">{cartItems.length} services selected</p>
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 md:p-8 space-y-6">
+            <div className="flex items-center justify-between pl-4 border-l-4 border-black">
+              <div>
+                <h2 className="font-headline text-2xl font-black tracking-tighter leading-none text-slate-900 uppercase">Your Summary.</h2>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1">Review your order logistics & preferences</p>
+              </div>
+            </div>
+            
+            {/* COMPACT LOGISTICS SUMMARY ROW */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center">
+                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Pickup</p>
+                <p className="text-[10px] font-bold text-slate-900 leading-tight">{selectedPickup?.split(',')[0]}<br/>{pickupTime?.split(' - ')[0]}</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center">
+                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivery</p>
+                <p className="text-[10px] font-bold text-slate-900 leading-tight">{selectedDelivery?.split(',')[0]}<br/>{deliveryTime?.split(' - ')[0]}</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center">
+                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Address</p>
+                <p className="text-[10px] font-bold text-slate-900">{selectedPickupAddress?.type || 'Manual'}</p>
+              </div>
+              <div className="bg-slate-950 p-4 rounded-2xl text-white flex flex-col items-center text-center">
+                <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-1">Priority</p>
+                <p className="text-[10px] font-bold">{isExpress ? 'Express' : 'Standard'}</p>
+              </div>
+              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex flex-col items-center text-center">
+                <p className="text-[7px] font-black text-emerald-600 uppercase tracking-widest mb-1">Tier</p>
+                <p className="text-[10px] font-bold text-emerald-900">
+                  {[...new Set(cartItems.map(item => (item.tier === 'Heritage' || item.basePrice > 200) ? 'Heritage' : 'Essential'))].join(' & ') || 'Essential'}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Smart Pickup Status Info */}
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className={`p-6 rounded-[2.5rem] border ${timeInfo.color} flex flex-col md:flex-row items-center gap-5 shadow-sm`}
-          >
-            <div className={`w-14 h-14 rounded-full ${timeInfo.indicator} flex items-center justify-center text-white shadow-lg shrink-0`}>
-              <span className="material-symbols-outlined text-2xl">{timeInfo.icon}</span>
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-1">Pickup Expectation</p>
-              <h4 className="font-black text-base md:text-xl tracking-tight leading-tight whitespace-normal break-words">{timeInfo.message}</h4>
-            </div>
-            <div className="px-6 py-3 bg-white/50 rounded-2xl border border-white/20 backdrop-blur-sm shrink-0 w-full md:w-auto">
-              <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Status Probability</p>
-              <p className="text-xs font-black uppercase tracking-tighter whitespace-normal">{timeInfo.probability}</p>
-            </div>
-          </motion.div>
 
-          <div className="space-y-4">
+            {/* PROMO CODE INTEGRATED */}
+            <div className="bg-white rounded-[2rem] border-2 border-dashed border-slate-200 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Have a Promo Code?</p>
+                {isPromoApplied && (
+                  <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-lg">Remove</button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                  <input 
+                      type="text" 
+                      placeholder="ENTER CODE"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:bg-white transition-all"
+                  />
+                  <button 
+                      onClick={handleApplyPromo}
+                      className={`px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-black text-white'}`}
+                  >
+                      {isPromoApplied ? 'APPLIED' : 'APPLY'}
+                  </button>
+              </div>
+              {promoError && <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest">{promoError}</p>}
+              {isPromoApplied && (
+                  <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">SAVED ₹{discount.toFixed(0)} WITH {appliedPromoData?.code}!</p>
+              )}
+            </div>
+
+          <div className="space-y-3">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Services Review</p>
             {cartItems.map((item) => {
               const itemId = item._id || item.id;
               const qty = quantities[itemId];
@@ -761,230 +649,35 @@ const CartPage = () => {
               const isHeritageService = item.tier === 'Heritage' || (item.basePrice > 200);
 
               return (
-                <div key={itemId} className="bg-white rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-5 border border-slate-100 shadow-sm relative overflow-hidden group">
-                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-[1.5rem] bg-slate-50 flex items-center justify-center text-slate-900 border border-slate-100 shrink-0">
-                    <span className="material-symbols-outlined text-xl md:text-2xl">{item.icon || 'local_laundry_service'}</span>
+                <div key={itemId} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-slate-100 shadow-sm relative overflow-hidden group">
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-900 border border-slate-100 shrink-0">
+                    <span className="material-symbols-outlined text-lg">{item.icon || 'local_laundry_service'}</span>
                   </div>
 
-                  <div className="flex-1 min-w-0 w-full">
-                    <div className="flex items-center gap-2 mb-3 md:mb-4">
-                      <h3 className="font-black text-md md:text-lg text-slate-900 uppercase tracking-tight leading-none truncate">{item.name}</h3>
-                      <span className="text-[8px] md:text-[9px] font-black px-2 py-0.5 md:py-1 rounded-lg uppercase tracking-widest bg-slate-100 text-slate-400 shrink-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-black text-[10px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
+                      <span className="text-[6px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-slate-100 text-slate-400 shrink-0">
                         {isHeritageService ? 'Heritage' : 'Essential'}
                       </span>
                     </div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
-                      <div className="bg-slate-50 rounded-[2rem] px-1.5 py-1 flex items-center gap-2 md:gap-4 border border-slate-100/50 shadow-inner w-full sm:w-auto justify-between sm:justify-start">
-                        <button 
-                          onClick={() => updateQuantity(itemId, -1)}
-                          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-full text-slate-400 shadow-sm hover:text-black transition-all active:scale-90"
-                        >
-                          <span className="material-symbols-outlined text-sm md:text-md font-black">remove</span>
-                        </button>
-                        
-                        <div className="flex flex-col items-center min-w-[30px] md:min-w-[40px]">
-                          <span className="text-xs font-black text-slate-900 leading-none">{qty}</span>
-                          <span className="text-[7px] md:text-[8px] font-black text-slate-400 uppercase tracking-tighter mt-1 whitespace-nowrap">Per {billingUnits[itemId] || 'Kg'}</span>
-                        </div>
-
-                        <button 
-                          onClick={() => updateQuantity(itemId, 1)}
-                          className="w-7 h-7 md:w-8 md:h-8 flex items-center justify-center bg-white rounded-full text-slate-400 shadow-sm hover:text-black transition-all active:scale-90"
-                        >
-                          <span className="material-symbols-outlined text-sm md:text-md font-black">add</span>
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between sm:justify-start gap-6 md:gap-8 w-full sm:w-auto pt-2 sm:pt-0">
-                        <div className="flex flex-col">
-                          <p className="text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none">Price/Unit</p>
-                          <p className="text-md md:text-lg font-black text-slate-900 mt-1 tracking-tighter">₹{unitPrice}</p>
-                        </div>
-                        <div className="flex flex-col">
-                          <p className="text-[8px] md:text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none">Total</p>
-                          <p className="text-xl md:text-2xl font-black text-slate-900 mt-1 tracking-tighter">₹{totalPrice.toFixed(0)}</p>
-                        </div>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] font-black text-slate-400">
+                        {qty} {billingUnits[itemId] || 'Unit'} × ₹{unitPrice}
+                      </p>
+                      <p className="text-[11px] font-black text-slate-900 tracking-tighter">₹{totalPrice.toFixed(0)}</p>
                     </div>
                   </div>
 
                   <button 
                     onClick={() => updateQuantity(itemId, -qty)}
-                    className="absolute top-3 right-3 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 hover:bg-rose-50 hover:text-rose-500 transition-all shadow-sm"
+                    className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 hover:bg-rose-50 hover:text-rose-500 transition-all shadow-sm"
                   >
-                    <span className="material-symbols-outlined text-lg md:text-xl font-black">close</span>
+                    <span className="material-symbols-outlined text-sm font-black">close</span>
                   </button>
                 </div>
               );
             })}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] space-y-4">
-                <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Logistics Priority</p>
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-amber-400">{isExpress ? 'bolt' : 'schedule'}</span>
-                  <p className="text-xl font-black tracking-tight">{isExpress ? 'Express Delivery' : 'Standard Delivery'}</p>
-                </div>
-                <p className="text-[11px] font-medium text-white/60">Preferences set on Home Page</p>
-             </div>
-             <div className="bg-white border border-slate-100 p-8 rounded-[2.5rem] space-y-5 shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-24 h-24 bg-slate-50 rounded-full -mr-12 -mt-12 transition-transform group-hover:scale-150 duration-700" />
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest relative z-10">Smart Scheduling</p>
-                <div className="space-y-4 relative z-10">
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
-                        <span className="material-symbols-outlined text-sm">local_shipping</span>
-                      </div>
-                      <span className="text-[11px] font-black text-slate-900 uppercase">Pickup</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedPickup} • {pickupTime}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 gap-4 overflow-hidden">
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm overflow-hidden shrink-0">
-                        <span className="material-symbols-outlined text-sm">local_laundry_service</span>
-                      </div>
-                      <span className="text-[11px] font-black text-slate-900 uppercase">Delivery</span>
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-600 truncate text-right">{selectedDelivery} • {deliveryTime}</span>
-                  </div>
-                </div>
-              </div>
-          </div>
-
-
-          {/* Offers & Promos Section */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-black">confirmation_number</span>
-                    <h3 className="font-headline font-black text-xl text-slate-900 uppercase tracking-tighter">Offers & Promos.</h3>
-                </div>
-            </div>
-            
-            <div className="flex gap-2">
-                <input 
-                    type="text" 
-                    placeholder="Enter Promo Code"
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    className="flex-1 bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest outline-none focus:bg-white focus:ring-2 ring-black/5 transition-all"
-                />
-                <button 
-                    onClick={handleApplyPromo}
-                    className={`px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-200' : 'bg-black text-white'}`}
-                >
-                    {isPromoApplied ? 'APPLIED' : 'APPLY'}
-                </button>
-            </div>
-            
-            {promoError && <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest px-2">{promoError}</p>}
-            {isPromoApplied && (
-                <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center justify-between animate-pulse">
-                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Savings of ₹{discount.toFixed(0)} Applied!</p>
-                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-emerald-400"><span className="material-symbols-outlined text-sm">cancel</span></button>
-                </div>
-            )}
-            
-            {applicablePromos.length > 0 && !isPromoApplied && (
-                <div className="space-y-4">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Available Offers:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {applicablePromos.map(p => {
-                            const isLocked = subtotal < p.minOrderValue;
-                            return (
-                                <button 
-                                    key={p._id} 
-                                    disabled={isLocked}
-                                    onClick={() => handleApplyPromo(p.code)} 
-                                    className={`relative p-5 rounded-3xl border-2 transition-all flex flex-col items-start gap-2 text-left group ${isLocked ? 'bg-slate-50 border-slate-100 opacity-60 cursor-not-allowed' : 'bg-white border-emerald-100 hover:border-emerald-500 hover:shadow-xl hover:shadow-emerald-500/10'}`}
-                                >
-                                    <div className="flex items-center justify-between w-full">
-                                        <span className={`text-xs font-black uppercase tracking-widest ${isLocked ? 'text-slate-400' : 'text-emerald-600'}`}>
-                                            {p.code}
-                                        </span>
-                                        {isLocked && (
-                                            <span className="material-symbols-outlined text-slate-300 text-sm">lock</span>
-                                        )}
-                                    </div>
-                                    <p className={`text-lg font-black tracking-tighter ${isLocked ? 'text-slate-400' : 'text-slate-900'}`}>
-                                        SAVE {p.discountType === 'Flat' ? `₹${p.discountValue}` : `${p.discountValue}%`}
-                                    </p>
-                                    <div className="flex items-center justify-between w-full mt-1">
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                            {isLocked ? `Add ₹${(p.minOrderValue - subtotal).toFixed(0)} more` : `Applicable on your order`}
-                                        </p>
-                                        {!isLocked && <span className="text-[8px] font-black bg-emerald-500 text-white px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">Apply</span>}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
-                <span className="material-symbols-outlined text-black">location_on</span>Address Details.
-              </h3>
-              <button 
-                onClick={() => setIsSameAddress(!isSameAddress)} 
-                className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all ${isSameAddress ? 'bg-slate-100 text-slate-400' : 'bg-primary text-white shadow-lg shadow-primary/20'}`}
-              >
-                {isSameAddress ? 'Deliver to same address' : 'Different Drop Address'}
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Pickup Address */}
-              <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex items-center gap-4 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <span className="material-symbols-outlined text-4xl">upload</span>
-                </div>
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-900 shadow-sm shrink-0">
-                  <span className="material-symbols-outlined text-xl">directions_run</span>
-                </div>
-                <div className="min-w-0 relative z-10">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Pickup Location</p>
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {selectedPickupAddress?.address || 'Set in Home Page'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Drop Address (Conditional) */}
-              {!isSameAddress && (
-                <motion.div 
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  className="bg-primary/5 p-6 rounded-[2rem] border border-primary/10 flex items-center gap-4 relative overflow-hidden group"
-                >
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity text-primary">
-                    <span className="material-symbols-outlined text-4xl">download</span>
-                  </div>
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-sm shrink-0">
-                    <span className="material-symbols-outlined text-xl">home_pin</span>
-                  </div>
-                  <div className="min-w-0 relative z-10 flex-1">
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-0.5">Drop-off Location</p>
-                    <p className="text-sm font-bold text-slate-900 truncate">
-                      {selectedDropAddress?.address || 'Select different address...'}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={() => navigate('/user/home')}
-                    className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-primary shadow-sm hover:scale-110 transition-transform"
-                  >
-                    <span className="material-symbols-outlined text-sm">edit</span>
-                  </button>
-                </motion.div>
-              )}
-            </div>
           </div>
 
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
@@ -1002,61 +695,103 @@ const CartPage = () => {
             />
           </div>
 
-          <div className="bg-slate-950 text-white rounded-[3.5rem] p-8 md:p-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.5)] relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 blur-[120px] -mr-40 -mt-40" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 blur-[100px] -ml-32 -mb-32" />
+          {/* PAYMENT METHOD SELECTION */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
+                <span className="material-symbols-outlined text-black">payments</span>Payment Method.
+              </h3>
+            </div>
             
-            <div className="relative z-10 space-y-8">
-              <div className="space-y-5">
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
-                  <span>Base Items Total</span>
-                  <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setPaymentMethod('Online')}
+                className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${paymentMethod === 'Online' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentMethod === 'Online' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  <span className="material-symbols-outlined">payments</span>
                 </div>
-                {priceBreakdown.expressSurcharge > 0 && (
-                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40 text-primary">
-                    <span>Express Surcharge</span>
-                    <span className="text-white">₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
-                  <span>Platform & Admin Fee</span>
-                  <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
+                <div className="text-center">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === 'Online' ? 'text-emerald-700' : 'text-slate-400'}`}>Pay Online</p>
+                  <p className="text-[8px] font-bold text-slate-400 mt-0.5">RAZORPAY SECURE</p>
                 </div>
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
-                  <span>Logistic Fee</span>
-                  <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
+              </button>
+
+              <button 
+                onClick={() => setPaymentMethod('COD')}
+                className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${paymentMethod === 'COD' ? 'border-amber-500 bg-amber-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+              >
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentMethod === 'COD' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  <span className="material-symbols-outlined">handshake</span>
                 </div>
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] opacity-40">
-                  <span>Service Tax (GST)</span>
-                  <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
+                <div className="text-center">
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === 'COD' ? 'text-amber-700' : 'text-slate-400'}`}>Cash on Delivery</p>
+                  <p className="text-[8px] font-bold text-slate-400 mt-0.5">PAY DURING PICKUP</p>
                 </div>
-                {isPromoApplied && (
-                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.25em] text-emerald-400">
-                    <span>Promo Discount</span>
-                    <span>- ₹{discount.toFixed(0)}</span>
-                  </div>
-                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <span>Base Items Total</span>
+                <span className="text-slate-900">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
               </div>
               
-              <div className="pt-8 border-t border-white/10">
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col">
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-2">Final Amount to Pay</p>
-                    <p className="text-6xl font-black tracking-tighter bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">₹{finalTotal.toFixed(0)}</p>
-                  </div>
-                  
-                  <motion.button 
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowPreview(true)}
-                    disabled={cartItems.length === 0}
-                    className="w-full bg-white text-slate-950 py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(255,255,255,0.15)] flex items-center justify-center gap-4 group transition-all"
-                  >
-                    PREVIEW ORDER
-                    <span className="material-symbols-outlined text-lg group-hover:translate-x-2 transition-transform">arrow_forward</span>
-                  </motion.button>
+              {priceBreakdown.expressSurcharge > 0 && (
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-primary">
+                  <span>Express Surcharge</span>
+                  <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <span>Platform Fee</span>
+                <span className="text-slate-900">₹{priceBreakdown.platformFee.toFixed(0)}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <span>Logistic Fee</span>
+                <span className="text-slate-900">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
+                <span>GST (18%)</span>
+                <span className="text-slate-900">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
+              </div>
+
+              {isPromoApplied && (
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">
+                  <span>Promo Discount ({appliedPromoData?.code})</span>
+                  <span>- ₹{discount.toFixed(0)}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="pt-6 border-t border-slate-100 space-y-6">
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Payable Amount</p>
+                <div className="flex items-baseline gap-2">
+                    <p className="text-5xl font-black tracking-tighter text-slate-950">₹{finalTotal.toFixed(0)}</p>
+                    {paymentMethod === 'Online' && advanceConfigPerc < 100 && (
+                        <p className="text-xs font-bold text-emerald-600">₹{(finalTotal * (advanceConfigPerc/100)).toFixed(0)} Pay Now</p>
+                    )}
                 </div>
               </div>
+              
+              <motion.button 
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handlePlaceOrder}
+                disabled={cartItems.length === 0 || loading}
+                className="w-full bg-black text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(0,0,0,0.15)] flex items-center justify-center gap-4 group transition-all"
+              >
+                {loading ? 'PROCESSING...' : (paymentMethod === 'Online' ? 'PROCEED TO PAYMENT' : 'CONFIRM ORDER')}
+                <span className="material-symbols-outlined text-lg group-hover:translate-x-2 transition-transform">
+                  {paymentMethod === 'Online' ? 'credit_card' : 'check_circle'}
+                </span>
+              </motion.button>
             </div>
           </div>
         </div>

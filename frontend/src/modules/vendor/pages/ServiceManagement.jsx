@@ -9,7 +9,7 @@ const ServiceManagement = () => {
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-32 font-sans"
+            className="text-slate-900 min-h-screen pb-32 font-sans"
         >
             <main className="max-w-xl mx-auto px-6 pt-10 space-y-12">
                 {/* PAGE HEADER */}

@@ -8,7 +8,93 @@ const SupplierDashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('Incoming Orders');
     const [orders, setOrders] = useState([]);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [timeline, setTimeline] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const DetailModal = ({ order, onClose }) => {
+        if (!order) return null;
+        return (
+            <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-sm"
+                onClick={onClose}
+            >
+                <motion.div 
+                    initial={{ scale: 0.9, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    className="bg-white w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="p-8 space-y-6">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Shipment Detail</p>
+                                <h3 className="text-2xl font-black text-slate-900 tracking-tighter">#{order.b2bOrderId}</h3>
+                            </div>
+                            <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="bg-slate-50 p-5 rounded-3xl space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-primary">
+                                        <span className="material-symbols-outlined">person</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vendor Name</p>
+                                        <p className="text-sm font-black text-slate-900">{order.vendor?.displayName || 'Unknown Vendor'}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-slate-400">
+                                        <span className="material-symbols-outlined">location_on</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Delivery Address</p>
+                                        <p className="text-[11px] font-bold text-slate-600 leading-tight italic">{order.shippingAddress}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Order Items</p>
+                                <div className="max-h-40 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                                    {order.items.map((item, i) => (
+                                        <div key={i} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-2xl">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[11px] font-black text-primary bg-primary/5 w-8 h-8 flex items-center justify-center rounded-lg">x{item.quantity}</span>
+                                                <span className="text-[12px] font-bold text-slate-700">{item.name}</span>
+                                            </div>
+                                            <span className="text-xs font-black text-slate-900 tracking-tight">₹{item.price * item.quantity}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Settled Amount</p>
+                                    <p className="text-2xl font-black text-emerald-600 tracking-tighter">₹{order.totalAmount}</p>
+                                </div>
+                                <div className="bg-emerald-50 px-4 py-2 rounded-2xl">
+                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">verified</span>
+                                        Delivered
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            </motion.div>
+        );
+    };
 
     const user = JSON.parse(localStorage.getItem('supplierData') || localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
     const supplierId = user._id || user.id;
@@ -16,16 +102,21 @@ const SupplierDashboard = () => {
     const fetchOrders = async () => {
         try {
             setLoading(true);
-            const data = await b2bOrderApi.getSupplierOrders(supplierId);
-            setOrders(data);
+            const [ordersData, timelineData] = await Promise.all([
+                b2bOrderApi.getSupplierOrders(supplierId),
+                b2bOrderApi.getTimeline()
+            ]);
+            setOrders(ordersData);
+            setTimeline(timelineData);
         } catch (error) {
-            console.error('Fetch Orders Error:', error);
-            toast.error('Failed to load orders');
+            console.error('Fetch Data Error:', error);
+            toast.error('Failed to load dashboard data');
         } finally {
             setLoading(false);
         }
     };
-    useEffect(() => {
+
+    useEffect(() => {
         if (supplierId) {
             fetchOrders();
         }
@@ -39,6 +130,31 @@ const SupplierDashboard = () => {
         } catch (error) {
             console.error('Update Status Error:', error);
             toast.error(error.response?.data?.message || 'Failed to update status');
+        }
+    };
+
+    const handleBulkDeliver = async () => {
+        const activeOrders = orders.filter(o => o.supplier && o.status !== 'Delivered');
+        if (activeOrders.length === 0) {
+            toast.error('No active orders to mark as delivered');
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const orderIds = activeOrders.map(o => o._id);
+            await b2bOrderApi.bulkUpdateStatus({
+                orderIds,
+                status: 'Delivered',
+                supplierId
+            });
+            toast.success('All active orders marked as Delivered');
+            fetchOrders();
+        } catch (error) {
+            console.error('Bulk Update Error:', error);
+            toast.error('Failed to update orders');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -57,14 +173,13 @@ const SupplierDashboard = () => {
     const aggregatedStats = useMemo(() => {
         const stats = {};
         orders.forEach(order => {
-            // Only aggregate if not delivered yet
-            if (order.status !== 'Delivered') {
+            // Only aggregate orders that this supplier has accepted and aren't delivered yet
+            if (order.supplier && order.status !== 'Delivered') {
                 order.items.forEach(item => {
                     const name = item.name.toLowerCase();
                     if (!stats[name]) stats[name] = { quantity: 0, unit: 'Units' };
                     stats[name].quantity += item.quantity;
                     
-                    // Simple unit detection
                     if (name.includes('detergent')) stats[name].unit = 'KG';
                     else if (name.includes('softener') || name.includes('liquid')) stats[name].unit = 'Ltr';
                     else if (name.includes('hanger') || name.includes('bag')) stats[name].unit = 'Units';
@@ -75,8 +190,27 @@ const SupplierDashboard = () => {
         return Object.entries(stats).map(([name, data]) => ({ name, ...data }));
     }, [orders]);
 
+    const formatTimelineDate = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Tomorrow';
+        if (diffDays < 7) return `In ${diffDays} Days`;
+        return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    };
+
     return (
-        <div className="bg-background text-on-surface min-h-screen pb-60 font-body">
+        <div className="bg-background text-on-surface min-h-screen pb-60 font-body relative">
+            <AnimatePresence>
+                {showModal && (
+                    <DetailModal 
+                        order={selectedOrder} 
+                        onClose={() => setShowModal(false)} 
+                    />
+                )}
+            </AnimatePresence>
             {/* Header */}
             <header className="px-6 pt-6 flex items-center justify-between mb-10">
                 <div className="flex items-center gap-2">
@@ -108,7 +242,7 @@ const SupplierDashboard = () => {
             </header>
 
             <main className="px-6 space-y-8 flex-1 max-w-xl mx-auto">
-                {/* 1. WEEKLY CONSOLIDATION QUEUE (PRIMARY SECTION) */}
+                {/* 1. WEEKLY CONSOLIDATION QUEUE */}
                 <section className="space-y-4">
                     <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-900/20 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-[80px] -mr-20 -mt-20 group-hover:bg-indigo-500/20 transition-all duration-700"></div>
@@ -145,18 +279,21 @@ const SupplierDashboard = () => {
                                 )}
                             </div>
 
-                            <button className="w-full mt-10 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-indigo-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-2">
-                                Prepare Consolidation
-                                <span className="material-symbols-outlined text-sm">rocket_launch</span>
+                            <button 
+                                onClick={handleBulkDeliver}
+                                className="w-full mt-10 py-4 bg-white text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-emerald-500 hover:text-white transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                Mark All as Delivered
+                                <span className="material-symbols-outlined text-sm">task_alt</span>
                             </button>
                         </div>
                     </div>
                 </section>
 
-                {/* 1.5 FULFILLMENT TIMELINE (VISUAL TRACKER) */}
+                {/* 1.5 FULFILLMENT TIMELINE (LIVE DATA) */}
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fulfillment Timeline</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 tracking-widest">Fulfillment Timeline</h3>
                         <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1">
                             <span className="material-symbols-outlined text-[12px] animate-pulse">alarm</span>
                             Deadlines Active
@@ -164,41 +301,43 @@ const SupplierDashboard = () => {
                     </div>
 
                     <div className="grid grid-cols-1 gap-3">
-                        <div className="bg-indigo-50 p-5 rounded-[2.5rem] border border-indigo-100 flex items-center justify-between group overflow-hidden relative">
-                            <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-indigo-500/5 rounded-full blur-2xl"></div>
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-500 shadow-sm">
-                                    <span className="material-symbols-outlined text-xl">event_upcoming</span>
+                        {loading ? (
+                            <div className="h-40 bg-slate-50 animate-pulse rounded-[2.5rem]"></div>
+                        ) : (
+                            timeline.map((item) => (
+                                <div 
+                                    key={item.id}
+                                    className={`p-5 rounded-[2.5rem] border flex items-center justify-between group overflow-hidden relative ${
+                                        item.variant === 'danger' ? 'bg-rose-50 border-rose-100' : 
+                                        item.variant === 'success' ? 'bg-emerald-50 border-emerald-100' : 'bg-indigo-50 border-indigo-100'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-4 relative z-10">
+                                        <div className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm ${
+                                            item.variant === 'danger' ? 'text-rose-500' : 
+                                            item.variant === 'success' ? 'text-emerald-500' : 'text-indigo-500'
+                                        }`}>
+                                            <span className="material-symbols-outlined text-xl">{item.icon}</span>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-slate-900 tracking-tight">{item.title}</h4>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{item.desc}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right relative z-10">
+                                        <p className={`text-sm font-black tracking-tight ${
+                                            item.variant === 'danger' ? 'text-rose-600' : 
+                                            item.variant === 'success' ? 'text-emerald-600' : 'text-indigo-600'
+                                        }`}>
+                                            {formatTimelineDate(item.date)}
+                                        </p>
+                                        {item.actionRequired && (
+                                            <p className="text-[8px] font-black text-rose-400 uppercase tracking-widest mt-1 italic animate-pulse text-right">Action Required</p>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="text-sm font-black text-slate-900 tracking-tight">Weekend Consolidation</h4>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Bulk batching cycle</p>
-                                </div>
-                            </div>
-                            <div className="text-right relative z-10">
-                                <p className="text-xl font-black text-indigo-600 tracking-tighter">In 2 Days</p>
-                                <div className="h-1 w-12 bg-indigo-200 rounded-full mt-1 ml-auto overflow-hidden">
-                                    <div className="h-full w-2/3 bg-indigo-500 rounded-full"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-rose-50 p-5 rounded-[2.5rem] border border-rose-100 flex items-center justify-between group relative overflow-hidden">
-                            <div className="absolute -right-2 -bottom-2 w-20 h-20 bg-rose-500/5 rounded-full blur-2xl"></div>
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-rose-500 shadow-sm">
-                                    <span className="material-symbols-outlined text-xl">gavel</span>
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-black text-slate-900 tracking-tight">Rate Submission</h4>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Deadline approaching</p>
-                                </div>
-                            </div>
-                            <div className="text-right relative z-10">
-                                <p className="text-sm font-black text-rose-600 tracking-tight">Today 6:00 PM</p>
-                                <p className="text-[8px] font-black text-rose-400 uppercase tracking-widest mt-1 italic animate-pulse text-right">Action Required</p>
-                            </div>
-                        </div>
+                            ))
+                        )}
                     </div>
                 </section>
 
@@ -207,215 +346,180 @@ const SupplierDashboard = () => {
                         <p className="text-[10px] font-bold text-on-surface/40 uppercase tracking-widest mb-2 px-1">Active Orders & Operations</p>
                         <div className="flex items-center justify-between">
                             <h2 className="text-3xl font-black text-on-surface tracking-tighter">
-                                {orders.filter(o => o.status !== 'Delivered').length} 
-                                <span className="text-sm opacity-40 ml-2 font-black uppercase">Active Orders</span>
+                                {orders.filter(o => o.supplier && o.status !== 'Delivered').length} 
+                                <span className="text-sm opacity-40 ml-2 font-black">Your Active Orders</span>
                             </h2>
                             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
                                 <span className="material-symbols-outlined text-xl">local_shipping</span>
                             </div>
                         </div>
-                        <span className="text-[9px] text-primary font-black uppercase mt-4 block flex items-center gap-1.5 px-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                            Regional Logisitics Active • Real-time tracking
-                        </span>
                     </div>
                 </section>
 
-                {/* 2. QUICK ACTIONS COMMAND CENTER */}
+                {/* Quick Actions Removed per user request */}
+
                 <section className="space-y-4">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Quick Actions</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => navigate('/supplier/rates')}
-                            className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-primary/20 transition-all group"
-                        >
-                            <div className="w-12 h-12 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined">currency_exchange</span>
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Update Rates</span>
-                        </motion.button>
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-[10px] font-black text-slate-400 tracking-widest">Incoming Orders (Pool)</h3>
+                        <span className="text-[9px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px] animate-pulse">radar</span>
+                            Live Pool
+                        </span>
+                    </div>
 
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-amber-100 transition-all group"
-                        >
-                            <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined">local_shipping</span>
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Dispatch</span>
-                        </motion.button>
+                    <div className="space-y-4">
+                        {orders.filter(o => o.status !== 'Delivered').length === 0 ? (
+                            <div className="text-center py-10 opacity-40 italic text-xs">No incoming orders in your region yet.</div>
+                        ) : (
+                            orders.filter(o => o.status !== 'Delivered').map(order => (
+                                <motion.div 
+                                    key={order._id}
+                                    variants={itemVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    className="bg-white p-6 rounded-[2.5rem] border border-outline-variant/10 flex flex-col gap-5 shadow-sm hover:shadow-md transition-all"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-primary/5 rounded-full flex items-center justify-center text-primary">
+                                                <span className="material-symbols-outlined">store</span>
+                                            </div>
+                                            <div>
+                                                <h4 className="font-headline font-black text-on-surface text-sm uppercase tracking-tight">{order.vendor?.displayName || 'Unknown Vendor'}</h4>
+                                                <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mt-1">{order.b2bOrderId}</p>
+                                            </div>
+                                        </div>
+                                        <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full ${order.status === 'Locked' ? 'bg-indigo-100 text-indigo-600' : 'bg-primary/10 text-primary'}`}>
+                                            {order.status}
+                                        </span>
+                                    </div>
 
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-emerald-100 transition-all group"
-                        >
-                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
-                                <span className="material-symbols-outlined">verified_user</span>
-                            </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Deliver</span>
-                        </motion.button>
+                                    {/* Contact & Address Details */}
+                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl">
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Contact Vendor</p>
+                                            <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">call</span>
+                                                {order.vendor?.phone || 'N/A'}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Region</p>
+                                            <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">location_on</span>
+                                                {order.vendor?.shopDetails?.city || 'Local'}
+                                            </p>
+                                        </div>
+                                        <div className="col-span-2 space-y-1">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shipping Address</p>
+                                            <p className="text-[10px] font-bold text-slate-600 leading-relaxed italic line-clamp-2">
+                                                {order.shippingAddress || 'Address not provided'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 border-y border-slate-50 py-4">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">Order Items Inventory</p>
+                                        {order.items.map((item, i) => (
+                                            <div key={i} className="flex justify-between items-center text-[11px] font-bold group">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center text-[9px] text-slate-500 group-hover:bg-primary/10 group-hover:text-primary transition-colors">x{item.quantity}</span>
+                                                    <span className="text-on-surface">{item.name}</span>
+                                                </div>
+                                                <span className="text-on-surface-variant italic">₹{item.price * item.quantity}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 pt-2">
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Aggregate Value</span>
+                                            <span className="text-lg font-black text-on-surface">₹{order.totalAmount}</span>
+                                        </div>
+                                        
+                                        <div className="flex gap-2">
+                                            {(order.status === 'Pending' || order.status === 'Open') && (
+                                                <>
+                                                    <button 
+                                                        onClick={() => handleStatusUpdate(order._id, 'Accepted')}
+                                                        className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl shadow-black/10 hover:bg-slate-800 active:scale-95 transition-all"
+                                                    >
+                                                        Accept
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setOrders(prev => prev.filter(o => o._id !== order._id));
+                                                            toast.error('Order request dismissed');
+                                                        }}
+                                                        className="px-4 py-2.5 bg-white border border-rose-100 text-rose-500 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-50 active:scale-95 transition-all"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </>
+                                            )}
+                                            {order.status === 'Accepted' && (
+                                                <button 
+                                                    onClick={() => handleStatusUpdate(order._id, 'Dispatched')}
+                                                    className="px-6 py-2.5 bg-primary text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+                                                >
+                                                    Mark Dispatched
+                                                </button>
+                                            )}
+                                            {order.status === 'Dispatched' && (
+                                                <button 
+                                                    onClick={() => handleStatusUpdate(order._id, 'Delivered')}
+                                                    className="px-6 py-2.5 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20"
+                                                >
+                                                    Mark Delivered
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))
+                        )}
                     </div>
                 </section>
 
                 {/* 3. HISTORICAL SHIPMENTS LOG */}
-                <section className="space-y-6">
+                <section className="space-y-6 pb-20">
                     <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Historical Shipments</h3>
+                        <h3 className="text-[10px] font-black text-slate-400 tracking-widest">Historical Shipments</h3>
                         <span className="material-symbols-outlined text-slate-300 text-sm">history</span>
                     </div>
 
                     <div className="space-y-3">
-                        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:border-indigo-100 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner">
-                                    <span className="material-symbols-outlined text-xl">package_2</span>
+                        {orders.filter(o => o.status === 'Delivered').slice(0, 50).map((order) => (
+                            <div 
+                                key={order._id} 
+                                onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowModal(true);
+                                }}
+                                className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer active:scale-95"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 shadow-inner">
+                                        <span className="material-symbols-outlined text-xl">package_2</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-black text-slate-900 tracking-tight">Shipment #{order.b2bOrderId}</h4>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                            {new Date(order.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • Bulk Supply
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="text-sm font-black text-slate-900 tracking-tight">Shipment #1201</h4>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">20 Apr • Bulk Supply</p>
+                                <div className="text-right">
+                                    <p className="text-sm font-black text-slate-900 tracking-tight">₹{order.totalAmount}</p>
+                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">Settled</span>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-sm font-black text-slate-900 tracking-tight">620 KG</p>
-                                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">Settled</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:border-amber-100 transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner">
-                                    <span className="material-symbols-outlined text-xl">local_shipping</span>
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-black text-slate-900 tracking-tight">Shipment #1202</h4>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">15 Apr • Regional Hub</p>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm font-black text-slate-900 tracking-tight">480 KG</p>
-                                <span className="text-[8px] font-black text-amber-500 uppercase tracking-widest bg-amber-50 px-2 py-0.5 rounded-full">Pending</span>
-                            </div>
-                        </div>
+                        ))}
+                        {orders.filter(o => o.status === 'Delivered').length === 0 && (
+                            <p className="text-center py-10 opacity-30 text-[11px] font-black uppercase tracking-widest italic">No historical data available</p>
+                        )}
                     </div>
                 </section>
-
-                {/* Custom Tabs */}
-                <div className="flex bg-white/30 p-1.5 rounded-full border border-black/5 mb-8 backdrop-blur-sm">
-                    {dashboardTabs.map(tab => (
-                        <button 
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`flex-1 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' : 'text-on-surface/40 opacity-60'}`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-
-                <AnimatePresence mode="wait">
-                    {activeTab === 'Incoming Orders' && (
-                        <motion.div 
-                            key="consol"
-                            variants={containerVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-4"
-                        >
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/40 mb-5 ml-1">Pincode Match Queue</h3>
-                            {orders.length === 0 ? (
-                                <div className="text-center py-10 opacity-40 italic">No incoming orders in your region yet.</div>
-                            ) : (
-                                orders.map(order => (
-                                    <motion.div 
-                                        key={order._id}
-                                        variants={itemVariants}
-                                        className="bg-white p-5 rounded-[2.5rem] border border-outline-variant/10 flex flex-col gap-4 shadow-sm"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-headline font-black text-on-surface">{order.vendor?.displayName || 'Unknown Vendor'}</h4>
-                                                <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none mt-1">{order.b2bOrderId}</p>
-                                            </div>
-                                            <span className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${order.status === 'Locked' ? 'bg-indigo-100 text-indigo-600' : 'bg-primary/10 text-primary'}`}>
-                                                {order.status}
-                                            </span>
-                                        </div>
-
-                                        <div className="space-y-2 border-y border-slate-50 py-3">
-                                            {order.items.map((item, i) => (
-                                                <div key={i} className="flex justify-between items-center text-[11px] font-bold">
-                                                    <span className="text-on-surface">x{item.quantity} {item.name}</span>
-                                                    <span className="text-on-surface-variant italic">₹{item.price * item.quantity}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex flex-col">
-                                                <span className="text-[8px] font-black text-slate-400 uppercase">Total Value</span>
-                                                <span className="text-lg font-black text-on-surface">₹{order.totalAmount}</span>
-                                            </div>
-                                            
-                                            <div className="flex gap-2">
-                                                {order.status === 'Pending' && (
-                                                    <button 
-                                                        onClick={() => handleStatusUpdate(order._id, 'Accepted')}
-                                                        className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-black/10"
-                                                    >
-                                                        Accept
-                                                    </button>
-                                                )}
-                                                {order.status === 'Accepted' && (
-                                                    <button 
-                                                        onClick={() => handleStatusUpdate(order._id, 'Dispatched')}
-                                                        className="px-4 py-2 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
-                                                    >
-                                                        Mark Dispatched
-                                                    </button>
-                                                )}
-                                                {order.status === 'Dispatched' && (
-                                                    <button 
-                                                        onClick={() => handleStatusUpdate(order._id, 'Delivered')}
-                                                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest"
-                                                    >
-                                                        Mark Delivered
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))
-                            )}
-                        </motion.div>
-                    )}
-
-                    {activeTab === 'History' && (
-                        <motion.div 
-                            key="history"
-                            variants={containerVariants}
-                            initial="hidden"
-                            animate="visible"
-                            exit={{ opacity: 0, x: -20 }}
-                            className="space-y-4"
-                        >
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-on-surface/40 mb-5 ml-1">Historical Shipments</h3>
-                            {orders.filter(o => o.status === 'Delivered').map(ship => (
-                                <div key={ship._id} className="bg-white/80 p-5 rounded-[2.5rem] border border-outline-variant/10 flex items-center justify-between shadow-sm backdrop-blur-sm">
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-1.5">
-                                            <h4 className="font-black text-on-surface">{ship.b2bOrderId}</h4>
-                                            <span className="text-[9px] font-black text-on-surface/40 uppercase tracking-widest">({ship.items.length} items)</span>
-                                        </div>
-                                        <p className="text-[10px] text-on-surface/40 font-bold uppercase tracking-widest leading-none">Delivered • <span className="text-green-600 font-black">Settled</span></p>
-                                    </div>
-                                    <p className="text-lg font-black text-on-surface tracking-tight">₹{ship.totalAmount}</p>
-                                </div>
-                            ))}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </main>
         </div>
     );

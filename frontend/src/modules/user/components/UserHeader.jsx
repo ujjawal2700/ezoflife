@@ -54,15 +54,15 @@ const UserHeader = () => {
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="fixed top-0 z-[100] bg-white/80 backdrop-blur-xl w-full flex justify-between items-center px-4 md:px-6 py-2.5 border-b border-slate-100 min-h-[64px]"
+        className="fixed top-0 z-[100] bg-white/80 backdrop-blur-xl w-full flex justify-between items-center px-4 md:px-6 py-1.5 border-b border-slate-100 min-h-[50px]"
       >
         {/* 1. App Logo (Left) */}
         <div className="flex items-center gap-4">
           <div onClick={() => navigate('/user/home')} className="cursor-pointer">
-            <h1 className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
+            <h1 className="font-headline font-black text-lg text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
           </div>
           
-          <div className="h-6 w-px bg-slate-200" /> {/* Divider */}
+          <div className="h-4 w-px bg-slate-200" /> {/* Divider */}
  
           {/* 2. Current Address (Home/Office) */}
           <div className="flex flex-col max-w-[150px] md:max-w-[200px] cursor-pointer group" onClick={() => setPickerOpen(true)}>
@@ -83,12 +83,12 @@ const UserHeader = () => {
           <motion.div 
             onClick={handleProfileClick}
             whileHover={{ scale: 1.05 }}
-            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+            className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
           >
             {userData.avatar ? (
               <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
             ) : (
-              <span className="material-symbols-outlined text-slate-500 text-[20px]">person</span>
+              <span className="material-symbols-outlined text-slate-500 text-[16px]">person</span>
             )}
           </motion.div>
         </div>

@@ -523,7 +523,22 @@ export const getSystemConfig = async (req, res) => {
                 { key: 'gst_percent', value: 18, description: 'GST Percentage' },
                 { key: 'normal_logistics_fee', value: 50, description: 'Base logistics fee for Normal Delivery mode' },
                 { key: 'chat_welcome_message', value: 'Hello! How can we help you today?', description: 'Welcome message' },
-                { key: 'delivery_day', value: 'Sunday', description: 'Global Delivery Day for B2B Supplier Orders' }
+                { key: 'delivery_day', value: 'Sunday', description: 'Global Delivery Day for B2B Supplier Orders' },
+                { 
+                    key: 'invoice_settings', 
+                    value: {
+                        showLogo: true,
+                        showVendorDetails: true,
+                        showTerms: true,
+                        customTerms: 'Thank you for taking our services..',
+                        invoiceNote: 'This is a computer generated invoice.',
+                        showTaxes: false,
+                        accentColor: '#000000',
+                        businessName: 'SPINZYT',
+                        contactEmail: 'support@spinzyt.com'
+                    }, 
+                    description: 'Invoice Template Configuration' 
+                }
             ];
             await SystemConfig.insertMany(defaults);
             configs = await SystemConfig.find();
