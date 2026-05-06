@@ -25,7 +25,7 @@ const SupplierProfile = () => {
             try {
                 const storedUser = JSON.parse(localStorage.getItem('user') || localStorage.getItem('supplierData') || '{}');
                 const userId = storedUser.id || storedUser._id;
-                
+
                 if (!userId) {
                     navigate('/user/auth');
                     return;
@@ -75,7 +75,7 @@ const SupplierProfile = () => {
         try {
             const userId = user.id || user._id;
             let payload = {};
-            
+
             if (editSection === 'business') {
                 const fullAddress = [formData.address_shop, formData.address_area, formData.address_landmark]
                     .filter(p => p && p.trim() !== '' && p !== 'undefined')
@@ -133,13 +133,13 @@ const SupplierProfile = () => {
     return (
         <div className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-40 font-sans">
             <main className="max-w-md mx-auto px-6 pt-10 space-y-10">
-                
+
                 {/* PROFILE HEADER - MATCHES VENDOR LAYOUT */}
                 <header className="flex flex-col items-center text-center space-y-6">
                     <div className="relative group">
                         <div className="w-32 h-32 rounded-[2.8rem] bg-white border-[6px] border-white shadow-2xl overflow-hidden relative z-10">
-                            <img 
-                                src={user.image || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200"} 
+                            <img
+                                src={user.image || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200"}
                                 alt="Profile"
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
@@ -157,7 +157,7 @@ const SupplierProfile = () => {
                             </h2>
                             <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">{user.role || 'Supplier Partner'}</p>
                         </div>
-                        
+
                         <div className="flex flex-col items-center gap-2 pt-2">
                             <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
                                 <span className="material-symbols-outlined text-sm text-slate-400">call</span>
@@ -181,14 +181,14 @@ const SupplierProfile = () => {
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Business Details</h3>
-                        <button 
+                        <button
                             onClick={() => handleEditClick('business')}
                             className="text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-4 py-1.5 rounded-full border border-indigo-100 hover:bg-indigo-600 hover:text-white transition-all"
                         >
                             EDIT
                         </button>
                     </div>
-                    
+
                     <div className="bg-white p-7 rounded-[2.8rem] border border-slate-100 shadow-sm space-y-6">
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-1">
@@ -225,24 +225,24 @@ const SupplierProfile = () => {
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Financial Payouts</h3>
-                        <button 
+                        <button
                             onClick={() => handleEditClick('bank')}
                             className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-white px-5 py-2 rounded-full shadow-lg border border-slate-100 hover:bg-slate-50 transition-all"
                         >
                             EDIT
                         </button>
                     </div>
-                    
+
                     <div className="bg-slate-900 text-white p-7 rounded-[2.8rem] shadow-2xl shadow-slate-900/20 space-y-6 relative overflow-hidden">
                         <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
-                        
+
                         <div className="space-y-1 relative z-10">
                             <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Linked Bank Account</p>
                             <p className="text-[15px] font-black text-white tracking-tight">
                                 {user.bankDetails?.bankName || 'N/A'} • {user.bankDetails?.accountNumber ? `XXXX${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
                             </p>
                         </div>
-                        
+
                         <div className="flex items-center justify-between pt-2 relative z-10">
                             <div className="space-y-1">
                                 <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Settlement Cycle</p>
@@ -260,7 +260,7 @@ const SupplierProfile = () => {
                     </div>
 
                     <div className="bg-white rounded-[2.8rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-                        <button 
+                        <button
                             onClick={() => navigate('/user/terms?role=supplier')}
                             className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
                         >
@@ -276,7 +276,7 @@ const SupplierProfile = () => {
                             <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
                         </button>
 
-                        <button 
+                        <button
                             onClick={() => navigate('/user/privacy?role=supplier')}
                             className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
                         >
@@ -296,12 +296,12 @@ const SupplierProfile = () => {
 
                 {/* Logout Action */}
                 <div className="pt-4">
-                    <button 
+                    <button
                         onClick={handleSignOut}
                         className="w-full py-5 bg-rose-50 border border-rose-100 rounded-[2rem] text-[11px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
                     >
                         <span className="material-symbols-outlined text-lg">logout</span>
-                        Logout Profile
+                        Logout
                     </button>
                 </div>
             </main>
@@ -309,27 +309,27 @@ const SupplierProfile = () => {
             <AnimatePresence>
                 {isEditModalOpen && (
                     <div className="fixed inset-0 z-[101] flex items-end justify-center px-4 pb-10 sm:items-center">
-                        <motion.div 
+                        <motion.div
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                             onClick={() => setIsEditModalOpen(false)}
                             className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
                         />
-                        <motion.div 
+                        <motion.div
                             initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
                             className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
                         >
                             <h3 className="text-xl font-black text-slate-950 mb-6 uppercase tracking-tighter">Edit {editSection === 'business' ? 'Business' : 'Bank'} Info</h3>
-                            
+
                             <div className="space-y-5">
                                 {editSection === 'business' ? (
                                     <>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
-                                            <input value={formData.businessName} onChange={e => setFormData({...formData, businessName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
-                                            <input value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Full Address (Google Maps)</label>
@@ -341,7 +341,7 @@ const SupplierProfile = () => {
                                                         if (place.geometry) {
                                                             const lat = place.geometry.location.lat();
                                                             const lng = place.geometry.location.lng();
-                                                            
+
                                                             let city = '';
                                                             let pincode = '';
                                                             place.address_components.forEach(comp => {
@@ -360,9 +360,9 @@ const SupplierProfile = () => {
                                                         }
                                                     }}
                                                 >
-                                                    <input 
+                                                    <input
                                                         placeholder="Start typing your address..."
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" 
+                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none"
                                                     />
                                                 </Autocomplete>
                                             ) : (
@@ -373,49 +373,49 @@ const SupplierProfile = () => {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Flat/Office No</label>
-                                                <input value={formData.address_shop} onChange={e => setFormData({...formData, address_shop: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                                <input value={formData.address_shop} onChange={e => setFormData({ ...formData, address_shop: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                             </div>
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Area (Auto-filled)</label>
-                                                <input value={formData.address_area} onChange={e => setFormData({...formData, address_area: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none opacity-70" />
+                                                <input value={formData.address_area} onChange={e => setFormData({ ...formData, address_area: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none opacity-70" />
                                             </div>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Landmark</label>
-                                            <input value={formData.address_landmark} onChange={e => setFormData({...formData, address_landmark: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.address_landmark} onChange={e => setFormData({ ...formData, address_landmark: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
-                                                <input value={formData.address_city} onChange={e => setFormData({...formData, address_city: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                                <input value={formData.address_city} onChange={e => setFormData({ ...formData, address_city: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                             </div>
                                             <div className="space-y-1">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pincode</label>
-                                                <input value={formData.address_pincode} onChange={e => setFormData({...formData, address_pincode: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                                <input value={formData.address_pincode} onChange={e => setFormData({ ...formData, address_pincode: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                             </div>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
-                                            <input value={formData.gst} onChange={e => setFormData({...formData, gst: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.gst} onChange={e => setFormData({ ...formData, gst: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</label>
-                                            <input value={formData.accountHolderName} onChange={e => setFormData({...formData, accountHolderName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.accountHolderName} onChange={e => setFormData({ ...formData, accountHolderName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
-                                            <input value={formData.bankName} onChange={e => setFormData({...formData, bankName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.bankName} onChange={e => setFormData({ ...formData, bankName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">IFSC Code</label>
-                                            <input value={formData.ifscCode} onChange={e => setFormData({...formData, ifscCode: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.ifscCode} onChange={e => setFormData({ ...formData, ifscCode: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
-                                            <input value={formData.accountNumber} onChange={e => setFormData({...formData, accountNumber: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
+                                            <input value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-indigo-600/20 outline-none" />
                                         </div>
                                     </>
                                 )}

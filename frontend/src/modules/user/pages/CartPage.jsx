@@ -198,6 +198,10 @@ const CartPage = () => {
   }, []);
 
   const [isExpress, setIsExpress] = useState(() => localStorage.getItem('is_express') === 'true');
+  const [itemPhotos] = useState(() => {
+    const saved = localStorage.getItem('item_photos');
+    return saved ? JSON.parse(saved) : {};
+  });
   const [garmentPhotos, setGarmentPhotos] = useState(() => {
     const saved = localStorage.getItem('order_photos');
     return saved ? JSON.parse(saved) : [];
@@ -572,7 +576,8 @@ const CartPage = () => {
         </div>
       </header>
 
-      <motion.main className="max-w-5xl mx-auto px-6 pt-16 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
+      <motion.main className="max-w-5xl mx-auto px-6 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
+        <div className="h-28 shrink-0" />
         <div className="flex flex-col gap-10">
           {/* 1. CONCISE ORDER SUMMARY BOX */}
           <div className="bg-slate-950 text-white rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
@@ -671,11 +676,24 @@ const CartPage = () => {
                         {isHeritageService ? 'Heritage' : 'Essential'}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-[9px] font-black text-slate-400">
-                        {qty} {billingUnits[itemId] || 'Unit'} × ₹{unitPrice}
-                      </p>
-                      <p className="text-[11px] font-black text-slate-900 tracking-tighter">₹{totalPrice.toFixed(0)}</p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-black text-slate-400">
+                          {qty} {billingUnits[itemId] || 'Unit'} × ₹{unitPrice}
+                        </p>
+                        <p className="text-[11px] font-black text-slate-900 tracking-tighter">₹{totalPrice.toFixed(0)}</p>
+                      </div>
+                      
+                      {/* Photo Previews */}
+                      {itemPhotos[itemId]?.length > 0 && (
+                        <div className="flex gap-1.5 mt-1 overflow-x-auto hide-scrollbar">
+                          {itemPhotos[itemId].map((photo, pIdx) => (
+                            <div key={pIdx} className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 bg-slate-50 shrink-0">
+                              <img src={photo} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -708,17 +726,17 @@ const CartPage = () => {
                     <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[9px] font-black text-rose-400 uppercase tracking-widest bg-rose-400/10 px-3 py-1.5 rounded-xl border border-rose-400/20">Remove</button>
                   )}
                 </div>
-                <div className="flex gap-3">
+                <div className="relative flex items-center group/promo">
                     <input 
                       type="text" 
-                      placeholder="ENTER CODE"
+                      placeholder="ENTER PROMO CODE"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-[11px] font-black uppercase tracking-widest outline-none focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder:text-white/20"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl pl-5 pr-28 py-5 text-[11px] font-black uppercase tracking-widest outline-none focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder:text-white/20 shadow-inner"
                     />
                     <button 
                       onClick={handleApplyPromo}
-                      className={`px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}
+                      className={`absolute right-2 px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black hover:scale-105 active:scale-95 shadow-xl shadow-black/20'}`}
                     >
                       {isPromoApplied ? 'APPLIED' : 'APPLY'}
                     </button>

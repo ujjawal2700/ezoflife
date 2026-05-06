@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { useCartStore } from '../../../shared/stores/cartStore';
 
 const ServiceImageUploadPage = () => {
   const navigate = useNavigate();
@@ -13,8 +12,6 @@ const ServiceImageUploadPage = () => {
   const [uploading, setUploading] = useState(false);
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
-
-  const { addPhotosToItem } = useCartStore();
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -45,10 +42,12 @@ const ServiceImageUploadPage = () => {
 
     setUploading(true);
     try {
-      // In a real app, you'd upload to Cloudinary/S3 here
-      // For now, we'll store local previews/data in the store
+      // For now, we'll store local previews/data in the item_photos localStorage
       const photoUrls = images.map(img => img.preview);
-      addPhotosToItem(serviceId, photoUrls);
+      
+      const currentPhotos = JSON.parse(localStorage.getItem('item_photos') || '{}');
+      currentPhotos[serviceId] = photoUrls;
+      localStorage.setItem('item_photos', JSON.stringify(currentPhotos));
       
       toast.success('Photos added successfully!');
       navigate(-1);

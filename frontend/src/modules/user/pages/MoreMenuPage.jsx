@@ -45,14 +45,6 @@ const MoreMenuPage = () => {
             { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
           ]
         },
-        {
-          title: "Legal & Compliance",
-          icon: "gavel",
-          items: [
-            { icon: "security", title: "Privacy Policy", desc: "Data Protection", path: `/user/privacy?role=${isVendor ? 'vendor' : isSupplier ? 'supplier' : 'customer'}` },
-            { icon: "description", title: "Terms of Service", desc: "User Agreement", path: `/user/terms?role=${isVendor ? 'vendor' : isSupplier ? 'supplier' : 'customer'}` }
-          ]
-        },
       ];
     return sections;
   }, [isVendor, isSupplier]);
