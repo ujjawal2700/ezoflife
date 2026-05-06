@@ -23,12 +23,10 @@ const OrdersHistoryPage = () => {
     try {
       setLoading(true);
       console.log('📡 Fetching orders for UserID:', userId);
-      // Fetch orders and config independently to avoid blocking orders if config fails
       try {
         const data = await orderApi.getMyOrders(userId);
         console.log('✅ Received orders count:', data?.length || 0);
         
-        // Mock orders for demonstration
         const mockPastOrders = [
           {
             _id: 'mock_1',
@@ -91,10 +89,10 @@ const OrdersHistoryPage = () => {
         if (end && orderDate > end) return false;
         return true;
       });
-      return filtered; // Show all matches if filtering
+      return filtered;
     }
     
-    return filtered.slice(0, 5); // Default to last 5
+    return filtered.slice(0, 5);
   }, [orders, startDate, endDate]);
 
   const containerVariants = useMemo(() => ({
@@ -114,7 +112,6 @@ const OrdersHistoryPage = () => {
     const printWindow = window.open('', '_blank');
     const orderDate = new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     
-    // Default fallback settings if none exist
     const cfg = invoiceSettings || {
       showLogo: true,
       showVendorDetails: true,
@@ -288,11 +285,8 @@ const OrdersHistoryPage = () => {
         <motion.section 
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="mb-12"
+          className="mb-6 pt-10"
         >
-          <span className="font-headline text-[10px] uppercase tracking-[0.4em] text-primary font-black mb-3 block opacity-40">Your Requests</span>
-          <h2 className="text-4xl font-black text-on-surface tracking-tighter leading-none mb-10 uppercase">My Orders</h2>
-          
           <div className="flex gap-4 mb-2">
             <button 
               onClick={() => setActiveTab('active')}
@@ -320,8 +314,8 @@ const OrdersHistoryPage = () => {
           </div>
         </motion.section>
 
-        {/* Orders List - Optimized Spacing */}
-        <div className="space-y-8 min-h-[400px]">
+        {/* Orders List */}
+        <div className="min-h-[400px]">
           <AnimatePresence mode="wait">
             {activeTab === 'active' ? (
               <motion.div 
@@ -330,7 +324,7 @@ const OrdersHistoryPage = () => {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="space-y-8"
+                className="space-y-4"
               >
                 {activeOrders.length > 0 ? (
                   activeOrders.map((order) => (
@@ -338,68 +332,37 @@ const OrdersHistoryPage = () => {
                       key={order._id || order.id}
                       variants={itemVariants}
                       whileHover={{ scale: 1.01 }}
-                      className="bg-white rounded-[2.5rem] p-8 relative overflow-hidden group shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-slate-100 mb-6"
+                      className="bg-white rounded-[2rem] p-5 relative overflow-hidden group shadow-[0_15px_40px_rgba(0,0,0,0.04)] border border-slate-100 mb-4"
                     >
-                      <div className="flex justify-between items-start mb-8 relative z-10">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 mb-3">
-                            {order.status && !['Processing', 'Pending'].includes(order.status) && (
-                              <>
-                                <motion.span 
-                                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
-                                  transition={{ duration: 2, repeat: Infinity }}
-                                  className="w-2.5 h-2.5 rounded-full bg-primary"
-                                ></motion.span>
-                                <span className="text-primary font-black text-[10px] tracking-[0.2em] uppercase">{order.status}</span>
-                              </>
-                            )}
-                          </div>
-                          <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                          {order.vendor?.displayName && (
-                            <div className="flex items-center gap-2 mt-2 opacity-60">
-                              <span className="material-symbols-outlined text-[14px]">storefront</span>
-                              <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{order.vendor.displayName}</p>
-                            </div>
+                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
+                        <h3 className="text-lg font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
+                        <div className="flex items-center gap-2">
+                          {order.status && !['Processing', 'Pending', 'Payment Pending'].includes(order.status) && (
+                            <span className="text-primary font-black text-[7px] tracking-[0.2em] uppercase bg-primary/5 px-2 py-1 rounded-full">{order.status}</span>
                           )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-2">Paid Online</p>
+                          <p className="text-lg font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
                         </div>
                       </div>
 
-                      {/* Time Info */}
-                      <div className="bg-slate-50 rounded-3xl p-5 mb-8 flex items-center justify-between border border-slate-100/50">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-primary shadow-sm">
-                            <span className="material-symbols-outlined text-lg">schedule</span>
-                          </div>
-                          <div>
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Expected Time</p>
-                            <p className="text-[11px] font-black text-slate-900 mt-0.5">
-                              {order.pickupSlot?.time || order.deliverySlot?.time || 'Today, 6:00 PM'}
-                            </p>
-                          </div>
+                      <div className="flex items-center justify-between gap-4 mb-5">
+                        <div className="flex items-center gap-3 opacity-60">
+                          <span className="material-symbols-outlined text-[16px]">storefront</span>
+                          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest truncate max-w-[120px]">{order.vendor?.displayName || 'Spinzyt Hub'}</p>
                         </div>
-                        <div className="flex -space-x-2">
-                           <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-200 overflow-hidden">
-                              <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=100" alt="rider" className="w-full h-full object-cover" />
-                           </div>
-                           <div className="w-8 h-8 rounded-full border-2 border-white bg-primary flex items-center justify-center text-[8px] font-black text-white">
-                              +1
-                           </div>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100/50">
+                          <span className="material-symbols-outlined text-xs text-primary">schedule</span>
+                          <p className="text-[9px] font-black text-slate-900">{order.pickupSlot?.time?.split(',')[0] || order.deliverySlot?.time?.split(',')[0] || 'Today'}</p>
                         </div>
                       </div>
 
-                      {/* Progress Streamline */}
-                      <div className="mb-10 px-1 relative z-10">
-                        <div className="flex justify-between text-[7px] md:text-[8px] text-slate-400 font-black uppercase tracking-widest mb-4">
+                      <div className="mb-5 px-1 relative">
+                        <div className="flex justify-between text-[6px] text-slate-400 font-black uppercase tracking-widest mb-1.5 px-0.5">
                           <span className="text-primary">Order Placed</span>
                           <span className={['Rider Assigned', 'Picked Up', 'At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Rider Assigned</span>
-                          <span className={['At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Service In Progress</span>
+                          <span className={['At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>In Progress</span>
                           <span className={['Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Out for Delivery</span>
                         </div>
-                        <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: 
@@ -408,7 +371,7 @@ const OrdersHistoryPage = () => {
                                 order.status === 'Out for Delivery' ? '100%' : 
                                 order.status === 'Delivered' ? '100%' : '15%'
                             }}
-                            className="absolute top-0 left-0 h-full bg-primary shadow-[0_0_20px_rgba(115,224,201,0.5)] rounded-full transition-all duration-1000" 
+                            className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-1000" 
                           />
                         </div>
                       </div>
@@ -417,20 +380,20 @@ const OrdersHistoryPage = () => {
                         <motion.button 
                           whileTap={{ scale: 0.98 }}
                           onClick={() => (order.status === 'Assigned' || order.status === 'Out for Delivery') && navigate(`/user/tracking/${order._id || order.id}`)}
-                          className={`flex-[1.5] py-3.5 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                          className={`flex-[1.5] py-3 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
                             (order.status === 'Assigned' || order.status === 'Out for Delivery') 
-                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10' 
+                            ? 'bg-slate-900 text-white shadow-lg' 
                             : 'bg-slate-50 text-slate-300 cursor-not-allowed'
                           }`}
                         >
                           <span className="material-symbols-outlined text-[14px]">my_location</span>
-                          {(order.status === 'Assigned' || order.status === 'Out for Delivery') ? 'Track' : 'Track'}
+                          Track
                         </motion.button>
                         
                         <motion.button 
                           whileTap={{ scale: 0.95 }}
                           onClick={() => navigate('/user/verification', { state: { orderId: order._id || order.id } })}
-                          className="flex-1 py-3.5 bg-slate-100 text-slate-600 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
+                          className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
                         >
                           <span className="material-symbols-outlined text-[14px]">inventory</span>
                           Articles
@@ -439,7 +402,7 @@ const OrdersHistoryPage = () => {
                         <motion.button 
                           whileTap={{ scale: 0.95 }}
                           onClick={() => navigate(`/user/chat/${order._id}`)}
-                          className="w-11 h-11 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-all shrink-0"
+                          className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-all shrink-0"
                         >
                           <span className="material-symbols-outlined text-lg">chat</span>
                         </motion.button>
@@ -460,21 +423,21 @@ const OrdersHistoryPage = () => {
                 initial="hidden"
                 animate="visible"
                 exit="hidden"
-                className="space-y-8"
+                className="space-y-2"
               >
                 {/* Date Filter Toggle Button */}
                 <motion.button
                   variants={itemVariants}
                   onClick={() => setShowDateFilter(!showDateFilter)}
-                  className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all mb-4 ${
+                  className={`w-full py-2.5 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all mb-3 ${
                     showDateFilter || startDate || endDate
                       ? 'bg-primary text-white shadow-lg'
                       : 'bg-white text-slate-900 border border-slate-200'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-sm">calendar_month</span>
+                  <span className="material-symbols-outlined text-xs">calendar_month</span>
                   {startDate || endDate ? 'Date Filter Active' : 'Filter By Date'}
-                  <span className="material-symbols-outlined text-sm transition-transform duration-300" style={{ transform: showDateFilter ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                  <span className="material-symbols-outlined text-xs transition-transform duration-300" style={{ transform: showDateFilter ? 'rotate(180deg)' : 'none' }}>expand_more</span>
                 </motion.button>
 
                 <AnimatePresence>
@@ -485,10 +448,10 @@ const OrdersHistoryPage = () => {
                       exit={{ height: 0, opacity: 0 }}
                       className="overflow-hidden"
                     >
-                      <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-4 mb-8">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-black text-slate-300 uppercase ml-2">From</label>
+                      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 mb-6">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-0.5">
+                            <label className="text-[7px] font-black text-slate-300 uppercase ml-2">From</label>
                             <input 
                               type={startDate ? "date" : "text"} 
                               placeholder="DD/MM/YYYY"
@@ -496,11 +459,11 @@ const OrdersHistoryPage = () => {
                               onBlur={(e) => !startDate && (e.target.type = 'text')}
                               value={startDate}
                               onChange={(e) => setStartDate(e.target.value)}
-                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                              className="w-full bg-slate-50 border-none rounded-lg px-3 py-2 text-[9px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                           </div>
-                          <div className="space-y-1">
-                            <label className="text-[8px] font-black text-slate-300 uppercase ml-2">To</label>
+                          <div className="space-y-0.5">
+                            <label className="text-[7px] font-black text-slate-300 uppercase ml-2">To</label>
                             <input 
                               type={endDate ? "date" : "text"} 
                               placeholder="DD/MM/YYYY"
@@ -508,14 +471,14 @@ const OrdersHistoryPage = () => {
                               onBlur={(e) => !endDate && (e.target.type = 'text')}
                               value={endDate}
                               onChange={(e) => setEndDate(e.target.value)}
-                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-[10px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                              className="w-full bg-slate-50 border-none rounded-lg px-3 py-2 text-[9px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                           </div>
                         </div>
                         {(startDate || endDate) && (
                           <button 
                             onClick={() => { setStartDate(''); setEndDate(''); }}
-                            className="text-[9px] font-black text-rose-500 uppercase tracking-widest w-full py-2 hover:bg-rose-50 rounded-xl transition-all"
+                            className="text-[8px] font-black text-rose-500 uppercase tracking-widest w-full py-1.5 hover:bg-rose-50 rounded-lg transition-all"
                           >
                             Clear Filters
                           </button>
@@ -536,115 +499,59 @@ const OrdersHistoryPage = () => {
                       key={order._id || order.id}
                       variants={itemVariants}
                       whileHover={{ scale: 1.01 }}
-                      className="bg-white rounded-[2.5rem] p-8 flex flex-col group border border-slate-100 shadow-[0_10px_30px_rgba(0,0,0,0.02)] mb-6 opacity-80 hover:opacity-100 transition-all"
+                      className="bg-white rounded-[1.2rem] p-4 relative overflow-hidden group shadow-[0_10px_30px_rgba(0,0,0,0.03)] border border-slate-100 mb-3 opacity-90 hover:opacity-100 transition-all"
                     >
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-2 h-2 rounded-full ${order.status === 'Cancelled' ? 'bg-rose-400' : 'bg-emerald-400'}`}></span>
-                            <span className={`${order.status === 'Cancelled' ? 'text-rose-500' : 'text-emerald-500'} font-black text-[9px] tracking-[0.2em] uppercase`}>
-                                {order.status}
-                            </span>
-                          </div>
-                          <h3 className="text-xl font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                      <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-50">
+                        <div className="space-y-0.5">
+                          <h3 className="text-base font-black text-slate-900 tracking-tight leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
+                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                         </div>
-                        <div className="text-right">
-                          <span className="inline-block px-3 py-1 bg-slate-900 text-white rounded-full text-[8px] font-black uppercase tracking-widest mb-2 shadow-sm">
-                            {order.serviceTier || (order.totalAmount > 1000 ? 'Heritage' : 'Essential')}
-                          </span>
-                          <p className="text-xl font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
-                        </div>
+                        <p className="text-base font-black text-slate-900 tracking-tight leading-none">₹{order.totalAmount?.toFixed(0)}</p>
                       </div>
 
-                      <details className="group bg-slate-50/80 rounded-2xl border border-slate-100/50 mb-8 overflow-hidden transition-all">
-                        <summary className="list-none p-5 cursor-pointer flex items-center justify-between">
+                      <details className="group bg-slate-50/50 rounded-lg border border-slate-100/50 mb-3 overflow-hidden transition-all">
+                        <summary className="list-none p-3 cursor-pointer flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[14px] text-slate-400">inventory_2</span>
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Package Details</p>
+                            <span className="material-symbols-outlined text-[12px] text-slate-400">inventory_2</span>
+                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none">Items</p>
                           </div>
-                          <span className="material-symbols-outlined text-slate-400 text-sm group-open:rotate-180 transition-transform">expand_more</span>
+                          <span className="material-symbols-outlined text-slate-400 text-[10px] group-open:rotate-180 transition-transform">expand_more</span>
                         </summary>
-                        <div className="px-5 pb-5 space-y-3">
+                        <div className="px-3 pb-3 space-y-1.5">
                           {order.items && order.items.length > 0 ? (
                             order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-white/50 p-3 rounded-xl border border-slate-100">
-                                <div>
-                                  <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{item.name}</p>
-                                  <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Qty: {item.quantity || 1}</p>
-                                </div>
-                                <p className="text-[10px] font-black text-slate-900">₹{(item.price || 0) * (item.quantity || 1)}</p>
+                              <div key={idx} className="flex justify-between items-center bg-white/50 p-2 rounded-lg border border-slate-50">
+                                <p className="text-[8px] font-black text-slate-900 uppercase">{item.name}</p>
+                                <p className="text-[8px] font-black text-slate-900">₹{(item.price || 0) * (item.quantity || 1)}</p>
                               </div>
                             ))
                           ) : (
-                            <p className="text-[10px] font-bold text-slate-400 italic">No item details available</p>
+                            <p className="text-[8px] font-bold text-slate-400 italic text-center py-1">No items</p>
                           )}
                         </div>
                       </details>
 
-                      <div className="flex flex-col gap-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              const newCart = { 'dry-clean': 2, 'ironing': 5 };
-                              localStorage.setItem('cart_quantities', JSON.stringify(newCart));
-                              navigate('/user/cart');
-                            }}
-                            className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-[0.15em] flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10"
-                          >
-                            <span className="material-symbols-outlined text-sm">replay</span>
-                            Reorder
-                          </motion.button>
-                          <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleDownloadInvoice(order)}
-                            className="py-4 bg-slate-900 text-white rounded-2xl font-black text-[8px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-lg shadow-slate-900/10"
-                          >
-                            <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
-                            Get Invoice
-                          </motion.button>
-                        </div>
-                        
-                        {order.status === 'Delivered' && (
-                          <div className="space-y-3 mt-3">
-                            <div className="grid grid-cols-2 gap-3">
-                              <motion.button 
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate('/user/support/tickets', { 
-                                  state: { 
-                                    preFill: { 
-                                      subject: `Missing Items in Order ${order.orderId || order._id}`,
-                                      category: 'Missing Items',
-                                      description: 'I have received my order but some items are missing. Please investigate.',
-                                      orderId: order._id
-                                    } 
-                                  } 
-                                })}
-                                className="w-full py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-rose-100 hover:bg-rose-100 transition-all"
-                              >
-                                <span className="material-symbols-outlined text-sm">inventory_2</span>
-                                Missing Item Dispute
-                              </motion.button>
-                              <motion.button 
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate(`/user/chat/${order._id}`)}
-                                className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-slate-200 hover:bg-slate-200 transition-all"
-                              >
-                                <span className="material-symbols-outlined text-sm">chat_bubble</span>
-                                General Chat
-                              </motion.button>
-                            </div>
-                            <motion.button 
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => navigate(`/user/feedback?orderId=${order._id}&vendorId=${order.vendor?._id || order.vendor}`)}
-                              className="w-full py-4 bg-primary/10 text-primary rounded-2xl font-black text-[9px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 border border-primary/20 hover:bg-primary/20 transition-all"
-                            >
-                              <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                              Rate Order
-                            </motion.button>
-                          </div>
-                        )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <motion.button 
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleDownloadInvoice(order)}
+                          className="py-2.5 bg-slate-900 text-white rounded-lg font-black text-[7px] uppercase tracking-widest flex items-center justify-center gap-1.5"
+                        >
+                          <span className="material-symbols-outlined text-[10px]">picture_as_pdf</span>
+                          Invoice
+                        </motion.button>
+                        <motion.button 
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            const newCart = { 'dry-clean': 2, 'ironing': 5 };
+                            localStorage.setItem('cart_quantities', JSON.stringify(newCart));
+                            navigate('/user/cart');
+                          }}
+                          className="py-2.5 bg-slate-900 text-white rounded-lg font-black text-[7px] uppercase tracking-widest flex items-center justify-center gap-1.5"
+                        >
+                          <span className="material-symbols-outlined text-[10px]">replay</span>
+                          Reorder
+                        </motion.button>
                       </div>
                     </motion.div>
                   ))

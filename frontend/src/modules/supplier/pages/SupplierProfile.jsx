@@ -134,30 +134,44 @@ const SupplierProfile = () => {
         <div className="bg-[#F8FAFC] text-slate-900 min-h-screen pb-40 font-sans">
             <main className="max-w-md mx-auto px-6 pt-10 space-y-10">
                 
-                {/* PROFILE HEADER */}
-                <header className="flex items-center gap-6">
-                    <div className="relative">
-                        <div className="w-24 h-24 rounded-[2.2rem] bg-indigo-100 border-4 border-white shadow-xl overflow-hidden">
+                {/* PROFILE HEADER - MATCHES VENDOR LAYOUT */}
+                <header className="flex flex-col items-center text-center space-y-6">
+                    <div className="relative group">
+                        <div className="w-32 h-32 rounded-[2.8rem] bg-white border-[6px] border-white shadow-2xl overflow-hidden relative z-10">
                             <img 
-                                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200" 
-                                alt="Supplier"
-                                className="w-full h-full object-cover"
+                                src={user.image || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200"} 
+                                alt="Profile"
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
                         </div>
-                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg">
-                            <span className="material-symbols-outlined text-[14px]">verified</span>
+                        <div className="absolute -inset-2 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-[3.2rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center border-4 border-white shadow-lg z-20">
+                            <span className="material-symbols-outlined text-[18px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
                         </div>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-black tracking-tighter text-slate-950 leading-none mb-2">
-                            {user.displayName || 'Supplier Partner'}
-                        </h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                            SUPPLIER ID: SZ-SUPP-{(user._id || '42').slice(-6).toUpperCase()}
-                        </p>
-                        <div className="flex items-center gap-2 mt-3">
-                            <span className="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-indigo-100">
-                                Platinum Partner
+
+                    <div className="space-y-3">
+                        <div className="space-y-1">
+                            <h2 className="text-3xl font-black tracking-tighter text-slate-950 leading-tight">
+                                {user.supplierDetails?.businessName || user.displayName}
+                            </h2>
+                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">{user.role || 'Supplier Partner'}</p>
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-2 pt-2">
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                                <span className="material-symbols-outlined text-sm text-slate-400">call</span>
+                                <span className="text-xs font-black text-slate-900 tracking-widest">{user.phone}</span>
+                            </div>
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
+                                <span className="material-symbols-outlined text-sm text-slate-400">mail</span>
+                                <span className="text-xs font-black text-slate-900 tracking-tight lowercase">{user.email || 'partner@ezoflife.in'}</span>
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                            <span className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm ${user.status === 'approved' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
+                                Account {user.status?.toUpperCase() || 'PENDING'}
                             </span>
                         </div>
                     </div>
@@ -235,6 +249,48 @@ const SupplierProfile = () => {
                                 <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Weekly Aggregator</span>
                             </div>
                         </div>
+                    </div>
+                </section>
+
+                {/* 3. LEGAL & POLICIES SECTION */}
+                <section className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>
+                        <span className="material-symbols-outlined text-slate-200">policy</span>
+                    </div>
+
+                    <div className="bg-white rounded-[2.8rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+                        <button 
+                            onClick={() => navigate('/user/terms?role=supplier')}
+                            className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-xl">gavel</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">Terms of Service</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rules & Regulations</p>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
+                        </button>
+
+                        <button 
+                            onClick={() => navigate('/user/privacy?role=supplier')}
+                            className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-xl">verified_user</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">Privacy Policy</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Data Protection Protocol</p>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
+                        </button>
                     </div>
                 </section>
 

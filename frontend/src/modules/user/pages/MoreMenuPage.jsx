@@ -25,7 +25,7 @@ const MoreMenuPage = () => {
             { icon: "campaign", title: "Advertise with us", desc: "Digital Media Kit", path: "/user/advertise", color: "primary" },
             { icon: "handshake", title: "Partner with us", desc: "Logistics & Alliances", path: "/user/partnerships", color: "tertiary" },
             { icon: "notifications", title: "Notifications", desc: "View Alerts & Updates", path: "/user/notifications", color: "primary" },
-            { icon: "location_on", title: "Saved Addresses", desc: "Home, Office & more", path: "/user/profile/addresses", color: "primary" },
+
             { icon: "reviews", title: "App Feedback", desc: "Share your experience", path: "/user/feedback", color: "tertiary" },
           ]
         },
@@ -43,6 +43,14 @@ const MoreMenuPage = () => {
           items: [
             { icon: "support_agent", title: "Help Center", desc: "Guides & Tutorials", path: "/user/support" },
             { icon: "quiz", title: "FAQs", desc: "Instant Answers", path: "/user/faq" }
+          ]
+        },
+        {
+          title: "Legal & Compliance",
+          icon: "gavel",
+          items: [
+            { icon: "security", title: "Privacy Policy", desc: "Data Protection", path: `/user/privacy?role=${isVendor ? 'vendor' : isSupplier ? 'supplier' : 'customer'}` },
+            { icon: "description", title: "Terms of Service", desc: "User Agreement", path: `/user/terms?role=${isVendor ? 'vendor' : isSupplier ? 'supplier' : 'customer'}` }
           ]
         },
       ];
@@ -63,8 +71,7 @@ const MoreMenuPage = () => {
     <div className="min-h-screen pb-40 font-sans">
       <main className="max-w-md mx-auto px-6 pt-10">
         <header className="mb-10">
-          <h2 className="text-3xl font-black tracking-tighter text-slate-950 uppercase italic leading-none">More</h2>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-3">Customer Experience Hub</p>
+          <h2 className="text-3xl font-black tracking-tighter text-slate-950 uppercase leading-none">More</h2>
         </header>
 
         <motion.div 

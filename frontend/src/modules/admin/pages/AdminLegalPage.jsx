@@ -3,18 +3,18 @@ import { motion } from 'framer-motion';
 import { legalApi, mediaApi, UPLOADS_URL } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
-const AdminLegalPage = () => {
-    const [activeTab, setActiveTab] = useState('privacy-policy');
+const AdminLegalPage = ({ type }) => {
+    const [role, setRole] = useState('customer');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [content, setContent] = useState('');
     const [pdfUrl, setPdfUrl] = useState('');
 
-    const fetchDocument = async (type) => {
+    const fetchDocument = async (docType, docRole) => {
         try {
             setLoading(true);
-            const data = await legalApi.getByType(type);
+            const data = await legalApi.getByType(`${docType}-${docRole}`);
             if (data) {
                 setContent(data.content || '');
                 setPdfUrl(data.pdfUrl || '');
@@ -32,13 +32,13 @@ const AdminLegalPage = () => {
     };
 
     useEffect(() => {
-        fetchDocument(activeTab);
-    }, [activeTab]);
+        fetchDocument(type, role);
+    }, [type, role]);
 
     const handleSave = async () => {
         try {
             setSaving(true);
-            await legalApi.update(activeTab, { content, pdfUrl });
+            await legalApi.update(`${type}-${role}`, { content, pdfUrl });
             toast.success('Document updated successfully');
         } catch (error) {
             toast.error('Failed to update document');
@@ -62,8 +62,6 @@ const AdminLegalPage = () => {
         try {
             setUploading(true);
             const data = await mediaApi.upload(formData);
-            // mediaApi.upload returns the whole media object, fileUrl is relative or absolute
-            // based on the controller we saw earlier it constructs full URL
             setPdfUrl(data.fileUrl);
             toast.success('PDF uploaded successfully');
         } catch (error) {
@@ -73,52 +71,56 @@ const AdminLegalPage = () => {
         }
     };
 
+    const displayTitle = type === 'privacy-policy' ? 'Privacy Policy' : 'Terms & Conditions';
+
     return (
         <div className="p-8 space-y-8 max-w-5xl mx-auto">
-            <header className="flex justify-between items-center">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none">Legal & Compliance</h1>
-                    <p className="text-sm text-slate-500 font-medium mt-2">Manage official privacy policies and terms of service</p>
+                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none uppercase italic">{displayTitle}</h1>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Manage official documents by role</p>
                 </div>
-                <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl">
-                    <button 
-                        onClick={() => setActiveTab('privacy-policy')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'privacy-policy' ? 'bg-white text-primary shadow-sm' : 'text-slate-400'}`}
-                    >
-                        Privacy Policy
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('terms-conditions')}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'terms-conditions' ? 'bg-white text-primary shadow-sm' : 'text-slate-400'}`}
-                    >
-                        Terms & Conditions
-                    </button>
+                
+                <div className="flex gap-2 p-1 bg-slate-100 rounded-2xl w-full md:w-auto">
+                    {['customer', 'vendor', 'supplier'].map((r) => (
+                        <button 
+                            key={r}
+                            onClick={() => setRole(r)}
+                            className={`flex-1 md:flex-none px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${role === r ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            {r}
+                        </button>
+                    ))}
                 </div>
             </header>
 
             <motion.div 
-                key={activeTab}
+                key={`${type}-${role}`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden p-8 space-y-8"
+                className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden p-10 space-y-8"
             >
                 {loading ? (
-                    <div className="py-20 text-center text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                        Loading document data...
+                    <div className="py-20 text-center flex flex-col items-center gap-4">
+                        <span className="material-symbols-outlined animate-spin text-slate-200 text-4xl">sync</span>
+                        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Loading document data...</p>
                     </div>
                 ) : (
                     <>
                         <div className="space-y-4">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Document Content (Rich Text/HTML)</label>
+                            <div className="flex justify-between items-center px-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Document Content</label>
+                                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Target: {role.toUpperCase()}</span>
+                            </div>
                             <textarea 
                                 value={content}
                                 onChange={(e) => setContent(e.target.value)}
-                                placeholder="Write the full document content here..."
-                                className="w-full h-[400px] bg-slate-50 border-none rounded-[2rem] p-8 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                                placeholder={`Enter ${displayTitle} content for ${role}s...`}
+                                className="w-full h-[450px] bg-slate-50 border-none rounded-[2.5rem] p-10 text-sm font-medium focus:ring-4 focus:ring-primary/5 transition-all resize-none shadow-inner"
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end bg-slate-50/50 p-8 rounded-[2.5rem]">
                             <div className="space-y-4">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">PDF Version (Optional)</label>
                                 <div className="flex gap-4">
@@ -126,11 +128,11 @@ const AdminLegalPage = () => {
                                         type="text"
                                         value={pdfUrl}
                                         onChange={(e) => setPdfUrl(e.target.value)}
-                                        placeholder="Paste PDF URL or upload below"
-                                        className="flex-1 bg-slate-50 border-none rounded-2xl px-6 py-4 text-xs font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                                        placeholder="Paste PDF URL or upload"
+                                        className="flex-1 bg-white border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
                                     />
                                     {pdfUrl && (
-                                        <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all">
+                                        <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-white text-slate-400 border border-slate-100 rounded-2xl flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-sm">
                                             <span className="material-symbols-outlined">open_in_new</span>
                                         </a>
                                     )}
@@ -147,12 +149,12 @@ const AdminLegalPage = () => {
                                 />
                                 <label 
                                     htmlFor="pdf-upload"
-                                    className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 border-dashed flex items-center justify-center gap-3 cursor-pointer transition-all ${uploading ? 'bg-slate-50 text-slate-300 border-slate-100' : 'bg-white border-slate-200 text-slate-500 hover:border-primary/40 hover:text-primary'}`}
+                                    className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 border-dashed flex items-center justify-center gap-3 cursor-pointer transition-all ${uploading ? 'bg-white/50 text-slate-300 border-slate-100' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900'}`}
                                 >
                                     {uploading ? (
                                         <>
                                             <span className="material-symbols-outlined animate-spin">sync</span>
-                                            Uploading PDF...
+                                            Uploading...
                                         </>
                                     ) : (
                                         <>
@@ -168,17 +170,17 @@ const AdminLegalPage = () => {
                             <button 
                                 onClick={handleSave}
                                 disabled={saving}
-                                className={`px-12 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 transition-all ${saving ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-primary text-white hover:scale-[1.02] active:scale-[0.98] shadow-primary/20'}`}
+                                className={`px-12 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-4 transition-all ${saving ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-950 text-white hover:scale-[1.02] active:scale-[0.98] shadow-slate-900/20'}`}
                             >
                                 {saving ? (
                                     <>
-                                        <span className="material-symbols-outlined animate-spin">sync</span>
-                                        Saving Changes...
+                                        <span className="material-symbols-outlined animate-spin text-lg">sync</span>
+                                        Saving...
                                     </>
                                 ) : (
                                     <>
-                                        <span className="material-symbols-outlined">save</span>
-                                        Save Document
+                                        <span className="material-symbols-outlined text-lg">verified</span>
+                                        Update Policy
                                     </>
                                 )}
                             </button>

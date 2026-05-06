@@ -77,39 +77,37 @@ const BottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none pb-8 flex justify-center">
-      <motion.div 
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="bg-white/95 backdrop-blur-2xl px-3 py-2 rounded-full shadow-[0_32px_64px_rgba(0,0,0,0.12)] pointer-events-auto flex justify-around items-center w-[90%] max-w-md border border-black/5"
-      >
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-2xl border-t border-slate-100 pb-safe shadow-[0_-1px_10px_rgba(0,0,0,0.02)]">
+      <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = currentPath === item.path;
           return (
             <motion.button 
               key={item.path}
               id={`nav-${item.label.toLowerCase()}`}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => handleNavClick(item.path)}
-              className={`relative flex flex-col items-center justify-center rounded-full px-5 py-2.5 transition-colors duration-300 ${
-                isActive ? 'text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'
+              className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 ${
+                isActive ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
+              <div className={`flex flex-col items-center transition-transform duration-300 ${isActive ? '-translate-y-0.5' : ''}`}>
+                <span className="material-symbols-outlined text-[24px] mb-0.5" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+                  {item.icon}
+                </span>
+                <span className="font-black text-[9px] uppercase tracking-widest">{item.label}</span>
+              </div>
               {isActive && (
                 <motion.div 
-                  layoutId="navBubble"
-                  className="absolute inset-0 bg-primary rounded-full shadow-lg shadow-primary/20"
-                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  layoutId="activeIndicator"
+                  className="absolute bottom-0 w-8 h-1 bg-slate-900 rounded-t-full"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
-              <span className="relative z-10 material-symbols-outlined text-[22px]" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
-                {item.icon}
-              </span>
-              <span className="relative z-10 font-headline font-bold text-[9px] mt-1 uppercase tracking-tighter">{item.label}</span>
             </motion.button>
           );
         })}
-      </motion.div>
+      </div>
     </nav>
   );
 };

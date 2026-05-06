@@ -357,7 +357,7 @@ const VendorProfile = () => {
 
                     <div className="bg-white rounded-[2.8rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
                         <button 
-                            onClick={() => navigate('/user/terms')}
+                            onClick={() => navigate('/user/terms?role=vendor')}
                             className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
                         >
                             <div className="flex items-center gap-4">
@@ -373,7 +373,7 @@ const VendorProfile = () => {
                         </button>
 
                         <button 
-                            onClick={() => navigate('/user/privacy')}
+                            onClick={() => navigate('/user/privacy?role=vendor')}
                             className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
                         >
                             <div className="flex items-center gap-4">

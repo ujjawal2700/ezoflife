@@ -4,7 +4,6 @@ const legalDocumentSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ['privacy-policy', 'terms-conditions'],
         unique: true
     },
     content: {

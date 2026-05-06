@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { legalApi } from '../../../lib/api';
 
 const TermsConditionsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'customer';
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchDoc = async () => {
         try {
-            const data = await legalApi.getByType('terms-conditions');
+            const data = await legalApi.getByType(`terms-conditions-${role}`);
             setDoc(data);
         } catch (error) {
             console.error('Fetch Terms & Conditions Error:', error);
@@ -20,7 +22,7 @@ const TermsConditionsPage = () => {
         }
     };
     fetchDoc();
-  }, []);
+  }, [role]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },

@@ -34,11 +34,9 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    // Automatically attempt to trigger location prompt if not set
     if (!location) {
       setTimeout(() => setPromptOpen(true), 1500);
     } else {
-      // Silent re-check geofence to get latest pricing factors
       const recheckZone = async () => {
         try {
           const zoneInfo = await geofenceApi.checkAvailability(location.lat, location.lng);
@@ -56,7 +54,7 @@ const HomePage = () => {
   }, [location, setPromptOpen, setZoneData]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTier, setSelectedTier] = useState('Essential'); // 'Essential' or 'Heritage'
+  const [selectedTier, setSelectedTier] = useState('Essential'); 
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -94,7 +92,6 @@ const HomePage = () => {
     '07:00 PM - 09:00 PM', '08:00 PM - 10:00 PM'
   ], []);
 
-  // Helper to get JS Date from slot string
   const getSlotDateTime = (dateStr, timeStr) => {
     if (!dateStr || !timeStr) return null;
     const [dayPart, datePart] = dateStr.split(', ');
@@ -119,10 +116,9 @@ const HomePage = () => {
   const [showSlotPicker, setShowSlotPicker] = useState(false);
   const [activeSlotType, setActiveSlotType] = useState('pickup');
 
-  // Address sequential logic
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
-  const [activeAddressType, setActiveAddressType] = useState('pickup'); // 'pickup' or 'drop'
+  const [activeAddressType, setActiveAddressType] = useState('pickup');
   const [pickupAddress, setPickupAddress] = useState(() => {
     const saved = localStorage.getItem('pickup_address');
     return saved ? JSON.parse(saved) : null;
@@ -133,7 +129,6 @@ const HomePage = () => {
   });
   const [isSameAsPickup, setIsSameAsPickup] = useState(true);
 
-  // NEW: ORDER INSTRUCTIONS & PHOTOS
   const [orderNotes, setOrderNotes] = useState(() => localStorage.getItem('order_notes') || '');
   const [itemPhotos, setItemPhotos] = useState(() => {
     const saved = localStorage.getItem('item_photos');
@@ -144,9 +139,28 @@ const HomePage = () => {
   const [isLocating, setIsLocating] = useState(false);
   const [customAddress, setCustomAddress] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [addressFormData, setAddressFormData] = useState({
+    type: 'Home'
+  });
 
+  const handleSaveCustomAddress = () => {
+    if (!customAddress) return alert('Please enter an address');
+    const newAddr = {
+      id: Date.now().toString(),
+      type: addressFormData.type,
+      address: customAddress,
+      fullAddress: customAddress
+    };
+    if (activeAddressType === 'pickup') {
+      setPickupAddress(newAddr);
+      if (isSameAsPickup) setDropAddress(newAddr);
+    } else {
+      setDropAddress(newAddr);
+    }
+    setShowAddressForm(false);
+    setShowAddressPicker(false);
+  };
 
-  // PERSIST LOGISTICS
   useEffect(() => {
     localStorage.setItem('is_express', isExpress);
     localStorage.setItem('pickup_date', selectedPickup);
@@ -176,25 +190,19 @@ const HomePage = () => {
       const normalFee = configs.find(c => c.key === 'normal_logistics_fee');
       if (normalFee) setNormalLogisticsFee(Number(normalFee.value));
 
-      // Fetch User Addresses
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = userData._id || userData.id;
       if (userId) {
         const profile = await authApi.getProfile(userId);
         let addrList = [];
-
-        // 1. Root profile address
         if (profile.address) {
           addrList.push({ id: 'profile_root', type: 'Profile', address: profile.address, location: profile.location || null });
         }
-
-        // 2. Specialized addresses array
         if (profile.addresses && profile.addresses.length > 0) {
           profile.addresses.forEach((a, idx) => {
             addrList.push({ id: a._id || idx, type: a.type.toUpperCase(), address: a.address, location: a.location });
           });
         }
-
         setSavedAddresses(addrList);
         if (!pickupAddress && addrList.length > 0) setPickupAddress(addrList[0]);
       }
@@ -213,23 +221,18 @@ const HomePage = () => {
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
       const customerType = (userData.customerType || localStorage.getItem('userType') || 'individual').toLowerCase();
       let data = [];
-
       try {
         const [masterRes, customRes] = await Promise.all([
           masterServiceApi.getAll({ serviceType: customerType }),
           serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
         ]);
-
         data = [
           ...(Array.isArray(masterRes) ? masterRes.map(s => ({ ...s, isMaster: true })) : []),
           ...(Array.isArray(customRes) ? customRes.map(s => ({ ...s, isMaster: false })) : [])
         ];
-      } catch (err) {
-        console.error('Fetch error:', err);
-      }
+      } catch (err) { console.error('Fetch error:', err); }
 
       const filtered = data.map(s => {
-        // Normalize Category & SubCategory
         const catObj = s.categoryId || s.category;
         return {
           ...s,
@@ -245,11 +248,7 @@ const HomePage = () => {
         return isActive && isApproved && isMatch;
       });
       setServices(filtered);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error('Error fetching services:', error); } finally { setLoading(false); }
   };
 
   const fetchCategories = async () => {
@@ -257,11 +256,7 @@ const HomePage = () => {
       setCategoriesLoading(true);
       const data = await categoryApi.getMain();
       setCategories(data);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    } finally {
-      setCategoriesLoading(false);
-    }
+    } catch (error) { console.error('Error fetching categories:', error); } finally { setCategoriesLoading(false); }
   };
 
   const handleCategoryClick = async (category) => {
@@ -275,45 +270,23 @@ const HomePage = () => {
       try {
         const subData = await categoryApi.getSub(category._id);
         setSubCategories(subData);
-      } catch (error) {
-        console.error('Error fetching sub-categories:', error);
-      }
+      } catch (error) { console.error('Error fetching sub-categories:', error); }
     }
   };
 
-  useEffect(() => {
-    fetchServices();
-    fetchCategories();
-  }, []);
+  useEffect(() => { fetchServices(); fetchCategories(); }, []);
 
   const [showMoreServices, setShowMoreServices] = useState(false);
 
   const filteredServices = useMemo(() => {
     let result = services.filter(s => {
-      // Tier filter
       if ((s.tier || 'Essential') !== selectedTier) return false;
-
-      // Search filter
       if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-
-      // Category filter (Main Category name comparison)
-      if (selectedCategory) {
-        if (s.mainCategory !== selectedCategory.name) return false;
-      }
-
-      // Sub-category filter
-      if (selectedSubCategory) {
-        if (s.subCategoryName !== selectedSubCategory.name) return false;
-      }
-
+      if (selectedCategory && s.mainCategory !== selectedCategory.name) return false;
+      if (selectedSubCategory && s.subCategoryName !== selectedSubCategory.name) return false;
       return true;
     });
-
-    // If no category/search is active, limit to 10 by default
-    if (!selectedCategory && !selectedSubCategory && !searchQuery && !showMoreServices) {
-      return result.slice(0, 10);
-    }
-
+    if (!selectedCategory && !selectedSubCategory && !searchQuery && !showMoreServices) return result.slice(0, 10);
     return result;
   }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory, showMoreServices]);
 
@@ -321,19 +294,11 @@ const HomePage = () => {
     setSelectedQuantities(prev => {
       const current = prev[id] || 0;
       const next = Math.max(0, current + delta);
-
-      // If adding, try to preserve vendor context
       if (delta > 0) {
         const service = services.find(s => (s._id || s.id) === id);
-        if (service?.vendorId) {
-          localStorage.setItem('last_visited_vendor_id', service.vendorId);
-        }
+        if (service?.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
       }
-
-      if (next === 0) {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      }
+      if (next === 0) { const { [id]: _, ...rest } = prev; return rest; }
       return { ...prev, [id]: next };
     });
   };
@@ -341,17 +306,14 @@ const HomePage = () => {
   const cartItemsCount = useMemo(() => Object.values(selectedQuantities).reduce((acc, q) => acc + q, 0), [selectedQuantities]);
   const cartTotal = useMemo(() => {
     return Object.entries(selectedQuantities).reduce((acc, [id, q]) => {
-      // Find service in both master and custom services
       const service = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
       if (!service) return acc;
-
       const actualPrice = service.discountedPrice || service.totalPrice || service.basePrice || 0;
       const price = actualPrice * (pricingFactor || 1);
       return acc + (price * q);
     }, 0);
   }, [selectedQuantities, services, pricingFactor]);
 
-  // NEW: Smart scheduling logic for delivery
   const maxServiceTime = useMemo(() => {
     let max = 1;
     Object.keys(selectedQuantities).forEach(id => {
@@ -368,18 +330,13 @@ const HomePage = () => {
       const deliveryIndex = Math.min(pickupIndex + maxServiceTime, availableDates.length - 1);
       const deliveryD = availableDates[deliveryIndex];
       setSelectedDelivery(`${deliveryD.day}, ${deliveryD.date}`);
-
-      // Default to same time slot as pickup if not set
-      if (!deliveryTime && pickupTime) {
-        setDeliveryTime(pickupTime);
-      }
+      if (!deliveryTime && pickupTime) setDeliveryTime(pickupTime);
     }
-  }, [selectedPickup, maxServiceTime, availableDates, pickupTime, deliveryTime]);
+  }, [selectedPickup, maxServiceTime, availableDates, pickupTime]);
 
   const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length || !activeServiceForPhoto) return;
-
     setUploading(true);
     try {
       const uploaded = [];
@@ -389,52 +346,19 @@ const HomePage = () => {
         const res = await mediaApi.upload(formData);
         if (res.url) uploaded.push(res.url);
       }
-      setItemPhotos(prev => ({
-        ...prev,
-        [activeServiceForPhoto]: [...(prev[activeServiceForPhoto] || []), ...uploaded]
-      }));
-    } catch (error) {
-      console.error('Upload Error:', error);
-      alert('Photo upload failed');
-    } finally {
-      setUploading(false);
-      setActiveServiceForPhoto(null);
-      e.target.value = ''; // Reset input
-    }
-  };
-
-  const removeItemPhoto = (serviceId, index) => {
-    setItemPhotos(prev => ({
-      ...prev,
-      [serviceId]: prev[serviceId].filter((_, i) => i !== index)
-    }));
+      setItemPhotos(prev => ({ ...prev, [activeServiceForPhoto]: [...(prev[activeServiceForPhoto] || []), ...uploaded] }));
+    } catch (error) { console.error('Upload Error:', error); alert('Photo upload failed'); } finally { setUploading(false); setActiveServiceForPhoto(null); e.target.value = ''; }
   };
 
   const handleCartClick = () => {
     if (Object.keys(selectedQuantities).length === 0) return alert('Please select at least one service');
-    
-    // Save selections to localStorage for CartPage to pick up
-    if (selectedPickup) localStorage.setItem('pickup_date', selectedPickup);
-    if (pickupTime) localStorage.setItem('pickup_time', pickupTime);
-    if (selectedDelivery) localStorage.setItem('delivery_date', selectedDelivery);
-    if (deliveryTime) localStorage.setItem('delivery_time', deliveryTime);
-    localStorage.setItem('is_express', isExpress.toString());
-    localStorage.setItem('order_notes', orderNotes);
-    if (pickupAddress) localStorage.setItem('pickup_address', JSON.stringify(pickupAddress));
-    if (dropAddress) localStorage.setItem('drop_address', JSON.stringify(dropAddress));
-
     const token = localStorage.getItem('token');
     if (!token) { navigate('/user/auth'); return; }
     navigate('/user/cart');
   };
 
   const [isCartDismissed, setIsCartDismissed] = useState(false);
-
-  useEffect(() => {
-    if (cartItemsCount > 0) {
-      setIsCartDismissed(false);
-    }
-  }, [cartItemsCount]);
+  useEffect(() => { if (cartItemsCount > 0) setIsCartDismissed(false); }, [cartItemsCount]);
 
   const handleServiceClick = (serviceId, service, i) => {
     const token = localStorage.getItem('token');
@@ -442,143 +366,55 @@ const HomePage = () => {
     navigate('/user/service-info', {
       state: {
         selectedService: {
-          id: serviceId,
-          _id: serviceId,
-          name: service.name,
-          title: service.name,
-          desc: service.description,
-          image: service.image,
-          vendorId: service.vendorId,
-          vendor: service.vendor,
+          id: serviceId, _id: serviceId, name: service.name, title: service.name, desc: service.description,
+          image: service.image, vendorId: service.vendorId, vendor: service.vendor,
           color: isHeritage ? 'heritage' : (i % 3 === 0 ? 'primary' : i % 3 === 1 ? 'secondary' : 'tertiary'),
-          price: `₹${service.totalPrice}.00`,
-          totalPrice: service.totalPrice,
-          basePrice: service.basePrice
+          price: `₹${service.totalPrice}.00`, totalPrice: service.totalPrice, basePrice: service.basePrice
         }
       }
     });
-
-    // Save vendor context for promotions
-    if (service.vendorId) {
-      localStorage.setItem('last_visited_vendor_id', service.vendorId);
-    }
-  };
-
-  const [addressLabel, setAddressLabel] = useState('Home'); // Home, Office, Other
-  const [isSaving, setIsSaving] = useState(false);
-
-  const saveNewAddress = async () => {
-    if (!customAddress) return alert('Please enter address first');
-
-    setIsSaving(true);
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      const userId = userData._id || userData.id;
-      if (!userId) return alert('Please login to save address');
-
-      const profile = await authApi.getProfile(userId);
-      const existingAddresses = profile.addresses || [];
-
-      const newAddressObj = {
-        type: addressLabel,
-        address: customAddress,
-        location: pickupAddress?.location || null
-      };
-
-      const updatedAddresses = [...existingAddresses, newAddressObj];
-
-      await authApi.updateProfile(userId, { addresses: updatedAddresses });
-
-      // Refresh local list
-      const newSaved = [
-        ...savedAddresses,
-        { id: Date.now(), type: addressLabel.toUpperCase(), address: customAddress, location: newAddressObj.location }
-      ];
-      setSavedAddresses(newSaved);
-      setShowAddressForm(false);
-      alert('Address saved successfully!');
-    } catch (error) {
-      console.error('Save Address Error:', error);
-      alert('Failed to save address');
-    } finally {
-      setIsSaving(false);
-    }
+    if (service.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
   };
 
   const handleLiveLocation = () => {
-    // If location is already set in header (useLocationStore), use it first
     if (location) {
-      const addrString = location.fullAddress ||
-        (location.area ? `${location.area}, ${location.city}` : null) ||
-        (typeof location === 'string' ? location : 'Detected Location');
-
-      const liveAddr = {
-        id: 'header_location',
-        type: 'LIVE',
-        address: addrString,
-        location: { lat: location.lat, lng: location.lng }
-      };
-      setPickupAddress(liveAddr);
+      const addrString = location.fullAddress || (location.area ? `${location.area}, ${location.city}` : null) || (typeof location === 'string' ? location : 'Detected Location');
+      const liveAddr = { id: 'live_' + Date.now(), type: 'LIVE', address: addrString, location: { lat: location.lat, lng: location.lng } };
+      
+      if (activeAddressType === 'pickup') {
+        setPickupAddress(liveAddr);
+        if (isSameAsPickup) setDropAddress(liveAddr);
+      } else {
+        setDropAddress(liveAddr);
+      }
+      
       setCustomAddress(liveAddr.address);
-      if (isSameAsPickup) setDropAddress(liveAddr);
       setShowAddressForm(true);
       return;
     }
-
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
-    }
-
+    if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
     setIsLocating(true);
-    locationService.getCurrentCoordinates()
-      .then(async (coords) => {
-        try {
-          const addressData = await locationService.reverseGeocode(coords.lat, coords.lng);
-          setCustomAddress(addressData.fullAddress);
-          const liveAddr = {
-            id: 'live',
-            type: 'LIVE',
-            address: addressData.fullAddress,
-            location: { lat: coords.lat, lng: coords.lng }
-          };
+    locationService.getCurrentCoordinates().then(async (coords) => {
+      try {
+        const addressData = await locationService.reverseGeocode(coords.lat, coords.lng);
+        setCustomAddress(addressData.fullAddress);
+        const liveAddr = { id: 'live_' + Date.now(), type: 'LIVE', address: addressData.fullAddress, location: { lat: coords.lat, lng: coords.lng } };
+        
+        if (activeAddressType === 'pickup') {
           setPickupAddress(liveAddr);
           if (isSameAsPickup) setDropAddress(liveAddr);
-          setShowAddressForm(true);
-        } catch (error) {
-          console.error('Error geocoding:', error);
-          alert('Could not get address from location');
-        } finally {
-          setIsLocating(false);
+        } else {
+          setDropAddress(liveAddr);
         }
-      })
-      .catch((error) => {
-        console.error('Geolocation error:', error);
-        alert('Location access denied or timed out');
-        setIsLocating(false);
-      });
-  };
-
-  const handleCustomAddressChange = (val) => {
-    setCustomAddress(val);
-    const newAddr = { id: 'custom', type: 'MANUAL', address: val, location: null };
-    setPickupAddress(newAddr);
-    if (isSameAsPickup) setDropAddress(newAddr);
+        
+        setShowAddressForm(true);
+      } catch (err) { console.error(err); } finally { setIsLocating(false); }
+    }).catch(() => setIsLocating(false));
   };
 
   const [isHeaderSticky, setIsHeaderSticky] = useState(false);
-
   useEffect(() => {
-    const handleScroll = () => {
-      // Logic: If scrolled past the promo/scheduling area (approx 350px)
-      // but we can also use a ref for better accuracy
-      if (window.scrollY > 350) {
-        setIsHeaderSticky(true);
-      } else {
-        setIsHeaderSticky(false);
-      }
-    };
-
+    const handleScroll = () => { if (window.scrollY > 350) setIsHeaderSticky(true); else setIsHeaderSticky(false); };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -593,20 +429,17 @@ const HomePage = () => {
 
   const [currentBanner, setCurrentBanner] = useState(0);
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentBanner((prev) => (prev + 1) % banners.length);
-    }, 5000);
+    const timer = setInterval(() => { setCurrentBanner((prev) => (prev + 1) % banners.length); }, 5000);
     return () => clearInterval(timer);
   }, [banners.length]);
 
   return (
     <div className="text-on-surface min-h-[100dvh] flex flex-col">
       <main className="flex-1 pt-0 pb-36 px-6 max-w-5xl mx-auto w-full">
-        {/* Spacer for Fixed Header */}
         <div className="h-[50px] shrink-0" />
 
-        {/* 1. TOP PROMO BANNER */}
-        <section className="mt-4 mb-8 w-full relative px-2">
+        {/* 1. COMPACT PROMO BANNER (TODAY'S DESIGN) */}
+        <section className="mt-2 mb-2 w-full relative px-2">
           <div className="overflow-hidden rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-100">
             <AnimatePresence mode="wait">
               <motion.div
@@ -628,209 +461,166 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* 2. Tier Toggle & Logistics Priority Row */}
-        <div className="flex flex-row items-center gap-4 mb-8">
-          {/* TIER TOGGLE (LEFT) */}
-          <div className="flex-1 bg-slate-100 p-0.5 rounded-[1.8rem] border border-slate-200 flex gap-0.5 shadow-sm">
+        {/* 2. TIER & EXPRESS TOGGLE ROW */}
+        <div className="flex flex-row items-center gap-4 mb-2">
+          <div className="flex-1 bg-slate-200/50 p-1 rounded-[2rem] border border-slate-200 flex gap-1 shadow-inner">
             {['Essential', 'Heritage'].map(tier => (
               <button 
                 key={tier} 
                 onClick={() => setSelectedTier(tier)} 
-                className={`flex-1 py-2 rounded-[1.4rem] font-black text-[9px] uppercase tracking-widest transition-all ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-md' : 'text-slate-500 hover:text-black'}`}
+                className={`flex-1 py-3 rounded-[1.6rem] font-black text-[10px] uppercase tracking-widest transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-xl' : 'text-slate-600 hover:text-black'}`}
               >
                 {tier}
               </button>
             ))}
           </div>
 
-          {/* LOGISTICS PRIORITY (RIGHT) */}
-          <div className="flex-1 bg-slate-100 p-0.5 rounded-[1.8rem] border border-slate-200 flex gap-0.5 shadow-sm">
-            <button 
-              onClick={() => setIsExpress(false)} 
-              className={`flex-1 py-2 rounded-[1.4rem] font-black text-[9px] uppercase tracking-widest transition-all ${!isExpress ? 'bg-black text-white shadow-md' : 'text-slate-400 hover:text-slate-900'}`}
-            >
-              Normal (₹{normalLogisticsFee})
-            </button>
-            <button 
-              onClick={() => setIsExpress(true)} 
-              className={`flex-1 py-2 rounded-[1.4rem] font-black text-[9px] uppercase tracking-widest transition-all ${isExpress ? 'bg-amber-500 text-white shadow-md' : 'text-slate-400 hover:text-slate-900'}`}
-            >
-              Express (₹{expressCharge})
-            </button>
-          </div>
-        </div>
-
-        {/* 3. NEW COMPACT SCHEDULING & ADDRESS SECTION - NO SCROLL */}
-        <div className="flex flex-row gap-1.5 mb-6 items-stretch px-1">
-          {/* PICKUP SLOT */}
-          <button 
-            onClick={() => { setActiveSlotType('pickup'); setShowSlotPicker(true); }}
-            className={`flex-1 p-1.5 rounded-xl border-[1.5px] text-center transition-all ${selectedPickup ? 'bg-slate-900 text-white border-transparent' : 'bg-slate-50 border-slate-100'}`}
-          >
-            <span className="material-symbols-outlined text-[12px] mb-0.5 block">calendar_today</span>
-            <p className="text-[6px] font-black uppercase tracking-tighter opacity-60 leading-none mb-0.5">Pickup</p>
-            <p className="text-[7.5px] font-black truncate leading-tight">
-              {selectedPickup ? (pickupTime ? pickupTime.split(' - ')[0] : selectedPickup.split(',')[1] || selectedPickup) : 'Set'}
-            </p>
-          </button>
-
-          {/* DELIVERY SLOT */}
-          <button 
-            onClick={() => { setActiveSlotType('delivery'); setShowSlotPicker(true); }}
-            className={`flex-1 p-1.5 rounded-xl border-[1.5px] text-center transition-all ${selectedDelivery ? 'bg-slate-900 text-white border-transparent' : 'bg-slate-50 border-slate-100'}`}
-          >
-            <span className="material-symbols-outlined text-[12px] mb-0.5 block">local_shipping</span>
-            <p className="text-[6px] font-black uppercase tracking-tighter opacity-60 leading-none mb-0.5">Delivery</p>
-            <p className="text-[7.5px] font-black truncate leading-tight">
-              {selectedDelivery ? (deliveryTime ? deliveryTime.split(' - ')[0] : selectedDelivery.split(',')[1] || selectedDelivery) : 'Set'}
-            </p>
-          </button>
-
-          {/* PICKUP ADDRESS */}
-          <div 
-            onClick={() => {
-              setActiveAddressType('pickup');
-              setShowAddressPicker(true);
-            }}
-            className={`flex-1 p-1.5 rounded-xl border-[1.5px] text-center transition-all cursor-pointer ${pickupAddress ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-100'}`}
-          >
-            <span className="material-symbols-outlined text-[12px] text-emerald-600 mb-0.5 block">location_on</span>
-            <p className="text-[6px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">Address</p>
-            <p className="text-[7.5px] font-black text-slate-900 truncate uppercase leading-tight">
-              {pickupAddress ? (pickupAddress.type || 'Selected') : 'Set'}
-            </p>
-          </div>
-
-          {/* SAME AS TOGGLE / DROP ADDRESS */}
-          <div className="flex-1 flex flex-col gap-1">
-             <button 
-               onClick={() => {
-                 const newVal = !isSameAsPickup;
-                 setIsSameAsPickup(newVal);
-                 if(newVal) setDropAddress(pickupAddress);
-               }}
-               className={`flex-1 p-1 rounded-lg border-[1.5px] flex flex-col items-center justify-center transition-all ${isSameAsPickup ? 'bg-emerald-500 border-transparent text-white' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
-             >
-               <span className="material-symbols-outlined text-[10px]">{isSameAsPickup ? 'sync' : 'sync_disabled'}</span>
-               <p className="text-[5px] font-black uppercase tracking-tighter mt-0.5 leading-none">Same</p>
-             </button>
-
-             {!isSameAsPickup && (
-               <button 
-                 onClick={() => {
-                   setActiveAddressType('drop');
-                   setShowAddressPicker(true);
-                 }}
-                 className={`flex-1 p-1 rounded-lg border-[1.5px] flex flex-col items-center justify-center transition-all ${dropAddress ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
-               >
-                 <span className="material-symbols-outlined text-[10px]">home_pin</span>
-                 <p className="text-[5px] font-black uppercase tracking-tighter mt-0.5 leading-none">Drop</p>
-               </button>
-             )}
-          </div>
-        </div>
-
-        {/* STICKY SEARCH & CATEGORY SECTION */}
-        <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-xl px-6' : 'relative z-[90] px-2'} bg-slate-50/95 backdrop-blur-xl py-4 border-b border-slate-100/50 transition-all duration-300`}>
-          <div className="max-w-5xl mx-auto w-full">
-            {/* Search Bar */}
-            <div className="mb-4">
-              <div className={`relative flex items-center bg-white rounded-[1.5rem] px-6 py-3.5 shadow-sm border ${isHeritage ? 'border-[#D4AF37]/30' : 'border-slate-200'} transition-all`}>
-                <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-400'} mr-4 text-lg`}>search</span>
+          <div className="flex-1 flex items-center justify-end px-2">
+            <label className="group relative cursor-pointer">
+              <div className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 transition-all duration-300 ${isExpress ? 'border-amber-500 bg-amber-50 shadow-lg shadow-amber-100' : 'border-slate-100 bg-slate-50 hover:border-slate-200'}`}>
+                <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${isExpress ? 'text-amber-700' : 'text-slate-400'}`}>Express</span>
                 <input 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  className="bg-transparent border-none focus:ring-0 outline-none p-0 text-sm w-full placeholder:text-slate-300 font-bold" 
-                  placeholder={isHeritage ? "Search premium care..." : "Search services..."} 
+                  type="checkbox" 
+                  checked={isExpress}
+                  onChange={(e) => setIsExpress(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 transition-all cursor-pointer"
                 />
               </div>
-            </div>
+              <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[120]">
+                <div className="bg-slate-900 text-white text-[8px] font-black uppercase tracking-[0.2em] px-4 py-2.5 rounded-xl whitespace-nowrap shadow-2xl relative border border-white/10">
+                  if u check this box then u will get express delivery
+                  <div className="absolute top-full right-6 w-3 h-3 bg-slate-900 rotate-45 -translate-y-1.5 border-r border-b border-white/10"></div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
 
-            {/* Categories Section */}
-            <section className="w-full overflow-hidden">
-              <div className="flex items-center justify-between mb-3 px-2">
-                <h3 className="text-[9px] font-black text-slate-900 uppercase tracking-[0.4em]">Select Category</h3>
-                {selectedCategory && (
-                  <motion.button
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    onClick={() => { setSelectedCategory(null); setSelectedSubCategory(null); setSubCategories([]); }}
-                    className="text-[8px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-lg border border-rose-100"
-                  >
-                    Reset
-                  </motion.button>
+        {/* 3. COMPACT SCHEDULING CARDS */}
+        <div className="grid grid-cols-2 gap-2 mb-2 px-1">
+          <div 
+            className={`p-2.5 rounded-[1.2rem] border-2 text-left transition-all duration-500 ${selectedPickup ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-slate-50 border-white shadow-inner hover:border-slate-200 text-slate-900'}`}
+          >
+            <button 
+              onClick={() => { setActiveSlotType('pickup'); setShowSlotPicker(true); }}
+              className="w-full"
+            >
+              <div className="flex items-center gap-2">
+                <span className={`material-symbols-outlined text-[14px] ${selectedPickup ? 'text-white' : 'text-slate-400'}`}>calendar_today</span>
+                <h4 className="text-[9px] font-black uppercase tracking-tight truncate">
+                  {selectedPickup ? (pickupTime ? pickupTime.split(' - ')[0] : selectedPickup.split(',')[1] || selectedPickup) : 'Pickup Time'}
+                </h4>
+              </div>
+            </button>
+            <div className="mt-1.5 flex items-center justify-between border-t border-white/5 pt-1.5">
+              <p className={`text-[6px] font-bold truncate uppercase tracking-widest ${selectedPickup ? 'text-white/40' : 'text-slate-300'}`}>{pickupAddress ? pickupAddress.type : 'Address'}</p>
+              <button 
+                onClick={() => { setActiveAddressType('pickup'); setShowAddressPicker(true); }}
+                className={`text-[6px] font-black uppercase px-1.5 py-0.5 rounded-md ${selectedPickup ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-600'}`}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+
+          <div 
+            className={`p-2.5 rounded-[1.2rem] border-2 text-left transition-all duration-500 ${selectedDelivery ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-slate-50 border-white shadow-inner hover:border-slate-200 text-slate-900'}`}
+          >
+            <button 
+              onClick={() => { setActiveSlotType('delivery'); setShowSlotPicker(true); }}
+              className="w-full"
+            >
+              <div className="flex items-center gap-2">
+                <span className={`material-symbols-outlined text-[14px] ${selectedDelivery ? 'text-white' : 'text-slate-400'}`}>local_shipping</span>
+                <h4 className="text-[9px] font-black uppercase tracking-tight truncate">
+                  {selectedDelivery ? (deliveryTime ? deliveryTime.split(' - ')[0] : selectedDelivery.split(',')[1] || selectedDelivery) : 'Delivery Time'}
+                </h4>
+              </div>
+            </button>
+            <div className="mt-1.5 flex items-center justify-between border-t border-white/5 pt-1.5">
+              <p className={`text-[6px] font-bold truncate uppercase tracking-widest ${selectedDelivery ? 'text-white/40' : 'text-slate-300'}`}>{isSameAsPickup ? 'Same' : (dropAddress ? dropAddress.type : 'Address')}</p>
+              <button 
+                onClick={() => isSameAsPickup ? setIsSameAsPickup(false) : (setActiveAddressType('delivery'), setShowAddressPicker(true))}
+                className={`text-[6px] font-black uppercase px-1.5 py-0.5 rounded-md ${selectedDelivery ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-600'}`}
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION */}
+        <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2' : 'relative z-[90] px-1 py-5'} bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100 mb-8 transition-all duration-500`}>
+          <div className="max-w-5xl mx-auto w-full space-y-3">
+            {/* MINI CATEGORIES - SLIM WHEN STICKY */}
+            <section className="w-full">
+              {!isHeaderSticky && (
+                <div className="flex items-center justify-between mb-4 px-3">
+                  <h3 className="text-[9px] font-black text-slate-900/40 uppercase tracking-[0.3em]">Quick Categories</h3>
+                </div>
+              )}
+
+              <div className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'pb-1' : 'pb-2'}`}>
+                {categoriesLoading ? (
+                  [...Array(5)].map((_, i) => <div key={i} className="min-w-[65px] h-16 bg-slate-50 rounded-xl animate-pulse" />)
+                ) : (
+                  categories.map(cat => (
+                    <motion.button
+                      key={cat.name}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${isHeaderSticky ? 'min-w-[55px] max-w-[55px] p-1.5 rounded-xl' : 'min-w-[68px] max-w-[68px] p-2.5 rounded-[1.8rem]'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
+                    >
+                      <div className={`rounded-lg flex items-center justify-center shrink-0 transition-all ${isHeaderSticky ? 'w-6 h-6' : 'w-10 h-10'} ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'}`}>
+                        <span className={`material-symbols-outlined ${isHeaderSticky ? 'text-sm' : 'text-lg'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
+                          {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' : cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' : cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
+                        </span>
+                      </div>
+                      <span className={`font-black uppercase tracking-tighter leading-tight text-center ${isHeaderSticky ? 'text-[6px]' : 'text-[7px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
+                    </motion.button>
+                  ))
                 )}
               </div>
 
-            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar px-1">
-              {categoriesLoading ? (
-                [...Array(4)].map((_, i) => <div key={i} className="min-w-[70px] h-20 bg-white rounded-[1.2rem] animate-pulse border border-slate-100" />)
-              ) : (
-                categories.map(cat => (
-                  <motion.button
-                    key={cat.name}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleCategoryClick(cat)}
-                    className={`flex flex-col items-center gap-1.5 min-w-[70px] max-w-[70px] p-2.5 rounded-[1.5rem] border-2 transition-all duration-500 ${selectedCategory?.name === cat.name
-                      ? 'bg-slate-950 text-white border-slate-950 shadow-lg'
-                      : 'bg-white text-slate-900 border-slate-100 shadow-sm hover:border-slate-200'
-                      }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-inner transition-all duration-500 ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'
-                      }`}>
-                      <span className={`material-symbols-outlined text-[16px] ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
-                        {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' :
-                          cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' :
-                            cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
-                      </span>
-                    </div>
-                    <span className={`text-[6.5px] font-black uppercase tracking-tighter leading-tight text-center ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-900'}`}>
-                      {cat.name}
-                    </span>
-                  </motion.button>
-                ))
-              )}
+              <AnimatePresence>
+                {subCategories.length > 0 && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'mt-2' : 'mt-4'}`}>
+                    {subCategories.map(sub => (
+                      <button
+                        key={sub._id}
+                        onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : { ...sub, name: sub.subCategory })}
+                        className={`rounded-lg font-black uppercase tracking-widest transition-all whitespace-nowrap border ${isHeaderSticky ? 'px-3 py-1.5 text-[6px]' : 'px-5 py-2.5 text-[8px]'} ${selectedSubCategory?._id === sub._id ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'}`}
+                      >
+                        {sub.subCategory}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
+            {/* SEARCH BAR - SLIM WHEN STICKY */}
+            <div className="relative group px-1">
+              <div className={`absolute inset-y-0 left-6 flex items-center pointer-events-none ${isHeaderSticky ? 'scale-75' : ''}`}>
+                <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-900'} text-xl opacity-40 group-focus-within:opacity-100 transition-opacity`}>search</span>
+              </div>
+              <input 
+                value={searchQuery} 
+                onChange={(e) => setSearchQuery(e.target.value)} 
+                className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-12 py-2.5 text-[10px]' : 'pl-16 py-4 text-[11px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
+                placeholder={isHeritage ? "Search..." : "Search services..."} 
+              />
             </div>
-
-            {/* Sub Categories */}
-            <AnimatePresence>
-              {subCategories.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-3 flex gap-2 overflow-x-auto pb-2 hide-scrollbar px-1"
-                >
-                  {subCategories.map(sub => (
-                    <motion.button
-                      key={sub._id}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : { ...sub, name: sub.subCategory })}
-                      className={`px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap border-2 shadow-sm ${selectedSubCategory?._id === sub._id
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                        }`}
-                    >
-                      {sub.subCategory}
-                    </motion.button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </section>
-        </div>
-      </div>
-
-
-        {/* 5. Service Selection Grid */}
-        <section className="mb-10 w-full">
-          <div className="flex items-center justify-between mb-6 px-2">
-            <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.4em]">Available Services</h3>
           </div>
+        </div>
 
+        {/* 5. SERVICES LIST (CLEAN IMAGE-MATCHED DESIGN) */}
+        <section className="mb-10 w-full px-2">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <h3 className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Available Services</h3>
+          </div>
           <div className={`flex flex-col gap-3 ${showMoreServices ? 'max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
             {loading ? (
-              [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-3xl p-4 h-24 border border-black/5 animate-pulse" />)
+              [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-4 h-24 border border-slate-50 animate-pulse" />)
             ) : (
               filteredServices.map((service, i) => {
                 const serviceId = service._id || service.id;
@@ -838,138 +628,65 @@ const HomePage = () => {
                 const isSelected = qty > 0;
                 return (
                   <motion.div 
-                    key={serviceId} 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className={`rounded-[2rem] p-3 flex flex-row items-center gap-4 border-2 transition-all duration-300 ${isSelected 
-                      ? 'border-slate-900 bg-slate-900 shadow-xl shadow-slate-200 scale-[1.02]' 
-                      : 'bg-white border-slate-100'}`}
+                    key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                    className={`rounded-[2.2rem] p-3 flex flex-row items-center gap-4 border-2 transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-slate-300 scale-[1.02]' : 'bg-white border-slate-100 shadow-sm'}`}
                   >
-                    {/* 1. LOGO */}
-                    <div 
-                      onClick={() => handleServiceClick(serviceId, service, i)} 
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden shadow-inner cursor-pointer border transition-all duration-500 ${isSelected 
-                        ? 'bg-white/10 border-white/20' 
-                        : 'bg-slate-50 border-slate-50'}`}
-                    >
-                      {service.image ? (
-                        <img src={service.image} alt="" className={`w-full h-full object-cover transition-transform duration-500 ${isSelected ? 'scale-110 opacity-80' : ''}`} />
-                      ) : (
-                        <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-white' : (isHeritage ? 'text-[#996515]' : 'text-slate-400')}`}>local_laundry_service</span>
-                      )}
+                    {/* Icon/Logo */}
+                    <div onClick={() => handleServiceClick(serviceId, service, i)} className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100/50 cursor-pointer">
+                      {service.image ? <img src={service.image} alt="" className="w-full h-full object-cover" /> : <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-white' : 'text-slate-300'}`}>local_laundry_service</span>}
                     </div>
 
-                    {/* 2. NAME & PRICE */}
+                    {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className={`font-black text-[11px] leading-tight mb-1 uppercase truncate ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
+                      <h4 className={`font-black text-[10px] leading-tight mb-1 uppercase line-clamp-1 ${isSelected ? 'text-white' : 'text-slate-900'} tracking-tight`}>{service.name || service.itemName}</h4>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[12px] font-black ${isSelected ? 'text-emerald-400' : (isHeritage ? 'text-[#996515]' : 'text-slate-900')}`}>
-                          ₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}
-                        </span>
-                        {(service.basePrice || 0) > (service.discountedPrice || 0) && (
-                          <span className={`text-[9px] font-bold line-through ${isSelected ? 'text-white/40' : 'text-slate-300'}`}>
-                            ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
-                          </span>
-                        )}
+                        <span className={`text-[12px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
+                        {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[9px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
                       </div>
                     </div>
 
-                    {/* 3. CONTROLS (Quantity + Photo) */}
+                    {/* Quantity & Photo */}
                     <div className="flex items-center gap-3">
-                      {/* Quantity Selector */}
-                      <div className="flex items-center bg-white rounded-xl border border-slate-100 p-0.5 shadow-sm">
-                        <button 
-                          onClick={() => updateQuantity(serviceId, -1)} 
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 hover:text-black transition-all"
-                        >
-                          <span className="material-symbols-outlined text-[14px] font-black">remove</span>
-                        </button>
-                        <span className="text-[11px] font-black text-slate-900 px-2 min-w-[24px] text-center">{qty}</span>
-                        <button 
-                          onClick={() => updateQuantity(serviceId, 1)} 
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-50 text-slate-400 hover:text-black transition-all"
-                        >
-                          <span className="material-symbols-outlined text-[14px] font-black">add</span>
-                        </button>
+                      <div className="flex items-center bg-slate-50 rounded-full p-1 border border-slate-100 shadow-inner">
+                        <button onClick={() => updateQuantity(serviceId, -1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">remove</span></button>
+                        <span className="text-[11px] font-black text-slate-900 px-3 min-w-[32px] text-center">{qty}</span>
+                        <button onClick={() => updateQuantity(serviceId, 1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">add</span></button>
                       </div>
-
-                      {/* Photo Upload Icon */}
-                      <div className="flex flex-col items-center">
+                      
+                      {isSelected && (
                         <button 
-                          onClick={() => {
-                            setActiveServiceForPhoto(serviceId);
-                            setTimeout(() => document.getElementById('photo-upload').click(), 10);
-                          }}
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-50 text-slate-300 hover:text-black hover:bg-slate-100'}`}
+                          onClick={() => { setActiveServiceForPhoto(serviceId); setTimeout(() => document.getElementById('photo-upload').click(), 10); }}
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
                         >
-                          <span className="material-symbols-outlined text-[16px]">
-                            {uploading && activeServiceForPhoto === serviceId ? 'sync' : 'add_a_photo'}
-                          </span>
+                          <span className="material-symbols-outlined text-[18px]">{uploading && activeServiceForPhoto === serviceId ? 'sync' : 'add_a_photo'}</span>
                         </button>
-                        {itemPhotos[serviceId]?.length > 0 && (
-                          <span className="text-[6px] font-black text-emerald-600 uppercase tracking-tighter mt-0.5">
-                            {itemPhotos[serviceId].length}P
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </motion.div>
                 );
               })
             )}
           </div>
-
-          {/* View All Button */}
+          <input id="photo-upload" type="file" multiple accept="image/*" onChange={handlePhotoUpload} className="hidden" />
           {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => setShowMoreServices(true)}
-                className="px-8 py-3 rounded-2xl bg-white border-2 border-slate-100 text-slate-900 font-black text-[10px] uppercase tracking-widest hover:border-black transition-all shadow-sm flex items-center gap-2 group"
-              >
-                View All Services
-                <span className="material-symbols-outlined text-sm group-hover:translate-y-0.5 transition-transform">expand_more</span>
-              </button>
-            </div>
-          )}
-
-          {showMoreServices && (
-            <div className="flex justify-center mt-6">
-              <button
-                onClick={() => setShowMoreServices(false)}
-                className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[9px] uppercase tracking-widest hover:text-slate-900 transition-all"
-              >
-                Show Less
-              </button>
-            </div>
+            <div className="flex justify-center mt-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
           )}
         </section>
 
-        {/* 4. LOGISTICS SETUP CARD */}
+        {/* 6. INSTRUCTIONS SECTION */}
         {cartItemsCount > 0 && (
           <section className="mb-8 space-y-4">
-            <div className="bg-white rounded-[3rem] p-8 md:p-10 border border-slate-100 shadow-2xl shadow-slate-200/40 relative overflow-hidden">
-              <div className="absolute right-0 top-0 p-10 opacity-5">
-                <span className="material-symbols-outlined text-8xl">logistics</span>
-              </div>
-
-              <div className="flex flex-col gap-10">
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">1. Order Instructions</p>
-                  <textarea
-                    value={orderNotes}
-                    onChange={(e) => setOrderNotes(e.target.value)}
-                    placeholder="Example: Be careful with the buttons, special stain on collar..."
-                    className="w-full bg-slate-50 border border-slate-100 p-5 rounded-[2rem] focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all font-bold text-slate-800 text-xs min-h-[100px] resize-none"
-                  />
-                </div>
-                {/* Global photo upload removed as per request. Photos are now per-item. */}
+            <div className="bg-white rounded-[3rem] p-8 border border-slate-100 shadow-2xl relative overflow-hidden">
+              <div className="absolute right-0 top-0 p-10 opacity-5"><span className="material-symbols-outlined text-8xl">logistics</span></div>
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Order Instructions</p>
+                <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder="Special care instructions..." className="w-full bg-slate-50 border border-slate-100 p-5 rounded-[2rem] focus:bg-white outline-none font-bold text-slate-800 text-xs min-h-[100px] resize-none" />
               </div>
             </div>
           </section>
         )}
 
-        {/* 5. FLOATING CART BAR */}
+        {/* 7. FLOATING CART BAR */}
         <AnimatePresence>
           {cartItemsCount > 0 && !isCartDismissed && (
             <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-28 left-6 right-6 z-[100] max-w-lg mx-auto">
@@ -981,7 +698,7 @@ const HomePage = () => {
           )}
         </AnimatePresence>
 
-        {/* 6. SLOT PICKER MODAL */}
+        {/* 8. SLOT PICKER MODAL */}
         <AnimatePresence>
           {showSlotPicker && (
             <div className="fixed inset-0 z-[200] flex items-end justify-center p-0">
@@ -993,39 +710,26 @@ const HomePage = () => {
                     <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
                       {availableDates.map((d, i) => {
                         const dateStr = `${d.day}, ${d.date}`;
-                        const isSelected = (activeSlotType === 'pickup' ? selectedPickup : selectedDelivery).includes(d.date);
-
-                        // Validation for delivery date
+                        const isSelected = (activeSlotType === 'pickup' ? selectedPickup : selectedDelivery)?.includes(d.date);
                         let isDisabled = false;
                         if (activeSlotType === 'delivery' && selectedPickup && pickupTime) {
                           const pickupDT = getSlotDateTime(selectedPickup, pickupTime);
-                          const currentDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length - 1]); // Check if even last slot is possible
+                          const currentDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length - 1]);
                           const minHours = isExpress ? 24 : 72;
                           const diffHours = (currentDT - pickupDT) / (1000 * 60 * 60);
                           if (diffHours < minHours) isDisabled = true;
                         }
-
-                        return (
-                          <button
-                            key={i}
-                            disabled={isDisabled}
-                            onClick={() => activeSlotType === 'pickup' ? setSelectedPickup(dateStr) : setSelectedDelivery(dateStr)}
-                            className={`min-w-[90px] p-4 rounded-[1.5rem] border transition-all flex flex-col items-center gap-1 ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100')}`}
-                          >
-                            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">{d.day}</span>
-                            <span className="text-sm font-black tracking-tighter">{d.date}</span>
-                          </button>
-                        );
+                        return (<button key={i} disabled={isDisabled} onClick={() => activeSlotType === 'pickup' ? setSelectedPickup(dateStr) : setSelectedDelivery(dateStr)} className={`min-w-[90px] p-4 rounded-[1.5rem] border transition-all flex flex-col items-center gap-1 ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100')}`}><span className="text-[9px] font-black uppercase tracking-widest opacity-60">{d.day}</span><span className="text-sm font-black tracking-tighter">{d.date}</span></button>);
                       })}
                     </div>
                   </div>
                   <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Time Window (2 Hours)</p>
                     <div className="grid grid-cols-2 gap-2">
-                      {timeSlots.map((slot) => {
+                                            {timeSlots.map((slot) => {
                         const isSelected = (activeSlotType === 'pickup' ? pickupTime : deliveryTime) === slot;
-
-                        // Validation for delivery time slot
                         let isDisabled = false;
+                        
+                        // 1. Logic for Delivery min-gap
                         if (activeSlotType === 'delivery' && selectedPickup && pickupTime && selectedDelivery) {
                           const pickupDT = getSlotDateTime(selectedPickup, pickupTime);
                           const deliveryDT = getSlotDateTime(selectedDelivery, slot);
@@ -1034,108 +738,219 @@ const HomePage = () => {
                           if (diffHours < minHours) isDisabled = true;
                         }
 
-                        return (
-                          <button
-                            key={slot}
-                            disabled={isDisabled}
-                            onClick={() => activeSlotType === 'pickup' ? setPickupTime(slot) : setDeliveryTime(slot)}
-                            className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-slate-50 text-slate-400 border-slate-100')}`}
-                          >
-                            {slot}
-                          </button>
-                        );
+                        // 2. Logic for Past Time Slots (Today only)
+                        const isToday = (activeSlotType === 'pickup' ? selectedPickup : selectedDelivery)?.includes('TODAY');
+                        if (isToday) {
+                          const [slotStart] = slot.split(' - ');
+                          const slotDT = getSlotDateTime(activeSlotType === 'pickup' ? selectedPickup : selectedDelivery, slot);
+                          if (slotDT && slotDT < new Date()) isDisabled = true;
+                        }
+
+                        return (<button key={slot} disabled={isDisabled} onClick={() => activeSlotType === 'pickup' ? setPickupTime(slot) : setDeliveryTime(slot)} className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-slate-50 text-slate-400 border-slate-100')}`}>{slot}</button>);
                       })}
                     </div>
                   </div>
                 </div>
-                <button onClick={() => setShowSlotPicker(false)} className="w-full bg-black text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] mt-4">CONFIRM SELECTION</button>
+                  {/* ADDRESS SELECTION SECTION */}
+                  <div className="pt-6 border-t border-slate-100 space-y-6">
+                    <div className="flex items-center justify-between px-2">
+                      <div className="space-y-0.5">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{activeSlotType === 'pickup' ? 'Pickup' : 'Delivery'} Address</p>
+                        <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest">Select where we should visit</p>
+                      </div>
+                      <button 
+                        onClick={() => { setShowSlotPicker(false); setShowAddressPicker(true); }} 
+                        className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 hover:bg-black hover:text-white px-4 py-2 rounded-xl transition-all duration-300 border border-slate-200/50 shadow-sm"
+                      >
+                        Change
+                      </button>
+                    </div>
+                    
+                    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-200/50 group transition-all hover:shadow-md active:scale-[0.98]">
+                      <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-black group-hover:text-white transition-colors">
+                          <span className="material-symbols-outlined text-xl">location_on</span>
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className="text-[11px] font-black uppercase text-slate-900 tracking-tight">
+                            {(activeSlotType === 'pickup' ? pickupAddress : (isSameAsPickup ? pickupAddress : dropAddress))?.type || 'Not Set'}
+                          </p>
+                          <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                            {(activeSlotType === 'pickup' ? pickupAddress : (isSameAsPickup ? pickupAddress : dropAddress))?.fullAddress || (activeSlotType === 'pickup' ? 'Please select pickup address' : 'Please select delivery address')}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {activeSlotType === 'pickup' && (
+                      <div className="flex items-center justify-between bg-slate-950 p-5 rounded-[2.2rem] shadow-2xl shadow-slate-200 border border-white/5 overflow-hidden relative">
+                        <div className="absolute right-0 top-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
+                          <span className="material-symbols-outlined text-6xl text-white">swap_calls</span>
+                        </div>
+                        <div className="flex items-center gap-4 relative z-10">
+                          <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white/40 text-lg">swap_calls</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Deliver to different address?</p>
+                            <p className="text-[7px] font-bold text-white/20 uppercase tracking-widest mt-0.5">Toggle for separate drop-off</p>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setIsSameAsPickup(!isSameAsPickup)}
+                          className={`w-14 h-7 rounded-full transition-all relative z-10 ${!isSameAsPickup ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]' : 'bg-white/10'}`}
+                        >
+                          <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-500 ${!isSameAsPickup ? 'right-1' : 'left-1'}`} />
+                        </button>
+                      </div>
+                    )}
+
+                    {!isSameAsPickup && (
+                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-2">
+                        <div className="flex items-center justify-between px-2">
+                          <div className="space-y-0.5">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Delivery Address</p>
+                            <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest">Final destination for your garments</p>
+                          </div>
+                          <button 
+                            onClick={() => { setShowSlotPicker(false); setShowAddressPicker(true); }} 
+                            className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 hover:bg-black hover:text-white px-4 py-2 rounded-xl transition-all duration-300 border border-slate-200/50 shadow-sm"
+                          >
+                            Change
+                          </button>
+                        </div>
+                        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-200/50 group transition-all hover:shadow-md active:scale-[0.98]">
+                          <div className="flex items-start gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-black group-hover:text-white transition-colors">
+                              <span className="material-symbols-outlined text-xl text-slate-400">local_shipping</span>
+                            </div>
+                            <div className="flex-1 pt-1">
+                              <p className="text-[11px] font-black uppercase text-slate-900 tracking-tight">{dropAddress?.type || 'Not Set'}</p>
+                              <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-relaxed">{dropAddress?.fullAddress || 'Please select an address for delivery'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                <button 
+                  onClick={() => setShowSlotPicker(false)} 
+                  className="w-full bg-black text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] mt-8 shadow-[0_20px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Confirm Selection
+                </button>
               </motion.div>
             </div>
           )}
         </AnimatePresence>
 
-        {/* 7. ADDRESS PICKER MODAL */}
+        {/* 9. ADDRESS PICKER MODAL */}
         <AnimatePresence>
           {showAddressPicker && (
-            <div className="fixed inset-0 z-[200] flex items-end justify-center p-0">
+            <div className="fixed inset-0 z-[210] flex items-end justify-center p-0">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddressPicker(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
               <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 overflow-y-auto max-h-[85vh] hide-scrollbar">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">SELECT <br />{activeAddressType} ADDRESS.</h3>
-                  <button onClick={() => setShowAddressPicker(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-                    <span className="material-symbols-outlined">close</span>
+                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">CHOOSE <br />{activeAddressType} ADDRESS.</h3>
+                  <button onClick={() => setShowAddressPicker(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"><span className="material-symbols-outlined">close</span></button>
+                </div>
+
+                <div className="space-y-4">
+                  {savedAddresses.length > 0 ? savedAddresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      onClick={() => {
+                        if (activeAddressType === 'pickup') {
+                          setPickupAddress(addr);
+                          if (isSameAsPickup) setDropAddress(addr);
+                        } else {
+                          setDropAddress(addr);
+                        }
+                        setShowAddressPicker(false);
+                      }}
+                      className={`w-full p-4 rounded-2xl border-2 text-left flex items-start gap-3 transition-all ${((activeAddressType === 'pickup' ? pickupAddress : dropAddress)?.id === addr.id) ? 'border-black bg-slate-50' : 'border-slate-100'}`}
+                    >
+                      <span className="material-symbols-outlined text-slate-400">location_on</span>
+                      <div>
+                        <p className="text-[11px] font-black uppercase text-slate-900">{addr.type}</p>
+                        <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2">{addr.address || addr.fullAddress}</p>
+                      </div>
+                    </button>
+                  )) : (
+                    <div className="py-10 text-center">
+                      <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">No saved addresses found</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowAddressPicker(false);
+                      setShowAddressForm(true);
+                    }}
+                    className="w-full p-6 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 flex items-center justify-center gap-2 hover:border-slate-900 hover:text-slate-900 transition-all"
+                  >
+                    <span className="material-symbols-outlined">add</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Add New Address</span>
                   </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* 10. ADDRESS FORM MODAL (FORMAT) */}
+        <AnimatePresence>
+          {showAddressForm && (
+            <div className="fixed inset-0 z-[220] flex items-end justify-center p-0">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAddressForm(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 overflow-y-auto max-h-[90vh] hide-scrollbar">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">ENTER NEW <br />ADDRESS.</h3>
+                  <button onClick={() => setShowAddressForm(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"><span className="material-symbols-outlined">close</span></button>
                 </div>
 
                 <div className="space-y-6">
-                  {/* Saved Addresses List */}
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Saved Addresses</p>
-                    <div className="flex flex-col gap-3">
-                      {savedAddresses.map((addr) => (
+                  {/* Address Type */}
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Address Type</p>
+                    <div className="flex gap-2">
+                      {['Home', 'Work', 'Other'].map(t => (
                         <button
-                          key={addr.id}
-                          onClick={() => {
-                            if (activeAddressType === 'pickup') {
-                              setPickupAddress(addr);
-                              if (isSameAsPickup) setDropAddress(addr);
-                            } else {
-                              setDropAddress(addr);
-                            }
-                            setShowAddressPicker(false);
-                          }}
-                          className={`w-full p-6 rounded-[2rem] border-2 text-left transition-all flex items-center justify-between ${(activeAddressType === 'pickup' ? pickupAddress : dropAddress)?.id === addr.id ? 'bg-black text-white border-black shadow-xl' : 'bg-slate-50 border-slate-100 hover:border-black'}`}
+                          key={t}
+                          onClick={() => setAddressFormData(prev => ({ ...prev, type: t }))}
+                          className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${addressFormData.type === t ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
                         >
-                          <div className="flex items-center gap-4">
-                            <span className="material-symbols-outlined text-xl">{addr.type === 'HOME' ? 'home' : addr.type === 'OFFICE' ? 'business' : 'location_on'}</span>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{addr.type}</span>
-                              <p className="text-xs font-bold line-clamp-1">{addr.address}</p>
-                            </div>
-                          </div>
-                          {(activeAddressType === 'pickup' ? pickupAddress : dropAddress)?.id === addr.id && (
-                            <span className="material-symbols-outlined text-emerald-400">check_circle</span>
-                          )}
+                          {t}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Add New / Custom Address */}
-                  <div className="space-y-4 pt-4 border-t border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">New Address</p>
-                    <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
-                       <textarea
-                         value={customAddress}
-                         onChange={(e) => setCustomAddress(e.target.value)}
-                         placeholder="Enter new address details here..."
-                         className="w-full bg-white border border-slate-200 p-5 rounded-[1.5rem] focus:ring-4 focus:ring-black/5 outline-none transition-all font-bold text-slate-800 text-xs min-h-[100px] resize-none"
-                       />
-                       <button 
-                         onClick={() => {
-                           if (!customAddress) return alert('Please enter an address');
-                           const newAddr = { id: Date.now(), type: 'OTHER', address: customAddress };
-                           if (activeAddressType === 'pickup') {
-                             setPickupAddress(newAddr);
-                             if (isSameAsPickup) setDropAddress(newAddr);
-                           } else {
-                             setDropAddress(newAddr);
-                           }
-                           setShowAddressPicker(false);
-                           setCustomAddress('');
-                         }}
-                         className="w-full bg-black text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-black/20"
-                       >
-                         Use This Address
-                       </button>
-                       <button 
-                         onClick={() => navigate('/user/profile/addresses')}
-                         className="w-full bg-white text-slate-400 py-3 rounded-2xl font-black text-[9px] uppercase tracking-widest border border-slate-100"
-                       >
-                         Manage Saved Addresses
-                       </button>
-                    </div>
+                  {/* Address Input */}
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Full Address</p>
+                    <textarea
+                      value={customAddress}
+                      onChange={(e) => setCustomAddress(e.target.value)}
+                      placeholder="Street, Building, Area..."
+                      className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white outline-none font-bold text-slate-800 text-xs min-h-[100px] resize-none"
+                    />
                   </div>
+
+                  <button
+                    onClick={handleLiveLocation}
+                    className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-widest"
+                  >
+                    <span className="material-symbols-outlined text-lg">my_location</span>
+                    {isLocating ? 'Locating...' : 'Use Current Location'}
+                  </button>
+
+                  <button
+                    onClick={handleSaveCustomAddress}
+                    className="w-full bg-black text-white py-5 rounded-2xl font-black text-xs uppercase tracking-[0.2em]"
+                  >
+                    SAVE & USE ADDRESS
+                  </button>
                 </div>
               </motion.div>
             </div>

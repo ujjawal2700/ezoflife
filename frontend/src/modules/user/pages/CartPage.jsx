@@ -574,70 +574,80 @@ const CartPage = () => {
 
       <motion.main className="max-w-5xl mx-auto px-6 pt-16 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
         <div className="flex flex-col gap-10">
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6 md:p-8 space-y-6">
-            <div className="flex items-center justify-between pl-4 border-l-4 border-black">
-              <div>
-                <h2 className="font-headline text-2xl font-black tracking-tighter leading-none text-slate-900 uppercase">Your Summary.</h2>
-                <p className="text-slate-400 text-[9px] font-black uppercase tracking-widest mt-1">Review your order logistics & preferences</p>
-              </div>
+          {/* 1. CONCISE ORDER SUMMARY BOX */}
+          <div className="bg-slate-950 text-white rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
+            <div className="absolute right-0 top-0 p-10 opacity-[0.03] rotate-12 pointer-events-none">
+              <span className="material-symbols-outlined text-[120px]">receipt_long</span>
             </div>
             
-            {/* COMPACT LOGISTICS SUMMARY ROW */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center">
-                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Pickup</p>
-                <p className="text-[10px] font-bold text-slate-900 leading-tight">{selectedPickup?.split(',')[0]}<br/>{pickupTime?.split(' - ')[0]}</p>
+            <div className="flex items-center justify-between mb-8 relative z-10">
+              <div>
+                <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">Order Summary</h2>
+                <p className="text-white/40 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Order Logistics & Preferences</p>
               </div>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center">
-                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivery</p>
-                <p className="text-[10px] font-bold text-slate-900 leading-tight">{selectedDelivery?.split(',')[0]}<br/>{deliveryTime?.split(' - ')[0]}</p>
+              <div className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest ${isExpress ? 'bg-amber-500 text-black shadow-[0_10px_20px_rgba(245,158,11,0.2)]' : 'bg-white/10 text-white'}`}>
+                {isExpress ? '⚡ Express Delivery' : 'Normal Delivery'}
               </div>
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col items-center text-center">
-                <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1">Address</p>
-                <p className="text-[10px] font-bold text-slate-900">{selectedPickupAddress?.type || 'Manual'}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/40 text-lg">calendar_today</span>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Pickup Slot & Address</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-bold">{selectedPickup?.split(',')[1] || selectedPickup} • {pickupTime?.split(' - ')[0]}</p>
+                      <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md uppercase tracking-tighter border border-amber-400/20">
+                        {selectedPickupAddress?.type || 'Home'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/40 text-lg">local_shipping</span>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Delivery Slot & Address</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-xs font-bold">{selectedDelivery?.split(',')[1] || selectedDelivery} • {deliveryTime?.split(' - ')[0]}</p>
+                      <span className="text-[10px] font-black text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md uppercase tracking-tighter border border-emerald-400/20">
+                        {isSameAddress ? selectedPickupAddress?.type : (selectedDropAddress?.type || 'Home')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="bg-slate-950 p-4 rounded-2xl text-white flex flex-col items-center text-center">
-                <p className="text-[7px] font-black text-white/40 uppercase tracking-widest mb-1">Priority</p>
-                <p className="text-[10px] font-bold">{isExpress ? 'Express' : 'Standard'}</p>
-              </div>
-              <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex flex-col items-center text-center">
-                <p className="text-[7px] font-black text-emerald-600 uppercase tracking-widest mb-1">Tier</p>
-                <p className="text-[10px] font-bold text-emerald-900">
-                  {[...new Set(cartItems.map(item => (item.tier === 'Heritage' || item.basePrice > 200) ? 'Heritage' : 'Essential'))].join(' & ') || 'Essential'}
-                </p>
+
+              <div className="flex flex-col justify-between pt-6 md:pt-0 md:pl-8 md:border-l border-white/5">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Service Tier</p>
+                    <p className="text-[10px] font-black text-white uppercase tracking-tighter">
+                      {[...new Set(cartItems.map(item => (item.tier === 'Heritage' || item.basePrice > 200) ? 'Heritage' : 'Essential'))].join(' & ') || 'Essential'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Priority</p>
+                    <p className="text-[10px] font-black text-white uppercase tracking-tighter">{isExpress ? 'Express (24-48h)' : 'Normal (3-4 Days)'}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Items Count</p>
+                    <p className="text-[10px] font-black text-white uppercase tracking-tighter">{cartItems.length} Services</p>
+                  </div>
+                </div>
+                
+                <div className="mt-6 flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/5">
+                  <span className="material-symbols-outlined text-[14px] text-amber-500">info</span>
+                  <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-tight">Prices include doorstep pickup and professional handling</p>
+                </div>
               </div>
             </div>
           </div>
-
-
-            {/* PROMO CODE INTEGRATED */}
-            <div className="bg-white rounded-[2rem] border-2 border-dashed border-slate-200 p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Have a Promo Code?</p>
-                {isPromoApplied && (
-                  <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[9px] font-black text-rose-500 uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-lg">Remove</button>
-                )}
-              </div>
-              <div className="flex gap-2">
-                  <input 
-                      type="text" 
-                      placeholder="ENTER CODE"
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                      className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:bg-white transition-all"
-                  />
-                  <button 
-                      onClick={handleApplyPromo}
-                      className={`px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-black text-white'}`}
-                  >
-                      {isPromoApplied ? 'APPLIED' : 'APPLY'}
-                  </button>
-              </div>
-              {promoError && <p className="text-[8px] font-black text-rose-500 uppercase tracking-widest">{promoError}</p>}
-              {isPromoApplied && (
-                  <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">SAVED ₹{discount.toFixed(0)} WITH {appliedPromoData?.code}!</p>
-              )}
-            </div>
 
           <div className="space-y-3">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Services Review</p>
@@ -680,116 +690,105 @@ const CartPage = () => {
             })}
           </div>
 
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-4">
-            <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
-              <span className="material-symbols-outlined text-black">description</span>Special Instructions.
-            </h3>
-            <textarea 
-              value={specialInstructions}
-              onChange={(e) => {
-                setSpecialInstructions(e.target.value);
-                localStorage.setItem('order_notes', e.target.value);
-              }}
-              placeholder="Any specific care instructions for your clothes?"
-              className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] p-6 text-xs font-bold outline-none focus:bg-white focus:ring-2 ring-black/5 min-h-[120px] transition-all"
-            />
-          </div>
 
-          {/* PAYMENT METHOD SELECTION */}
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="font-headline font-black text-xl flex items-center gap-3 text-slate-900 uppercase tracking-tighter">
-                <span className="material-symbols-outlined text-black">payments</span>Payment Method.
-              </h3>
+
+
+
+          <div className="bg-slate-950 text-white rounded-[3rem] p-10 shadow-2xl space-y-8 relative overflow-hidden group">
+            <div className="absolute right-0 top-0 p-12 opacity-[0.03] rotate-12 pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+              <span className="material-symbols-outlined text-[140px]">payments</span>
+            </div>
+
+            <div className="space-y-6 relative z-10">
+              {/* PROMO CODE INTEGRATED */}
+              <div className="bg-white/5 rounded-[2rem] border border-white/10 p-5 flex flex-col gap-4 backdrop-blur-md">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Have a Promo Code?</p>
+                  {isPromoApplied && (
+                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[9px] font-black text-rose-400 uppercase tracking-widest bg-rose-400/10 px-3 py-1.5 rounded-xl border border-rose-400/20">Remove</button>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                    <input 
+                      type="text" 
+                      placeholder="ENTER CODE"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-[11px] font-black uppercase tracking-widest outline-none focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder:text-white/20"
+                    />
+                    <button 
+                      onClick={handleApplyPromo}
+                      className={`px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}
+                    >
+                      {isPromoApplied ? 'APPLIED' : 'APPLY'}
+                    </button>
+                </div>
+                {promoError && <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest ml-1">{promoError}</p>}
+                {isPromoApplied && (
+                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest ml-1">✨ SAVED ₹{discount.toFixed(0)} WITH {appliedPromoData?.code}!</p>
+                )}
+              </div>
+
+              <div className="space-y-5 px-2">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
+                  <span>Base Items Total</span>
+                  <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
+                </div>
+                
+                {priceBreakdown.expressSurcharge > 0 && (
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-amber-400">
+                    <span>Express Surcharge</span>
+                    <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
+                  <span>Platform Fee</span>
+                  <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
+                  <span>Logistic Fee</span>
+                  <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
+                  <span>GST (18%)</span>
+                  <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
+                </div>
+
+                {isPromoApplied && (
+                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-emerald-400 bg-emerald-400/10 px-5 py-3 rounded-2xl border border-emerald-400/20">
+                    <span>Promo Discount ({appliedPromoData?.code})</span>
+                    <span>- ₹{discount.toFixed(0)}</span>
+                  </div>
+                )}
+              </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => setPaymentMethod('Online')}
-                className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${paymentMethod === 'Online' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-              >
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentMethod === 'Online' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                  <span className="material-symbols-outlined">payments</span>
-                </div>
-                <div className="text-center">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === 'Online' ? 'text-emerald-700' : 'text-slate-400'}`}>Pay Online</p>
-                  <p className="text-[8px] font-bold text-slate-400 mt-0.5">RAZORPAY SECURE</p>
-                </div>
-              </button>
-
-              <button 
-                onClick={() => setPaymentMethod('COD')}
-                className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-3 ${paymentMethod === 'COD' ? 'border-amber-500 bg-amber-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}
-              >
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${paymentMethod === 'COD' ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                  <span className="material-symbols-outlined">handshake</span>
-                </div>
-                <div className="text-center">
-                  <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === 'COD' ? 'text-amber-700' : 'text-slate-400'}`}>Cash on Delivery</p>
-                  <p className="text-[8px] font-bold text-slate-400 mt-0.5">PAY DURING PICKUP</p>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-8 space-y-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-                <span>Base Items Total</span>
-                <span className="text-slate-900">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
-              </div>
-              
-              {priceBreakdown.expressSurcharge > 0 && (
-                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-primary">
-                  <span>Express Surcharge</span>
-                  <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-                <span>Platform Fee</span>
-                <span className="text-slate-900">₹{priceBreakdown.platformFee.toFixed(0)}</span>
-              </div>
-
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-                <span>Logistic Fee</span>
-                <span className="text-slate-900">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
-              </div>
-
-              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-slate-400">
-                <span>GST (18%)</span>
-                <span className="text-slate-900">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
-              </div>
-
-              {isPromoApplied && (
-                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">
-                  <span>Promo Discount ({appliedPromoData?.code})</span>
-                  <span>- ₹{discount.toFixed(0)}</span>
-                </div>
-              )}
-            </div>
-            
-            <div className="pt-6 border-t border-slate-100 space-y-6">
+            <div className="pt-8 border-t border-white/5 space-y-6 relative z-10">
               <div className="flex flex-col">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Payable Amount</p>
-                <div className="flex items-baseline gap-2">
-                    <p className="text-5xl font-black tracking-tighter text-slate-950">₹{finalTotal.toFixed(0)}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-1 px-2">Total Payable Amount</p>
+                <div className="flex flex-wrap items-baseline gap-3 px-2">
+                    <p className="text-5xl font-black tracking-tighter text-white">₹{finalTotal.toFixed(0)}</p>
                     {paymentMethod === 'Online' && advanceConfigPerc < 100 && (
-                        <p className="text-xs font-bold text-emerald-600">₹{(finalTotal * (advanceConfigPerc/100)).toFixed(0)} Pay Now</p>
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
+                          <p className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">₹{(finalTotal * (advanceConfigPerc/100)).toFixed(0)} Pay Now</p>
+                        </div>
                     )}
                 </div>
               </div>
               
               <motion.button 
-                whileHover={{ scale: 1.02, y: -2 }}
+                whileHover={{ scale: 1.02, y: -4 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handlePlaceOrder}
                 disabled={cartItems.length === 0 || loading}
-                className="w-full bg-black text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-[0_20px_40px_rgba(0,0,0,0.15)] flex items-center justify-center gap-4 group transition-all"
+                className="w-full bg-white text-black py-6 rounded-[2rem] font-black text-[14px] uppercase tracking-[0.05em] shadow-[0_20px_60px_rgba(255,255,255,0.1)] flex items-center justify-center gap-3 group/btn transition-all"
               >
-                {loading ? 'PROCESSING...' : (paymentMethod === 'Online' ? 'PROCEED TO PAYMENT' : 'CONFIRM ORDER')}
-                <span className="material-symbols-outlined text-lg group-hover:translate-x-2 transition-transform">
-                  {paymentMethod === 'Online' ? 'credit_card' : 'check_circle'}
+                {loading ? 'PROCESSING...' : 'PROCEED TO PAYMENT'}
+                <span className="material-symbols-outlined text-xl group-hover/btn:translate-x-2 transition-transform duration-500">
+                  arrow_forward_ios
                 </span>
               </motion.button>
             </div>

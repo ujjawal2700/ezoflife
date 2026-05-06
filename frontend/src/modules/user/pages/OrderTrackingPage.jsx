@@ -503,7 +503,9 @@ const OrderTrackingPage = () => {
           <div className="bg-white p-8 rounded-[2.5rem] border border-outline-variant/10 shadow-sm flex flex-col justify-between group">
             <div>
               <span className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-60">Order Status</span>
-              <h3 className="font-headline font-black text-2xl text-primary tracking-tighter mt-2 leading-none uppercase">{order?.status}</h3>
+              <h3 className="font-headline font-black text-2xl text-primary tracking-tighter mt-2 leading-none uppercase">
+                {order?.status === 'Payment Pending' ? 'Service Completed' : order?.status}
+              </h3>
             </div>
             <div className="mt-10 flex gap-8">
               <div className="flex flex-col">

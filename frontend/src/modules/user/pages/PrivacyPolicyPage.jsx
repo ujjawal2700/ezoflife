@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { legalApi } from '../../../lib/api';
 
 const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get('role') || 'customer';
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchDoc = async () => {
         try {
-            const data = await legalApi.getByType('privacy-policy');
+            const data = await legalApi.getByType(`privacy-policy-${role}`);
             setDoc(data);
         } catch (error) {
             console.error('Fetch Privacy Policy Error:', error);
@@ -20,7 +21,7 @@ const PrivacyPolicyPage = () => {
         }
     };
     fetchDoc();
-  }, []);
+  }, [role]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },

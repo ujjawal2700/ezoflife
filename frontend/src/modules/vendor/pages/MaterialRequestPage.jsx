@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { materialApi, b2bOrderApi } from '../../../lib/api';
+import { materialApi, b2bOrderApi, adminApi } from '../../../lib/api';
+import B2BInvoicePrint from '../components/B2BInvoicePrint';
+import { Printer, X, FileText } from 'lucide-react';
 
 const MaterialRequestPage = () => {
     const navigate = useNavigate();
@@ -10,6 +12,26 @@ const MaterialRequestPage = () => {
     const [vendorOrders, setVendorOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'requests'
     const [cart, setCart] = useState({});
+    
+    const [showInvoice, setShowInvoice] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [invoiceSettings, setInvoiceSettings] = useState({});
+    const [scale, setScale] = useState(1);
+
+    const calculateScale = () => {
+        const width = window.innerWidth;
+        if (width < 850) {
+            setScale((width - 40) / 850);
+        } else {
+            setScale(1);
+        }
+    };
+
+    useEffect(() => {
+        calculateScale();
+        window.addEventListener('resize', calculateScale);
+        return () => window.removeEventListener('resize', calculateScale);
+    }, []);
 
     const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
     const vendorData = JSON.parse(vendorDataRaw);
@@ -32,7 +54,39 @@ const MaterialRequestPage = () => {
             }
         };
         fetchData();
+        fetchInvoiceSettings();
     }, [vendorId]);
+
+    const fetchInvoiceSettings = async () => {
+        try {
+            const configs = await adminApi.getConfig();
+            const config = configs.find(c => c.key === 'invoice_settings');
+            if (config) setInvoiceSettings(config.value);
+        } catch (err) {
+            console.error('Failed to fetch invoice settings:', err);
+        }
+    };
+
+    const handlePrint = () => {
+        const printContent = document.getElementById('b2b-invoice-content');
+        const WindowPnt = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+        WindowPnt.document.write('<html><head><title>B2B Invoice</title>');
+        WindowPnt.document.write('<script src="https://cdn.tailwindcss.com"></script>');
+        WindowPnt.document.write('</head><body>');
+        WindowPnt.document.write(printContent.innerHTML);
+        WindowPnt.document.write('</body></html>');
+        WindowPnt.document.close();
+        setTimeout(() => {
+            WindowPnt.focus();
+            WindowPnt.print();
+            WindowPnt.close();
+        }, 500);
+    };
+
+    const openInvoice = (order) => {
+        setSelectedOrder(order);
+        setShowInvoice(true);
+    };
 
     const updateQuantity = (id, delta) => {
         setCart(prev => ({
@@ -233,20 +287,32 @@ const MaterialRequestPage = () => {
                                                 </div>
 
                                                 {order.supplier ? (
-                                                    <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                            <span className="material-symbols-outlined text-sm text-primary">person</span>
+                                                    <div className="flex flex-col gap-3">
+                                                        <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3">
+                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                                <span className="material-symbols-outlined text-sm text-primary">person</span>
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Assigned Supplier</p>
+                                                                <p className="text-xs font-black text-slate-900">{order.supplier.displayName}</p>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => window.open(`tel:${order.supplier.phone}`)}
+                                                                className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm">call</span>
+                                                            </button>
                                                         </div>
-                                                        <div className="flex-1">
-                                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Assigned Supplier</p>
-                                                            <p className="text-xs font-black text-slate-900">{order.supplier.displayName}</p>
-                                                        </div>
-                                                        <button 
-                                                            onClick={() => window.open(`tel:${order.supplier.phone}`)}
-                                                            className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-sm">call</span>
-                                                        </button>
+
+                                                        {order.status === 'Delivered' && (
+                                                            <button 
+                                                                onClick={() => openInvoice(order)}
+                                                                className="w-full h-12 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95"
+                                                            >
+                                                                <FileText size={16} />
+                                                                View Invoice
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center gap-2 px-2">
@@ -336,6 +402,65 @@ const MaterialRequestPage = () => {
                             </button>
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {showInvoice && selectedOrder && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowInvoice(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-4xl h-[90vh] rounded-[3rem] shadow-2xl relative z-10 overflow-hidden flex flex-col"
+                        >
+                            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white">
+                                        <FileText size={20} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 leading-none">B2B Material Invoice</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Batch ID: {selectedOrder._id.slice(-8).toUpperCase()}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button 
+                                        onClick={handlePrint}
+                                        className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/20"
+                                    >
+                                        <Printer size={16} /> Print / Download
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowInvoice(false)}
+                                        className="p-3 hover:bg-slate-100 rounded-2xl transition-colors text-slate-400"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-0 bg-slate-50 relative">
+                                <div className="min-h-full w-full flex flex-col items-center">
+                                    <div 
+                                        style={{ 
+                                            transform: `scale(${scale})`,
+                                            transformOrigin: 'top center',
+                                            width: '850px',
+                                            marginTop: '2rem',
+                                            marginBottom: `${(1100 * scale) - 1100 + 40}px` 
+                                        }}
+                                        className="bg-white shadow-2xl shrink-0"
+                                    >
+                                        <B2BInvoicePrint order={selectedOrder} settings={invoiceSettings} />
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

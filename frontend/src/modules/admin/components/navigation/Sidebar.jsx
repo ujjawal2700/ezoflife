@@ -123,7 +123,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     ]
                 },
                 { icon: HelpCircle, label: 'FAQ Manager', path: '/admin/faqs' },
-                { icon: ShieldAlert, label: 'Legal & Policy', path: '/admin/legal' },
+                { icon: ShieldAlert, label: 'Privacy Policy', path: '/admin/privacy-policy' },
+                { icon: FileText, label: 'Terms & Conditions', path: '/admin/terms-conditions' },
                 { icon: Rocket, label: 'Splash Ads', path: '/admin/ads' },
                 { icon: Handshake, label: 'Partnerships', path: '/admin/partnerships' },
                 { icon: Star, label: 'Customer Feedback', path: '/admin/feedback' },

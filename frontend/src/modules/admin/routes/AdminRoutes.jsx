@@ -101,7 +101,8 @@ const AdminRoutes = () => {
         <Route path="/careers" element={<CareerModeration />} />
         <Route path="/categories" element={<CategoryManagement />} />
         <Route path="/vendor-ranking" element={<VendorRankingEngine />} />
-        <Route path="/legal" element={<AdminLegalPage />} />
+        <Route path="/privacy-policy" element={<AdminLegalPage type="privacy-policy" />} />
+        <Route path="/terms-conditions" element={<AdminLegalPage type="terms-conditions" />} />
         <Route path="/geofencing" element={<ServiceAreas />} />
         <Route path="/pricing-preview" element={<PricingPreview />} />
         <Route path="/pricing-overrides" element={<AreaPricingOverrides />} />

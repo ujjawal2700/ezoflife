@@ -141,8 +141,8 @@ const UserProfilePage = () => {
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
 
             {[
-              { label: 'Privacy Policy', icon: 'security', path: '/user/privacy' },
-              { label: 'Terms & Conditions', icon: 'description', path: '/user/terms' }
+              { label: 'Privacy Policy', icon: 'security', path: '/user/privacy?role=customer' },
+              { label: 'Terms & Conditions', icon: 'description', path: '/user/terms?role=customer' }
             ].map((link, i) => (
               <div 
                 key={i}
