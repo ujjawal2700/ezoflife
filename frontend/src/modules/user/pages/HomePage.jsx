@@ -655,10 +655,15 @@ const HomePage = () => {
                       
                       {isSelected && (
                         <button 
-                          onClick={() => { setActiveServiceForPhoto(serviceId); setTimeout(() => document.getElementById('photo-upload').click(), 10); }}
+                          onClick={() => navigate('/user/upload-photos', { 
+                            state: { 
+                              serviceId: serviceId, 
+                              serviceName: service.name || service.itemName 
+                            } 
+                          })}
                           className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
                         >
-                          <span className="material-symbols-outlined text-[18px]">{uploading && activeServiceForPhoto === serviceId ? 'sync' : 'add_a_photo'}</span>
+                          <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
                         </button>
                       )}
                     </div>
@@ -667,7 +672,6 @@ const HomePage = () => {
               })
             )}
           </div>
-          <input id="photo-upload" type="file" multiple accept="image/*" onChange={handlePhotoUpload} className="hidden" />
           {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
             <div className="flex justify-center mt-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
           )}
