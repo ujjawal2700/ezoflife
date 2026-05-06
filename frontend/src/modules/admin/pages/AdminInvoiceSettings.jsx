@@ -103,21 +103,21 @@ const AdminInvoiceSettings = () => {
 
     return (
         <div className="p-8 max-w-7xl mx-auto">
-            <header className="mb-10 flex justify-between items-end">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">Invoice Customization</h1>
-                    <p className="text-slate-500 font-medium mt-2">Configure how your invoices look across the platform.</p>
+            <header className="mb-10 flex flex-col lg:flex-row lg:justify-between lg:items-end gap-6">
+                <div className="text-center lg:text-left">
+                    <h1 className="text-3xl lg:text-4xl font-black tracking-tighter text-slate-900 uppercase leading-none">Invoice Customization</h1>
+                    <p className="text-slate-500 font-medium mt-3 text-sm lg:text-base">Configure how your invoices look across the platform.</p>
                 </div>
                 
                 {/* Tab Switcher */}
-                <div className="flex bg-slate-100 p-1.5 rounded-[1.2rem] shadow-inner">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl lg:rounded-[1.2rem] shadow-inner w-full lg:w-auto">
                     {['Customer', 'B2B'].map(tab => (
                         <button 
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-400'}`}
+                            className={`flex-1 lg:flex-none px-6 lg:px-8 py-3 lg:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-white text-slate-900 shadow-lg shadow-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
                         >
-                            {tab} Invoice
+                            {tab}
                         </button>
                     ))}
                 </div>

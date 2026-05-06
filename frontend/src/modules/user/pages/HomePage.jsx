@@ -162,6 +162,7 @@ const HomePage = () => {
   };
 
   useEffect(() => {
+    localStorage.setItem('selected_tier', selectedTier);
     localStorage.setItem('is_express', isExpress);
     localStorage.setItem('pickup_date', selectedPickup);
     localStorage.setItem('pickup_time', pickupTime);
@@ -171,7 +172,7 @@ const HomePage = () => {
     if (dropAddress) localStorage.setItem('drop_address', JSON.stringify(dropAddress));
     localStorage.setItem('order_notes', orderNotes);
     localStorage.setItem('item_photos', JSON.stringify(itemPhotos));
-  }, [isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress, orderNotes, itemPhotos]);
+  }, [selectedTier, isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress, orderNotes, itemPhotos]);
 
   const [selectedQuantities, setSelectedQuantities] = useState(() => {
     const saved = localStorage.getItem('cart_quantities');
@@ -461,93 +462,55 @@ const HomePage = () => {
           </div>
         </section>
 
-        {/* 2. TIER & EXPRESS TOGGLE ROW */}
-        <div className="flex flex-row items-center gap-4 mb-2">
-          <div className="flex-1 bg-slate-200/50 p-1 rounded-[2rem] border border-slate-200 flex gap-1 shadow-inner">
+        {/* 2. CONSOLIDATED CONTROL ROW (NO-SCROLL ONE-VIEW DESIGN) */}
+        <div className="flex flex-row items-center justify-between gap-1 mb-4 px-0 w-full">
+          {/* Tier Toggle - Ultra Compact */}
+          <div className="flex-[1.4] bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5 shrink-0">
             {['Essential', 'Heritage'].map(tier => (
               <button 
                 key={tier} 
                 onClick={() => setSelectedTier(tier)} 
-                className={`flex-1 py-3 rounded-[1.6rem] font-black text-[10px] uppercase tracking-widest transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-xl' : 'text-slate-600 hover:text-black'}`}
+                className={`flex-1 py-2 rounded-lg font-black text-[7px] uppercase tracking-tighter transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-sm' : 'text-slate-400'}`}
               >
-                {tier}
+                {tier === 'Essential' ? 'ESS' : 'HERI'}
               </button>
             ))}
           </div>
 
-          <div className="flex-1 flex items-center justify-end px-2">
-            <label className="group relative cursor-pointer">
-              <div className={`flex items-center gap-3 px-4 py-2.5 rounded-2xl border-2 transition-all duration-300 ${isExpress ? 'border-amber-500 bg-amber-50 shadow-lg shadow-amber-100' : 'border-slate-100 bg-slate-50 hover:border-slate-200'}`}>
-                <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${isExpress ? 'text-amber-700' : 'text-slate-400'}`}>Express</span>
+          {/* Pickup Button */}
+          <button 
+            onClick={() => { setActiveSlotType('pickup'); setShowSlotPicker(true); }}
+            className={`flex-1 py-2 rounded-xl font-black text-[7px] uppercase tracking-tighter border transition-all flex flex-col items-center justify-center gap-0.5 ${selectedPickup ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
+          >
+            <span className="material-symbols-outlined text-[12px] leading-none">calendar_today</span>
+            <span>{selectedPickup ? (pickupTime ? pickupTime.split(' ')[0] : 'Set') : 'Pickup'}</span>
+          </button>
+
+          {/* Drop Button */}
+          <button 
+            onClick={() => { setActiveSlotType('delivery'); setShowSlotPicker(true); }}
+            className={`flex-1 py-2 rounded-xl font-black text-[7px] uppercase tracking-tighter border transition-all flex flex-col items-center justify-center gap-0.5 ${selectedDelivery ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
+          >
+            <span className="material-symbols-outlined text-[12px] leading-none">local_shipping</span>
+            <span>{selectedDelivery ? (deliveryTime ? deliveryTime.split(' ')[0] : 'Set') : 'Drop'}</span>
+          </button>
+
+          {/* Express Toggle */}
+          <div className="flex-1">
+            <label className="cursor-pointer">
+              <div className={`flex flex-col items-center justify-center py-2 rounded-xl border transition-all ${isExpress ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-100 bg-white'}`}>
+                <span className={`text-[7px] font-black uppercase tracking-tighter mb-0.5 ${isExpress ? 'text-amber-700' : 'text-slate-400'}`}>Exp</span>
                 <input 
                   type="checkbox" 
                   checked={isExpress}
                   onChange={(e) => setIsExpress(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500 transition-all cursor-pointer"
+                  className="w-3 h-3 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                 />
-              </div>
-              <div className="absolute bottom-full right-0 mb-3 opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-[120]">
-                <div className="bg-slate-900 text-white text-[8px] font-black uppercase tracking-[0.2em] px-4 py-2.5 rounded-xl whitespace-nowrap shadow-2xl relative border border-white/10">
-                  if u check this box then u will get express delivery
-                  <div className="absolute top-full right-6 w-3 h-3 bg-slate-900 rotate-45 -translate-y-1.5 border-r border-b border-white/10"></div>
-                </div>
               </div>
             </label>
           </div>
         </div>
 
-        {/* 3. COMPACT SCHEDULING CARDS */}
-        <div className="grid grid-cols-2 gap-2 mb-2 px-1">
-          <div 
-            className={`p-2.5 rounded-[1.2rem] border-2 text-left transition-all duration-500 ${selectedPickup ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-slate-50 border-white shadow-inner hover:border-slate-200 text-slate-900'}`}
-          >
-            <button 
-              onClick={() => { setActiveSlotType('pickup'); setShowSlotPicker(true); }}
-              className="w-full"
-            >
-              <div className="flex items-center gap-2">
-                <span className={`material-symbols-outlined text-[14px] ${selectedPickup ? 'text-white' : 'text-slate-400'}`}>calendar_today</span>
-                <h4 className="text-[9px] font-black uppercase tracking-tight truncate">
-                  {selectedPickup ? (pickupTime ? pickupTime.split(' - ')[0] : selectedPickup.split(',')[1] || selectedPickup) : 'Pickup Time'}
-                </h4>
-              </div>
-            </button>
-            <div className="mt-1.5 flex items-center justify-between border-t border-white/5 pt-1.5">
-              <p className={`text-[6px] font-bold truncate uppercase tracking-widest ${selectedPickup ? 'text-white/40' : 'text-slate-300'}`}>{pickupAddress ? pickupAddress.type : 'Address'}</p>
-              <button 
-                onClick={() => { setActiveAddressType('pickup'); setShowAddressPicker(true); }}
-                className={`text-[6px] font-black uppercase px-1.5 py-0.5 rounded-md ${selectedPickup ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-600'}`}
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-
-          <div 
-            className={`p-2.5 rounded-[1.2rem] border-2 text-left transition-all duration-500 ${selectedDelivery ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-slate-50 border-white shadow-inner hover:border-slate-200 text-slate-900'}`}
-          >
-            <button 
-              onClick={() => { setActiveSlotType('delivery'); setShowSlotPicker(true); }}
-              className="w-full"
-            >
-              <div className="flex items-center gap-2">
-                <span className={`material-symbols-outlined text-[14px] ${selectedDelivery ? 'text-white' : 'text-slate-400'}`}>local_shipping</span>
-                <h4 className="text-[9px] font-black uppercase tracking-tight truncate">
-                  {selectedDelivery ? (deliveryTime ? deliveryTime.split(' - ')[0] : selectedDelivery.split(',')[1] || selectedDelivery) : 'Delivery Time'}
-                </h4>
-              </div>
-            </button>
-            <div className="mt-1.5 flex items-center justify-between border-t border-white/5 pt-1.5">
-              <p className={`text-[6px] font-bold truncate uppercase tracking-widest ${selectedDelivery ? 'text-white/40' : 'text-slate-300'}`}>{isSameAsPickup ? 'Same' : (dropAddress ? dropAddress.type : 'Address')}</p>
-              <button 
-                onClick={() => isSameAsPickup ? setIsSameAsPickup(false) : (setActiveAddressType('delivery'), setShowAddressPicker(true))}
-                className={`text-[6px] font-black uppercase px-1.5 py-0.5 rounded-md ${selectedDelivery ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-600'}`}
-              >
-                Edit
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION */}
         <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2' : 'relative z-[90] px-1 py-5'} bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100 mb-8 transition-all duration-500`}>
@@ -569,14 +532,14 @@ const HomePage = () => {
                       key={cat.name}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleCategoryClick(cat)}
-                      className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${isHeaderSticky ? 'min-w-[55px] max-w-[55px] p-1.5 rounded-xl' : 'min-w-[68px] max-w-[68px] p-2.5 rounded-[1.8rem]'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
+                      className={`flex flex-col items-center gap-1 transition-all duration-300 ${isHeaderSticky ? 'min-w-[45px] max-w-[45px] p-1 rounded-xl' : 'min-w-[56px] max-w-[56px] p-2 rounded-[1.5rem]'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
                     >
-                      <div className={`rounded-lg flex items-center justify-center shrink-0 transition-all ${isHeaderSticky ? 'w-6 h-6' : 'w-10 h-10'} ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'}`}>
-                        <span className={`material-symbols-outlined ${isHeaderSticky ? 'text-sm' : 'text-lg'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
+                      <div className={`rounded-lg flex items-center justify-center shrink-0 transition-all ${isHeaderSticky ? 'w-5 h-5' : 'w-8 h-8'} ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'}`}>
+                        <span className={`material-symbols-outlined ${isHeaderSticky ? 'text-xs' : 'text-base'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
                           {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' : cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' : cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
                         </span>
                       </div>
-                      <span className={`font-black uppercase tracking-tighter leading-tight text-center ${isHeaderSticky ? 'text-[6px]' : 'text-[7px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
+                      <span className={`font-black uppercase tracking-tighter leading-tight text-center ${isHeaderSticky ? 'text-[5px]' : 'text-[6px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
                     </motion.button>
                   ))
                 )}
@@ -600,13 +563,13 @@ const HomePage = () => {
             </section>
             {/* SEARCH BAR - SLIM WHEN STICKY */}
             <div className="relative group px-1">
-              <div className={`absolute inset-y-0 left-6 flex items-center pointer-events-none ${isHeaderSticky ? 'scale-75' : ''}`}>
-                <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-900'} text-xl opacity-40 group-focus-within:opacity-100 transition-opacity`}>search</span>
+              <div className={`absolute inset-y-0 left-5 flex items-center pointer-events-none ${isHeaderSticky ? 'scale-75' : ''}`}>
+                <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-900'} text-base opacity-40 group-focus-within:opacity-100 transition-opacity`}>search</span>
               </div>
               <input 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)} 
-                className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-12 py-2.5 text-[10px]' : 'pl-16 py-4 text-[11px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
+                className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-10 py-1.5 text-[8px]' : 'pl-12 py-2.5 text-[9px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
                 placeholder={isHeritage ? "Search..." : "Search services..."} 
               />
             </div>
@@ -693,7 +656,7 @@ const HomePage = () => {
         {/* 7. FLOATING CART BAR */}
         <AnimatePresence>
           {cartItemsCount > 0 && !isCartDismissed && (
-            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-28 left-6 right-6 z-[100] max-w-lg mx-auto">
+            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-20 left-6 right-6 z-[100] max-w-lg mx-auto">
               <motion.button whileTap={{ scale: 0.98 }} onClick={handleCartClick} className={`${themeGradient} w-full h-[68px] rounded-[2rem] p-1 flex items-center justify-between shadow-2xl relative overflow-hidden`}>
                 <div className="flex items-center gap-4 pl-6 relative z-10"><div className="flex flex-col items-start leading-none"><span className="text-[9px] font-black uppercase tracking-widest text-white/60 mb-1">Final Total</span><h3 className="text-white font-black text-xl tracking-tight">₹{cartTotal.toLocaleString()}</h3></div><div className="h-8 w-px bg-white/20"></div><span className="text-white/80 font-black text-[9px] uppercase tracking-widest bg-black/10 px-3 py-1.5 rounded-full">{cartItemsCount} Items</span></div>
                 <div className="flex items-center gap-2 pr-6 relative z-10"><span className="text-white font-black text-[10px] uppercase tracking-widest">Verify & Pay</span><div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white"><span className="material-symbols-outlined text-xl">arrow_forward</span></div></div>

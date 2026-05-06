@@ -9,6 +9,7 @@ import ScrollToTop from './shared/components/ScrollToTop'
 import GlobalToast from './shared/components/GlobalToast'
 import LocationPrompt from './shared/components/LocationPrompt'
 import LocationPicker from './shared/components/LocationPicker'
+import GlobalCartButton from './modules/user/components/GlobalCartButton'
 import { useJsApiLoader } from '@react-google-maps/api'
 import { onMessageListener } from './lib/firebase'
 import toast from 'react-hot-toast'
@@ -43,6 +44,7 @@ function App() {
       <GlobalToast />
       <LocationPrompt />
       <LocationPicker isLoaded={isLoaded} />
+      <GlobalCartButton />
       <Routes>
 
 

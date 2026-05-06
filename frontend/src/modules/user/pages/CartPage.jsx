@@ -206,6 +206,7 @@ const CartPage = () => {
     const saved = localStorage.getItem('order_photos');
     return saved ? JSON.parse(saved) : [];
   });
+  const [selectedTier] = useState(() => localStorage.getItem('selected_tier') || 'Essential');
   const fileInputRef = useRef(null);
 
   const availableDates = useMemo(() => {
@@ -577,83 +578,164 @@ const CartPage = () => {
       </header>
 
       <motion.main className="max-w-5xl mx-auto px-6 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
-        <div className="h-28 shrink-0" />
-        <div className="flex flex-col gap-10">
+        <div className="h-20 shrink-0" />
+        <div className="flex flex-col gap-4">
           {/* 1. CONCISE ORDER SUMMARY BOX */}
-          <div className="bg-slate-950 text-white rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
-            <div className="absolute right-0 top-0 p-10 opacity-[0.03] rotate-12 pointer-events-none">
-              <span className="material-symbols-outlined text-[120px]">receipt_long</span>
+          <div className="bg-slate-950 text-white rounded-[2rem] p-5 shadow-2xl relative overflow-hidden group">
+            <div className="absolute right-0 top-0 p-6 opacity-[0.03] rotate-12 pointer-events-none">
+              <span className="material-symbols-outlined text-[80px]">receipt_long</span>
             </div>
             
-            <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex items-center justify-between mb-4 relative z-10">
               <div>
-                <h2 className="text-2xl font-black uppercase tracking-tighter leading-none">Order Summary</h2>
-                <p className="text-white/40 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Order Logistics & Preferences</p>
+                <h2 className="text-lg font-black uppercase tracking-tighter leading-none">Order Summary</h2>
               </div>
-              <div className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest ${isExpress ? 'bg-amber-500 text-black shadow-[0_10px_20px_rgba(245,158,11,0.2)]' : 'bg-white/10 text-white'}`}>
-                {isExpress ? '⚡ Express Delivery' : 'Normal Delivery'}
+              <div className={`px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest ${isExpress ? 'bg-amber-500 text-black shadow-[0_10px_20px_rgba(245,158,11,0.2)]' : 'bg-white/10 text-white'}`}>
+                {isExpress ? '⚡ Express' : 'Normal'}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-white/40 text-lg">calendar_today</span>
+            <div className="grid grid-cols-2 gap-2 relative z-10">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[10px]">workspace_premium</span>
                   </div>
-                  <div>
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Pickup Slot & Address</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-xs font-bold">{selectedPickup?.split(',')[1] || selectedPickup} • {pickupTime?.split(' - ')[0]}</p>
-                      <span className="text-[10px] font-black text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-md uppercase tracking-tighter border border-amber-400/20">
-                        {selectedPickupAddress?.type || 'Home'}
-                      </span>
-                    </div>
+                  <div className="flex-1">
+                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Tier</p>
+                    <p className="text-[8px] font-black text-white uppercase">{selectedTier}</p>
                   </div>
                 </div>
-
-                <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-white/40 text-lg">local_shipping</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[10px]">bolt</span>
                   </div>
-                  <div>
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Delivery Slot & Address</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-xs font-bold">{selectedDelivery?.split(',')[1] || selectedDelivery} • {deliveryTime?.split(' - ')[0]}</p>
-                      <span className="text-[10px] font-black text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md uppercase tracking-tighter border border-emerald-400/20">
-                        {isSameAddress ? selectedPickupAddress?.type : (selectedDropAddress?.type || 'Home')}
-                      </span>
-                    </div>
+                  <div className="flex-1">
+                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Mode</p>
+                    <p className="text-[8px] font-black text-white uppercase">{isExpress ? 'Express' : 'Normal'}</p>
                   </div>
                 </div>
               </div>
-
-              <div className="flex flex-col justify-between pt-6 md:pt-0 md:pl-8 md:border-l border-white/5">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Service Tier</p>
-                    <p className="text-[10px] font-black text-white uppercase tracking-tighter">
-                      {[...new Set(cartItems.map(item => (item.tier === 'Heritage' || item.basePrice > 200) ? 'Heritage' : 'Essential'))].join(' & ') || 'Essential'}
-                    </p>
+              <div className="space-y-2 pl-2 border-l border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[10px]">calendar_today</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Priority</p>
-                    <p className="text-[10px] font-black text-white uppercase tracking-tighter">{isExpress ? 'Express (24-48h)' : 'Normal (3-4 Days)'}</p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em]">Items Count</p>
-                    <p className="text-[10px] font-black text-white uppercase tracking-tighter">{cartItems.length} Services</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Pickup</p>
+                    <p className="text-[8px] font-black text-white uppercase truncate">{selectedPickup?.split(',')[1] || selectedPickup}</p>
                   </div>
                 </div>
-                
-                <div className="mt-6 flex items-center gap-2 px-3 py-2 bg-white/5 rounded-xl border border-white/5">
-                  <span className="material-symbols-outlined text-[14px] text-amber-500">info</span>
-                  <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-tight">Prices include doorstep pickup and professional handling</p>
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[10px]">local_shipping</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Drop</p>
+                    <p className="text-[8px] font-black text-white uppercase truncate">{selectedDelivery?.split(',')[1] || selectedDelivery}</p>
+                  </div>
                 </div>
               </div>
+            </div>
+            
+            <div className="mt-3 flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5 relative z-10">
+              <span className="material-symbols-outlined text-[10px] text-amber-500">info</span>
+              <p className="text-[6px] font-black text-white/30 uppercase tracking-widest leading-tight">Doorstep pickup & handling included</p>
             </div>
           </div>
 
+          {/* 2. PRICE BREAKDOWN / PAYMENT BOX */}
+          <div className="bg-slate-950 text-white rounded-[2rem] p-6 shadow-2xl space-y-4 relative overflow-hidden group">
+            <div className="absolute right-0 top-0 p-8 opacity-[0.02] rotate-12 pointer-events-none group-hover:opacity-[0.04] transition-opacity">
+              <span className="material-symbols-outlined text-[100px]">payments</span>
+            </div>
+
+            <div className="space-y-4 relative z-10">
+              {/* PROMO CODE COMPACT */}
+              <div className="bg-white/5 rounded-2xl border border-white/10 p-3 flex flex-col gap-2 backdrop-blur-md">
+                <div className="flex items-center justify-between">
+                  <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.1em]">Promo Code</p>
+                  {isPromoApplied && (
+                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[7px] font-black text-rose-400 uppercase tracking-widest">Remove</button>
+                  )}
+                </div>
+                <div className="relative flex items-center group/promo">
+                    <input 
+                      type="text" 
+                      placeholder="ENTER CODE"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-3 pr-20 py-3 text-[9px] font-black uppercase tracking-widest outline-none focus:bg-white/10 transition-all text-white placeholder:text-white/20"
+                    />
+                    <button 
+                      onClick={handleApplyPromo}
+                      className={`absolute right-1 px-4 py-2 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}
+                    >
+                      {isPromoApplied ? 'OK' : 'APPLY'}
+                    </button>
+                </div>
+                {promoError && <p className="text-[7px] font-black text-rose-400 uppercase ml-1">{promoError}</p>}
+                {isPromoApplied && (
+                  <p className="text-[8px] font-black text-emerald-400 uppercase ml-1">✨ SAVED ₹{discount.toFixed(0)}!</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-1">
+                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                  <span>Base Items</span>
+                  <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                  <span>Platform Fee</span>
+                  <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
+                </div>
+                {priceBreakdown.expressSurcharge > 0 && (
+                  <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-amber-400">
+                    <span>Express</span>
+                    <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                  <span>Logistic Fee</span>
+                  <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                  <span>GST (18%)</span>
+                  <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
+                </div>
+                {isPromoApplied && (
+                  <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-emerald-400">
+                    <span>Promo Discount</span>
+                    <span>-₹{discount.toFixed(0)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="pt-3 border-t border-white/5 flex items-center justify-between relative z-10">
+              <div className="flex flex-col">
+                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Total Payable Amount</p>
+                <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-black tracking-tighter text-white">₹{finalTotal.toFixed(0)}</p>
+                    {paymentMethod === 'Online' && advanceConfigPerc < 100 && (
+                      <p className="text-[7px] font-black text-emerald-400 uppercase">₹{(finalTotal * (advanceConfigPerc/100)).toFixed(0)} Pay Now</p>
+                    )}
+                </div>
+              </div>
+              
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handlePlaceOrder}
+                disabled={cartItems.length === 0 || loading}
+                className="bg-white text-black px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl"
+              >
+                {loading ? 'WAIT...' : 'PAY NOW'}
+              </motion.button>
+            </div>
+          </div>
+
+          {/* 3. SERVICES REVIEW (NOW AT THE BOTTOM) */}
           <div className="space-y-3">
             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Services Review</p>
             {cartItems.map((item) => {
@@ -684,16 +766,6 @@ const CartPage = () => {
                         <p className="text-[11px] font-black text-slate-900 tracking-tighter">₹{totalPrice.toFixed(0)}</p>
                       </div>
                       
-                      {/* Photo Previews */}
-                      {itemPhotos[itemId]?.length > 0 && (
-                        <div className="flex gap-1.5 mt-1 overflow-x-auto hide-scrollbar">
-                          {itemPhotos[itemId].map((photo, pIdx) => (
-                            <div key={pIdx} className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 bg-slate-50 shrink-0">
-                              <img src={photo} alt="" className="w-full h-full object-cover" />
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -708,109 +780,28 @@ const CartPage = () => {
             })}
           </div>
 
-
-
-
-
-          <div className="bg-slate-950 text-white rounded-[3rem] p-10 shadow-2xl space-y-8 relative overflow-hidden group">
-            <div className="absolute right-0 top-0 p-12 opacity-[0.03] rotate-12 pointer-events-none group-hover:opacity-[0.05] transition-opacity">
-              <span className="material-symbols-outlined text-[140px]">payments</span>
-            </div>
-
-            <div className="space-y-6 relative z-10">
-              {/* PROMO CODE INTEGRATED */}
-              <div className="bg-white/5 rounded-[2rem] border border-white/10 p-5 flex flex-col gap-4 backdrop-blur-md">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Have a Promo Code?</p>
-                  {isPromoApplied && (
-                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[9px] font-black text-rose-400 uppercase tracking-widest bg-rose-400/10 px-3 py-1.5 rounded-xl border border-rose-400/20">Remove</button>
+          {/* 4. AGGREGATED UPLOADED PHOTOS GALLERY */}
+          {Object.values(itemPhotos).some(photos => photos.length > 0) && (
+            <div className="space-y-3">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Uploaded Articles Photos</p>
+              <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-sm">
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(itemPhotos).map(([itemId, photos]) => 
+                    photos.map((photo, pIdx) => (
+                      <div key={`${itemId}-${pIdx}`} className="aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 relative group">
+                        <img src={photo} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute top-1 right-1 bg-black/50 backdrop-blur-md rounded-lg px-1.5 py-0.5">
+                           <p className="text-[5px] font-black text-white uppercase truncate max-w-[40px]">
+                             {cartItems.find(i => (i._id || i.id) === itemId)?.name}
+                           </p>
+                        </div>
+                      </div>
+                    ))
                   )}
                 </div>
-                <div className="relative flex items-center group/promo">
-                    <input 
-                      type="text" 
-                      placeholder="ENTER PROMO CODE"
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl pl-5 pr-28 py-5 text-[11px] font-black uppercase tracking-widest outline-none focus:bg-white/10 focus:border-white/20 transition-all text-white placeholder:text-white/20 shadow-inner"
-                    />
-                    <button 
-                      onClick={handleApplyPromo}
-                      className={`absolute right-2 px-6 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black hover:scale-105 active:scale-95 shadow-xl shadow-black/20'}`}
-                    >
-                      {isPromoApplied ? 'APPLIED' : 'APPLY'}
-                    </button>
-                </div>
-                {promoError && <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest ml-1">{promoError}</p>}
-                {isPromoApplied && (
-                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest ml-1">✨ SAVED ₹{discount.toFixed(0)} WITH {appliedPromoData?.code}!</p>
-                )}
-              </div>
-
-              <div className="space-y-5 px-2">
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
-                  <span>Base Items Total</span>
-                  <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
-                </div>
-                
-                {priceBreakdown.expressSurcharge > 0 && (
-                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-amber-400">
-                    <span>Express Surcharge</span>
-                    <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
-                  <span>Platform Fee</span>
-                  <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
-                  <span>Logistic Fee</span>
-                  <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-white/40">
-                  <span>GST (18%)</span>
-                  <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
-                </div>
-
-                {isPromoApplied && (
-                  <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.15em] text-emerald-400 bg-emerald-400/10 px-5 py-3 rounded-2xl border border-emerald-400/20">
-                    <span>Promo Discount ({appliedPromoData?.code})</span>
-                    <span>- ₹{discount.toFixed(0)}</span>
-                  </div>
-                )}
               </div>
             </div>
-            
-            <div className="pt-8 border-t border-white/5 space-y-6 relative z-10">
-              <div className="flex flex-col">
-                <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/30 mb-1 px-2">Total Payable Amount</p>
-                <div className="flex flex-wrap items-baseline gap-3 px-2">
-                    <p className="text-5xl font-black tracking-tighter text-white">₹{finalTotal.toFixed(0)}</p>
-                    {paymentMethod === 'Online' && advanceConfigPerc < 100 && (
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-lg">
-                          <p className="text-[9px] font-black text-emerald-400 uppercase tracking-tighter">₹{(finalTotal * (advanceConfigPerc/100)).toFixed(0)} Pay Now</p>
-                        </div>
-                    )}
-                </div>
-              </div>
-              
-              <motion.button 
-                whileHover={{ scale: 1.02, y: -4 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handlePlaceOrder}
-                disabled={cartItems.length === 0 || loading}
-                className="w-full bg-white text-black py-6 rounded-[2rem] font-black text-[14px] uppercase tracking-[0.05em] shadow-[0_20px_60px_rgba(255,255,255,0.1)] flex items-center justify-center gap-3 group/btn transition-all"
-              >
-                {loading ? 'PROCESSING...' : 'PROCEED TO PAYMENT'}
-                <span className="material-symbols-outlined text-xl group-hover/btn:translate-x-2 transition-transform duration-500">
-                  arrow_forward_ios
-                </span>
-              </motion.button>
-            </div>
-          </div>
+          )}
         </div>
       </motion.main>
     </motion.div>
