@@ -517,7 +517,7 @@ const HomePage = () => {
         <div className="h-[50px] shrink-0" />
 
         {/* 1. COMPACT PROMO BANNER */}
-        <section className="mt-2 mb-6 w-full relative px-2">
+        <section className="mt-2 mb-4 w-full relative px-2">
           <div className="overflow-hidden rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-100">
             <AnimatePresence mode="wait">
               <motion.div
@@ -539,61 +539,41 @@ const HomePage = () => {
           </div>
         </section>
         {/* 2. CONSOLIDATED CONTROL ROW (ORIGINAL COMPACT DESIGN) */}
-        <div className="flex flex-row items-center justify-between gap-1 mb-4 px-0 w-full">
+        <div className="flex flex-row items-center justify-between gap-2 mb-4 px-0 w-full">
           {/* Tier Toggle - Always Active */}
-          <div className="flex-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5 shrink-0">
+          <div className="flex-1 h-12 bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5 shrink-0">
             {['Essential', 'Heritage'].map(tier => (
               <button 
                 key={tier} 
                 onClick={() => setSelectedTier(tier)} 
-                className={`flex-1 py-2 rounded-lg font-black text-[7px] uppercase tracking-tighter transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-sm' : 'text-slate-400'}`}
+                className={`flex-1 h-full rounded-lg font-black text-[9px] uppercase tracking-tight transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-sm' : 'text-slate-400'}`}
               >
-                {tier === 'Essential' ? 'ESS' : 'HERI'}
+                {tier}
               </button>
             ))}
-          </div>
-
-          {/* Express Toggle - Depends on Tier */}
-          <div className={`flex-1 transition-all duration-500 ${!isTierSelected ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
-            <label className="cursor-pointer">
-              <div className={`flex flex-col items-center justify-center py-2 rounded-xl border transition-all ${isExpress ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-100 bg-white'}`}>
-                <span className={`text-[7px] font-black uppercase tracking-tighter mb-0.5 ${isExpress ? 'text-amber-700' : 'text-slate-400'}`}>Exp</span>
-                <input 
-                  type="checkbox" 
-                  checked={isExpress}
-                  onChange={(e) => { setIsExpress(e.target.checked); setDeliveryConfirmed(true); }}
-                  className="w-3 h-3 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
-                />
-              </div>
-            </label>
           </div>
 
           {/* Pickup & Dropup - Depends on Delivery Type */}
           <button 
             disabled={!deliveryConfirmed}
             onClick={() => setShowSlotPicker(true)}
-            className={`flex-1 py-2 rounded-xl font-black text-[7px] uppercase tracking-tighter border transition-all flex flex-row items-center justify-center gap-2 ${!deliveryConfirmed ? 'opacity-30 grayscale cursor-not-allowed' : (selectedPickup && selectedDelivery ? 'bg-slate-950 text-white border-slate-950 shadow-xl' : 'bg-white text-slate-400 border-slate-100')}`}
+            className={`flex-1 h-12 rounded-xl font-black text-[8px] uppercase tracking-tight border transition-all flex flex-row items-center justify-center gap-2 ${!deliveryConfirmed ? 'opacity-30 grayscale cursor-not-allowed' : (selectedPickup && selectedDelivery ? 'bg-slate-950 text-white border-slate-950 shadow-xl' : 'bg-white text-slate-400 border-slate-100')}`}
           >
             <div className="flex flex-col items-center gap-0.5">
-              <span className="material-symbols-outlined text-[12px] leading-none">calendar_today</span>
+              <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
             </div>
             <div className="flex flex-col items-start leading-none">
-              <span className="text-[7px] mb-0.5">{isLogisticsValid ? 'Logistics Set' : 'Logistics'}</span>
+              <span className="text-[8px] text-left">{isLogisticsValid ? 'Schedule Pickup and Dropup' : 'Schedule Pickup and Dropup'}</span>
             </div>
           </button>
         </div>
 
         {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Depends on Logistics */}
         <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
-          <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2' : 'relative z-[90] px-1 py-5'} bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100 mb-8 transition-all duration-500`}>
-            <div className="max-w-5xl mx-auto w-full space-y-3">
+          <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2 bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100' : 'relative z-[90] px-1 py-2'} transition-all duration-500`}>
+            <div className="max-w-5xl mx-auto w-full space-y-1">
               {/* MINI CATEGORIES */}
               <section className="w-full">
-                {!isHeaderSticky && (
-                  <div className="flex items-center justify-between mb-4 px-3">
-                    <h3 className="text-[9px] font-black text-slate-900/40 uppercase tracking-[0.3em]">Quick Categories</h3>
-                  </div>
-                )}
 
                 <div className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'pb-1' : 'pb-2'}`}>
                   {categoriesLoading ? (
@@ -642,17 +622,14 @@ const HomePage = () => {
                   value={searchQuery} 
                   onChange={(e) => setSearchQuery(e.target.value)} 
                   className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-10 py-1.5 text-[8px]' : 'pl-12 py-2.5 text-[9px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
-                  placeholder={isHeritage ? "Search..." : "Search services..."} 
+                  placeholder={isHeritage ? "Search..." : "Search services add to the cart"} 
                 />
               </div>
             </div>
           </div>
 
           {/* 5. SERVICES LIST */}
-          <section className="mb-10 w-full px-2">
-            <div className="flex items-center justify-between mb-6 px-2">
-              <h3 className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Available Services</h3>
-            </div>
+          <section className="mb-10 w-full px-1">
             <div className={`flex flex-col gap-3 ${showMoreServices ? 'max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
               {loading ? (
                 [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-4 h-24 border border-slate-50 animate-pulse" />)
@@ -666,28 +643,35 @@ const HomePage = () => {
                       key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                       className={`rounded-[2.2rem] p-3 flex flex-row items-center gap-4 border-2 transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-slate-300 scale-[1.02]' : 'bg-white border-slate-100 shadow-sm'}`}
                     >
-                      <div onClick={() => handleServiceClick(serviceId, service, i)} className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100/50 cursor-pointer">
-                        {service.image ? <img src={service.image} alt="" className="w-full h-full object-cover" /> : <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-white' : 'text-slate-300'}`}>local_laundry_service</span>}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className={`font-black text-[10px] leading-tight mb-1 uppercase line-clamp-1 ${isSelected ? 'text-white' : 'text-slate-900'} tracking-tight`}>{service.name || service.itemName}</h4>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-[12px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
-                          {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[9px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
+                      <div className="flex-1 min-w-0 flex flex-col items-center py-1">
+                        <h4 onClick={() => handleServiceClick(serviceId, service, i)} className={`font-black text-[10px] leading-tight mb-2 uppercase line-clamp-1 cursor-pointer ${isSelected ? 'text-white' : 'text-slate-900'} tracking-tight`}>{service.name || service.itemName}</h4>
+                        
+                        <div className="flex items-center justify-between w-full px-2 gap-2">
+                          <span className={`text-[9px] font-black uppercase tracking-tight text-left whitespace-nowrap overflow-hidden ${isSelected ? 'text-white/60' : 'text-slate-500'}`}>{service.mainCategory || 'Category'}</span>
+                          
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className="flex items-center gap-1">
+                              <span className={`text-[13px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
+                              {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[10px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
+                            </div>
+                          </div>
+
+                          <span className={`text-[9px] font-black uppercase tracking-tight text-right whitespace-nowrap overflow-hidden ${isSelected ? 'text-white/60' : 'text-slate-500'}`}>{service.subCategoryName || 'Sub'}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center bg-slate-50 rounded-full p-1 border border-slate-100 shadow-inner">
-                          <button onClick={() => updateQuantity(serviceId, -1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">remove</span></button>
-                          <span className="text-[11px] font-black text-slate-900 px-3 min-w-[32px] text-center">{qty}</span>
-                          <button onClick={() => updateQuantity(serviceId, 1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">add</span></button>
+
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-slate-50 rounded-xl p-0.5 border border-slate-100 shadow-inner">
+                          <button onClick={() => updateQuantity(serviceId, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[14px] font-black">remove</span></button>
+                          <span className="text-[10px] font-black text-slate-900 px-2 min-w-[24px] text-center">{qty}</span>
+                          <button onClick={() => updateQuantity(serviceId, 1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[14px] font-black">add</span></button>
                         </div>
                         {isSelected && (
                           <button 
                             onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
                           >
-                            <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
+                            <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
                           </button>
                         )}
                       </div>
@@ -733,101 +717,142 @@ const HomePage = () => {
                 initial={{ y: "100%" }} 
                 animate={{ y: 0 }} 
                 exit={{ y: "100%" }} 
-                className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 overflow-y-auto max-h-[92vh] hide-scrollbar"
+                className="relative w-full max-w-xs bg-white rounded-t-[1.5rem] p-3 shadow-2xl flex flex-col gap-2 overflow-y-auto max-h-[92vh] hide-scrollbar"
               >
                 <div className="flex justify-between items-center">
-                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">Pickup & <br />Dropup.</h3>
+                  <div /> {/* Spacer for alignment */}
                   <button onClick={() => setShowSlotPicker(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
                     <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-4">
+                  {/* Delivery Type Toggle */}
+                  <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5">
+                    {['Normal', 'Express'].map(type => (
+                      <button 
+                        key={type}
+                        onClick={() => {
+                          setIsExpress(type === 'Express');
+                          setDeliveryConfirmed(true);
+                        }}
+                        className={`flex-1 py-1.5 rounded-lg font-black text-[7px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress) || (type === 'Normal' && !isExpress)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400'}`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+
                   {/* --- PICKUP SECTION --- */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                        <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 px-1">
+                      <div className="w-4 h-4 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                        <span className="material-symbols-outlined text-[10px]">calendar_today</span>
                       </div>
-                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">1. Pickup Scheduling</p>
+                      <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">1. Pickup</p>
                     </div>
                     
-                    <div className="space-y-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
+                      {/* Date Dropdown */}
                       <div>
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Date</p>
-                        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                          {availableDates.map((d, i) => {
-                            const dateStr = `${d.day}, ${d.date}`;
-                            const isSelected = selectedPickup?.includes(d.date);
-                            return (
-                              <button 
-                                key={i} 
-                                onClick={() => setSelectedPickup(dateStr)} 
-                                className={`min-w-[80px] p-3 rounded-2xl border transition-all flex flex-col items-center gap-1 ${isSelected ? 'bg-slate-950 text-white border-slate-950 shadow-lg' : 'bg-white text-slate-400 border-slate-100'}`}
-                              >
-                                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">{d.day}</span>
-                                <span className="text-xs font-black tracking-tighter">{d.date}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                        <select 
+                          value={selectedPickup}
+                          onChange={(e) => setSelectedPickup(e.target.value)}
+                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
+                        >
+                          <option value="">Select Date</option>
+                          {availableDates.slice(0, 6).map((d, i) => (
+                            <option key={i} value={`${d.day}, ${d.date}`}>{d.day}, {d.date}</option>
+                          ))}
+                        </select>
                       </div>
+
+                      {/* Time Dropdown */}
                       <div>
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Time Window</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {timeSlots.slice(0, 6).map((slot) => {
-                            const isSelected = pickupTime === slot;
-                            return (
-                              <button 
-                                key={slot} 
-                                onClick={() => setPickupTime(slot)} 
-                                className={`py-3 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all ${isSelected ? 'bg-slate-950 text-white border-slate-950' : 'bg-white text-slate-400 border-slate-100'}`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                        <select 
+                          value={pickupTime}
+                          onChange={(e) => setPickupTime(e.target.value)}
+                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
+                        >
+                          <option value="">Select Time</option>
+                          {timeSlots.map((slot) => (
+                            <option key={slot} value={slot}>{slot}</option>
+                          ))}
+                        </select>
                       </div>
                       
-                      {/* Pickup Address */}
-                      <div className="pt-2">
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Pickup Address</p>
-                        <button 
-                          onClick={() => { setActiveAddressType('pickup'); setShowAddressPicker(true); }}
-                          className="w-full bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between text-left group"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-slate-300 text-[18px]">location_on</span>
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-black text-slate-900 truncate uppercase">{pickupAddress?.type || 'Select Address'}</p>
-                              <p className="text-[8px] font-bold text-slate-400 truncate max-w-[180px]">{pickupAddress?.address || 'No address selected'}</p>
-                            </div>
-                          </div>
-                          <span className="material-symbols-outlined text-slate-200 text-sm group-hover:text-slate-900 transition-colors">edit</span>
-                        </button>
+                      {/* Pickup Address Selection (Home/Office) */}
+                      <div>
+                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Address</p>
+                        <div className="flex gap-1.5">
+                          {['Home', 'Office'].map(type => {
+                            const isSelected = pickupAddress?.type === type;
+                            return (
+                              <button 
+                                key={type}
+                                onClick={() => {
+                                  const addr = savedAddresses.find(a => a.type === type);
+                                  if (addr) {
+                                    setPickupAddress(addr);
+                                    if (isSameAsPickup) setDropAddress(addr);
+                                  } else {
+                                    setActiveAddressType('pickup');
+                                    setShowSlotPicker(false);
+                                    setShowAddressForm(true);
+                                    setAddressFormData({ type });
+                                    toast.error(`Please add your ${type} address`);
+                                  }
+                                }}
+                                className={`flex-1 py-1 rounded-lg border-2 flex flex-col items-center gap-0.5 transition-all ${isSelected ? 'border-slate-950 bg-slate-50 text-slate-950' : 'border-slate-100 bg-white text-slate-300'}`}
+                              >
+                                <span className="material-symbols-outlined text-[12px]">{type === 'Home' ? 'home' : 'business'}</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest">{type}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* --- DROPUP SECTION --- */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-1">
-                      <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
-                        <span className="material-symbols-outlined text-[14px]">local_shipping</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between px-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-amber-600">
+                          <span className="material-symbols-outlined text-[10px]">local_shipping</span>
+                        </div>
+                        <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Dropup</p>
                       </div>
-                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">2. Dropup Scheduling</p>
+
+                      {/* Same as Pickup Toggle */}
+                      <div className="flex items-center gap-1.5 bg-slate-100/50 px-1.5 py-0.5 rounded-full border border-slate-100">
+                         <span className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Same</span>
+                         <button 
+                           onClick={() => setIsSameAsPickup(!isSameAsPickup)}
+                           className={`w-7 h-3.5 rounded-full transition-all relative ${isSameAsPickup ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                         >
+                           <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isSameAsPickup ? 'right-0.5' : 'left-0.5'}`} />
+                         </button>
+                      </div>
                     </div>
                     
-                    <div className="space-y-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
+                      {/* Date Dropdown */}
                       <div>
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Date</p>
-                        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                        <select 
+                          value={selectedDelivery}
+                          onChange={(e) => setSelectedDelivery(e.target.value)}
+                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
+                        >
+                          <option value="">Select Date</option>
                           {availableDates.map((d, i) => {
                             const dateStr = `${d.day}, ${d.date}`;
-                            const isSelected = selectedDelivery?.includes(d.date);
                             
-                            // Min 24h gap logic
+                            // Min gap logic
                             let isDisabled = false;
                             if (selectedPickup && pickupTime) {
                               const pDT = getSlotDateTime(selectedPickup, pickupTime);
@@ -837,73 +862,60 @@ const HomePage = () => {
                             }
 
                             return (
-                              <button 
-                                key={i} 
-                                disabled={isDisabled}
-                                onClick={() => setSelectedDelivery(dateStr)} 
-                                className={`min-w-[80px] p-3 rounded-2xl border transition-all flex flex-col items-center gap-1 ${isDisabled ? 'opacity-20 grayscale' : (isSelected ? 'bg-slate-950 text-white border-slate-950 shadow-lg' : 'bg-white text-slate-400 border-slate-100')}`}
-                              >
-                                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">{d.day}</span>
-                                <span className="text-xs font-black tracking-tighter">{d.date}</span>
-                              </button>
+                              <option key={i} value={dateStr} disabled={isDisabled}>
+                                {d.day}, {d.date}
+                              </option>
                             );
                           })}
-                        </div>
+                        </select>
                       </div>
+
+                      {/* Time Dropdown */}
                       <div>
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Time Window</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {timeSlots.slice(0, 6).map((slot) => {
-                            const isSelected = deliveryTime === slot;
-                            return (
-                              <button 
-                                key={slot} 
-                                onClick={() => setDeliveryTime(slot)} 
-                                className={`py-3 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all ${isSelected ? 'bg-slate-950 text-white border-slate-950' : 'bg-white text-slate-400 border-slate-100'}`}
-                              >
-                                {slot}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                        <select 
+                          value={deliveryTime}
+                          onChange={(e) => setDeliveryTime(e.target.value)}
+                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
+                        >
+                          <option value="">Select Time</option>
+                          {timeSlots.map((slot) => (
+                            <option key={slot} value={slot}>{slot}</option>
+                          ))}
+                        </select>
                       </div>
 
-                      {/* Toggle: Different Drop Address */}
-                      <div className="pt-2 border-t border-slate-200 mt-2">
-                        <div className="flex items-center justify-between py-2">
-                          <div className="flex items-center gap-3">
-                            <span className="material-symbols-outlined text-slate-400 text-lg">swap_calls</span>
-                            <div>
-                              <p className="text-[9px] font-black text-slate-900 uppercase">Deliver to different address?</p>
-                              <p className="text-[7px] font-bold text-slate-400 uppercase mt-0.5">Separate Drop-off Location</p>
-                            </div>
+                      {/* Dropup Address (Only if NOT same as pickup) */}
+                      {!isSameAsPickup && (
+                        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="pt-1.5 border-t border-slate-200 mt-1">
+                          <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1 mt-1.5">Address</p>
+                          <div className="flex gap-1.5">
+                            {['Home', 'Office'].map(type => {
+                              const isSelected = dropAddress?.type === type;
+                              return (
+                                <button 
+                                  key={type}
+                                  onClick={() => {
+                                    const addr = savedAddresses.find(a => a.type === type);
+                                    if (addr) setDropAddress(addr);
+                                    else {
+                                      setActiveAddressType('drop');
+                                      setShowSlotPicker(false);
+                                      setShowAddressForm(true);
+                                      setAddressFormData({ type });
+                                      toast.error(`Please add your ${type} address`);
+                                    }
+                                  }}
+                                  className={`flex-1 py-1 rounded-lg border-2 flex flex-col items-center gap-0.5 transition-all ${isSelected ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-slate-100 bg-white text-slate-300'}`}
+                                >
+                                  <span className="material-symbols-outlined text-[12px]">{type === 'Home' ? 'home' : 'business'}</span>
+                                  <span className="text-[9px] font-black uppercase tracking-widest">{type}</span>
+                                </button>
+                              );
+                            })}
                           </div>
-                          <button 
-                            onClick={() => setIsSameAsPickup(!isSameAsPickup)}
-                            className={`w-12 h-6 rounded-full transition-all relative ${!isSameAsPickup ? 'bg-slate-950' : 'bg-slate-200'}`}
-                          >
-                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${!isSameAsPickup ? 'right-1' : 'left-1'}`} />
-                          </button>
-                        </div>
-
-                        {!isSameAsPickup && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="pt-2">
-                            <button 
-                              onClick={() => { setActiveAddressType('drop'); setShowAddressPicker(true); }}
-                              className="w-full bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between text-left group"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="material-symbols-outlined text-slate-300 text-[18px]">local_shipping</span>
-                                <div className="min-w-0">
-                                  <p className="text-[10px] font-black text-slate-900 truncate uppercase">{dropAddress?.type || 'Select Address'}</p>
-                                  <p className="text-[8px] font-bold text-slate-400 truncate max-w-[180px]">{dropAddress?.address || 'No address selected'}</p>
-                                </div>
-                              </div>
-                              <span className="material-symbols-outlined text-slate-200 text-sm group-hover:text-slate-900 transition-colors">edit</span>
-                            </button>
-                          </motion.div>
-                        )}
-                      </div>
+                        </motion.div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -911,12 +923,12 @@ const HomePage = () => {
                 <button 
                   onClick={() => {
                     if (!isLogisticsValid) {
-                      alert("Please ensure all fields (Pickup/Drop Dates, Times and Addresses) are selected.");
+                      alert("Please ensure all fields are selected.");
                       return;
                     }
                     setShowSlotPicker(false);
                   }} 
-                  className="w-full bg-slate-950 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] mt-4 shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  className="w-full bg-slate-950 text-white py-3 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] mt-2 shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
                 >
                   Confirm Logistics
                 </button>
@@ -1036,6 +1048,40 @@ const HomePage = () => {
               </motion.div>
             </div>
           )}
+        <AnimatePresence>
+          {cartItemsCount > 0 && (
+            <motion.div 
+              initial={{ y: 100 }} 
+              animate={{ y: 0 }} 
+              exit={{ y: 100 }}
+              className="fixed bottom-[70px] left-0 right-0 z-[150] bg-[#161B28] text-white border-t border-white/5"
+            >
+              <div className="px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Final Total</span>
+                    <span className="text-xl font-black tracking-tight">₹{Math.round(cartTotal)}</span>
+                  </div>
+                  
+                  <div className="w-[1px] h-8 bg-white/10" />
+                  
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{cartItemsCount} Items</span>
+                </div>
+
+                <button 
+                  onClick={handleCartClick}
+                  className="flex items-center gap-3 group"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-widest">Verify & Pay</span>
+                  <div className="w-10 h-10 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-600 transition-all">
+                    <span className="material-symbols-outlined text-white text-xl">east</span>
+                  </div>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* 11. PHOTO OPTIONS & MANAGEMENT MODAL */}
         <AnimatePresence>
           {activePhotoService && (
