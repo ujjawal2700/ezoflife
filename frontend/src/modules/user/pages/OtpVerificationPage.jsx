@@ -10,9 +10,16 @@ const OtpVerificationPage = () => {
   const { phone, channel } = location.state || { phone: '98765 43210', channel: 'SMS' };
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(60);
   const [error, setError] = useState('');
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    // Auto-focus first input on mount
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -158,7 +165,16 @@ const OtpVerificationPage = () => {
           </div>
           <h1 className="text-3xl font-black tracking-tighter text-on-surface mb-3 leading-tight">Verification Code</h1>
           <p className="text-xs font-bold text-on-surface-variant opacity-60 uppercase tracking-widest leading-none">We've sent a 6-digit code to</p>
-          <p className="text-sm font-black text-primary mt-2 tracking-tight">+91 {phone}</p>
+          <div className="flex items-center justify-center gap-2 mt-2 group">
+            <p className="text-sm font-black text-primary tracking-tight">+91 {phone}</p>
+            <motion.button 
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/user/auth')}
+              className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-primary/10 hover:text-primary transition-all"
+            >
+              <span className="material-symbols-outlined text-[14px]">edit</span>
+            </motion.button>
+          </div>
           {error && <p className="text-[10px] text-error font-black mt-3 animate-pulse uppercase tracking-widest">{error}</p>}
         </div>
 
@@ -188,7 +204,7 @@ const OtpVerificationPage = () => {
           ) : (
             <motion.button 
               whileHover={{ scale: 1.05 }}
-              onClick={() => setTimer(30)}
+              onClick={() => setTimer(60)}
               className="text-xs font-black text-primary uppercase tracking-widest underline decoration-2 underline-offset-4"
             >
               Resend Code Now
@@ -206,14 +222,6 @@ const OtpVerificationPage = () => {
              </div>
           )}
         </div>
-
-        <button 
-          onClick={() => navigate('/user/auth')}
-          disabled={isVerifying}
-          className="w-full mt-4 text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity disabled:opacity-10"
-        >
-          Change Phone Number
-        </button>
       </motion.main>
 
       {/* Floating Decorative Elements */}

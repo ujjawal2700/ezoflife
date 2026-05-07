@@ -112,8 +112,7 @@ const UserProfilePage = () => {
           <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm divide-y divide-slate-50 overflow-hidden">
             {[
               { label: 'UPI ID', val: user.paymentDetails?.upi || 'Not Added', icon: 'account_balance_wallet' },
-              { label: 'Credit Card', val: user.paymentDetails?.card || 'Not Added', icon: 'credit_card' },
-              { label: 'Cash on Delivery', val: 'Default Method', icon: 'payments', isDefault: true }
+              { label: 'Credit Card', val: user.paymentDetails?.card || 'Not Added', icon: 'credit_card' }
             ].map((method, i) => (
               <div key={i} className="flex items-center justify-between px-6 py-5">
                 <div className="flex items-center gap-4">

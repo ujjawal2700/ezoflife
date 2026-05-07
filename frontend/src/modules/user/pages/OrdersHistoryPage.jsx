@@ -119,9 +119,14 @@ const OrdersHistoryPage = () => {
       customTerms: 'Thank you for taking our services..',
       invoiceNote: 'This is a computer generated invoice.',
       showTaxes: false,
+      showServiceFee: true,
+      showDeliveryFee: true,
+      showSurge: true,
+      showDiscount: true,
       accentColor: '#000000',
       businessName: 'SPINZYT',
-      contactEmail: 'support@spinzyt.com'
+      contactEmail: 'support@spinzyt.com',
+      gstNumber: 'ZA1223324435435'
     };
 
     const invoiceHtml = `
@@ -130,123 +135,202 @@ const OrdersHistoryPage = () => {
           <title>Invoice - ${order.orderId || order._id}</title>
           <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
-            .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid ${cfg.accentColor}; padding-bottom: 20px; margin-bottom: 40px; }
-            .logo { font-size: 32px; font-weight: 900; letter-spacing: -1px; display: ${cfg.showLogo ? 'block' : 'none'}; }
-            .invoice-label { font-size: 24px; font-weight: 900; color: #64748b; text-transform: uppercase; }
-            .meta { display: grid; grid-template-cols: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
-            .meta-box h4 { font-size: 10px; text-transform: uppercase; color: #94a3b8; margin-bottom: 5px; letter-spacing: 1px; }
-            .meta-box p { font-size: 14px; font-weight: 700; margin: 0; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-            th { text-align: left; background: #f8fafc; padding: 15px; font-size: 12px; text-transform: uppercase; color: #64748b; }
-            td { padding: 15px; border-bottom: 1px solid #f1f5f9; font-size: 14px; font-weight: 500; }
-            .totals { margin-left: auto; width: 300px; }
-            .total-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
-            .grand-total { border-top: 2px solid ${cfg.accentColor}; border-bottom: none; padding-top: 15px; margin-top: 10px; font-weight: 900; font-size: 18px; color: ${cfg.accentColor}; }
-            .footer { margin-top: 60px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 30px; color: #94a3b8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-            .terms { font-size: 10px; font-weight: 900; color: #1e293b; margin-bottom: 5px; display: ${cfg.showTerms ? 'block' : 'none'}; }
-            .note { font-size: 8px; font-weight: 500; color: #94a3b8; }
+            body { 
+              font-family: 'Inter', sans-serif; 
+              padding: 0; 
+              margin: 0;
+              color: #0f172a; 
+              background: #fff;
+              -webkit-print-color-adjust: exact;
+            }
+            .page { padding: 40px; max-width: 850px; margin: auto; }
+            
+            /* PREMIUM HEADER MATCHING INVOICEPRINT.JSX */
+            .header-container { 
+              background-color: #f3f4f6; 
+              padding: 40px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center; 
+              position: relative;
+              border: 1px solid #e2e8f0;
+              border-bottom: none;
+            }
+            .header-left { position: relative; z-index: 10; }
+            .business-title { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 15px; line-height: 1; }
+            .business-details { font-size: 13px; font-weight: 700; color: #475569; line-height: 1.4; }
+            
+            .header-right { text-align: right; position: relative; z-index: 10; display: ${cfg.showLogo ? 'flex' : 'none'}; flex-direction: column; align-items: center; }
+            .logo-circle { width: 80px; height: 80px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 12px; }
+            .logo-circle img { width: 48px; height: 48px; object-fit: contain; padding-top: 16px; }
+            .brand-name { font-size: 24px; font-weight: 900; letter-spacing: 0.2em; line-height: 1; }
+
+            /* INFO SECTION */
+            .info-section { 
+              padding: 40px 10px; 
+              display: flex; 
+              justify-content: space-between; 
+              border-left: 1px solid #e2e8f0;
+              border-right: 1px solid #e2e8f0;
+            }
+            .info-group { space-y: 8px; }
+            .info-label { font-size: 13px; font-weight: 900; text-transform: uppercase; margin-bottom: 8px; }
+            .info-value { font-weight: 700; color: #475569; margin-left: 8px; }
+
+            /* TABLE STYLING */
+            .table-container { border: 1px solid #e2e8f0; border-top: none; }
+            table { width: 100%; border-collapse: collapse; }
+            th { 
+              background: #f8fafc; 
+              padding: 16px; 
+              text-align: left; 
+              font-size: 11px; 
+              font-weight: 900; 
+              text-transform: uppercase; 
+              letter-spacing: 0.1em; 
+              color: #94a3b8;
+              border-bottom: 1px solid #e2e8f0;
+              border-right: 1px solid #e2e8f0;
+            }
+            th:last-child { border-right: none; }
+            td { 
+              padding: 16px; 
+              font-size: 13px; 
+              font-weight: 700; 
+              color: #334155;
+              border-bottom: 1px solid #f1f5f9;
+              border-right: 1px solid #e2e8f0;
+            }
+            td:last-child { border-right: none; font-weight: 900; color: #0f172a; text-align: right; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+
+            /* TOTALS SECTION */
+            .totals-row td { padding: 12px 24px; border-bottom: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #64748b; }
+            .grand-total-row { background: #0f172a; color: white !important; }
+            .grand-total-row td { color: white !important; padding: 20px 24px; font-size: 12px; }
+            .grand-total-value { font-size: 18px !important; }
+
+            /* FOOTER */
+            .footer { margin-top: 48px; text-align: center; }
+            .footer-line { padding: 16px 0; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; margin-bottom: 16px; }
+            .footer-note { font-size: 10px; font-weight: 900; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.4em; }
+            .footer-terms { font-size: 10px; font-weight: 700; color: #94a3b8; font-style: italic; margin-bottom: 8px; display: ${cfg.showTerms ? 'block' : 'none'}; }
+            .footer-brand { font-size: 12px; font-weight: 900; letter-spacing: 0.3em; text-transform: uppercase; }
+
+            @media print {
+              .header-container { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+              .grand-total-row { background-color: #0f172a !important; -webkit-print-color-adjust: exact; }
+              th { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <div class="logo">${cfg.businessName}.</div>
-            <div class="invoice-label">Invoice</div>
-          </div>
-          
-          <div class="meta">
-            <div class="meta-box">
-              <h4>Order ID</h4>
-              <p>${order.orderId || '#' + order._id?.slice(-6)}</p>
-              <h4 style="margin-top: 15px">Date</h4>
-              <p>${orderDate}</p>
+          <div class="page">
+            <div class="header-container">
+              <div class="header-left">
+                <div class="business-title">${cfg.businessName}</div>
+                <div class="business-details">
+                  <div>www.spinzyt.com</div>
+                  <div>${cfg.contactEmail}</div>
+                  <div>GST # ${cfg.gstNumber || 'ZA1223324435435'}</div>
+                </div>
+              </div>
+              <div class="header-right">
+                <div class="logo-circle">
+                  <img src="https://spinzyt.com/wp-content/uploads/2023/12/spinzyt-logo-new.png" />
+                </div>
+                <div class="brand-name">SPINZYT</div>
+              </div>
             </div>
-            <div class="meta-box">
-              <h4>Billed To</h4>
-              <p>${userData.displayName || userData.username || 'Valued Customer'}</p>
-              ${cfg.showVendorDetails ? `
-                <h4 style="margin-top: 15px">Vendor</h4>
-                <p>${order.vendor?.displayName || ''}</p>
-              ` : ''}
-            </div>
-          </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Service Item</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(order.items || []).map(item => `
-                <tr>
-                  <td>${item.name}</td>
-                  <td>${item.quantity} ${item.unit || 'pc'}</td>
-                  <td>₹${item.price || 0}</td>
-                  <td>₹${(item.price || 0) * (item.quantity || 1)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-
-          <div class="totals">
-            <div class="total-row">
-              <span>Subtotal</span>
-              <span>₹${order.totalAmount || 0}</span>
+            <div class="info-section">
+              <div class="info-group">
+                <div class="info-label">Invoice No: <span class="info-value">${order.invoiceNo || `SZ-CUST-2026-${(order.orderId || order._id).slice(-4)}`}</span></div>
+                <div class="info-label">Customer Name: <span class="info-value">${userData.displayName || 'Valued Customer'}</span></div>
+                ${cfg.showVendorDetails ? `<div class="info-label">Vendor ID: <span class="info-value">${order.vendor?.displayName || 'VEN-001'}</span></div>` : ''}
+              </div>
+              <div class="info-group text-right">
+                <div class="info-label">Order No: <span class="info-value">${order.orderId || order._id}</span></div>
+                <div class="info-label">Date: <span class="info-value">${orderDate}</span></div>
+              </div>
             </div>
-            ${(cfg.showServiceFee && order.priceBreakdown?.serviceFee) ? `
-              <div class="total-row">
-                <span>Service Fee</span>
-                <span>₹${order.priceBreakdown.serviceFee}</span>
-              </div>
-            ` : ''}
-            ${(cfg.showDeliveryFee && order.priceBreakdown?.logisticsFee) ? `
-              <div class="total-row">
-                <span>Logistics Fee</span>
-                <span>₹${order.priceBreakdown.logisticsFee}</span>
-              </div>
-            ` : ''}
-            ${(cfg.showSurge && order.priceBreakdown?.expressSurcharge) ? `
-              <div class="total-row" style="color: #e11d48;">
-                <span>Express Surcharge</span>
-                <span>₹${order.priceBreakdown.expressSurcharge}</span>
-              </div>
-            ` : ''}
-            ${(cfg.showDiscount && order.priceBreakdown?.discount) ? `
-              <div class="total-row" style="color: #059669;">
-                <span>Discount</span>
-                <span>- ₹${order.priceBreakdown.discount}</span>
-              </div>
-            ` : ''}
-            ${cfg.showTaxes ? `
-              <div class="total-row">
-                <span>Taxes (18%)</span>
-                <span>₹${((order.totalAmount || 0) * 0.18).toFixed(2)}</span>
-              </div>
-            ` : ''}
-            <div class="total-row grand-total">
-              <span>Grand Total</span>
-              <span>₹${order.totalAmount?.toFixed(2) || 0}</span>
-            </div>
-            ${(cfg.showAdvance && order.advanceAmount) ? `
-              <div class="total-row" style="color: #059669; font-weight: 700;">
-                <span>Advance Paid</span>
-                <span>₹${order.advanceAmount}</span>
-              </div>
-              <div class="total-row" style="color: #e11d48; font-weight: 900;">
-                <span>Due at Delivery</span>
-                <span>₹${order.dueAmount || 0}</span>
-              </div>
-            ` : ''}
-          </div>
 
-          <div class="footer">
-            <div class="terms">${cfg.customTerms}</div>
-            <div class="note">${cfg.invoiceNote}</div>
-            <div style="margin-top: 15px; font-size: 9px; color: #64748b;">${cfg.contactEmail}</div>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Item Description</th>
+                    <th class="text-center">SAC</th>
+                    <th>Service Type</th>
+                    <th class="text-center">Qty / Weight</th>
+                    <th class="text-right">Unit Price</th>
+                    <th class="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(order.items || []).map(item => `
+                    <tr>
+                      <td>${item.name}</td>
+                      <td class="text-center">9994</td>
+                      <td>${item.serviceType || 'Laundry'}</td>
+                      <td class="text-center">${item.quantity || 1}</td>
+                      <td class="text-right">₹${item.price}</td>
+                      <td class="text-right">₹${(item.price * (item.quantity || 1))}</td>
+                    </tr>
+                  `).join('')}
+                  
+                  <tr class="totals-row" style="border-top: 2px solid #0f172a">
+                    <td colspan="5">Subtotal Services</td>
+                    <td>₹${order.totalAmount || 0}</td>
+                  </tr>
+                  ${cfg.showDeliveryFee ? `
+                    <tr class="totals-row">
+                      <td colspan="5">Logistics Fee</td>
+                      <td>₹${order.priceBreakdown?.deliveryFee || 0}</td>
+                    </tr>
+                  ` : ''}
+                  ${cfg.showServiceFee ? `
+                    <tr class="totals-row">
+                      <td colspan="5">Platform Fee</td>
+                      <td>₹${order.priceBreakdown?.serviceFee || 0}</td>
+                    </tr>
+                  ` : ''}
+                  ${cfg.showSurge ? `
+                    <tr class="totals-row">
+                      <td colspan="5">Surge Charge</td>
+                      <td>₹${order.priceBreakdown?.surgeCharge || 0}</td>
+                    </tr>
+                  ` : ''}
+                  ${cfg.showDiscount ? `
+                    <tr class="totals-row" style="color: #059669">
+                      <td colspan="5">Promotional Discount</td>
+                      <td>- ₹${order.priceBreakdown?.discount || 0}</td>
+                    </tr>
+                  ` : ''}
+                  ${cfg.showTaxes ? `
+                    <tr class="totals-row">
+                      <td colspan="5">GST (18%)</td>
+                      <td>₹${((order.totalAmount || 0) * 0.18).toFixed(2)}</td>
+                    </tr>
+                  ` : ''}
+                  <tr class="totals-row grand-total-row">
+                    <td colspan="5">Grand Total</td>
+                    <td class="grand-total-value">₹${order.totalAmount?.toFixed(2) || 0}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="footer">
+              <div class="footer-line">
+                <div class="footer-note">${cfg.invoiceNote}</div>
+              </div>
+              <div>
+                <div class="footer-terms">${cfg.customTerms}</div>
+                <div class="footer-brand">${cfg.businessName}</div>
+              </div>
+            </div>
           </div>
 
           <script>
@@ -269,7 +353,7 @@ const OrdersHistoryPage = () => {
       animate={{ opacity: 1 }}
       className="text-on-background min-h-[100dvh] flex flex-col"
     >
-      <main className="pt-16 pb-44 px-6 max-w-2xl mx-auto w-full">
+      <main className="pt-[50px] pb-44 px-6 max-w-2xl mx-auto w-full">
         {loading ? (
           <div className="py-20 text-center flex flex-col items-center">
              <motion.div 
@@ -285,7 +369,7 @@ const OrdersHistoryPage = () => {
         <motion.section 
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="mb-6 pt-10"
+          className="mb-6 pt-4"
         >
           <div className="flex gap-4 mb-2">
             <button 

@@ -44,7 +44,6 @@ function App() {
       <GlobalToast />
       <LocationPrompt />
       <LocationPicker isLoaded={isLoaded} />
-      <GlobalCartButton />
       <Routes>
 
 

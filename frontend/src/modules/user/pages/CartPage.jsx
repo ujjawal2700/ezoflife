@@ -237,11 +237,18 @@ const CartPage = () => {
   const [promoError, setPromoError] = useState('');
 
   const [addresses, setAddresses] = useState([]);
-  const [selectedPickupAddress, setSelectedPickupAddress] = useState(null);
-  const [selectedDropAddress, setSelectedDropAddress] = useState(null);
+  const [selectedPickupAddress, setSelectedPickupAddress] = useState(() => {
+    const saved = localStorage.getItem('pickup_address');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [selectedDropAddress, setSelectedDropAddress] = useState(() => {
+    const saved = localStorage.getItem('drop_address');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [isSameAddress, setIsSameAddress] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Online'); // Default to Online
+  const [showPromoDropdown, setShowPromoDropdown] = useState(false);
 
   const timeInfo = useMemo(() => {
     const now = new Date();
@@ -580,8 +587,9 @@ const CartPage = () => {
       <motion.main className="max-w-5xl mx-auto px-6 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar">
         <div className="h-20 shrink-0" />
         <div className="flex flex-col gap-4">
-          {/* 1. CONCISE ORDER SUMMARY BOX */}
-          <div className="bg-slate-950 text-white rounded-[2rem] p-5 shadow-2xl relative overflow-hidden group">
+          <div className="flex flex-col">
+            {/* 1. CONCISE ORDER SUMMARY BOX */}
+            <div className="bg-slate-950 text-white rounded-t-[2rem] p-5 shadow-2xl relative overflow-hidden group border-b border-white/5">
             <div className="absolute right-0 top-0 p-6 opacity-[0.03] rotate-12 pointer-events-none">
               <span className="material-symbols-outlined text-[80px]">receipt_long</span>
             </div>
@@ -589,9 +597,6 @@ const CartPage = () => {
             <div className="flex items-center justify-between mb-4 relative z-10">
               <div>
                 <h2 className="text-lg font-black uppercase tracking-tighter leading-none">Order Summary</h2>
-              </div>
-              <div className={`px-3 py-1 rounded-xl text-[8px] font-black uppercase tracking-widest ${isExpress ? 'bg-amber-500 text-black shadow-[0_10px_20px_rgba(245,158,11,0.2)]' : 'bg-white/10 text-white'}`}>
-                {isExpress ? '⚡ Express' : 'Normal'}
               </div>
             </div>
 
@@ -611,7 +616,7 @@ const CartPage = () => {
                     <span className="material-symbols-outlined text-white/60 text-[10px]">bolt</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Mode</p>
+                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Delivery mode</p>
                     <p className="text-[8px] font-black text-white uppercase">{isExpress ? 'Express' : 'Normal'}</p>
                   </div>
                 </div>
@@ -623,7 +628,12 @@ const CartPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Pickup</p>
-                    <p className="text-[8px] font-black text-white uppercase truncate">{selectedPickup?.split(',')[1] || selectedPickup}</p>
+                    <p className="text-[8px] font-black text-white uppercase truncate flex items-center gap-1.5">
+                      {pickupTime}
+                      {selectedPickupAddress?.type && (
+                        <span className="text-[6px] bg-white/10 px-1.5 py-0.5 rounded text-white/60">{selectedPickupAddress.type}</span>
+                      )}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -632,53 +642,27 @@ const CartPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Drop</p>
-                    <p className="text-[8px] font-black text-white uppercase truncate">{selectedDelivery?.split(',')[1] || selectedDelivery}</p>
+                    <p className="text-[8px] font-black text-white uppercase truncate flex items-center gap-1.5">
+                      {deliveryTime}
+                      {(isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type) && (
+                        <span className="text-[6px] bg-white/10 px-1.5 py-0.5 rounded text-white/60">
+                          {isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type}
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-            
-            <div className="mt-3 flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg border border-white/5 relative z-10">
-              <span className="material-symbols-outlined text-[10px] text-amber-500">info</span>
-              <p className="text-[6px] font-black text-white/30 uppercase tracking-widest leading-tight">Doorstep pickup & handling included</p>
-            </div>
           </div>
-
-          {/* 2. PRICE BREAKDOWN / PAYMENT BOX */}
-          <div className="bg-slate-950 text-white rounded-[2rem] p-6 shadow-2xl space-y-4 relative overflow-hidden group">
+            
+            {/* 2. PRICE BREAKDOWN / PAYMENT BOX */}
+            <div className="bg-slate-950 text-white rounded-b-[2rem] p-6 shadow-2xl space-y-4 relative overflow-hidden group">
             <div className="absolute right-0 top-0 p-8 opacity-[0.02] rotate-12 pointer-events-none group-hover:opacity-[0.04] transition-opacity">
               <span className="material-symbols-outlined text-[100px]">payments</span>
             </div>
 
             <div className="space-y-4 relative z-10">
-              {/* PROMO CODE COMPACT */}
-              <div className="bg-white/5 rounded-2xl border border-white/10 p-3 flex flex-col gap-2 backdrop-blur-md">
-                <div className="flex items-center justify-between">
-                  <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.1em]">Promo Code</p>
-                  {isPromoApplied && (
-                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[7px] font-black text-rose-400 uppercase tracking-widest">Remove</button>
-                  )}
-                </div>
-                <div className="relative flex items-center group/promo">
-                    <input 
-                      type="text" 
-                      placeholder="ENTER CODE"
-                      value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-3 pr-20 py-3 text-[9px] font-black uppercase tracking-widest outline-none focus:bg-white/10 transition-all text-white placeholder:text-white/20"
-                    />
-                    <button 
-                      onClick={handleApplyPromo}
-                      className={`absolute right-1 px-4 py-2 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}
-                    >
-                      {isPromoApplied ? 'OK' : 'APPLY'}
-                    </button>
-                </div>
-                {promoError && <p className="text-[7px] font-black text-rose-400 uppercase ml-1">{promoError}</p>}
-                {isPromoApplied && (
-                  <p className="text-[8px] font-black text-emerald-400 uppercase ml-1">✨ SAVED ₹{discount.toFixed(0)}!</p>
-                )}
-              </div>
 
               <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-1">
                 <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
@@ -710,6 +694,80 @@ const CartPage = () => {
                   </div>
                 )}
               </div>
+
+              {/* ENHANCED PROMO CODE SECTION */}
+              <div className="bg-white/5 rounded-2xl border border-white/10 p-4 space-y-3 backdrop-blur-md mt-4 relative">
+                <div className="flex items-center justify-between">
+                  <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.1em]">Apply Offers</p>
+                  {isPromoApplied && (
+                    <button onClick={() => { setIsPromoApplied(false); setAppliedPromoData(null); setPromoCode(''); }} className="text-[7px] font-black text-rose-400 uppercase tracking-widest">Remove</button>
+                  )}
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  {applicablePromos.length > 0 && (
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowPromoDropdown(!showPromoDropdown)}
+                        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-[9px] font-black uppercase tracking-widest text-left flex items-center justify-between transition-all"
+                      >
+                        <span className="truncate">{promoCode || 'Select Available Offer'}</span>
+                        <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${showPromoDropdown ? 'rotate-180' : ''}`}>expand_more</span>
+                      </button>
+                      
+                      <AnimatePresence>
+                        {showPromoDropdown && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 5 }}
+                            className="absolute bottom-full mb-2 left-0 right-0 z-[100] bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                          >
+                            <div className="max-h-48 overflow-y-auto custom-scrollbar">
+                              {applicablePromos.map(p => (
+                                <button
+                                  key={p._id}
+                                  onClick={() => {
+                                    handleApplyPromo(p.code);
+                                    setShowPromoDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-white/5 transition-all border-b border-white/5 last:border-0 flex flex-col gap-0.5"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[9px] font-black text-white">{p.code}</span>
+                                    <span className="text-[8px] font-black text-emerald-400">{p.discountType === 'Flat' ? `₹${p.discountValue}` : `${p.discountValue}%`} OFF</span>
+                                  </div>
+                                  <p className="text-[7px] font-bold text-white/40 uppercase line-clamp-1">{p.description || 'Special discount for you'}</p>
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
+
+                  <div className="relative flex items-center group/promo">
+                      <input 
+                        type="text" 
+                        placeholder="OR ENTER MANUALLY"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-3 pr-20 py-3 text-[9px] font-black uppercase tracking-widest outline-none focus:bg-white/10 transition-all text-white placeholder:text-white/20"
+                      />
+                      <button 
+                        onClick={() => handleApplyPromo(promoCode)}
+                        className={`absolute right-1 px-4 py-2 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all ${isPromoApplied ? 'bg-emerald-500 text-white' : 'bg-white text-black'}`}
+                      >
+                        {isPromoApplied ? 'OK' : 'APPLY'}
+                      </button>
+                  </div>
+                </div>
+                {promoError && <p className="text-[7px] font-black text-rose-400 uppercase ml-1">{promoError}</p>}
+                {isPromoApplied && (
+                  <p className="text-[8px] font-black text-emerald-400 uppercase ml-1 animate-pulse">✨ SAVED ₹{discount.toFixed(0)}!</p>
+                )}
+              </div>
             </div>
             
             <div className="pt-3 border-t border-white/5 flex items-center justify-between relative z-10">
@@ -734,10 +792,19 @@ const CartPage = () => {
               </motion.button>
             </div>
           </div>
+        </div>
 
-          {/* 3. SERVICES REVIEW (NOW AT THE BOTTOM) */}
           <div className="space-y-3">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">Services Review</p>
+            <div className="flex items-center justify-between px-2">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Services Review</p>
+              <button 
+                onClick={() => navigate('/user/home')}
+                className="flex items-center gap-1 text-[8px] font-black text-slate-900 uppercase bg-slate-100 px-3 py-1.5 rounded-full hover:bg-slate-200 transition-all shadow-sm active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[10px] font-bold">add</span>
+                Add More
+              </button>
+            </div>
             {cartItems.map((item) => {
               const itemId = item._id || item.id;
               const qty = quantities[itemId];

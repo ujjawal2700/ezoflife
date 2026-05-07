@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi } from '../../../lib/api';
@@ -134,7 +134,9 @@ const HomePage = () => {
     const saved = localStorage.getItem('item_photos');
     return saved ? JSON.parse(saved) : {};
   });
-  const [activeServiceForPhoto, setActiveServiceForPhoto] = useState(null);
+  const [activePhotoService, setActivePhotoService] = useState(null);
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [customAddress, setCustomAddress] = useState('');
@@ -205,7 +207,10 @@ const HomePage = () => {
           });
         }
         setSavedAddresses(addrList);
-        if (!pickupAddress && addrList.length > 0) setPickupAddress(addrList[0]);
+        if (addrList.length > 0) {
+          if (!pickupAddress) setPickupAddress(addrList[0]);
+          if (!dropAddress && isSameAsPickup) setDropAddress(addrList[0]);
+        }
       }
     } catch (err) {
       console.error('Error fetching delivery config/profile:', err);
@@ -434,13 +439,85 @@ const HomePage = () => {
     return () => clearInterval(timer);
   }, [banners.length]);
 
+  const isTierSelected = !!selectedTier;
+  const [deliveryConfirmed, setDeliveryConfirmed] = useState(() => localStorage.getItem('delivery_confirmed') === 'true');
+  const isLogisticsValid = !!(selectedPickup && pickupTime && selectedDelivery && deliveryTime && pickupAddress && dropAddress);
+
+  // Persistence for Logistics States
+  useEffect(() => {
+    localStorage.setItem('delivery_confirmed', deliveryConfirmed);
+    localStorage.setItem('pickup_date', selectedPickup);
+    localStorage.setItem('pickup_time', pickupTime);
+    localStorage.setItem('delivery_date', selectedDelivery);
+    localStorage.setItem('delivery_time', deliveryTime);
+    if (pickupAddress) localStorage.setItem('pickup_address', JSON.stringify(pickupAddress));
+    if (dropAddress) localStorage.setItem('drop_address', JSON.stringify(dropAddress));
+  }, [deliveryConfirmed, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress]);
+
+  // Sync Drop Address if same as Pickup
+  useEffect(() => {
+    if (isSameAsPickup && pickupAddress) {
+      setDropAddress(pickupAddress);
+    }
+  }, [isSameAsPickup, pickupAddress]);
+
+  const handlePhotoFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0 || !activePhotoService) return;
+    
+    const newPhotoUrls = files.map(file => URL.createObjectURL(file));
+    
+    setItemPhotos(prev => {
+      const updated = { 
+        ...prev, 
+        [activePhotoService.id]: [...(prev[activePhotoService.id] || []), ...newPhotoUrls] 
+      };
+      localStorage.setItem('item_photos', JSON.stringify(updated));
+      return updated;
+    });
+    
+    toast.success('Photos added!');
+    setActivePhotoService(null);
+  };
+
+  const handleDeletePhoto = (serviceId, photoUrl) => {
+    setItemPhotos(prev => {
+      const updated = {
+        ...prev,
+        [serviceId]: (prev[serviceId] || []).filter(url => url !== photoUrl)
+      };
+      localStorage.setItem('item_photos', JSON.stringify(updated));
+      return updated;
+    });
+    toast.success('Photo removed');
+  };
+
+  const StepWrapper = ({ children, isLocked, stepNumber, label, isCompleted }) => (
+    <div className={`relative transition-all duration-500 ${isLocked ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
+      {isLocked && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-lg border border-slate-200">
+            <span className="material-symbols-outlined text-slate-400 text-xl">lock</span>
+          </div>
+        </div>
+      )}
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${isCompleted ? 'bg-emerald-500 text-white' : isLocked ? 'bg-slate-200 text-slate-400' : 'bg-black text-white'}`}>
+          {isCompleted ? <span className="material-symbols-outlined text-[14px]">check</span> : stepNumber}
+        </div>
+        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isLocked ? 'text-slate-300' : 'text-slate-900'}`}>{label}</span>
+      </div>
+      {children}
+    </div>
+  );
+
   return (
     <div className="text-on-surface min-h-[100dvh] flex flex-col">
       <main className="flex-1 pt-0 pb-36 px-6 max-w-5xl mx-auto w-full">
         <div className="h-[50px] shrink-0" />
 
-        {/* 1. COMPACT PROMO BANNER (TODAY'S DESIGN) */}
-        <section className="mt-2 mb-2 w-full relative px-2">
+        {/* 1. COMPACT PROMO BANNER */}
+        <section className="mt-2 mb-6 w-full relative px-2">
           <div className="overflow-hidden rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-100">
             <AnimatePresence mode="wait">
               <motion.div
@@ -461,11 +538,10 @@ const HomePage = () => {
             </AnimatePresence>
           </div>
         </section>
-
-        {/* 2. CONSOLIDATED CONTROL ROW (NO-SCROLL ONE-VIEW DESIGN) */}
+        {/* 2. CONSOLIDATED CONTROL ROW (ORIGINAL COMPACT DESIGN) */}
         <div className="flex flex-row items-center justify-between gap-1 mb-4 px-0 w-full">
-          {/* Tier Toggle - Ultra Compact */}
-          <div className="flex-[1.4] bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5 shrink-0">
+          {/* Tier Toggle - Always Active */}
+          <div className="flex-1 bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5 shrink-0">
             {['Essential', 'Heritage'].map(tier => (
               <button 
                 key={tier} 
@@ -477,168 +553,154 @@ const HomePage = () => {
             ))}
           </div>
 
-          {/* Pickup Button */}
-          <button 
-            onClick={() => { setActiveSlotType('pickup'); setShowSlotPicker(true); }}
-            className={`flex-1 py-2 rounded-xl font-black text-[7px] uppercase tracking-tighter border transition-all flex flex-col items-center justify-center gap-0.5 ${selectedPickup ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
-          >
-            <span className="material-symbols-outlined text-[12px] leading-none">calendar_today</span>
-            <span>{selectedPickup ? (pickupTime ? pickupTime.split(' ')[0] : 'Set') : 'Pickup'}</span>
-          </button>
-
-          {/* Drop Button */}
-          <button 
-            onClick={() => { setActiveSlotType('delivery'); setShowSlotPicker(true); }}
-            className={`flex-1 py-2 rounded-xl font-black text-[7px] uppercase tracking-tighter border transition-all flex flex-col items-center justify-center gap-0.5 ${selectedDelivery ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
-          >
-            <span className="material-symbols-outlined text-[12px] leading-none">local_shipping</span>
-            <span>{selectedDelivery ? (deliveryTime ? deliveryTime.split(' ')[0] : 'Set') : 'Drop'}</span>
-          </button>
-
-          {/* Express Toggle */}
-          <div className="flex-1">
+          {/* Express Toggle - Depends on Tier */}
+          <div className={`flex-1 transition-all duration-500 ${!isTierSelected ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
             <label className="cursor-pointer">
               <div className={`flex flex-col items-center justify-center py-2 rounded-xl border transition-all ${isExpress ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-slate-100 bg-white'}`}>
                 <span className={`text-[7px] font-black uppercase tracking-tighter mb-0.5 ${isExpress ? 'text-amber-700' : 'text-slate-400'}`}>Exp</span>
                 <input 
                   type="checkbox" 
                   checked={isExpress}
-                  onChange={(e) => setIsExpress(e.target.checked)}
+                  onChange={(e) => { setIsExpress(e.target.checked); setDeliveryConfirmed(true); }}
                   className="w-3 h-3 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
                 />
               </div>
             </label>
           </div>
+
+          {/* Pickup & Dropup - Depends on Delivery Type */}
+          <button 
+            disabled={!deliveryConfirmed}
+            onClick={() => setShowSlotPicker(true)}
+            className={`flex-1 py-2 rounded-xl font-black text-[7px] uppercase tracking-tighter border transition-all flex flex-row items-center justify-center gap-2 ${!deliveryConfirmed ? 'opacity-30 grayscale cursor-not-allowed' : (selectedPickup && selectedDelivery ? 'bg-slate-950 text-white border-slate-950 shadow-xl' : 'bg-white text-slate-400 border-slate-100')}`}
+          >
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="material-symbols-outlined text-[12px] leading-none">calendar_today</span>
+            </div>
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-[7px] mb-0.5">{isLogisticsValid ? 'Logistics Set' : 'Logistics'}</span>
+            </div>
+          </button>
         </div>
 
-
-        {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION */}
-        <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2' : 'relative z-[90] px-1 py-5'} bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100 mb-8 transition-all duration-500`}>
-          <div className="max-w-5xl mx-auto w-full space-y-3">
-            {/* MINI CATEGORIES - SLIM WHEN STICKY */}
-            <section className="w-full">
-              {!isHeaderSticky && (
-                <div className="flex items-center justify-between mb-4 px-3">
-                  <h3 className="text-[9px] font-black text-slate-900/40 uppercase tracking-[0.3em]">Quick Categories</h3>
-                </div>
-              )}
-
-              <div className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'pb-1' : 'pb-2'}`}>
-                {categoriesLoading ? (
-                  [...Array(5)].map((_, i) => <div key={i} className="min-w-[65px] h-16 bg-slate-50 rounded-xl animate-pulse" />)
-                ) : (
-                  categories.map(cat => (
-                    <motion.button
-                      key={cat.name}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleCategoryClick(cat)}
-                      className={`flex flex-col items-center gap-1 transition-all duration-300 ${isHeaderSticky ? 'min-w-[45px] max-w-[45px] p-1 rounded-xl' : 'min-w-[56px] max-w-[56px] p-2 rounded-[1.5rem]'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
-                    >
-                      <div className={`rounded-lg flex items-center justify-center shrink-0 transition-all ${isHeaderSticky ? 'w-5 h-5' : 'w-8 h-8'} ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'}`}>
-                        <span className={`material-symbols-outlined ${isHeaderSticky ? 'text-xs' : 'text-base'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
-                          {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' : cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' : cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
-                        </span>
-                      </div>
-                      <span className={`font-black uppercase tracking-tighter leading-tight text-center ${isHeaderSticky ? 'text-[5px]' : 'text-[6px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
-                    </motion.button>
-                  ))
+        {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Depends on Logistics */}
+        <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
+          <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2' : 'relative z-[90] px-1 py-5'} bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100 mb-8 transition-all duration-500`}>
+            <div className="max-w-5xl mx-auto w-full space-y-3">
+              {/* MINI CATEGORIES */}
+              <section className="w-full">
+                {!isHeaderSticky && (
+                  <div className="flex items-center justify-between mb-4 px-3">
+                    <h3 className="text-[9px] font-black text-slate-900/40 uppercase tracking-[0.3em]">Quick Categories</h3>
+                  </div>
                 )}
-              </div>
 
-              <AnimatePresence>
-                {subCategories.length > 0 && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'mt-2' : 'mt-4'}`}>
-                    {subCategories.map(sub => (
-                      <button
-                        key={sub._id}
-                        onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : { ...sub, name: sub.subCategory })}
-                        className={`rounded-lg font-black uppercase tracking-widest transition-all whitespace-nowrap border ${isHeaderSticky ? 'px-3 py-1.5 text-[6px]' : 'px-5 py-2.5 text-[8px]'} ${selectedSubCategory?._id === sub._id ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'}`}
+                <div className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'pb-1' : 'pb-2'}`}>
+                  {categoriesLoading ? (
+                    [...Array(5)].map((_, i) => <div key={i} className="min-w-[65px] h-16 bg-slate-50 rounded-xl animate-pulse" />)
+                  ) : (
+                    categories.map(cat => (
+                      <motion.button
+                        key={cat.name}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleCategoryClick(cat)}
+                        className={`flex flex-row items-center gap-2 transition-all duration-300 ${isHeaderSticky ? 'min-w-[90px] p-2 rounded-xl' : 'min-w-[125px] px-5 py-3 rounded-2xl'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
                       >
-                        {sub.subCategory}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </section>
-            {/* SEARCH BAR - SLIM WHEN STICKY */}
-            <div className="relative group px-1">
-              <div className={`absolute inset-y-0 left-5 flex items-center pointer-events-none ${isHeaderSticky ? 'scale-75' : ''}`}>
-                <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-900'} text-base opacity-40 group-focus-within:opacity-100 transition-opacity`}>search</span>
+                        <div className={`rounded-lg flex items-center justify-center shrink-0 transition-all ${isHeaderSticky ? 'w-4 h-4' : 'w-6 h-6'} ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'}`}>
+                          <span className={`material-symbols-outlined ${isHeaderSticky ? 'text-[10px]' : 'text-sm'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
+                            {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' : cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' : cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
+                          </span>
+                        </div>
+                        <span className={`font-black uppercase tracking-widest leading-none ${isHeaderSticky ? 'text-[6px]' : 'text-[8px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
+                      </motion.button>
+                    ))
+                  )}
+                </div>
+
+                <AnimatePresence>
+                  {subCategories.length > 0 && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'mt-2' : 'mt-4'}`}>
+                      {subCategories.map(sub => (
+                        <button
+                          key={sub._id}
+                          onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : { ...sub, name: sub.subCategory })}
+                          className={`rounded-lg font-black uppercase tracking-widest transition-all whitespace-nowrap border ${isHeaderSticky ? 'px-3 py-1.5 text-[6px]' : 'px-5 py-2.5 text-[8px]'} ${selectedSubCategory?._id === sub._id ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'}`}
+                        >
+                          {sub.subCategory}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </section>
+              {/* SEARCH BAR */}
+              <div className="relative group px-1">
+                <div className={`absolute inset-y-0 left-5 flex items-center pointer-events-none ${isHeaderSticky ? 'scale-75' : ''}`}>
+                  <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-900'} text-base opacity-40 group-focus-within:opacity-100 transition-opacity`}>search</span>
+                </div>
+                <input 
+                  value={searchQuery} 
+                  onChange={(e) => setSearchQuery(e.target.value)} 
+                  className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-10 py-1.5 text-[8px]' : 'pl-12 py-2.5 text-[9px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
+                  placeholder={isHeritage ? "Search..." : "Search services..."} 
+                />
               </div>
-              <input 
-                value={searchQuery} 
-                onChange={(e) => setSearchQuery(e.target.value)} 
-                className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-10 py-1.5 text-[8px]' : 'pl-12 py-2.5 text-[9px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
-                placeholder={isHeritage ? "Search..." : "Search services..."} 
-              />
             </div>
           </div>
+
+          {/* 5. SERVICES LIST */}
+          <section className="mb-10 w-full px-2">
+            <div className="flex items-center justify-between mb-6 px-2">
+              <h3 className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Available Services</h3>
+            </div>
+            <div className={`flex flex-col gap-3 ${showMoreServices ? 'max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
+              {loading ? (
+                [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-4 h-24 border border-slate-50 animate-pulse" />)
+              ) : (
+                filteredServices.map((service, i) => {
+                  const serviceId = service._id || service.id;
+                  const qty = selectedQuantities[serviceId] || 0;
+                  const isSelected = qty > 0;
+                  return (
+                    <motion.div 
+                      key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                      className={`rounded-[2.2rem] p-3 flex flex-row items-center gap-4 border-2 transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-slate-300 scale-[1.02]' : 'bg-white border-slate-100 shadow-sm'}`}
+                    >
+                      <div onClick={() => handleServiceClick(serviceId, service, i)} className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100/50 cursor-pointer">
+                        {service.image ? <img src={service.image} alt="" className="w-full h-full object-cover" /> : <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-white' : 'text-slate-300'}`}>local_laundry_service</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`font-black text-[10px] leading-tight mb-1 uppercase line-clamp-1 ${isSelected ? 'text-white' : 'text-slate-900'} tracking-tight`}>{service.name || service.itemName}</h4>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[12px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
+                          {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[9px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center bg-slate-50 rounded-full p-1 border border-slate-100 shadow-inner">
+                          <button onClick={() => updateQuantity(serviceId, -1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">remove</span></button>
+                          <span className="text-[11px] font-black text-slate-900 px-3 min-w-[32px] text-center">{qty}</span>
+                          <button onClick={() => updateQuantity(serviceId, 1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">add</span></button>
+                        </div>
+                        {isSelected && (
+                          <button 
+                            onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
+                          >
+                            <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
+          </section>
         </div>
-
-        {/* 5. SERVICES LIST (CLEAN IMAGE-MATCHED DESIGN) */}
-        <section className="mb-10 w-full px-2">
-          <div className="flex items-center justify-between mb-6 px-2">
-            <h3 className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Available Services</h3>
-          </div>
-          <div className={`flex flex-col gap-3 ${showMoreServices ? 'max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
-            {loading ? (
-              [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-4 h-24 border border-slate-50 animate-pulse" />)
-            ) : (
-              filteredServices.map((service, i) => {
-                const serviceId = service._id || service.id;
-                const qty = selectedQuantities[serviceId] || 0;
-                const isSelected = qty > 0;
-                return (
-                  <motion.div 
-                    key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                    className={`rounded-[2.2rem] p-3 flex flex-row items-center gap-4 border-2 transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-slate-300 scale-[1.02]' : 'bg-white border-slate-100 shadow-sm'}`}
-                  >
-                    {/* Icon/Logo */}
-                    <div onClick={() => handleServiceClick(serviceId, service, i)} className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden border border-slate-100/50 cursor-pointer">
-                      {service.image ? <img src={service.image} alt="" className="w-full h-full object-cover" /> : <span className={`material-symbols-outlined text-2xl ${isSelected ? 'text-white' : 'text-slate-300'}`}>local_laundry_service</span>}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`font-black text-[10px] leading-tight mb-1 uppercase line-clamp-1 ${isSelected ? 'text-white' : 'text-slate-900'} tracking-tight`}>{service.name || service.itemName}</h4>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[12px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
-                        {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[9px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
-                      </div>
-                    </div>
-
-                    {/* Quantity & Photo */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center bg-slate-50 rounded-full p-1 border border-slate-100 shadow-inner">
-                        <button onClick={() => updateQuantity(serviceId, -1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">remove</span></button>
-                        <span className="text-[11px] font-black text-slate-900 px-3 min-w-[32px] text-center">{qty}</span>
-                        <button onClick={() => updateQuantity(serviceId, 1)} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[16px] font-black">add</span></button>
-                      </div>
-                      
-                      {isSelected && (
-                        <button 
-                          onClick={() => navigate('/user/upload-photos', { 
-                            state: { 
-                              serviceId: serviceId, 
-                              serviceName: service.name || service.itemName 
-                            } 
-                          })}
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
-                        >
-                          <span className="material-symbols-outlined text-[18px]">add_a_photo</span>
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
-          {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
+        {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
             <div className="flex justify-center mt-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
           )}
-        </section>
 
         {/* 6. INSTRUCTIONS SECTION */}
         {cartItemsCount > 0 && (
@@ -653,158 +715,210 @@ const HomePage = () => {
           </section>
         )}
 
-        {/* 7. FLOATING CART BAR */}
-        <AnimatePresence>
-          {cartItemsCount > 0 && !isCartDismissed && (
-            <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="fixed bottom-20 left-6 right-6 z-[100] max-w-lg mx-auto">
-              <motion.button whileTap={{ scale: 0.98 }} onClick={handleCartClick} className={`${themeGradient} w-full h-[68px] rounded-[2rem] p-1 flex items-center justify-between shadow-2xl relative overflow-hidden`}>
-                <div className="flex items-center gap-4 pl-6 relative z-10"><div className="flex flex-col items-start leading-none"><span className="text-[9px] font-black uppercase tracking-widest text-white/60 mb-1">Final Total</span><h3 className="text-white font-black text-xl tracking-tight">₹{cartTotal.toLocaleString()}</h3></div><div className="h-8 w-px bg-white/20"></div><span className="text-white/80 font-black text-[9px] uppercase tracking-widest bg-black/10 px-3 py-1.5 rounded-full">{cartItemsCount} Items</span></div>
-                <div className="flex items-center gap-2 pr-6 relative z-10"><span className="text-white font-black text-[10px] uppercase tracking-widest">Verify & Pay</span><div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-white"><span className="material-symbols-outlined text-xl">arrow_forward</span></div></div>
-              </motion.button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
 
         {/* 8. SLOT PICKER MODAL */}
+        {/* 8. COMBINED PICKUP & DROPUP MODAL */}
         <AnimatePresence>
           {showSlotPicker && (
             <div className="fixed inset-0 z-[200] flex items-end justify-center p-0">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSlotPicker(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 overflow-y-auto max-h-[85vh] hide-scrollbar">
-                <div className="flex justify-between items-center"><h3 className="text-2xl font-black tracking-tighter uppercase leading-none">SELECT <br />{activeSlotType} SLOT.</h3><button onClick={() => setShowSlotPicker(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"><span className="material-symbols-outlined">close</span></button></div>
-                <div className="space-y-6">
-                  <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Date</p>
-                    <div className="flex gap-2 overflow-x-auto pb-4 hide-scrollbar">
-                      {availableDates.map((d, i) => {
-                        const dateStr = `${d.day}, ${d.date}`;
-                        const isSelected = (activeSlotType === 'pickup' ? selectedPickup : selectedDelivery)?.includes(d.date);
-                        let isDisabled = false;
-                        if (activeSlotType === 'delivery' && selectedPickup && pickupTime) {
-                          const pickupDT = getSlotDateTime(selectedPickup, pickupTime);
-                          const currentDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length - 1]);
-                          const minHours = isExpress ? 24 : 72;
-                          const diffHours = (currentDT - pickupDT) / (1000 * 60 * 60);
-                          if (diffHours < minHours) isDisabled = true;
-                        }
-                        return (<button key={i} disabled={isDisabled} onClick={() => activeSlotType === 'pickup' ? setSelectedPickup(dateStr) : setSelectedDelivery(dateStr)} className={`min-w-[90px] p-4 rounded-[1.5rem] border transition-all flex flex-col items-center gap-1 ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100')}`}><span className="text-[9px] font-black uppercase tracking-widest opacity-60">{d.day}</span><span className="text-sm font-black tracking-tighter">{d.date}</span></button>);
-                      })}
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                onClick={() => setShowSlotPicker(false)} 
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+              />
+              <motion.div 
+                initial={{ y: "100%" }} 
+                animate={{ y: 0 }} 
+                exit={{ y: "100%" }} 
+                className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 overflow-y-auto max-h-[92vh] hide-scrollbar"
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="text-2xl font-black tracking-tighter uppercase leading-none">Pickup & <br />Dropup.</h3>
+                  <button onClick={() => setShowSlotPicker(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                <div className="space-y-8">
+                  {/* --- PICKUP SECTION --- */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                        <span className="material-symbols-outlined text-[14px]">calendar_today</span>
+                      </div>
+                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">1. Pickup Scheduling</p>
+                    </div>
+                    
+                    <div className="space-y-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+                      <div>
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Date</p>
+                        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                          {availableDates.map((d, i) => {
+                            const dateStr = `${d.day}, ${d.date}`;
+                            const isSelected = selectedPickup?.includes(d.date);
+                            return (
+                              <button 
+                                key={i} 
+                                onClick={() => setSelectedPickup(dateStr)} 
+                                className={`min-w-[80px] p-3 rounded-2xl border transition-all flex flex-col items-center gap-1 ${isSelected ? 'bg-slate-950 text-white border-slate-950 shadow-lg' : 'bg-white text-slate-400 border-slate-100'}`}
+                              >
+                                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">{d.day}</span>
+                                <span className="text-xs font-black tracking-tighter">{d.date}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Time Window</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.slice(0, 6).map((slot) => {
+                            const isSelected = pickupTime === slot;
+                            return (
+                              <button 
+                                key={slot} 
+                                onClick={() => setPickupTime(slot)} 
+                                className={`py-3 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all ${isSelected ? 'bg-slate-950 text-white border-slate-950' : 'bg-white text-slate-400 border-slate-100'}`}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      
+                      {/* Pickup Address */}
+                      <div className="pt-2">
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Pickup Address</p>
+                        <button 
+                          onClick={() => { setActiveAddressType('pickup'); setShowAddressPicker(true); }}
+                          className="w-full bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between text-left group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-slate-300 text-[18px]">location_on</span>
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black text-slate-900 truncate uppercase">{pickupAddress?.type || 'Select Address'}</p>
+                              <p className="text-[8px] font-bold text-slate-400 truncate max-w-[180px]">{pickupAddress?.address || 'No address selected'}</p>
+                            </div>
+                          </div>
+                          <span className="material-symbols-outlined text-slate-200 text-sm group-hover:text-slate-900 transition-colors">edit</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <div><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Select Time Window (2 Hours)</p>
-                    <div className="grid grid-cols-2 gap-2">
-                                            {timeSlots.map((slot) => {
-                        const isSelected = (activeSlotType === 'pickup' ? pickupTime : deliveryTime) === slot;
-                        let isDisabled = false;
-                        
-                        // 1. Logic for Delivery min-gap
-                        if (activeSlotType === 'delivery' && selectedPickup && pickupTime && selectedDelivery) {
-                          const pickupDT = getSlotDateTime(selectedPickup, pickupTime);
-                          const deliveryDT = getSlotDateTime(selectedDelivery, slot);
-                          const minHours = isExpress ? 24 : 72;
-                          const diffHours = (deliveryDT - pickupDT) / (1000 * 60 * 60);
-                          if (diffHours < minHours) isDisabled = true;
-                        }
 
-                        // 2. Logic for Past Time Slots (Today only)
-                        const isToday = (activeSlotType === 'pickup' ? selectedPickup : selectedDelivery)?.includes('TODAY');
-                        if (isToday) {
-                          const [slotStart] = slot.split(' - ');
-                          const slotDT = getSlotDateTime(activeSlotType === 'pickup' ? selectedPickup : selectedDelivery, slot);
-                          if (slotDT && slotDT < new Date()) isDisabled = true;
-                        }
+                  {/* --- DROPUP SECTION --- */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600">
+                        <span className="material-symbols-outlined text-[14px]">local_shipping</span>
+                      </div>
+                      <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">2. Dropup Scheduling</p>
+                    </div>
+                    
+                    <div className="space-y-4 bg-slate-50 p-4 rounded-[2rem] border border-slate-100">
+                      <div>
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Date</p>
+                        <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                          {availableDates.map((d, i) => {
+                            const dateStr = `${d.day}, ${d.date}`;
+                            const isSelected = selectedDelivery?.includes(d.date);
+                            
+                            // Min 24h gap logic
+                            let isDisabled = false;
+                            if (selectedPickup && pickupTime) {
+                              const pDT = getSlotDateTime(selectedPickup, pickupTime);
+                              const dDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length-1]);
+                              const minH = isExpress ? 24 : 72;
+                              if ((dDT - pDT) / (1000*60*60) < minH) isDisabled = true;
+                            }
 
-                        return (<button key={slot} disabled={isDisabled} onClick={() => activeSlotType === 'pickup' ? setPickupTime(slot) : setDeliveryTime(slot)} className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-tight transition-all ${isDisabled ? 'opacity-20 cursor-not-allowed grayscale' : (isSelected ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-slate-50 text-slate-400 border-slate-100')}`}>{slot}</button>);
-                      })}
+                            return (
+                              <button 
+                                key={i} 
+                                disabled={isDisabled}
+                                onClick={() => setSelectedDelivery(dateStr)} 
+                                className={`min-w-[80px] p-3 rounded-2xl border transition-all flex flex-col items-center gap-1 ${isDisabled ? 'opacity-20 grayscale' : (isSelected ? 'bg-slate-950 text-white border-slate-950 shadow-lg' : 'bg-white text-slate-400 border-slate-100')}`}
+                              >
+                                <span className="text-[7px] font-black uppercase tracking-widest opacity-60">{d.day}</span>
+                                <span className="text-xs font-black tracking-tighter">{d.date}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Select Time Window</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {timeSlots.slice(0, 6).map((slot) => {
+                            const isSelected = deliveryTime === slot;
+                            return (
+                              <button 
+                                key={slot} 
+                                onClick={() => setDeliveryTime(slot)} 
+                                className={`py-3 rounded-xl border text-[9px] font-black uppercase tracking-tight transition-all ${isSelected ? 'bg-slate-950 text-white border-slate-950' : 'bg-white text-slate-400 border-slate-100'}`}
+                              >
+                                {slot}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Toggle: Different Drop Address */}
+                      <div className="pt-2 border-t border-slate-200 mt-2">
+                        <div className="flex items-center justify-between py-2">
+                          <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-slate-400 text-lg">swap_calls</span>
+                            <div>
+                              <p className="text-[9px] font-black text-slate-900 uppercase">Deliver to different address?</p>
+                              <p className="text-[7px] font-bold text-slate-400 uppercase mt-0.5">Separate Drop-off Location</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setIsSameAsPickup(!isSameAsPickup)}
+                            className={`w-12 h-6 rounded-full transition-all relative ${!isSameAsPickup ? 'bg-slate-950' : 'bg-slate-200'}`}
+                          >
+                            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${!isSameAsPickup ? 'right-1' : 'left-1'}`} />
+                          </button>
+                        </div>
+
+                        {!isSameAsPickup && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="pt-2">
+                            <button 
+                              onClick={() => { setActiveAddressType('drop'); setShowAddressPicker(true); }}
+                              className="w-full bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between text-left group"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="material-symbols-outlined text-slate-300 text-[18px]">local_shipping</span>
+                                <div className="min-w-0">
+                                  <p className="text-[10px] font-black text-slate-900 truncate uppercase">{dropAddress?.type || 'Select Address'}</p>
+                                  <p className="text-[8px] font-bold text-slate-400 truncate max-w-[180px]">{dropAddress?.address || 'No address selected'}</p>
+                                </div>
+                              </div>
+                              <span className="material-symbols-outlined text-slate-200 text-sm group-hover:text-slate-900 transition-colors">edit</span>
+                            </button>
+                          </motion.div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-                  {/* ADDRESS SELECTION SECTION */}
-                  <div className="pt-6 border-t border-slate-100 space-y-6">
-                    <div className="flex items-center justify-between px-2">
-                      <div className="space-y-0.5">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{activeSlotType === 'pickup' ? 'Pickup' : 'Delivery'} Address</p>
-                        <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest">Select where we should visit</p>
-                      </div>
-                      <button 
-                        onClick={() => { setShowSlotPicker(false); setShowAddressPicker(true); }} 
-                        className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 hover:bg-black hover:text-white px-4 py-2 rounded-xl transition-all duration-300 border border-slate-200/50 shadow-sm"
-                      >
-                        Change
-                      </button>
-                    </div>
-                    
-                    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-200/50 group transition-all hover:shadow-md active:scale-[0.98]">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-black group-hover:text-white transition-colors">
-                          <span className="material-symbols-outlined text-xl">location_on</span>
-                        </div>
-                        <div className="flex-1 pt-1">
-                          <p className="text-[11px] font-black uppercase text-slate-900 tracking-tight">
-                            {(activeSlotType === 'pickup' ? pickupAddress : (isSameAsPickup ? pickupAddress : dropAddress))?.type || 'Not Set'}
-                          </p>
-                          <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-relaxed">
-                            {(activeSlotType === 'pickup' ? pickupAddress : (isSameAsPickup ? pickupAddress : dropAddress))?.fullAddress || (activeSlotType === 'pickup' ? 'Please select pickup address' : 'Please select delivery address')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
 
-                    {activeSlotType === 'pickup' && (
-                      <div className="flex items-center justify-between bg-slate-950 p-5 rounded-[2.2rem] shadow-2xl shadow-slate-200 border border-white/5 overflow-hidden relative">
-                        <div className="absolute right-0 top-0 p-8 opacity-[0.03] rotate-12 pointer-events-none">
-                          <span className="material-symbols-outlined text-6xl text-white">swap_calls</span>
-                        </div>
-                        <div className="flex items-center gap-4 relative z-10">
-                          <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-white/40 text-lg">swap_calls</span>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Deliver to different address?</p>
-                            <p className="text-[7px] font-bold text-white/20 uppercase tracking-widest mt-0.5">Toggle for separate drop-off</p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => setIsSameAsPickup(!isSameAsPickup)}
-                          className={`w-14 h-7 rounded-full transition-all relative z-10 ${!isSameAsPickup ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)]' : 'bg-white/10'}`}
-                        >
-                          <div className={`absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-500 ${!isSameAsPickup ? 'right-1' : 'left-1'}`} />
-                        </button>
-                      </div>
-                    )}
-
-                    {!isSameAsPickup && (
-                      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-2">
-                        <div className="flex items-center justify-between px-2">
-                          <div className="space-y-0.5">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Delivery Address</p>
-                            <p className="text-[7px] font-bold text-slate-300 uppercase tracking-widest">Final destination for your garments</p>
-                          </div>
-                          <button 
-                            onClick={() => { setShowSlotPicker(false); setShowAddressPicker(true); }} 
-                            className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 hover:bg-black hover:text-white px-4 py-2 rounded-xl transition-all duration-300 border border-slate-200/50 shadow-sm"
-                          >
-                            Change
-                          </button>
-                        </div>
-                        <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm shadow-slate-200/50 group transition-all hover:shadow-md active:scale-[0.98]">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 group-hover:bg-black group-hover:text-white transition-colors">
-                              <span className="material-symbols-outlined text-xl text-slate-400">local_shipping</span>
-                            </div>
-                            <div className="flex-1 pt-1">
-                              <p className="text-[11px] font-black uppercase text-slate-900 tracking-tight">{dropAddress?.type || 'Not Set'}</p>
-                              <p className="text-[10px] font-bold text-slate-500 mt-1 line-clamp-2 leading-relaxed">{dropAddress?.fullAddress || 'Please select an address for delivery'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
                 <button 
-                  onClick={() => setShowSlotPicker(false)} 
-                  className="w-full bg-black text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] mt-8 shadow-[0_20px_40px_rgba(0,0,0,0.15)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  onClick={() => {
+                    if (!isLogisticsValid) {
+                      alert("Please ensure all fields (Pickup/Drop Dates, Times and Addresses) are selected.");
+                      return;
+                    }
+                    setShowSlotPicker(false);
+                  }} 
+                  className="w-full bg-slate-950 text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.3em] mt-4 shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
                 >
-                  Confirm Selection
+                  Confirm Logistics
                 </button>
               </motion.div>
             </div>
@@ -922,6 +1036,88 @@ const HomePage = () => {
               </motion.div>
             </div>
           )}
+        {/* 11. PHOTO OPTIONS & MANAGEMENT MODAL */}
+        <AnimatePresence>
+          {activePhotoService && (
+            <div className="fixed inset-0 z-[300] flex items-end justify-center p-0">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActivePhotoService(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 max-h-[85vh] overflow-y-auto hide-scrollbar">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="text-xl font-black tracking-tighter uppercase leading-none">Manage Article <br />Photos.</h3>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">{activePhotoService.name}</p>
+                  </div>
+                  <button onClick={() => setActivePhotoService(null)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"><span className="material-symbols-outlined">close</span></button>
+                </div>
+
+                {/* Existing Photos Grid */}
+                {itemPhotos[activePhotoService.id]?.length > 0 && (
+                  <div className="space-y-4">
+                    <p className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Current Photos ({itemPhotos[activePhotoService.id].length})</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {itemPhotos[activePhotoService.id].map((photo, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 group">
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                          <button 
+                            onClick={() => handleDeletePhoto(activePhotoService.id, photo)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-rose-500 transition-all shadow-sm"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Add More</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => cameraInputRef.current.click()}
+                      className="bg-slate-50 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-slate-900 transition-all"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm">
+                        <span className="material-symbols-outlined text-2xl">photo_camera</span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Take Photo</span>
+                    </motion.button>
+
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => galleryInputRef.current.click()}
+                      className="bg-slate-50 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-slate-900 transition-all"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm">
+                        <span className="material-symbols-outlined text-2xl">photo_library</span>
+                      </div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">From Gallery</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* HIDDEN INPUTS FOR PHOTOS */}
+        <input 
+          ref={galleryInputRef} 
+          type="file" 
+          multiple 
+          accept="image/*" 
+          onChange={handlePhotoFileChange} 
+          className="hidden" 
+        />
+        <input 
+          ref={cameraInputRef} 
+          type="file" 
+          accept="image/*" 
+          capture="environment" 
+          onChange={handlePhotoFileChange} 
+          className="hidden" 
+        />
         </AnimatePresence>
       </main>
     </div>

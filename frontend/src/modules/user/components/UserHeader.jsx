@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useNotificationStore from '../../../shared/stores/notificationStore';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const UserHeader = () => {
   const navigate = useNavigate();
+  const locationPath = useLocation();
+  const isHomePage = locationPath.pathname === '/user/home' || locationPath.pathname === '/';
+  
   const unreadCount = useNotificationStore((state) => state.unreadCount);
   const { location, setPickerOpen } = useLocationStore();
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -49,6 +52,33 @@ const UserHeader = () => {
     window.location.reload(); // Refresh to show updated address
   };
 
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      try {
+        const saved = localStorage.getItem('cart_quantities');
+        if (saved) {
+          const quantities = JSON.parse(saved);
+          const total = Object.values(quantities).reduce((acc, q) => acc + (Number(q) || 0), 0);
+          setCartCount(total);
+        } else {
+          setCartCount(0);
+        }
+      } catch (e) {
+        setCartCount(0);
+      }
+    };
+
+    updateCount();
+    const interval = setInterval(updateCount, 1000); // Simple sync
+    window.addEventListener('storage', updateCount);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', updateCount);
+    };
+  }, []);
+
   return (
     <>
       <motion.header 
@@ -78,12 +108,30 @@ const UserHeader = () => {
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
+          {/* 3. Cart Icon (Show if items exist) */}
+          {cartCount > 0 && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/user/cart')}
+              className="relative w-8 h-8 flex items-center justify-center cursor-pointer group"
+            >
+              <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-slate-950 group-hover:text-white transition-all border border-slate-100">
+                <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
+              </div>
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-rose-500 text-white text-[7px] font-black flex items-center justify-center rounded-full px-1 border-2 border-white shadow-sm">
+                {cartCount}
+              </span>
+            </motion.div>
+          )}
 
           {/* 4. Profile Icon */}
           <motion.div 
             onClick={handleProfileClick}
             whileHover={{ scale: 1.05 }}
-            className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
           >
             {userData.avatar ? (
               <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />

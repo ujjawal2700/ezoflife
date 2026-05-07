@@ -28,8 +28,9 @@ const GlobalCartButton = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Don't show on Cart page or Home page (where the big bar is)
-    if (location.pathname === '/user/cart' || location.pathname === '/user/home' || cartCount === 0) {
+    // Don't show on Cart page, Home page, or Auth/OTP pages
+    const hiddenPaths = ['/user/cart', '/user/home', '/user/auth', '/user/otp'];
+    if (hiddenPaths.includes(location.pathname) || cartCount === 0) {
         return null;
     }
 

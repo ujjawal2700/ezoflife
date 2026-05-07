@@ -631,12 +631,15 @@ export const adminApi = {
             throw error;
         }
     },
-    updateConfig: async (data) => {
+    updateConfig: async (keyOrData, value) => {
         try {
+            // Support both updateConfig({ key, value }) and updateConfig(key, value)
+            const body = value !== undefined ? { key: keyOrData, value } : keyOrData;
+            
             const response = await fetch(`${BASE_URL}/admin/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify(body)
             });
             return await response.json();
         } catch (error) {
