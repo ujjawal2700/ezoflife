@@ -34,9 +34,17 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
+    let timeoutId;
     if (!location) {
-      setTimeout(() => setPromptOpen(true), 1500);
-    } else {
+      timeoutId = setTimeout(() => setPromptOpen(true), 1500);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [location, setPromptOpen]);
+
+  useEffect(() => {
+    if (location) {
       const recheckZone = async () => {
         try {
           const zoneInfo = await geofenceApi.checkAvailability(location.lat, location.lng);
@@ -51,7 +59,7 @@ const HomePage = () => {
       };
       recheckZone();
     }
-  }, [location, setPromptOpen, setZoneData]);
+  }, [location, setZoneData]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState(null); 
