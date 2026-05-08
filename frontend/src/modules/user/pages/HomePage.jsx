@@ -54,7 +54,7 @@ const HomePage = () => {
   }, [location, setPromptOpen, setZoneData]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTier, setSelectedTier] = useState('Essential'); 
+  const [selectedTier, setSelectedTier] = useState(null); 
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -556,7 +556,7 @@ const HomePage = () => {
             ))}
           </div>
 
-          {/* Pickup & Dropup - Depends on Delivery Type */}
+          {/* Pickup & Drop-off - Depends on Delivery Type */}
           <button 
             disabled={!deliveryConfirmed}
             onClick={() => setShowSlotPicker(true)}
@@ -566,7 +566,7 @@ const HomePage = () => {
               <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
             </div>
             <div className="flex flex-col items-start leading-none">
-              <span className="text-[8px] text-left">{isLogisticsValid ? 'Schedule Pickup and Dropup' : 'Schedule Pickup and Dropup'}</span>
+              <span className="text-[8px] text-left">{isLogisticsValid ? 'Schedule Pickup and Drop-off' : 'Schedule Pickup and Drop-off'}</span>
             </div>
           </button>
         </div>
@@ -705,7 +705,7 @@ const HomePage = () => {
 
 
         {/* 8. SLOT PICKER MODAL */}
-        {/* 8. COMBINED PICKUP & DROPUP MODAL */}
+        {/* 8. COMBINED PICKUP & DROP-OFF MODAL */}
         <AnimatePresence>
           {showSlotPicker && (
             <div className="fixed inset-0 z-[200] flex items-end justify-center p-0">
@@ -820,14 +820,14 @@ const HomePage = () => {
                     </div>
                   </div>
 
-                  {/* --- DROPUP SECTION --- */}
+                  {/* --- DROP-OFF SECTION --- */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between px-1">
                       <div className="flex items-center gap-1.5">
                         <div className="w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-amber-600">
                           <span className="material-symbols-outlined text-[10px]">local_shipping</span>
                         </div>
-                        <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Dropup</p>
+                        <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Drop-off</p>
                       </div>
 
                       {/* Same as Pickup Toggle */}
@@ -888,7 +888,7 @@ const HomePage = () => {
                         </select>
                       </div>
 
-                      {/* Dropup Address (Only if NOT same as pickup) */}
+                      {/* Drop-off Address (Only if NOT same as pickup) */}
                       {!isSameAsPickup && (
                         <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="pt-1.5 border-t border-slate-200 mt-1">
                           <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1 mt-1.5">Address</p>
