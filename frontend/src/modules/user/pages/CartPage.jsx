@@ -598,63 +598,66 @@ const CartPage = () => {
               <span className="material-symbols-outlined text-[80px]">receipt_long</span>
             </div>
             
-            <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="flex items-center justify-between mb-5 relative z-10">
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tighter leading-none">Order Summary</h2>
+                <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Order Summary</h2>
               </div>
+              <button 
+                onClick={() => navigate('/user/home')}
+                className="text-[10px] font-black text-white/40 uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-xl hover:bg-white/5 transition-all flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-[12px]">edit</span>
+                EDIT
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-4 relative z-10">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-white/60 text-[10px]">calendar_today</span>
+              {/* Left Side: Tier & Mode */}
+              <div className="space-y-4 pr-4 border-r border-white/5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[12px]">workspace_premium</span>
                   </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Pickup</p>
-                    <p className="text-[8px] font-black text-white uppercase truncate flex items-center gap-1.5">
-                      {pickupTime}
-                      {selectedPickupAddress?.type && (
-                        <span className="text-[6px] bg-white/10 px-1.5 py-0.5 rounded text-white/60">{selectedPickupAddress.type}</span>
-                      )}
-                    </p>
+                  <div className="flex-1">
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Tier</p>
+                    <p className="text-[10px] font-black text-white uppercase">{selectedTier}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-white/60 text-[10px]">local_shipping</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[12px]">bolt</span>
                   </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Drop</p>
-                    <p className="text-[8px] font-black text-white uppercase truncate flex items-center gap-1.5">
-                      {deliveryTime}
-                      {(isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type) && (
-                        <span className="text-[6px] bg-white/10 px-1.5 py-0.5 rounded text-white/60">
-                          {isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type}
-                        </span>
-                      )}
-                    </p>
+                  <div className="flex-1">
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Mode</p>
+                    <p className="text-[10px] font-black text-white uppercase">{isExpress ? 'Express' : 'Normal'}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3 pl-4 border-l border-white/5">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-white/60 text-[10px]">workspace_premium</span>
+              {/* Right Side: Pickup & Drop */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Tier</p>
-                    <p className="text-[8px] font-black text-white uppercase">{selectedTier}</p>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Pickup</p>
+                    <p className="text-[10px] font-black text-white uppercase truncate">{pickupTime}</p>
+                    <p className="text-[9px] font-black text-white/60 uppercase tracking-widest mt-0.5">
+                      {selectedPickupAddress?.type || 'Not Selected'}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-white/60 text-[10px]">bolt</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-white/60 text-[12px]">local_shipping</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[6px] font-black text-white/30 uppercase tracking-widest">Mode</p>
-                    <p className="text-[8px] font-black text-white uppercase">{isExpress ? 'Express' : 'Normal'}</p>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Drop</p>
+                    <p className="text-[10px] font-black text-white uppercase truncate">{deliveryTime}</p>
+                    <p className="text-[9px] font-black text-white/60 uppercase tracking-widest mt-0.5">
+                      {(isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type) || 'Not Selected'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -818,8 +821,8 @@ const CartPage = () => {
                 onClick={() => navigate('/user/home')}
                 className="flex items-center gap-1 text-[8px] font-black text-slate-900 uppercase bg-slate-100 px-3 py-1.5 rounded-full hover:bg-slate-200 transition-all shadow-sm active:scale-95"
               >
-                <span className="material-symbols-outlined text-[10px] font-bold">add</span>
-                Add More
+                <span className="material-symbols-outlined text-[10px] font-bold">edit</span>
+                EDIT
               </button>
             </div>
             {cartItems.map((item) => {
@@ -836,20 +839,14 @@ const CartPage = () => {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-black text-[10px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
-                      <span className="text-[6px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-slate-100 text-slate-400 shrink-0">
-                        {isHeritageService ? 'Heritage' : 'Essential'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[9px] font-black text-slate-400">
-                          {qty} {billingUnits[itemId] || 'Unit'} × ₹{unitPrice}
-                        </p>
-                        <p className="text-[11px] font-black text-slate-900 tracking-tighter">₹{totalPrice.toFixed(0)}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="font-black text-[10px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
+                        <span className="text-[6px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-slate-100 text-slate-400 shrink-0">
+                          {isHeritageService ? 'Heritage' : 'Essential'}
+                        </span>
                       </div>
-                      
+                      <p className="text-[11px] font-black text-slate-900 tracking-tighter shrink-0">₹{totalPrice.toFixed(0)}</p>
                     </div>
                   </div>
 

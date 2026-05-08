@@ -80,11 +80,16 @@ const AddressesPage = () => {
         return;
       }
 
-      // 1. Prepare nex addresses array
-      let currentAddresses = user.addresses || [];
-      
-      // 2. Find if this type already exists, if so replace, else add
-      const existingIdx = currentAddresses.findIndex(a => a.type === newType);
+      // 1. Filter out any existing addresses of the same type if it's Home or Office
+      let updatedList = (user.addresses || []).filter(a => {
+        if (newType === 'Home' || newType === 'Office') {
+          return a.type !== newType;
+        }
+        if (editingAddress) {
+          return (a._id || a.id) !== (editingAddress._id || editingAddress.id);
+        }
+        return true;
+      });
       
       const newAddrObj = {
         type: newType,
@@ -92,18 +97,14 @@ const AddressesPage = () => {
         city: formData.city,
         pincode: formData.pincode,
         location: formData.location,
-        isDefault: existingIdx === -1 ? (currentAddresses.length === 0) : currentAddresses[existingIdx].isDefault
+        isDefault: updatedList.length === 0
       };
 
-      if (existingIdx > -1) {
-        currentAddresses[existingIdx] = newAddrObj;
-      } else {
-        currentAddresses.push(newAddrObj);
-      }
+      updatedList.push(newAddrObj);
 
       // 3. Update Profile on Server
       const updatedUser = await authApi.updateProfile(userId, {
-        addresses: currentAddresses,
+        addresses: updatedList,
         // Also sync main address for backward compatibility if it's default
         ...(newAddrObj.isDefault ? { 
             address: fullAddressString, 
@@ -334,18 +335,30 @@ const AddressesPage = () => {
                     )}
                   </div>
 
-                  <div className="flex gap-3">
-                  {addressTypes.map(type => (
-                    <button
-                      key={type}
-                      onClick={() => setNewType(type)}
-                      className={`flex-1 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                        newType === type ? 'bg-primary text-white shadow-xl shadow-primary/20' : 'bg-slate-50 text-slate-400 border border-black/5'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
+                <div className="flex gap-3">
+                  {addressTypes.map(type => {
+                    const isTaken = !editingAddress && (type === 'Home' || type === 'Office') && addresses.some(a => a.type === type);
+                    
+                    return (
+                      <button
+                        key={type}
+                        disabled={isTaken}
+                        onClick={() => setNewType(type)}
+                        className={`flex-1 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                          newType === type 
+                            ? 'bg-primary text-white shadow-xl shadow-primary/20' 
+                            : isTaken 
+                              ? 'bg-slate-50 text-slate-200 border border-slate-100 cursor-not-allowed opacity-50' 
+                              : 'bg-slate-50 text-slate-400 border border-black/5 hover:border-primary/30'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          {isTaken && <span className="material-symbols-outlined text-[10px]">lock</span>}
+                          {type}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { feedbackApi } from '../../../lib/api';
-import { Star, Send, X } from 'lucide-react';
+import { Star, Send, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const FeedbackForm = () => {
     const navigate = useNavigate();
@@ -10,32 +11,47 @@ const FeedbackForm = () => {
     const orderId = searchParams.get('orderId');
     const vendorIdFromQuery = searchParams.get('vendorId');
 
-    const [rating, setRating] = useState(5);
+    const [ratings, setRatings] = useState({
+        'Service': 5,
+        'App Experience': 5,
+        'Rider': 5,
+        'Pricing': 5
+    });
     const [comment, setComment] = useState('');
-    const [category, setCategory] = useState(orderId ? 'Service' : 'App Experience');
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
 
     const userData = JSON.parse(localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
     const userId = userData?._id || userData?.id || localStorage.getItem('userId');
 
+    const handleRatingChange = (cat, val) => {
+        setRatings(prev => ({ ...prev, [cat]: val }));
+    };
+
     const handleSubmit = async () => {
-        if (!comment) return;
+        if (!comment) {
+            toast.error('Please add a comment');
+            return;
+        }
         setSubmitting(true);
+        
+        // Calculate average rating for backend compatibility
+        const avgRating = Math.round(Object.values(ratings).reduce((a, b) => a + b, 0) / 4);
+
         try {
             await feedbackApi.submit({
                 userId,
                 orderId,
-                vendorId: vendorIdFromQuery, // Linked to vendor if provided
-                rating,
-                comment,
-                category
+                vendorId: vendorIdFromQuery,
+                rating: avgRating,
+                comment: `[Ratings: ${JSON.stringify(ratings)}] ${comment}`,
+                category: 'Detailed Feedback'
             });
             setSuccess(true);
             setTimeout(() => navigate(-1), 2000);
         } catch (error) {
             console.error('Submit Feedback Error:', error);
-            alert('Failed to submit feedback. Please try again.');
+            toast.error('Failed to submit feedback');
         } finally {
             setSubmitting(false);
         }
@@ -47,68 +63,52 @@ const FeedbackForm = () => {
                 <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-6 animate-bounce">
                     <span className="material-symbols-outlined text-4xl">check_circle</span>
                 </div>
-                <h2 className="text-2xl font-black tracking-tighter mb-2">Thank You!</h2>
-                <p className="text-sm font-bold text-slate-500">Your feedback helps us improve Ez of Life.</p>
+                <h2 className="text-2xl font-black tracking-tighter mb-2 italic uppercase">Thank You!</h2>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Your feedback helps us grow.</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col font-body pb-28">
-            <header className="px-6 py-4 flex items-center justify-between border-b border-slate-100 bg-white">
-                <button onClick={() => navigate(-1)} className="p-2 -ml-2">
-                    <X size={24} />
+        <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans pb-32">
+            {/* Safe area for global header */}
+            <div className="h-20" />
+
+            <div className="px-6 py-4 flex items-center gap-4">
+                <button onClick={() => navigate(-1)} className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-900 active:scale-90 transition-transform">
+                    <ArrowLeft size={20} />
                 </button>
                 <h1 className="text-sm font-black uppercase tracking-widest text-slate-900">Platform Feedback</h1>
-                <div className="w-10" />
-            </header>
+            </div>
 
-            <main className="p-6 space-y-8 flex-1">
+            <main className="p-6 space-y-8 flex-1 overflow-y-auto">
                 <div className="text-center space-y-2">
                     <h2 className="text-2xl font-black tracking-tighter uppercase italic">{orderId ? 'Rate your service' : 'Share your experience'}</h2>
                     <p className="text-[10px] font-black uppercase tracking-widest text-primary">{orderId ? `Order #${orderId.slice(-6)}` : "We're listening to our users"}</p>
                 </div>
 
-                {/* Rating */}
-                <div className="space-y-4 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rate your experience</p>
-                    <div className="flex justify-center gap-3">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                            <button 
-                                key={s} 
-                                onClick={() => setRating(s)}
-                                className="transition-transform active:scale-90"
-                            >
-                                <Star 
-                                    size={36} 
-                                    className={s <= rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'} 
-                                />
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Category - Only show if general feedback */}
-                {!orderId && (
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Category</label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {['Service', 'App Experience', 'Rider', 'Pricing'].map((cat) => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setCategory(cat)}
-                                    className={`py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${
-                                        category === cat 
-                                        ? 'bg-slate-900 text-white border-slate-900 shadow-lg' 
-                                        : 'bg-white text-slate-400 border-slate-100'
-                                    }`}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                {/* Multi-Category Ratings */}
+                <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-xl shadow-slate-200/40 space-y-5">
+                    {Object.entries(ratings).map(([cat, val]) => (
+                        <div key={cat} className="flex items-center justify-between py-1">
+                            <span className="text-[11px] font-black uppercase tracking-widest text-slate-900 pr-2">{cat}</span>
+                            <div className="flex gap-1.5">
+                                {[1, 2, 3, 4, 5].map((s) => (
+                                    <button 
+                                        key={s} 
+                                        onClick={() => handleRatingChange(cat, s)}
+                                        className="transition-all active:scale-90"
+                                    >
+                                        <Star 
+                                            size={20} 
+                                            className={s <= val ? 'fill-amber-400 text-amber-400' : 'text-slate-100 fill-slate-50'} 
+                                        />
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    ))}
+                </div>
 
                 {/* Comment */}
                 <div className="space-y-3">
@@ -124,11 +124,11 @@ const FeedbackForm = () => {
                 </div>
             </main>
 
-            <div className="p-6 bg-white border-t border-slate-50">
+            <div className="p-6 bg-white/80 backdrop-blur-md border-t border-slate-50 fixed bottom-20 left-0 right-0 max-w-md mx-auto z-20">
                 <button
                     onClick={handleSubmit}
                     disabled={submitting || !comment}
-                    className="w-full py-5 rounded-[1.5rem] bg-primary text-on-primary font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-3"
+                    className="w-full py-5 rounded-[1.5rem] bg-primary text-on-primary font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-3 active:scale-[0.98] transition-all"
                 >
                     {submitting ? 'Submitting...' : (
                         <>

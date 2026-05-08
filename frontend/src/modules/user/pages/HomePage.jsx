@@ -62,7 +62,7 @@ const HomePage = () => {
   }, [location, setZoneData]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTier, setSelectedTier] = useState(null); 
+  const [selectedTier, setSelectedTier] = useState(() => localStorage.getItem('selected_tier') || 'Essential'); 
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -79,7 +79,7 @@ const HomePage = () => {
   const availableDates = useMemo(() => {
     const dates = [];
     const now = new Date();
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) { // Restricted to 5 days
       const d = new Date(now);
       d.setDate(now.getDate() + i);
       let dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
@@ -102,16 +102,29 @@ const HomePage = () => {
 
   const getSlotDateTime = (dateStr, timeStr) => {
     if (!dateStr || !timeStr) return null;
+    
+    // Parse Date
+    let d;
     const [dayPart, datePart] = dateStr.split(', ');
-    const [timePart] = timeStr.split(' - ');
-    const d = new Date(datePart + ' ' + new Date().getFullYear());
+    
+    // Find the corresponding date from availableDates to be precise
+    const foundDate = availableDates.find(ad => ad.date === datePart);
+    if (foundDate) {
+      d = new Date(foundDate.raw);
+    } else {
+      d = new Date(datePart + ' ' + new Date().getFullYear());
+    }
 
-    let [time, modifier] = timePart.split(' ');
+    // Parse Time (e.g., "07:00 AM - 09:00 AM")
+    const [timeRange] = timeStr.split(' - ');
+    const [time, modifier] = timeRange.split(' ');
     let [hours, minutes] = time.split(':');
-    if (hours === '12') hours = '00';
-    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+    
+    let h = parseInt(hours, 10);
+    if (h === 12) h = 0;
+    if (modifier === 'PM') h += 12;
 
-    d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+    d.setHours(h, parseInt(minutes, 10), 0, 0);
     return d;
   };
 
@@ -142,10 +155,31 @@ const HomePage = () => {
     const saved = localStorage.getItem('item_photos');
     return saved ? JSON.parse(saved) : {};
   });
+
+  const [openDropdown, setOpenDropdown] = useState(null); // 'address', 'date', 'time', etc.
   const [activePhotoService, setActivePhotoService] = useState(null);
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+
+  // --- 24H/72H GAP VALIDATION ---
+  useEffect(() => {
+    if (selectedPickup && pickupTime && selectedDelivery && deliveryTime) {
+      const pDT = getSlotDateTime(selectedPickup, pickupTime);
+      const dDT = getSlotDateTime(selectedDelivery, deliveryTime);
+      if (pDT && dDT) {
+        const diffH = (dDT - pDT) / (1000 * 60 * 60);
+        const minH = isExpress ? 24 : 72;
+        if (diffH < minH) {
+          // Reset drop-off selection if invalid
+          setSelectedDelivery('');
+          setDeliveryTime('');
+          localStorage.removeItem('delivery_date');
+          localStorage.removeItem('delivery_time');
+        }
+      }
+    }
+  }, [isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime]);
   const [isLocating, setIsLocating] = useState(false);
   const [customAddress, setCustomAddress] = useState('');
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -153,7 +187,7 @@ const HomePage = () => {
     type: 'Home'
   });
 
-  const handleSaveCustomAddress = () => {
+  const handleSaveCustomAddress = async () => {
     if (!customAddress) return alert('Please enter an address');
     const newAddr = {
       id: Date.now().toString(),
@@ -161,14 +195,48 @@ const HomePage = () => {
       address: customAddress,
       fullAddress: customAddress
     };
+
+    // Update Local State
+    setSavedAddresses(prev => [...prev, newAddr]);
+
     if (activeAddressType === 'pickup') {
       setPickupAddress(newAddr);
       if (isSameAsPickup) setDropAddress(newAddr);
     } else {
       setDropAddress(newAddr);
     }
+
+    // Sync to Backend Profile if logged in
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = userData._id || userData.id;
+      if (userId) {
+        const currentProfile = await authApi.getProfile(userId);
+        const existingAddresses = currentProfile.addresses || [];
+        
+        // DEDUPLICATE: If Home/Office, replace existing; if Other, append.
+        let newAddressesList = [];
+        if (newAddr.type === 'Home' || newAddr.type === 'Office') {
+          newAddressesList = [
+            ...existingAddresses.filter(a => a.type !== newAddr.type),
+            { type: newAddr.type, address: newAddr.address }
+          ];
+        } else {
+          newAddressesList = [...existingAddresses, { type: newAddr.type, address: newAddr.address }];
+        }
+
+        await authApi.updateProfile(userId, {
+          addresses: newAddressesList
+        });
+        toast.success('Address saved to profile');
+      }
+    } catch (err) {
+      console.error('Error saving address to profile:', err);
+    }
+
     setShowAddressForm(false);
     setShowAddressPicker(false);
+    setShowSlotPicker(true); // Re-open the slot picker after saving
   };
 
   useEffect(() => {
@@ -205,19 +273,51 @@ const HomePage = () => {
       const userId = userData._id || userData.id;
       if (userId) {
         const profile = await authApi.getProfile(userId);
+        
+        // Update localStorage to keep it in sync with backend
+        localStorage.setItem('user', JSON.stringify(profile));
+
         let addrList = [];
-        if (profile.address) {
-          addrList.push({ id: 'profile_root', type: 'Profile', address: profile.address, location: profile.location || null });
-        }
-        if (profile.addresses && profile.addresses.length > 0) {
+        const seenAddresses = new Set();
+        
+        if (profile.addresses && Array.isArray(profile.addresses)) {
           profile.addresses.forEach((a, idx) => {
-            addrList.push({ id: a._id || idx, type: a.type.toUpperCase(), address: a.address, location: a.location });
+            const aAddr = a.address?.trim() || '';
+            const aType = (a.type || '').toUpperCase();
+            
+            // EXTREMELY STRICT FILTERING + DEDUPLICATION
+            const isPlaceholder = 
+              aAddr.length < 15 || 
+              aAddr.toLowerCase().includes('not set') || 
+              aAddr.toLowerCase().includes('address line') ||
+              aAddr.toLowerCase().includes('placeholder') ||
+              aType === 'PROFILE' || 
+              aType === 'NA';
+
+            if (!isPlaceholder && !seenAddresses.has(aAddr.toLowerCase())) {
+              seenAddresses.add(aAddr.toLowerCase());
+              addrList.push({ 
+                id: a._id || `addr_${idx}`, 
+                type: aType || 'HOME', 
+                address: aAddr, 
+                location: a.location 
+              });
+            }
           });
         }
+
         setSavedAddresses(addrList);
+
+        // Synchronize selected addresses
         if (addrList.length > 0) {
-          if (!pickupAddress) setPickupAddress(addrList[0]);
-          if (!dropAddress && isSameAsPickup) setDropAddress(addrList[0]);
+          const isPickupStillValid = pickupAddress && addrList.some(a => a.id === pickupAddress.id);
+          if (!isPickupStillValid) setPickupAddress(addrList[0]);
+          
+          const isDropStillValid = dropAddress && addrList.some(a => a.id === dropAddress.id);
+          if (!isDropStillValid && isSameAsPickup) setDropAddress(addrList[0]);
+        } else {
+          setPickupAddress(null);
+          setDropAddress(null);
         }
       }
     } catch (err) {
@@ -575,8 +675,8 @@ const HomePage = () => {
           </button>
         </div>
 
-        {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Depends on Logistics */}
-        <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-70 pointer-events-none grayscale' : 'opacity-100'}`}>
+        {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Full Visibility */}
+        <div className="transition-all duration-500 opacity-100">
           <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2 bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100' : 'relative z-[90] px-1 py-2'} transition-all duration-500`}>
             <div className="max-w-5xl mx-auto w-full space-y-1">
               {/* MINI CATEGORIES */}
@@ -591,13 +691,8 @@ const HomePage = () => {
                         key={cat.name}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleCategoryClick(cat)}
-                        className={`flex flex-row items-center gap-2 transition-all duration-300 ${isHeaderSticky ? 'min-w-[90px] p-2 rounded-xl' : 'min-w-[125px] px-5 py-3 rounded-2xl'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
+                        className={`flex flex-row items-center justify-center transition-all duration-300 ${isHeaderSticky ? 'min-w-[70px] px-3 py-1.5 rounded-lg' : 'min-w-[80px] px-4 py-2.5 rounded-xl'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
                       >
-                        <div className={`rounded-lg flex items-center justify-center shrink-0 transition-all ${isHeaderSticky ? 'w-4 h-4' : 'w-6 h-6'} ${selectedCategory?.name === cat.name ? 'bg-white/20' : 'bg-slate-50'}`}>
-                          <span className={`material-symbols-outlined ${isHeaderSticky ? 'text-[10px]' : 'text-sm'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-400'}`}>
-                            {cat.name.toLowerCase().includes('dry') ? 'dry_cleaning' : cat.name.toLowerCase().includes('wash') ? 'local_laundry_service' : cat.name.toLowerCase().includes('iron') ? 'iron' : 'category'}
-                          </span>
-                        </div>
                         <span className={`font-black uppercase tracking-widest leading-none ${isHeaderSticky ? 'text-[6px]' : 'text-[8px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
                       </motion.button>
                     ))
@@ -648,37 +743,40 @@ const HomePage = () => {
                   return (
                     <motion.div 
                       key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                      className={`rounded-[2.2rem] p-3 flex flex-row items-center gap-4 border-2 transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-slate-300 scale-[1.02]' : 'bg-white border-slate-100 shadow-sm'}`}
+                      className={`rounded-[1.5rem] p-2.5 flex flex-row items-center gap-3 border transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 shadow-sm'}`}
                     >
-                      <div className="flex-1 min-w-0 flex flex-col items-center py-1">
-                        <h4 onClick={() => handleServiceClick(serviceId, service, i)} className={`font-black text-[10px] leading-tight mb-2 uppercase line-clamp-1 cursor-pointer ${isSelected ? 'text-white' : 'text-slate-900'} tracking-tight`}>{service.name || service.itemName}</h4>
-                        
-                        <div className="flex items-center justify-between w-full px-2 gap-2">
-                          <span className={`text-[9px] font-black uppercase tracking-tight text-left whitespace-nowrap overflow-hidden ${isSelected ? 'text-white/60' : 'text-slate-500'}`}>{service.mainCategory || 'Category'}</span>
-                          
-                          <div className="flex flex-col items-center shrink-0">
-                            <div className="flex items-center gap-1">
-                              <span className={`text-[13px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
-                              {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[10px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
-                            </div>
-                          </div>
-
-                          <span className={`text-[9px] font-black uppercase tracking-tight text-right whitespace-nowrap overflow-hidden ${isSelected ? 'text-white/60' : 'text-slate-500'}`}>{service.subCategoryName || 'Sub'}</span>
+                      {/* Left: Info Block */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <h4 onClick={() => handleServiceClick(serviceId, service, i)} className={`font-black text-[9px] uppercase line-clamp-1 cursor-pointer tracking-tight mb-0.5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
+                        <div className="flex gap-1 items-center">
+                          <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.mainCategory || 'Cat'}</span>
+                          <span className={`w-0.5 h-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-slate-200'}`} />
+                          <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.subCategoryName || 'Sub'}</span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-slate-50 rounded-xl p-0.5 border border-slate-100 shadow-inner">
-                          <button onClick={() => updateQuantity(serviceId, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[14px] font-black">remove</span></button>
-                          <span className="text-[10px] font-black text-slate-900 px-2 min-w-[24px] text-center">{qty}</span>
-                          <button onClick={() => updateQuantity(serviceId, 1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 active:scale-90 transition-all"><span className="material-symbols-outlined text-[14px] font-black">add</span></button>
+                      {/* Right: Price & Actions */}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        {/* Price */}
+                        <div className="flex flex-col items-end">
+                          <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
+                          {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[8px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
                         </div>
+
+                        {/* Qty Controls */}
+                        <div className={`flex items-center rounded-lg p-0.5 border shadow-inner ${isSelected ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
+                          <button onClick={() => updateQuantity(serviceId, -1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">remove</span></button>
+                          <span className={`text-[9px] font-black px-1.5 min-w-[20px] text-center ${isSelected ? 'text-white' : 'text-slate-900'}`}>{qty}</span>
+                          <button onClick={() => updateQuantity(serviceId, 1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">add</span></button>
+                        </div>
+
+                        {/* Camera */}
                         {isSelected && (
                           <button 
                             onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
-                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white text-slate-300 border border-slate-100 shadow-sm hover:text-slate-900'}`}
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/10 text-white/40 border border-white/10 hover:text-white'}`}
                           >
-                            <span className="material-symbols-outlined text-[16px]">add_a_photo</span>
+                            <span className="material-symbols-outlined text-[14px]">add_a_photo</span>
                           </button>
                         )}
                       </div>
@@ -724,17 +822,17 @@ const HomePage = () => {
                 initial={{ scale: 0.9, opacity: 0, y: 20 }} 
                 animate={{ scale: 1, opacity: 1, y: 0 }} 
                 exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-                className="relative w-full max-w-xs bg-white rounded-[2.5rem] p-5 shadow-2xl flex flex-col gap-3 overflow-y-auto max-h-[90vh] hide-scrollbar border border-slate-100"
+                className="relative w-full max-w-[280px] bg-white rounded-[2rem] p-4 shadow-2xl flex flex-col gap-2 overflow-y-auto max-h-[85vh] hide-scrollbar border border-slate-100"
               >
                 <div className="flex justify-between items-center">
                   <div /> {/* Spacer for alignment */}
-                  <button onClick={() => setShowSlotPicker(false)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-                    <span className="material-symbols-outlined">close</span>
+                  <button onClick={() => setShowSlotPicker(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <span className="material-symbols-outlined text-base">close</span>
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  {/* Delivery Type Toggle */}
+                <div className="space-y-3">
+                  {/* 1. Delivery Type Toggle - NOW AT THE TOP */}
                   <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5">
                     {['Normal', 'Express'].map(type => (
                       <button 
@@ -745,7 +843,7 @@ const HomePage = () => {
                         }}
                         className={`flex-1 py-1.5 rounded-lg font-black text-[7px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress) || (type === 'Normal' && !isExpress)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400'}`}
                       >
-                        {type}
+                        {type === 'Normal' ? 'Normal Delivery' : 'Express Delivery'}
                       </button>
                     ))}
                   </div>
@@ -760,168 +858,302 @@ const HomePage = () => {
                     </div>
                     
                     <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
-                      {/* Date Dropdown */}
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
-                        <select 
-                          value={selectedPickup}
-                          onChange={(e) => setSelectedPickup(e.target.value)}
-                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
+                      {/* Custom Address Dropdown */}
+                      <div className="relative">
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Select Address</p>
+                        <button 
+                          onClick={() => setOpenDropdown(openDropdown === 'address' ? null : 'address')}
+                          className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
                         >
-                          <option value="">Select Date</option>
-                          {availableDates.slice(0, 6).map((d, i) => (
-                            <option key={i} value={`${d.day}, ${d.date}`}>{d.day}, {d.date}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Time Dropdown */}
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
-                        <select 
-                          value={pickupTime}
-                          onChange={(e) => setPickupTime(e.target.value)}
-                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
-                        >
-                          <option value="">Select Time</option>
-                          {timeSlots.map((slot) => (
-                            <option key={slot} value={slot}>{slot}</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      {/* Pickup Address Selection (Home/Office) */}
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Address</p>
-                        <div className="flex gap-1.5">
-                          {['Home', 'Office'].map(type => {
-                            const isSelected = pickupAddress?.type === type;
-                            return (
-                              <button 
-                                key={type}
-                                onClick={() => {
-                                  const addr = savedAddresses.find(a => a.type === type);
-                                  if (addr) {
-                                    setPickupAddress(addr);
-                                    if (isSameAsPickup) setDropAddress(addr);
-                                  } else {
+                          <span className={pickupAddress ? 'text-slate-900' : 'text-slate-300'}>
+                            {pickupAddress ? pickupAddress.type.toUpperCase() : 'Choose Address'}
+                          </span>
+                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'address' ? 'rotate-180' : ''}`}>expand_more</span>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {openDropdown === 'address' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="max-h-32 overflow-y-auto">
+                                {savedAddresses.map(addr => (
+                                  <button 
+                                    key={addr.id}
+                                    onClick={() => {
+                                      setPickupAddress(addr);
+                                      if (isSameAsPickup) setDropAddress(addr);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                  >
+                                    {addr.type}
+                                  </button>
+                                ))}
+                                <button 
+                                  onClick={() => {
                                     setActiveAddressType('pickup');
                                     setShowSlotPicker(false);
                                     setShowAddressForm(true);
-                                    setAddressFormData({ type });
-                                    toast.error(`Please add your ${type} address`);
-                                  }
-                                }}
-                                className={`flex-1 py-1 rounded-lg border-2 flex flex-col items-center gap-0.5 transition-all ${isSelected ? 'border-slate-950 bg-slate-50 text-slate-950' : 'border-slate-100 bg-white text-slate-300'}`}
-                              >
-                                <span className="material-symbols-outlined text-[12px]">{type === 'Home' ? 'home' : 'business'}</span>
-                                <span className="text-[9px] font-black uppercase tracking-widest">{type}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                                    setOpenDropdown(null);
+                                  }}
+                                  className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
+                                >
+                                  + Enter New Address
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Custom Date Dropdown */}
+                      <div className="relative">
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                        <button 
+                          onClick={() => setOpenDropdown(openDropdown === 'date' ? null : 'date')}
+                          className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                        >
+                          <span className={selectedPickup ? 'text-slate-900' : 'text-slate-300'}>
+                            {selectedPickup || 'Select Date'}
+                          </span>
+                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'date' ? 'rotate-180' : ''}`}>expand_more</span>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {openDropdown === 'date' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="max-h-32 overflow-y-auto">
+                                {availableDates.slice(0, 6).map((d, i) => (
+                                  <button 
+                                    key={i}
+                                    onClick={() => {
+                                      setSelectedPickup(`${d.day}, ${d.date}`);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                  >
+                                    {d.day}, {d.date}
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Custom Time Dropdown */}
+                      <div className="relative">
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                        <button 
+                          onClick={() => setOpenDropdown(openDropdown === 'time' ? null : 'time')}
+                          className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                        >
+                          <span className={pickupTime ? 'text-slate-900' : 'text-slate-300'}>
+                            {pickupTime || 'Select Time'}
+                          </span>
+                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'time' ? 'rotate-180' : ''}`}>expand_more</span>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {openDropdown === 'time' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="max-h-32 overflow-y-auto">
+                                {timeSlots.filter(slot => {
+                                  if (!selectedPickup || !selectedPickup.startsWith('TODAY')) return true;
+                                  const [timePart] = slot.split(' - ');
+                                  const [time, modifier] = timePart.split(' ');
+                                  let [hours] = time.split(':');
+                                  let h = parseInt(hours, 10);
+                                  if (h === 12) h = 0;
+                                  if (modifier === 'PM') h += 12;
+                                  const now = new Date();
+                                  const slotTime = new Date();
+                                  slotTime.setHours(h, 0, 0, 0);
+                                  return slotTime > new Date(now.getTime() + 60 * 60 * 1000);
+                                }).map((slot) => (
+                                  <button 
+                                    key={slot}
+                                    onClick={() => {
+                                      setPickupTime(slot);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                  >
+                                    {slot}
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
                   </div>
 
                   {/* --- DROP-OFF SECTION --- */}
                   <div className="space-y-1.5">
-                    <div className="flex items-center justify-between px-1">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-amber-600">
-                          <span className="material-symbols-outlined text-[10px]">local_shipping</span>
-                        </div>
-                        <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Drop-off</p>
+                    <div className="flex items-center gap-1.5 px-1">
+                      <div className="w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-amber-600">
+                        <span className="material-symbols-outlined text-[10px]">local_shipping</span>
                       </div>
-
+                      <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Drop-off</p>
+                    </div>
+                    
+                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
                       {/* Same as Pickup Toggle */}
-                      <div className="flex items-center gap-1.5 bg-slate-100/50 px-1.5 py-0.5 rounded-full border border-slate-100">
-                         <span className="text-[6px] font-black text-slate-400 uppercase tracking-widest">Same</span>
+                      <div className="flex items-center justify-between px-1">
+                         <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Same as Pickup Address</span>
                          <button 
-                           onClick={() => setIsSameAsPickup(!isSameAsPickup)}
+                           onClick={() => {
+                             setIsSameAsPickup(!isSameAsPickup);
+                             if (!isSameAsPickup) setDropAddress(pickupAddress);
+                           }}
                            className={`w-7 h-3.5 rounded-full transition-all relative ${isSameAsPickup ? 'bg-emerald-500' : 'bg-slate-300'}`}
                          >
                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isSameAsPickup ? 'right-0.5' : 'left-0.5'}`} />
                          </button>
                       </div>
-                    </div>
-                    
-                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
-                      {/* Date Dropdown */}
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
-                        <select 
-                          value={selectedDelivery}
-                          onChange={(e) => setSelectedDelivery(e.target.value)}
-                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
-                        >
-                          <option value="">Select Date</option>
-                          {availableDates.map((d, i) => {
-                            const dateStr = `${d.day}, ${d.date}`;
-                            
-                            // Min gap logic
-                            let isDisabled = false;
-                            if (selectedPickup && pickupTime) {
-                              const pDT = getSlotDateTime(selectedPickup, pickupTime);
-                              const dDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length-1]);
-                              const minH = isExpress ? 24 : 72;
-                              if ((dDT - pDT) / (1000*60*60) < minH) isDisabled = true;
-                            }
 
-                            return (
-                              <option key={i} value={dateStr} disabled={isDisabled}>
-                                {d.day}, {d.date}
-                              </option>
-                            );
-                          })}
-                        </select>
+                      {/* Date Dropdown */}
+                      <div className="relative">
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                        <button 
+                          disabled={!selectedPickup || !pickupTime}
+                          onClick={() => setOpenDropdown(openDropdown === 'dropDate' ? null : 'dropDate')}
+                          className={`w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm ${(!selectedPickup || !pickupTime) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                        >
+                          <span className={selectedDelivery ? 'text-slate-900' : 'text-slate-300'}>
+                            {(!selectedPickup || !pickupTime) ? 'Select Pickup First' : (selectedDelivery || 'Select Date')}
+                          </span>
+                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropDate' ? 'rotate-180' : ''}`}>expand_more</span>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {openDropdown === 'dropDate' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="max-h-40 overflow-y-auto">
+                                {availableDates.filter(d => {
+                                  if (!selectedPickup || !pickupTime) return true;
+                                  const dateStr = `${d.day}, ${d.date}`;
+                                  const pDT = getSlotDateTime(selectedPickup, pickupTime);
+                                  // A date is valid if its LAST slot satisfies the min gap
+                                  const lastSlotDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length - 1]);
+                                  const minH = isExpress ? 24 : 72;
+                                  return (lastSlotDT - pDT) / (1000 * 60 * 60) >= minH;
+                                }).map((d, i) => {
+                                  const dateStr = `${d.day}, ${d.date}`;
+                                  return (
+                                    <button 
+                                      key={i}
+                                      onClick={() => {
+                                        setSelectedDelivery(dateStr);
+                                        setOpenDropdown(null);
+                                      }}
+                                      className="w-full px-4 py-3 text-left text-[10px] font-black uppercase border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                                    >
+                                      {d.day}, {d.date}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
                       {/* Time Dropdown */}
-                      <div>
-                        <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
-                        <select 
-                          value={deliveryTime}
-                          onChange={(e) => setDeliveryTime(e.target.value)}
-                          className="w-full bg-white px-2 py-1.5 rounded-lg border border-slate-100 text-[8px] font-black uppercase tracking-tight outline-none focus:border-slate-950 transition-all"
+                      <div className="relative">
+                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                        <button 
+                          disabled={!selectedPickup || !pickupTime || !selectedDelivery}
+                          onClick={() => setOpenDropdown(openDropdown === 'dropTime' ? null : 'dropTime')}
+                          className={`w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm ${(!selectedPickup || !pickupTime || !selectedDelivery) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
                         >
-                          <option value="">Select Time</option>
-                          {timeSlots.map((slot) => (
-                            <option key={slot} value={slot}>{slot}</option>
-                          ))}
-                        </select>
+                          <span className={deliveryTime ? 'text-slate-900' : 'text-slate-300'}>
+                            {(!selectedPickup || !pickupTime || !selectedDelivery) ? 'Select Pickup/Date First' : (deliveryTime || 'Select Time')}
+                          </span>
+                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropTime' ? 'rotate-180' : ''}`}>expand_more</span>
+                        </button>
+                        
+                        <AnimatePresence>
+                          {openDropdown === 'dropTime' && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                            >
+                              <div className="max-h-40 overflow-y-auto">
+                                {timeSlots.filter(slot => {
+                                  if (!selectedPickup || !pickupTime || !selectedDelivery) return true;
+                                  const pDT = getSlotDateTime(selectedPickup, pickupTime);
+                                  const dDT = getSlotDateTime(selectedDelivery, slot);
+                                  const minH = isExpress ? 24 : 72;
+                                  return (dDT - pDT) / (1000 * 60 * 60) >= minH;
+                                }).map((slot) => (
+                                  <button 
+                                    key={slot}
+                                    onClick={() => {
+                                      setDeliveryTime(slot);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-[10px] font-black uppercase border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                                  >
+                                    {slot}
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      {/* Drop-off Address (Only if NOT same as pickup) */}
+                      {/* Conditional Drop-off Address Dropdown */}
                       {!isSameAsPickup && (
-                        <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="pt-1.5 border-t border-slate-200 mt-1">
-                          <p className="text-[6px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1 mt-1.5">Address</p>
-                          <div className="flex gap-1.5">
-                            {['Home', 'Office'].map(type => {
-                              const isSelected = dropAddress?.type === type;
-                              return (
-                                <button 
-                                  key={type}
-                                  onClick={() => {
-                                    const addr = savedAddresses.find(a => a.type === type);
-                                    if (addr) setDropAddress(addr);
-                                    else {
+                        <div className="relative">
+                          <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Drop-off Address</p>
+                          <button 
+                            onClick={() => setOpenDropdown(openDropdown === 'dropAddress' ? null : 'dropAddress')}
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                          >
+                            <span className={dropAddress && dropAddress.id !== pickupAddress?.id ? 'text-slate-900' : 'text-slate-300'}>
+                              {(dropAddress && dropAddress.id !== pickupAddress?.id) ? dropAddress.type.toUpperCase() : 'Select Drop Address'}
+                            </span>
+                            <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropAddress' ? 'rotate-180' : ''}`}>expand_more</span>
+                          </button>
+                          
+                          <AnimatePresence>
+                            {openDropdown === 'dropAddress' && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                                className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              >
+                                <div className="max-h-32 overflow-y-auto">
+                                  <button 
+                                    onClick={() => {
                                       setActiveAddressType('drop');
                                       setShowSlotPicker(false);
                                       setShowAddressForm(true);
-                                      setAddressFormData({ type });
-                                      toast.error(`Please add your ${type} address`);
-                                    }
-                                  }}
-                                  className={`flex-1 py-1 rounded-lg border-2 flex flex-col items-center gap-0.5 transition-all ${isSelected ? 'border-amber-600 bg-amber-50 text-amber-900' : 'border-slate-100 bg-white text-slate-300'}`}
-                                >
-                                  <span className="material-symbols-outlined text-[12px]">{type === 'Home' ? 'home' : 'business'}</span>
-                                  <span className="text-[9px] font-black uppercase tracking-widest">{type}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
+                                  >
+                                    + Enter New Address
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1014,7 +1246,7 @@ const HomePage = () => {
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Address Type</p>
                     <div className="flex gap-2">
-                      {['Home', 'Work', 'Other'].map(t => (
+                      {['Home', 'Office', 'Other'].map(t => (
                         <button
                           key={t}
                           onClick={() => setAddressFormData(prev => ({ ...prev, type: t }))}
@@ -1055,6 +1287,7 @@ const HomePage = () => {
               </motion.div>
             </div>
           )}
+        </AnimatePresence>
         <AnimatePresence>
           {cartItemsCount > 0 && (
             <motion.div 
@@ -1092,63 +1325,73 @@ const HomePage = () => {
         {/* 11. PHOTO OPTIONS & MANAGEMENT MODAL */}
         <AnimatePresence>
           {activePhotoService && (
-            <div className="fixed inset-0 z-[300] flex items-end justify-center p-0">
+            <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActivePhotoService(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} className="relative w-full max-w-lg bg-white rounded-t-[3rem] p-8 shadow-2xl flex flex-col gap-6 max-h-[85vh] overflow-y-auto hide-scrollbar">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xl font-black tracking-tighter uppercase leading-none">Manage Article <br />Photos.</h3>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">{activePhotoService.name}</p>
-                  </div>
-                  <button onClick={() => setActivePhotoService(null)} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"><span className="material-symbols-outlined">close</span></button>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-[320px] bg-white rounded-[2rem] p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto hide-scrollbar border border-slate-100">
+                <div className="flex justify-end">
+                  <button onClick={() => setActivePhotoService(null)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                    <span className="material-symbols-outlined text-base">close</span>
+                  </button>
                 </div>
 
                 {/* Existing Photos Grid */}
-                {itemPhotos[activePhotoService.id]?.length > 0 && (
+                {itemPhotos[activePhotoService.id]?.length > 0 ? (
                   <div className="space-y-4">
-                    <p className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Current Photos ({itemPhotos[activePhotoService.id].length})</p>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-2">
                       {itemPhotos[activePhotoService.id].map((photo, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 group">
+                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50">
                           <img src={photo} alt="" className="w-full h-full object-cover" />
-                          <button 
-                            onClick={() => handleDeletePhoto(activePhotoService.id, photo)}
-                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/50 backdrop-blur-md text-white flex items-center justify-center hover:bg-rose-500 transition-all shadow-sm"
-                          >
-                            <span className="material-symbols-outlined text-[14px]">close</span>
-                          </button>
                         </div>
                       ))}
                     </div>
+
+                    {/* Action Buttons: Add, Edit, Delete */}
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => galleryInputRef.current.click()}
+                        className="flex-1 bg-slate-900 text-white py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">add</span> Add
+                      </button>
+                      <button 
+                        onClick={() => {
+                          // Edit logic: for now, replace all with new selection
+                          galleryInputRef.current.click();
+                        }}
+                        className="flex-1 bg-white border border-slate-200 text-slate-900 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">edit</span> Edit
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (window.confirm("Delete all photos for this item?")) {
+                            setItemPhotos(prev => {
+                              const { [activePhotoService.id]: _, ...rest } = prev;
+                              return rest;
+                            });
+                          }
+                        }}
+                        className="flex-1 bg-rose-50 text-rose-600 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-sm">delete</span> Delete
+                      </button>
+                    </div>
                   </div>
-                )}
-
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-900/40 uppercase tracking-[0.4em]">Add More</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => cameraInputRef.current.click()}
-                      className="bg-slate-50 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-slate-900 transition-all"
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm">
-                        <span className="material-symbols-outlined text-2xl">photo_camera</span>
-                      </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Take Photo</span>
-                    </motion.button>
-
+                ) : (
+                  /* No Photos State: From Gallery Only */
+                  <div className="flex flex-col items-center gap-4 py-4">
                     <motion.button
                       whileTap={{ scale: 0.95 }}
                       onClick={() => galleryInputRef.current.click()}
-                      className="bg-slate-50 rounded-[2rem] p-6 flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-slate-900 transition-all"
+                      className="w-full bg-slate-50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-slate-900 transition-all"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm">
+                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm border border-slate-100">
                         <span className="material-symbols-outlined text-2xl">photo_library</span>
                       </div>
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">From Gallery</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">From Gallery</span>
                     </motion.button>
                   </div>
-                </div>
+                )}
               </motion.div>
             </div>
           )}
@@ -1170,8 +1413,7 @@ const HomePage = () => {
           capture="environment" 
           onChange={handlePhotoFileChange} 
           className="hidden" 
-        />
-        </AnimatePresence>
+          />
       </main>
     </div>
   );
