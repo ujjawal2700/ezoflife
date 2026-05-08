@@ -541,7 +541,7 @@ const HomePage = () => {
         {/* 2. CONSOLIDATED CONTROL ROW (ORIGINAL COMPACT DESIGN) */}
         <div className="flex flex-row items-center justify-between gap-2 mb-4 px-0 w-full">
           {/* Tier Toggle - Always Active */}
-          <div className="flex-1 h-12 bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5 shrink-0">
+          <div className="flex-1 h-12 flex gap-1.5 shrink-0">
             {['Essential', 'Heritage'].map(tier => (
               <button 
                 key={tier} 
@@ -549,7 +549,7 @@ const HomePage = () => {
                   setSelectedTier(tier);
                   setDeliveryConfirmed(true);
                 }} 
-                className={`flex-1 h-full rounded-lg font-black text-[9px] uppercase tracking-tight transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-sm' : 'text-slate-400'}`}
+                className={`flex-1 h-full rounded-xl font-black text-[7.5px] uppercase tracking-tighter transition-all duration-300 border ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515] border-[#996515]' : 'bg-black border-black') + ' text-white shadow-lg' : 'bg-white text-slate-600 border-slate-100 shadow-sm'}`}
               >
                 {tier}
               </button>
@@ -558,21 +558,17 @@ const HomePage = () => {
 
           {/* Pickup & Drop-off - Depends on Delivery Type */}
           <button 
-            disabled={!deliveryConfirmed}
+            disabled={!selectedTier}
             onClick={() => setShowSlotPicker(true)}
-            className={`flex-1 h-12 rounded-xl font-black text-[8px] uppercase tracking-tight border transition-all flex flex-row items-center justify-center gap-2 ${!deliveryConfirmed ? 'opacity-30 grayscale cursor-not-allowed' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
+            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-tighter border transition-all flex flex-row items-center justify-center gap-1.5 ${!selectedTier ? 'opacity-75 grayscale cursor-not-allowed bg-white text-slate-500 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
           >
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
-            </div>
-            <div className="flex flex-col items-start leading-none">
-              <span className="text-[8px] text-left">{isLogisticsValid ? 'Schedule Pickup and Drop-off' : 'Schedule Pickup and Drop-off'}</span>
-            </div>
+            <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
+            <span className="text-left">Schedule Pickup and Drop-off</span>
           </button>
         </div>
 
         {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Depends on Logistics */}
-        <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
+        <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-85 pointer-events-none grayscale' : 'opacity-100'}`}>
           <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2 bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100' : 'relative z-[90] px-1 py-2'} transition-all duration-500`}>
             <div className="max-w-5xl mx-auto w-full space-y-1">
               {/* MINI CATEGORIES */}
@@ -708,19 +704,19 @@ const HomePage = () => {
         {/* 8. COMBINED PICKUP & DROP-OFF MODAL */}
         <AnimatePresence>
           {showSlotPicker && (
-            <div className="fixed inset-0 z-[200] flex items-end justify-center p-0">
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
               <motion.div 
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }} 
                 onClick={() => setShowSlotPicker(false)} 
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
               />
               <motion.div 
-                initial={{ y: "100%" }} 
-                animate={{ y: 0 }} 
-                exit={{ y: "100%" }} 
-                className="relative w-full max-w-xs bg-white rounded-t-[1.5rem] p-3 shadow-2xl flex flex-col gap-2 overflow-y-auto max-h-[92vh] hide-scrollbar"
+                initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+                animate={{ scale: 1, opacity: 1, y: 0 }} 
+                exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+                className="relative w-full max-w-xs bg-white rounded-[2.5rem] p-5 shadow-2xl flex flex-col gap-3 overflow-y-auto max-h-[90vh] hide-scrollbar border border-slate-100"
               >
                 <div className="flex justify-between items-center">
                   <div /> {/* Spacer for alignment */}
