@@ -545,7 +545,10 @@ const HomePage = () => {
             {['Essential', 'Heritage'].map(tier => (
               <button 
                 key={tier} 
-                onClick={() => setSelectedTier(tier)} 
+                onClick={() => {
+                  setSelectedTier(tier);
+                  setDeliveryConfirmed(true);
+                }} 
                 className={`flex-1 h-full rounded-lg font-black text-[9px] uppercase tracking-tight transition-all duration-300 ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515]' : 'bg-black') + ' text-white shadow-sm' : 'text-slate-400'}`}
               >
                 {tier}
@@ -557,7 +560,7 @@ const HomePage = () => {
           <button 
             disabled={!deliveryConfirmed}
             onClick={() => setShowSlotPicker(true)}
-            className={`flex-1 h-12 rounded-xl font-black text-[8px] uppercase tracking-tight border transition-all flex flex-row items-center justify-center gap-2 ${!deliveryConfirmed ? 'opacity-30 grayscale cursor-not-allowed' : (selectedPickup && selectedDelivery ? 'bg-slate-950 text-white border-slate-950 shadow-xl' : 'bg-white text-slate-400 border-slate-100')}`}
+            className={`flex-1 h-12 rounded-xl font-black text-[8px] uppercase tracking-tight border transition-all flex flex-row items-center justify-center gap-2 ${!deliveryConfirmed ? 'opacity-30 grayscale cursor-not-allowed' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
           >
             <div className="flex flex-col items-center gap-0.5">
               <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>

@@ -17548,3 +17548,116 @@
 2026-05-07T14:55:15.848Z - 📡 [TRAFFIC] 8:25:15 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
 2026-05-07T14:55:23.913Z - SOCKET_JOIN - Client Ci97UaHufKM8qMfAAAAe -> user_69f1d2bc2c76f5ab4ec82160
 2026-05-07T14:55:24.047Z - SOCKET_JOIN - Client ki_fg8m1xMb6PIMrAAAf -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:32.865Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/geofence/check-availability?lat=22.798059&lng=75.9232677
+2026-05-07T14:55:32.896Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/admin/config
+2026-05-07T14:55:32.901Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/master-services?serviceType=individual
+2026-05-07T14:55:32.910Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/categories
+2026-05-07T14:55:32.922Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-07T14:55:32.981Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/admin/config
+2026-05-07T14:55:32.985Z - 📡 [TRAFFIC] 8:25:32 pm | GET /api/geofence/check-availability?lat=22.798059&lng=75.9232677
+2026-05-07T14:55:33.178Z - 📡 [TRAFFIC] 8:25:33 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-07T14:55:33.418Z - SOCKET_JOIN - Client 0M06lQ_sNKVnsBd-AAAi -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:36.179Z - 📡 [TRAFFIC] 8:25:36 pm | POST /api/auth/update-fcm-token
+2026-05-07T14:55:36.193Z - 📡 [TRAFFIC] 8:25:36 pm | POST /api/auth/update-fcm-token
+2026-05-07T14:55:36.198Z - 📡 [TRAFFIC] 8:25:36 pm | GET /api/categories
+2026-05-07T14:55:38.085Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:38.170Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:38.201Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/services?approvedOnly=true
+2026-05-07T14:55:38.205Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/master-services
+2026-05-07T14:55:38.209Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-07T14:55:38.219Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/admin/config
+2026-05-07T14:55:38.224Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:38.782Z - SOCKET_JOIN - Client 7j7b57LIoxypWQVFAAAk -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:38.814Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/master-services
+2026-05-07T14:55:38.826Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/services?approvedOnly=true
+2026-05-07T14:55:38.868Z - 📡 [TRAFFIC] 8:25:38 pm | GET /api/admin/config
+2026-05-07T14:55:39.236Z - 📡 [TRAFFIC] 8:25:39 pm | GET /api/master-services?serviceType=individual
+2026-05-07T14:55:39.774Z - 📡 [TRAFFIC] 8:25:39 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:40.160Z - SOCKET_JOIN - Client 7j7b57LIoxypWQVFAAAk -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T14:55:43.044Z - 📡 [TRAFFIC] 8:25:43 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-07T14:55:43.059Z - 📡 [TRAFFIC] 8:25:43 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-07T14:55:46.199Z - 📡 [TRAFFIC] 8:25:46 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-07T14:55:47.672Z - 📡 [TRAFFIC] 8:25:47 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-07T14:55:48.062Z - 📡 [TRAFFIC] 8:25:48 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-07T16:48:49.432Z - SOCKET_JOIN - Client 34CFIJ-p-nKcGK6gAAAs -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:48:49.447Z - SOCKET_JOIN - Client NM7f8majxscFFY2aAAAt -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:48:56.646Z - SOCKET_JOIN - Client GDM8PVzji5bFIMM2AAAx -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-07T16:48:56.739Z - SOCKET_JOIN - Client GDM8PVzji5bFIMM2AAAx -> admins_pool
+2026-05-07T16:48:56.740Z - SOCKET_JOIN - Client GDM8PVzji5bFIMM2AAAx -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-07T16:48:56.742Z - SOCKET_JOIN - Client GDM8PVzji5bFIMM2AAAx -> admins_pool
+2026-05-07T16:48:56.753Z - 📡 [TRAFFIC] 10:18:56 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-07T16:48:56.765Z - 📡 [TRAFFIC] 10:18:56 pm | GET /api/admin/config
+2026-05-07T16:48:57.190Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/services?approvedOnly=true
+2026-05-07T16:48:57.199Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/master-services
+2026-05-07T16:48:57.204Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-07T16:48:57.208Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/admin/config
+2026-05-07T16:48:57.212Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:48:57.481Z - SOCKET_JOIN - Client H2G9JxIOTb0kMj9FAAAz -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:48:57.573Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/geofence/check-availability?lat=22.798059&lng=75.9232677
+2026-05-07T16:48:57.634Z - SOCKET_JOIN - Client uxU4ie3v4lJxqdE6AAAy -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:48:57.656Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/admin/config
+2026-05-07T16:48:57.661Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/master-services?serviceType=individual
+2026-05-07T16:48:57.667Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-07T16:48:57.671Z - 📡 [TRAFFIC] 10:18:57 pm | GET /api/categories
+2026-05-07T16:48:57.901Z - SOCKET_JOIN - Client uxU4ie3v4lJxqdE6AAAy -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:48:58.150Z - 📡 [TRAFFIC] 10:18:58 pm | POST /api/auth/update-fcm-token
+2026-05-07T16:48:58.490Z - SOCKET_JOIN - Client H2G9JxIOTb0kMj9FAAAz -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:49:16.791Z - 📡 [TRAFFIC] 10:19:16 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-07T16:49:16.794Z - 📡 [TRAFFIC] 10:19:16 pm | GET /api/admin/config
+2026-05-07T16:49:17.332Z - 📡 [TRAFFIC] 10:19:17 pm | GET /api/master-services
+2026-05-07T16:49:27.287Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/services?approvedOnly=true
+2026-05-07T16:49:27.298Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-07T16:49:27.304Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/admin/config
+2026-05-07T16:49:27.312Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:49:27.368Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-07T16:49:27.598Z - 📡 [TRAFFIC] 10:19:27 pm | POST /api/auth/update-fcm-token
+2026-05-07T16:49:27.672Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/geofence/check-availability?lat=22.798059&lng=75.9232677
+2026-05-07T16:49:27.694Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/admin/config
+2026-05-07T16:49:27.704Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/master-services?serviceType=individual
+2026-05-07T16:49:27.710Z - 📡 [TRAFFIC] 10:19:27 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-07T16:49:28.200Z - 📡 [TRAFFIC] 10:19:28 pm | GET /api/categories
+2026-05-07T16:49:35.937Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-07T16:49:35.949Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/categories
+2026-05-07T16:49:35.954Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-07T16:49:35.960Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/admin/config
+2026-05-07T16:49:35.965Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/geofence/check-availability?lat=22.7483&lng=75.8718
+2026-05-07T16:49:35.970Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-07T16:49:35.977Z - 📡 [TRAFFIC] 10:19:35 pm | GET /api/master-services?serviceType=individual
+2026-05-07T16:49:36.036Z - 📡 [TRAFFIC] 10:19:36 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-07T16:49:36.165Z - 📡 [TRAFFIC] 10:19:36 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-08T03:15:18.554Z - SOCKET_JOIN - Client FB2_BAFhjlwRhVEyAAA5 -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-08T03:15:18.613Z - SOCKET_JOIN - Client jldOQCUiu3-ArGWxAAA4 -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:27.290Z - 📡 [TRAFFIC] 11:12:27 am | GET /api/geofence/check-availability?lat=22.7483&lng=75.8718
+2026-05-08T05:42:27.434Z - 📡 [TRAFFIC] 11:12:27 am | GET /api/admin/config
+2026-05-08T05:42:27.505Z - 📡 [TRAFFIC] 11:12:27 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-08T05:42:27.815Z - 📡 [TRAFFIC] 11:12:27 am | GET /api/master-services?serviceType=individual
+2026-05-08T05:42:27.857Z - 📡 [TRAFFIC] 11:12:27 am | GET /api/categories
+2026-05-08T05:42:28.270Z - SOCKET_JOIN - Client 7wFLdh75PEKk37TWAAA7 -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:28.310Z - 📡 [TRAFFIC] 11:12:28 am | GET /api/geofence/check-availability?lat=22.7483&lng=75.8718
+2026-05-08T05:42:28.332Z - 📡 [TRAFFIC] 11:12:28 am | GET /api/admin/config
+2026-05-08T05:42:28.351Z - 📡 [TRAFFIC] 11:12:28 am | GET /api/categories
+2026-05-08T05:42:28.608Z - SOCKET_JOIN - Client 7wFLdh75PEKk37TWAAA7 -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:28.787Z - 📡 [TRAFFIC] 11:12:28 am | POST /api/auth/update-fcm-token
+2026-05-08T05:42:28.983Z - 📡 [TRAFFIC] 11:12:28 am | POST /api/auth/update-fcm-token
+2026-05-08T05:42:29.002Z - 📡 [TRAFFIC] 11:12:29 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:29.307Z - 📡 [TRAFFIC] 11:12:29 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-08T05:42:29.552Z - 📡 [TRAFFIC] 11:12:29 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:29.832Z - 📡 [TRAFFIC] 11:12:29 am | GET /api/master-services?serviceType=individual
+2026-05-08T05:42:44.066Z - 📡 [TRAFFIC] 11:12:44 am | POST /api/auth/request-otp
+2026-05-08T05:42:46.702Z - 📡 [TRAFFIC] 11:12:46 am | POST /api/auth/verify-otp
+2026-05-08T05:42:50.836Z - 📡 [TRAFFIC] 11:12:50 am | GET /api/admin/config
+2026-05-08T05:42:50.845Z - 📡 [TRAFFIC] 11:12:50 am | GET /api/master-services?serviceType=individual
+2026-05-08T05:42:50.849Z - 📡 [TRAFFIC] 11:12:50 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-08T05:42:50.868Z - SOCKET_JOIN - Client _6W78Hq-Xpjz_KaeAAA9 -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:50.954Z - 📡 [TRAFFIC] 11:12:50 am | GET /api/categories
+2026-05-08T05:42:50.963Z - 📡 [TRAFFIC] 11:12:50 am | GET /api/admin/config
+2026-05-08T05:42:50.975Z - 📡 [TRAFFIC] 11:12:50 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-08T05:42:51.163Z - SOCKET_JOIN - Client _6W78Hq-Xpjz_KaeAAA9 -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:51.313Z - 📡 [TRAFFIC] 11:12:51 am | GET /api/categories
+2026-05-08T05:42:51.349Z - 📡 [TRAFFIC] 11:12:51 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:51.786Z - 📡 [TRAFFIC] 11:12:51 am | GET /api/master-services?serviceType=individual
+2026-05-08T05:42:52.579Z - 📡 [TRAFFIC] 11:12:52 am | POST /api/auth/update-fcm-token
+2026-05-08T05:42:52.592Z - 📡 [TRAFFIC] 11:12:52 am | POST /api/auth/update-fcm-token
+2026-05-08T05:42:52.619Z - 📡 [TRAFFIC] 11:12:52 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-08T05:42:56.415Z - 📡 [TRAFFIC] 11:12:56 am | GET /api/geofence/check-availability?lat=22.7002&lng=75.9078
+2026-05-08T05:42:56.795Z - 📡 [TRAFFIC] 11:12:56 am | GET /api/geofence/check-availability?lat=22.7002&lng=75.9078
