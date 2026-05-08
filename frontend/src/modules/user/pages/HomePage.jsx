@@ -557,7 +557,7 @@ const HomePage = () => {
                   setSelectedTier(tier);
                   setDeliveryConfirmed(true);
                 }} 
-                className={`flex-1 h-full rounded-xl font-black text-[7.5px] uppercase tracking-tighter transition-all duration-300 border ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515] border-[#996515]' : 'bg-black border-black') + ' text-white shadow-lg' : 'bg-white text-slate-600 border-slate-100 shadow-sm'}`}
+                className={`flex-1 h-full rounded-xl font-black text-[7.5px] uppercase tracking-tighter transition-all duration-300 border ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515] border-[#996515]' : 'bg-black border-black') + ' text-white shadow-lg' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
               >
                 {tier}
               </button>
@@ -568,7 +568,7 @@ const HomePage = () => {
           <button 
             disabled={!selectedTier}
             onClick={() => setShowSlotPicker(true)}
-            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-tighter border transition-all flex flex-row items-center justify-center gap-1.5 ${!selectedTier ? 'opacity-75 grayscale cursor-not-allowed bg-white text-slate-500 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
+            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-tighter border transition-all flex flex-row items-center justify-center gap-1.5 ${!selectedTier ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
           >
             <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
             <span className="text-left">Schedule Pickup and Drop-off</span>
@@ -576,7 +576,7 @@ const HomePage = () => {
         </div>
 
         {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Depends on Logistics */}
-        <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-85 pointer-events-none grayscale' : 'opacity-100'}`}>
+        <div className={`transition-all duration-500 ${!isLogisticsValid ? 'opacity-70 pointer-events-none grayscale' : 'opacity-100'}`}>
           <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2 bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100' : 'relative z-[90] px-1 py-2'} transition-all duration-500`}>
             <div className="max-w-5xl mx-auto w-full space-y-1">
               {/* MINI CATEGORIES */}
