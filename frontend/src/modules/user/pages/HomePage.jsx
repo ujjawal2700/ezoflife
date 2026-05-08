@@ -62,7 +62,7 @@ const HomePage = () => {
   }, [location, setZoneData]);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTier, setSelectedTier] = useState(() => localStorage.getItem('selected_tier') || 'Essential'); 
+  const [selectedTier, setSelectedTier] = useState(() => localStorage.getItem('selected_tier')); 
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -72,7 +72,10 @@ const HomePage = () => {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // LOGISTICS STATE
-  const [isExpress, setIsExpress] = useState(() => localStorage.getItem('is_express') === 'true');
+  const [isExpress, setIsExpress] = useState(() => {
+    const saved = localStorage.getItem('is_express');
+    return saved === null ? null : saved === 'true';
+  });
   const [expressCharge, setExpressCharge] = useState(0);
   const [normalLogisticsFee, setNormalLogisticsFee] = useState(0);
 
@@ -405,6 +408,11 @@ const HomePage = () => {
   }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory, showMoreServices]);
 
   const updateQuantity = (id, delta) => {
+    if (delta > 0 && !isLogisticsValid) {
+      toast.error('Please select Pickup and Drop-off details first');
+      setShowSlotPicker(true);
+      return;
+    }
     setSelectedQuantities(prev => {
       const current = prev[id] || 0;
       const next = Math.max(0, current + delta);
@@ -558,9 +566,11 @@ const HomePage = () => {
     localStorage.setItem('pickup_time', pickupTime);
     localStorage.setItem('delivery_date', selectedDelivery);
     localStorage.setItem('delivery_time', deliveryTime);
+    if (selectedTier) localStorage.setItem('selected_tier', selectedTier);
+    if (isExpress !== null) localStorage.setItem('is_express', isExpress);
     if (pickupAddress) localStorage.setItem('pickup_address', JSON.stringify(pickupAddress));
     if (dropAddress) localStorage.setItem('drop_address', JSON.stringify(dropAddress));
-  }, [deliveryConfirmed, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress]);
+  }, [deliveryConfirmed, selectedPickup, pickupTime, selectedDelivery, deliveryTime, selectedTier, isExpress, pickupAddress, dropAddress]);
 
   // Sync Drop Address if same as Pickup
   useEffect(() => {
@@ -841,7 +851,7 @@ const HomePage = () => {
                           setIsExpress(type === 'Express');
                           setDeliveryConfirmed(true);
                         }}
-                        className={`flex-1 py-1.5 rounded-lg font-black text-[7px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress) || (type === 'Normal' && !isExpress)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400'}`}
+                        className={`flex-1 py-1.5 rounded-lg font-black text-[7px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress === true) || (type === 'Normal' && isExpress === false)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400'}`}
                       >
                         {type === 'Normal' ? 'Normal Delivery' : 'Express Delivery'}
                       </button>

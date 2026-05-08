@@ -219,7 +219,12 @@ const UserProfilePage = () => {
         {/* LOGOUT ACTION */}
         <div className="px-2">
           <button
-            onClick={() => { localStorage.clear(); navigate('/user/auth'); toast.success('Logged out successfully'); }}
+            onClick={() => { 
+              const keysToRemove = ['token', 'user', 'userData', 'userId', 'last_visited_vendor_id', 'userType'];
+              keysToRemove.forEach(k => localStorage.removeItem(k));
+              navigate('/user/auth'); 
+              toast.success('Logged out successfully'); 
+            }}
             className="w-full py-4 bg-rose-50 border border-rose-100 rounded-[1.8rem] text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
           >
             <span className="material-symbols-outlined text-lg">logout</span>
