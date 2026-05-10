@@ -44,28 +44,45 @@ export const locationService = {
       if (data.status === 'OK' && data.results.length > 0) {
         const result = data.results[0];
         
-        // Extract city and area
-        let city = '';
-        let area = '';
-        
         const addressComponents = result.address_components;
         
         // Find locality (city)
         const cityComp = addressComponents.find(c => 
           c.types.includes('locality') || c.types.includes('administrative_area_level_2')
         );
-        if (cityComp) city = cityComp.long_name;
+        const city = cityComp ? cityComp.long_name : '';
 
         // Find sublocality (area)
         const areaComp = addressComponents.find(c => 
           c.types.includes('sublocality_level_1') || c.types.includes('neighborhood')
         );
-        if (areaComp) area = areaComp.long_name;
+        const area = areaComp ? areaComp.long_name : '';
+
+        // Find State
+        const stateComp = addressComponents.find(c => 
+          c.types.includes('administrative_area_level_1')
+        );
+        const state = stateComp ? stateComp.long_name : '';
+
+        // Find Pincode
+        const pinComp = addressComponents.find(c => 
+          c.types.includes('postal_code')
+        );
+        const pincode = pinComp ? pinComp.long_name : '';
+
+        // Find Sublocal (for Line 2)
+        const subComp = addressComponents.find(c => 
+          c.types.includes('sublocality_level_2') || c.types.includes('route')
+        );
+        const subLocal = subComp ? subComp.long_name : '';
 
         return {
           fullAddress: result.formatted_address,
           city,
           area,
+          state,
+          pincode,
+          subLocal,
           lat,
           lng
         };

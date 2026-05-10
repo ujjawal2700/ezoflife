@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { faqApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
-import { PlusCircle, Trash2, HelpCircle, Save } from 'lucide-react';
+import { PlusCircle, Trash2, HelpCircle, Save, Video } from 'lucide-react';
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css';
 import StatusBadge from '../components/common/StatusBadge';
 
 const FAQManagement = () => {
     const [faqs, setFaqs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [newFaq, setNewFaq] = useState({ question: '', answer: '', category: 'General', targetRole: 'All' });
+    const [newFaq, setNewFaq] = useState({ question: '', answer: '', category: 'General', targetRole: 'All', youtubeUrl: '' });
     const [isAdding, setIsAdding] = useState(false);
 
     const fetchFaqs = async () => {
@@ -30,7 +32,7 @@ const FAQManagement = () => {
         if (!newFaq.question || !newFaq.answer) return;
         try {
             await faqApi.create(newFaq);
-            setNewFaq({ question: '', answer: '', category: 'General', targetRole: 'All' });
+            setNewFaq({ question: '', answer: '', category: 'General', targetRole: 'All', youtubeUrl: '' });
             setIsAdding(false);
             fetchFaqs();
         } catch (error) {
@@ -65,8 +67,8 @@ const FAQManagement = () => {
             {/* Add FAQ Form */}
             {isAdding && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4 animate-in fade-in slide-in-from-top-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="md:col-span-2 space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Question</label>
                             <input 
                                 type="text"
@@ -87,6 +89,7 @@ const FAQManagement = () => {
                                 <option value="Orders">Orders</option>
                                 <option value="Payments">Payments</option>
                                 <option value="Vendor">Vendor</option>
+                                <option value="Supplier">Supplier</option>
                             </select>
                         </div>
                         <div className="space-y-2">
@@ -97,20 +100,60 @@ const FAQManagement = () => {
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 focus:border-primary/30 outline-none text-sm font-bold"
                             >
                                 <option value="All">All Roles</option>
-                                <option value="Customer">Customer Only</option>
-                                <option value="Vendor">Vendor Only</option>
-                                <option value="Supplier">Supplier Only</option>
+                                <option value="Customer">Customer</option>
+                                <option value="Vendor">Vendor</option>
+                                <option value="Supplier">Supplier</option>
                             </select>
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Answer</label>
-                        <textarea 
-                            value={newFaq.answer}
-                            onChange={(e) => setNewFaq({ ...newFaq, answer: e.target.value })}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 focus:border-primary/30 outline-none text-sm font-bold min-h-[100px]"
-                            placeholder="Enter answer..."
-                        />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Answer (Rich Text)</label>
+                            <div className="quill-wrapper bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 focus-within:border-primary/30 transition-all">
+                                <ReactQuill 
+                                    theme="snow"
+                                    value={newFaq.answer}
+                                    onChange={(content) => setNewFaq({ ...newFaq, answer: content })}
+                                    placeholder="Type your answer here... (Bold, Lists, Links supported)"
+                                    modules={{
+                                        toolbar: [
+                                            ['bold', 'italic', 'underline'],
+                                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                                            ['link'],
+                                            ['clean']
+                                        ],
+                                    }}
+                                    className="bg-slate-50 border-none"
+                                />
+                            </div>
+                            <style>{`
+                                .quill-wrapper .ql-toolbar.ql-snow {
+                                    border: none !important;
+                                    background: white !important;
+                                    border-bottom: 1px solid #f1f5f9 !important;
+                                }
+                                .quill-wrapper .ql-container.ql-snow {
+                                    border: none !important;
+                                    min-height: 120px;
+                                    font-family: inherit;
+                                    font-size: 14px;
+                                }
+                                .quill-wrapper .ql-editor {
+                                    min-height: 120px;
+                                }
+                            `}</style>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">YouTube Video URL (Optional)</label>
+                            <input 
+                                type="text"
+                                value={newFaq.youtubeUrl}
+                                onChange={(e) => setNewFaq({ ...newFaq, youtubeUrl: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 focus:border-primary/30 outline-none text-sm font-bold"
+                                placeholder="https://www.youtube.com/watch?v=..."
+                            />
+                            <p className="text-[8px] text-slate-400 italic">Provide a visual tutorial for this FAQ</p>
+                        </div>
                     </div>
                     <button 
                         onClick={handleCreate}
@@ -148,7 +191,16 @@ const FAQManagement = () => {
                                     </button>
                                 </div>
                                 <h4 className="text-sm font-black text-slate-900 tracking-tight">{faq.question}</h4>
-                                <p className="text-xs text-slate-500 font-bold leading-relaxed">{faq.answer}</p>
+                                <div 
+                                    className="text-xs text-slate-500 font-bold leading-relaxed line-clamp-2"
+                                    dangerouslySetInnerHTML={{ __html: faq.answer }}
+                                />
+                                {faq.youtubeUrl && (
+                                    <div className="flex items-center gap-1.5 mt-2 text-[9px] font-black text-red-500 uppercase tracking-widest">
+                                        <span className="material-symbols-outlined text-sm">play_circle</span>
+                                        Video Linked
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))

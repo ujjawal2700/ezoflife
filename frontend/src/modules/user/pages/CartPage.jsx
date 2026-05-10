@@ -611,10 +611,10 @@ const CartPage = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 relative z-10">
+            <div className="grid grid-cols-[1fr_1.15fr] gap-2 relative z-10">
               {/* Left Side: Tier & Mode */}
-              <div className="space-y-4 pr-4 border-r border-white/5">
-                <div className="flex items-center gap-2.5">
+              <div className="space-y-4">
+                <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-white/60 text-[12px]">workspace_premium</span>
                   </div>
@@ -623,7 +623,7 @@ const CartPage = () => {
                     <p className="text-[10px] font-black text-white uppercase">{selectedTier}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-white/60 text-[12px]">bolt</span>
                   </div>
@@ -636,28 +636,32 @@ const CartPage = () => {
 
               {/* Right Side: Pickup & Drop */}
               <div className="space-y-4">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Pickup</p>
-                    <p className="text-[10px] font-black text-white uppercase truncate">{pickupTime}</p>
-                    <p className="text-[9px] font-black text-white/60 uppercase tracking-widest mt-0.5">
-                      {selectedPickupAddress?.type || 'Not Selected'}
-                    </p>
+                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Pickup Time & Address</p>
+                    <div className="flex items-center gap-1 mt-1 whitespace-nowrap">
+                      <span className="text-[7px] font-black text-white/40 uppercase px-1 py-0.5 bg-white/5 rounded border border-white/5 shrink-0">
+                        {selectedPickupAddress?.type || 'NA'}
+                      </span>
+                      <p className="text-[9px] font-black text-white uppercase">{pickupTime}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
                   <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-white/60 text-[12px]">local_shipping</span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Drop</p>
-                    <p className="text-[10px] font-black text-white uppercase truncate">{deliveryTime}</p>
-                    <p className="text-[9px] font-black text-white/60 uppercase tracking-widest mt-0.5">
-                      {(isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type) || 'Not Selected'}
-                    </p>
+                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Dropoff Time & Address</p>
+                    <div className="flex items-center gap-1 mt-1 whitespace-nowrap">
+                      <span className="text-[7px] font-black text-white/40 uppercase px-1 py-0.5 bg-white/5 rounded border border-white/5 shrink-0">
+                        {(isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type) || 'NA'}
+                      </span>
+                      <p className="text-[9px] font-black text-white uppercase">{deliveryTime}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -672,26 +676,26 @@ const CartPage = () => {
 
             <div className="space-y-4 relative z-10">
 
-              <div className="grid grid-cols-2 gap-x-6 gap-y-2 px-1">
-                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 px-1">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span>Base Items</span>
                   <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
                 </div>
-                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span>Platform Fee</span>
                   <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
                 </div>
                 {priceBreakdown.expressSurcharge > 0 && (
-                  <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-amber-400">
+                  <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-amber-400">
                     <span>Express</span>
                     <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span>Logistic Fee</span>
                   <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
                 </div>
-                <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-white/40">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span>GST (18%)</span>
                   <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
                 </div>

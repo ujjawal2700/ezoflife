@@ -55,35 +55,29 @@ const UserProfilePage = () => {
       animate={{ opacity: 1 }}
       className="text-slate-900 min-h-screen pb-20 font-sans bg-slate-50/50"
     >
-      <main className="max-w-md mx-auto px-4 pt-6 space-y-5">
+      <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
         
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-2">
-          <h1 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Account Profile</h1>
+        {/* UNIFIED PROFILE BOX */}
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden relative">
           {!isEditing ? (
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsEditing(true)}
-              className="text-[10px] font-black text-white bg-slate-950 px-4 py-2 rounded-xl shadow-lg flex items-center gap-2"
+              className="absolute top-4 right-4 bg-slate-950 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg z-10"
             >
-              <span className="material-symbols-outlined text-xs">settings</span>
               MANAGE
             </motion.button>
           ) : (
-            <div className="flex items-center gap-2">
-               <button onClick={() => setIsEditing(false)} className="text-[9px] font-black text-slate-400 uppercase px-2 py-1">Cancel</button>
-               <button onClick={handleSave} disabled={loading} className="text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-lg shadow-sm">{loading ? '...' : 'SAVE'}</button>
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+               <button onClick={() => setIsEditing(false)} className="text-[8px] font-black text-slate-400 uppercase">Cancel</button>
+               <button onClick={handleSave} disabled={loading} className="text-[8px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-lg">{loading ? '...' : 'SAVE'}</button>
             </div>
           )}
-        </div>
-
-        {/* UNIFIED PROFILE BOX */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden">
           
           {/* 1. USER INFO SECTION (TOP OF BOX) */}
-          <section className={`p-6 border-b border-slate-50 flex flex-col ${isEditing ? 'items-start' : 'items-center text-center'} space-y-4`}>
+          <section className="p-6 border-b border-slate-50 flex flex-col items-start space-y-4">
             <div className="relative group">
-              <div className="w-20 h-20 rounded-[2rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden">
+              <div className="w-20 h-20 rounded-[1.8rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden">
                 <img
                   src={formData.image || user.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"}
                   alt="Profile"
@@ -91,40 +85,51 @@ const UserProfilePage = () => {
                 />
               </div>
               {isEditing && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[2rem] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[1.8rem] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                   <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
                   <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
                 </label>
               )}
             </div>
 
-            <div className="w-full space-y-2">
+            <div className="w-full space-y-5">
               {isEditing ? (
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</p>
-                    <input type="text" value={formData.displayName} onChange={(e) => setFormData({...formData, displayName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all" />
+                    <input type="text" value={formData.displayName} onChange={(e) => setFormData({...formData, displayName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all" />
                   </div>
                   <div className="grid grid-cols-1 gap-3">
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</p>
-                      <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black text-slate-900 outline-none" />
+                      <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</p>
-                      <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-xs font-black text-slate-900 outline-none" />
+                      <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none" />
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-black tracking-tighter text-slate-950 leading-none">{user.displayName || 'Set Name'}</h2>
-                  <div className="flex flex-col items-center gap-1.5 pt-1">
-                    <div className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                      <span className="material-symbols-outlined text-[10px] text-emerald-600" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                      <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">+91 {user.phone}</span>
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</p>
+                    <h2 className="text-xl font-black tracking-tight text-slate-950 ml-1">{user.displayName || 'Guest User'}</h2>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4 pt-1">
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</p>
+                      <div className="flex items-center gap-2 text-slate-950 font-black text-[11px] ml-1">
+                        <span className="material-symbols-outlined text-[14px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                        <span>+91 {user.phone}</span>
+                      </div>
                     </div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user.email || 'No email added'}</p>
+                    
+                    <div className="space-y-1">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</p>
+                      <p className="text-[11px] font-black text-slate-950 ml-1 lowercase">{user.email || 'No email added'}</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -132,7 +137,7 @@ const UserProfilePage = () => {
           </section>
 
           {/* 2. ADDRESS BOOK SECTION */}
-          <section className="p-6 border-b border-slate-50 space-y-4">
+          <section className="p-5 border-b border-slate-50 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-slate-400 text-lg">location_on</span>
@@ -143,7 +148,7 @@ const UserProfilePage = () => {
             <div className="space-y-2.5">
               {(user.addresses && user.addresses.length > 0) ? (
                 user.addresses.slice(0, 2).map((addr, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
+                  <div key={i} className="flex items-start gap-3 bg-slate-50/50 p-2.5 rounded-2xl border border-slate-100/50">
                     <span className="material-symbols-outlined text-slate-400 text-base mt-0.5">
                       {addr.type === 'Home' ? 'home' : addr.type === 'Office' ? 'work' : 'push_pin'}
                     </span>
@@ -160,7 +165,7 @@ const UserProfilePage = () => {
           </section>
 
           {/* 3. PAYMENT METHODS SECTION */}
-          <section className="p-6 border-b border-slate-50 space-y-4">
+          <section className="p-5 border-b border-slate-50 space-y-3">
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-slate-400 text-lg">payments</span>
@@ -175,9 +180,9 @@ const UserProfilePage = () => {
               ].map((method, i) => (
                 <div key={i} className="flex flex-col space-y-1">
                   <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{method.label}</p>
-                  <div className="flex items-center gap-4 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50 transition-all">
-                    <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center ${method.color} shadow-sm`}>
-                      <span className="material-symbols-outlined text-lg">{method.icon}</span>
+                  <div className="flex items-center gap-3 ml-1 transition-all">
+                    <div className={`w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center ${method.color}`}>
+                      <span className="material-symbols-outlined text-base">{method.icon}</span>
                     </div>
                     {isEditing ? (
                       <input 
@@ -188,10 +193,10 @@ const UserProfilePage = () => {
                           paymentDetails: { ...formData.paymentDetails, [method.key]: e.target.value }
                         })}
                         placeholder={`Enter ${method.label}`}
-                        className="bg-transparent text-xs font-black text-slate-900 outline-none w-full"
+                        className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-xs font-black text-slate-900 outline-none w-full"
                       />
                     ) : (
-                      <p className="text-[10px] font-black text-slate-900">{user.paymentDetails?.[method.key] || 'Not Added'}</p>
+                      <p className="text-[10px] font-black text-slate-950">{user.paymentDetails?.[method.key] || 'Not Added'}</p>
                     )}
                   </div>
                 </div>

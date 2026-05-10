@@ -43,6 +43,7 @@ import RiderSimulation from '../pages/RiderSimulation';
 import UserLayout from '../layouts/UserLayout';
 import LandingAdPage from '../pages/LandingAdPage';
 import ServiceImageUploadPage from '../pages/ServiceImageUploadPage';
+import ReferralPage from '../pages/ReferralPage';
 
 const UserRoutes = () => {
   return (
@@ -88,6 +89,7 @@ const UserRoutes = () => {
         <Route path="/materials" element={<MaterialsCatalogPage />} />
         <Route path="/feedback" element={<FeedbackForm />} />
         <Route path="/upload-photos" element={<ServiceImageUploadPage />} />
+        <Route path="/referral" element={<ReferralPage />} />
         <Route path="/rider/simulate/:id" element={<RiderSimulation />} />
       </Route>
 

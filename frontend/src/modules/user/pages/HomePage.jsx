@@ -184,19 +184,32 @@ const HomePage = () => {
     }
   }, [isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime]);
   const [isLocating, setIsLocating] = useState(false);
-  const [customAddress, setCustomAddress] = useState('');
+  const [addressDetails, setAddressDetails] = useState({
+    line1: '',
+    line2: '',
+    floor: '',
+    landmark: '',
+    pincode: '',
+    city: '',
+    state: ''
+  });
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressFormData, setAddressFormData] = useState({
-    type: 'Home'
+    type: 'Other'
   });
 
   const handleSaveCustomAddress = async () => {
-    if (!customAddress) return alert('Please enter an address');
+    const { line1, line2, floor, landmark, pincode, city, state } = addressDetails;
+    if (!line1 || !city || !state) return alert('Please fill in required address fields (Line 1, City, State)');
+    
+    const formattedAddress = `${line1}${line2 ? ', ' + line2 : ''}${floor ? ', ' + floor : ''}${landmark ? ' (Near ' + landmark + ')' : ''}, ${city}, ${state} - ${pincode}`;
+    
     const newAddr = {
       id: Date.now().toString(),
       type: addressFormData.type,
-      address: customAddress,
-      fullAddress: customAddress
+      address: formattedAddress,
+      fullAddress: formattedAddress,
+      details: addressDetails // Keep details for editing if needed later
     };
 
     // Update Local State
@@ -499,36 +512,30 @@ const HomePage = () => {
   };
 
   const handleLiveLocation = () => {
+    const updateDetails = (data) => {
+      setAddressDetails({
+        line1: data.area || '',
+        line2: data.subLocal || '',
+        floor: '',
+        landmark: '',
+        pincode: data.pincode || '',
+        city: data.city || '',
+        state: data.state || ''
+      });
+    };
+
     if (location) {
-      const addrString = location.fullAddress || (location.area ? `${location.area}, ${location.city}` : null) || (typeof location === 'string' ? location : 'Detected Location');
-      const liveAddr = { id: 'live_' + Date.now(), type: 'LIVE', address: addrString, location: { lat: location.lat, lng: location.lng } };
-      
-      if (activeAddressType === 'pickup') {
-        setPickupAddress(liveAddr);
-        if (isSameAsPickup) setDropAddress(liveAddr);
-      } else {
-        setDropAddress(liveAddr);
-      }
-      
-      setCustomAddress(liveAddr.address);
+      updateDetails(location);
       setShowAddressForm(true);
       return;
     }
+
     if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
     setIsLocating(true);
     locationService.getCurrentCoordinates().then(async (coords) => {
       try {
         const addressData = await locationService.reverseGeocode(coords.lat, coords.lng);
-        setCustomAddress(addressData.fullAddress);
-        const liveAddr = { id: 'live_' + Date.now(), type: 'LIVE', address: addressData.fullAddress, location: { lat: coords.lat, lng: coords.lng } };
-        
-        if (activeAddressType === 'pickup') {
-          setPickupAddress(liveAddr);
-          if (isSameAsPickup) setDropAddress(liveAddr);
-        } else {
-          setDropAddress(liveAddr);
-        }
-        
+        updateDetails(addressData);
         setShowAddressForm(true);
       } catch (err) { console.error(err); } finally { setIsLocating(false); }
     }).catch(() => setIsLocating(false));
@@ -801,18 +808,6 @@ const HomePage = () => {
             <div className="flex justify-center mt-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
           )}
 
-        {/* 6. INSTRUCTIONS SECTION */}
-        {cartItemsCount > 0 && (
-          <section className="mb-8 space-y-4">
-            <div className="bg-white rounded-[3rem] p-8 border border-slate-100 shadow-2xl relative overflow-hidden">
-              <div className="absolute right-0 top-0 p-10 opacity-5"><span className="material-symbols-outlined text-8xl">logistics</span></div>
-              <div className="space-y-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Order Instructions</p>
-                <textarea value={orderNotes} onChange={(e) => setOrderNotes(e.target.value)} placeholder="Special care instructions..." className="w-full bg-slate-50 border border-slate-100 p-5 rounded-[2rem] focus:bg-white outline-none font-bold text-slate-800 text-xs min-h-[100px] resize-none" />
-              </div>
-            </div>
-          </section>
-        )}
 
 
 
@@ -1019,18 +1014,69 @@ const HomePage = () => {
                     
                     <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
                       {/* Same as Pickup Toggle */}
-                      <div className="flex items-center justify-between px-1">
-                         <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Same as Pickup Address</span>
-                         <button 
-                           onClick={() => {
-                             setIsSameAsPickup(!isSameAsPickup);
-                             if (!isSameAsPickup) setDropAddress(pickupAddress);
-                           }}
-                           className={`w-7 h-3.5 rounded-full transition-all relative ${isSameAsPickup ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                         >
-                           <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isSameAsPickup ? 'right-0.5' : 'left-0.5'}`} />
-                         </button>
-                      </div>
+                       <div className="flex items-center justify-between px-1">
+                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Same as Pickup Address</span>
+                          <button 
+                            onClick={() => {
+                              setIsSameAsPickup(!isSameAsPickup);
+                              if (!isSameAsPickup) setDropAddress(pickupAddress);
+                            }}
+                            className={`w-7 h-3.5 rounded-full transition-all relative ${isSameAsPickup ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                          >
+                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isSameAsPickup ? 'right-0.5' : 'left-0.5'}`} />
+                          </button>
+                       </div>
+
+                       {/* Conditional Drop-off Address Dropdown - MOVED HERE */}
+                       {!isSameAsPickup && (
+                        <div className="relative mt-2">
+                          <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Drop-off Address</p>
+                          <button 
+                            onClick={() => setOpenDropdown(openDropdown === 'dropAddress' ? null : 'dropAddress')}
+                            className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                          >
+                            <span className={dropAddress && dropAddress.id !== pickupAddress?.id ? 'text-slate-900' : 'text-slate-300'}>
+                              {(dropAddress && dropAddress.id !== pickupAddress?.id) ? dropAddress.type.toUpperCase() : 'Select Drop Address'}
+                            </span>
+                            <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropAddress' ? 'rotate-180' : ''}`}>expand_more</span>
+                          </button>
+                          
+                          <AnimatePresence>
+                            {openDropdown === 'dropAddress' && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                                className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              >
+                                <div className="max-h-32 overflow-y-auto">
+                                  {savedAddresses.map(addr => (
+                                    <button 
+                                      key={addr.id}
+                                      onClick={() => {
+                                        setDropAddress(addr);
+                                        setOpenDropdown(null);
+                                      }}
+                                      className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                    >
+                                      {addr.type}
+                                    </button>
+                                  ))}
+                                  <button 
+                                    onClick={() => {
+                                      setActiveAddressType('drop');
+                                      setShowSlotPicker(false);
+                                      setShowAddressForm(true);
+                                      setOpenDropdown(null);
+                                    }}
+                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
+                                  >
+                                    + Enter New Address
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )}
 
                       {/* Date Dropdown */}
                       <div className="relative">
@@ -1127,44 +1173,6 @@ const HomePage = () => {
                         </AnimatePresence>
                       </div>
 
-                      {/* Conditional Drop-off Address Dropdown */}
-                      {!isSameAsPickup && (
-                        <div className="relative">
-                          <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Drop-off Address</p>
-                          <button 
-                            onClick={() => setOpenDropdown(openDropdown === 'dropAddress' ? null : 'dropAddress')}
-                            className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
-                          >
-                            <span className={dropAddress && dropAddress.id !== pickupAddress?.id ? 'text-slate-900' : 'text-slate-300'}>
-                              {(dropAddress && dropAddress.id !== pickupAddress?.id) ? dropAddress.type.toUpperCase() : 'Select Drop Address'}
-                            </span>
-                            <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropAddress' ? 'rotate-180' : ''}`}>expand_more</span>
-                          </button>
-                          
-                          <AnimatePresence>
-                            {openDropdown === 'dropAddress' && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                                className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
-                              >
-                                <div className="max-h-32 overflow-y-auto">
-                                  <button 
-                                    onClick={() => {
-                                      setActiveAddressType('drop');
-                                      setShowSlotPicker(false);
-                                      setShowAddressForm(true);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
-                                  >
-                                    + Enter New Address
-                                  </button>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -1256,27 +1264,112 @@ const HomePage = () => {
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Address Type</p>
                     <div className="flex gap-2">
-                      {['Home', 'Office', 'Other'].map(t => (
-                        <button
-                          key={t}
-                          onClick={() => setAddressFormData(prev => ({ ...prev, type: t }))}
-                          className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${addressFormData.type === t ? 'bg-black text-white border-black' : 'bg-slate-50 text-slate-400 border-slate-100'}`}
-                        >
-                          {t}
-                        </button>
-                      ))}
+                      {['Home', 'Office', 'Other'].map(t => {
+                        const isAlreadyPresent = savedAddresses.some(addr => addr.type?.toLowerCase() === t.toLowerCase());
+                        const isDisabled = t !== 'Other' && isAlreadyPresent;
+                        
+                        return (
+                          <button
+                            key={t}
+                            disabled={isDisabled}
+                            onClick={() => setAddressFormData(prev => ({ ...prev, type: t }))}
+                            className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all flex flex-col items-center justify-center gap-0.5
+                              ${isDisabled ? 'opacity-30 grayscale cursor-not-allowed bg-slate-50 text-slate-300 border-slate-100' : 
+                                addressFormData.type === t ? 'bg-black text-white border-black shadow-lg shadow-black/20' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
+                          >
+                            <span>{t}</span>
+                            {isDisabled && <span className="text-[6px] opacity-60 tracking-tight font-bold">(SAVED)</span>}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Address Input */}
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Full Address</p>
-                    <textarea
-                      value={customAddress}
-                      onChange={(e) => setCustomAddress(e.target.value)}
-                      placeholder="Street, Building, Area..."
-                      className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl focus:bg-white outline-none font-bold text-slate-800 text-xs min-h-[100px] resize-none"
-                    />
+                  {/* Structured Address Inputs */}
+                  <div className="space-y-4">
+                    {/* Line 1 */}
+                    <div className="space-y-1.5">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Address Line 1</p>
+                      <input 
+                        type="text" 
+                        value={addressDetails.line1} 
+                        onChange={(e) => setAddressDetails(prev => ({...prev, line1: e.target.value}))}
+                        placeholder="Flat/House No, Building Name" 
+                        className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all shadow-sm"
+                      />
+                    </div>
+
+                    {/* Line 2 */}
+                    <div className="space-y-1.5">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Address Line 2</p>
+                      <input 
+                        type="text" 
+                        value={addressDetails.line2} 
+                        onChange={(e) => setAddressDetails(prev => ({...prev, line2: e.target.value}))}
+                        placeholder="Street, Area Name" 
+                        className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all shadow-sm"
+                      />
+                    </div>
+
+                    {/* Floor & Landmark */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Floor / Apt</p>
+                        <input 
+                          type="text" 
+                          value={addressDetails.floor} 
+                          onChange={(e) => setAddressDetails(prev => ({...prev, floor: e.target.value}))}
+                          placeholder="e.g. 4th Floor" 
+                          className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none shadow-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Landmark</p>
+                        <input 
+                          type="text" 
+                          value={addressDetails.landmark} 
+                          onChange={(e) => setAddressDetails(prev => ({...prev, landmark: e.target.value}))}
+                          placeholder="Near Temple/Gym" 
+                          className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Pincode & City */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Pincode</p>
+                        <input 
+                          type="text" 
+                          value={addressDetails.pincode} 
+                          onChange={(e) => setAddressDetails(prev => ({...prev, pincode: e.target.value}))}
+                          placeholder="6-digit ZIP" 
+                          className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none shadow-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">City</p>
+                        <input 
+                          type="text" 
+                          value={addressDetails.city} 
+                          onChange={(e) => setAddressDetails(prev => ({...prev, city: e.target.value}))}
+                          placeholder="City Name" 
+                          className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none shadow-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* State */}
+                    <div className="space-y-1.5">
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">State</p>
+                      <input 
+                        type="text" 
+                        value={addressDetails.state} 
+                        onChange={(e) => setAddressDetails(prev => ({...prev, state: e.target.value}))}
+                        placeholder="State Name" 
+                        className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 rounded-xl text-[10px] font-black text-slate-900 outline-none shadow-sm"
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -1398,7 +1491,7 @@ const HomePage = () => {
                       <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm border border-slate-100">
                         <span className="material-symbols-outlined text-2xl">photo_library</span>
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">From Gallery</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Add Images</span>
                     </motion.button>
                   </div>
                 )}

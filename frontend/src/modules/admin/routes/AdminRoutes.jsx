@@ -44,6 +44,7 @@ import PricingPreview from '../pages/PricingPreview';
 import AreaPricingOverrides from '../pages/AreaPricingOverrides';
 import CustomerPayments from '../pages/CustomerPayments';
 import AdminInvoiceSettings from '../pages/AdminInvoiceSettings';
+import ReferralManagement from '../pages/ReferralManagement';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -111,6 +112,7 @@ const AdminRoutes = () => {
         <Route path="/supplier-requests" element={<AdminSupplierRequestsPage />} />
         <Route path="/supplier-requests/:id" element={<AdminSupplierRequestDetailPage />} />
         <Route path="/invoice-settings" element={<AdminInvoiceSettings />} />
+        <Route path="/referral-settings" element={<ReferralManagement />} />
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 
