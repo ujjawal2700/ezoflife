@@ -149,6 +149,9 @@ mongoose.connect(MONGODB_URI)
         try {
             const User = (await import('./src/models/User.js')).default;
             const testUsers = [
+                { phone: '9926723112', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test 2' },
+                { phone: '9826723221', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test' },
+                { phone: '+919826723221', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test Prefix' },
                 { phone: '9926335339', role: 'Customer', status: 'approved', displayName: 'Simran Default' },
                 { phone: '9999999991', role: 'Customer', status: 'approved', displayName: 'Test Customer' },
                 { 

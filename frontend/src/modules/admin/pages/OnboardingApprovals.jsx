@@ -213,65 +213,74 @@ export default function OnboardingApprovals() {
                                 </span>
                             </td>
                             <td className="px-8 py-6">
-                                <div className="flex items-center justify-end gap-2">
-                                    {/* Document Button */}
-                                    <div className="relative">
+                                <div className="flex items-center justify-end gap-3">
+                                    {activeTab === 'Vendor' ? (
                                         <button 
-                                            onClick={() => setShowDocSelector(showDocSelector === req.id ? null : req.id)}
-                                            className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all border border-slate-100 shadow-sm"
-                                            title="View Documents"
+                                            onClick={() => navigate(`/admin/vendors/requests/${req.id}`)}
+                                            className="h-10 px-6 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-lg active:scale-95"
                                         >
-                                            <FileText size={18} />
+                                            <Eye size={14} />
+                                            Review Application
                                         </button>
-                                        
-                                        <AnimatePresence>
-                                            {showDocSelector === req.id && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                    exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                                                    className="absolute bottom-full right-0 mb-4 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 z-50 overflow-hidden"
+                                    ) : (
+                                        <>
+                                            {/* Document Button for Suppliers */}
+                                            <div className="relative">
+                                                <button 
+                                                    onClick={() => setShowDocSelector(showDocSelector === req.id ? null : req.id)}
+                                                    className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all border border-slate-100 shadow-sm"
+                                                    title="View Documents"
                                                 >
-                                                    <div className="px-3 py-2 border-b border-slate-50 mb-2">
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Compliance Dossier</p>
-                                                    </div>
-                                                    {req.docs.length > 0 ? req.docs.map((doc, idx) => (
-                                                        <button 
-                                                            key={idx}
-                                                            onClick={() => {
-                                                                setSelectedDoc(doc);
-                                                                setShowDocSelector(null);
-                                                            }}
-                                                            className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-all group/doc"
+                                                    <FileText size={18} />
+                                                </button>
+                                                
+                                                <AnimatePresence>
+                                                    {showDocSelector === req.id && (
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                            className="absolute bottom-full right-0 mb-4 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 z-50 overflow-hidden"
                                                         >
-                                                            <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight group-hover/doc:text-slate-900">{doc.type || 'Document'}</span>
-                                                            <ExternalLink size={12} className="text-slate-300 group-hover/doc:text-primary" />
-                                                        </button>
-                                                    )) : (
-                                                        <p className="p-4 text-[9px] text-slate-300 italic text-center">No documents found</p>
+                                                            <div className="px-3 py-2 border-b border-slate-50 mb-2">
+                                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Compliance Dossier</p>
+                                                            </div>
+                                                            {req.docs.length > 0 ? req.docs.map((doc, idx) => (
+                                                                <button 
+                                                                    key={idx}
+                                                                    onClick={() => {
+                                                                        setSelectedDoc(doc);
+                                                                        setShowDocSelector(null);
+                                                                    }}
+                                                                    className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-all group/doc"
+                                                                >
+                                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight group-hover/doc:text-slate-900">{doc.type || 'Document'}</span>
+                                                                    <ExternalLink size={12} className="text-slate-300 group-hover/doc:text-primary" />
+                                                                </button>
+                                                            )) : <p className="p-4 text-[9px] text-slate-300 italic text-center">No documents found</p>}
+                                                        </motion.div>
                                                     )}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
-                                    </div>
+                                                </AnimatePresence>
+                                            </div>
 
-                                    {/* Action Buttons */}
-                                    <button 
-                                        onClick={() => handleAction(req.id, 'rejected', req.role)}
-                                        disabled={isProcessing === req.id}
-                                        className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm"
-                                        title="Reject Application"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                    <button 
-                                        onClick={() => handleAction(req.id, 'approved', req.role)}
-                                        disabled={isProcessing === req.id}
-                                        className="h-10 px-6 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
-                                    >
-                                        {isProcessing === req.id ? <RotateCw size={14} className="animate-spin" /> : <Check size={14} />}
-                                        {isProcessing === req.id ? 'Wait...' : 'Approve'}
-                                    </button>
+                                            <button 
+                                                onClick={() => handleAction(req.id, 'rejected', req.role)}
+                                                disabled={isProcessing === req.id}
+                                                className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm"
+                                                title="Reject Application"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleAction(req.id, 'approved', req.role)}
+                                                disabled={isProcessing === req.id}
+                                                className="h-10 px-6 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg active:scale-95"
+                                            >
+                                                {isProcessing === req.id ? <RotateCw size={14} className="animate-spin" /> : <Check size={14} />}
+                                                {isProcessing === req.id ? 'Wait...' : 'Approve'}
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             </td>
                         </tr>

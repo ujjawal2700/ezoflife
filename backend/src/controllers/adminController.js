@@ -11,8 +11,10 @@ export const getPendingApprovals = async (req, res) => {
     try {
         const [pendingVendors, supplierApps] = await Promise.all([
             User.find({ 
-                role: 'Vendor', 
-                status: 'pending'
+                $or: [
+                    { status: 'pending', role: 'Vendor' },
+                    { onboardingStage: { $in: ['INITIAL_REVIEW', 'SERVICE_SELECTION', 'FINAL_REVIEW'] } }
+                ]
             }).select('-otp -otpExpiry').lean(),
             SupplierApplication.find({ status: 'Pending' }).populate('user', 'displayName phone email').lean()
         ]);
@@ -40,7 +42,7 @@ export const getPendingApprovals = async (req, res) => {
         }));
 
         const combined = [
-            ...pendingVendors.map(v => ({ ...v, role: 'Vendor' })),
+            ...pendingVendors.map(v => ({ ...v, role: 'Vendor' })), // Force role to Vendor for display
             ...transformedSuppliers
         ];
         
@@ -51,28 +53,48 @@ export const getPendingApprovals = async (req, res) => {
     }
 };
 
-// Approve a vendor
+// Approve a vendor (Initial Audit)
 export const approveVendor = async (req, res) => {
     try {
         const { id } = req.params;
-        const vendor = await User.findByIdAndUpdate(
-            id, 
-            { 
-                status: 'approved',
-                role: 'Vendor',
-                displayName: (await User.findById(id))?.shopDetails?.name || 'Unnamed Vendor'
-            }, 
-            { new: true }
-        );
+        const { tier } = req.body;
+        
+        const vendor = await User.findById(id);
+        if (!vendor) return res.status(404).json({ message: 'Vendor request not found' });
 
-        if (!vendor) {
-            return res.status(404).json({ message: 'Vendor not found' });
-        }
+        // Phase 1 Approval: Keep role as Customer, move to Service Selection
+        vendor.tier = tier || vendor.tier || 'Standard';
+        vendor.onboardingStage = 'SERVICE_SELECTION';
+        vendor.status = 'approved'; // Initially approved for documentation
 
-        res.status(200).json({ message: 'Vendor approved and promoted to Vendor role', vendor });
+        await vendor.save();
+
+        res.status(200).json({ 
+            message: 'Initial audit complete. Application sent back for service selection.', 
+            vendor 
+        });
     } catch (err) {
         console.error('Approve Vendor Error:', err);
-        res.status(500).json({ message: 'Error approving vendor' });
+        res.status(500).json({ message: 'Error during initial audit' });
+    }
+};
+
+// Final Approval: Convert to Vendor
+export const approveFinalVendor = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const vendor = await User.findById(id);
+        if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+
+        vendor.role = 'Vendor';
+        vendor.status = 'approved';
+        vendor.onboardingStage = 'COMPLETED';
+        
+        await vendor.save();
+        res.status(200).json({ message: 'Vendor officially onboarded!', vendor });
+    } catch (err) {
+        console.error('Final Approval Error:', err);
+        res.status(500).json({ message: 'Error during final onboarding' });
     }
 };
 

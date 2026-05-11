@@ -138,67 +138,149 @@ export const requestOtp = async (req, res) => {
     }
 };
 
-// Toggle role to Vendor
+// Comprehensive Vendor Onboarding (4-Stage)
 export const becomeVendor = async (req, res) => {
     try {
         const { id } = req.params;
         const { 
-            shopName, 
-            businessAddress, 
+            ownerName, 
+            businessType, 
+            facilityName, 
+            panNumber, 
+            aadharNumber, 
             gstNumber, 
-            msmeStatus, 
+            businessAddress,
             bankAccountName, 
             bankAccountNumber, 
             ifscCode, 
             bankName,
-            serviceRates 
+            serviceRates,
+            location 
         } = req.body;
         
         const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'User not found' });
         
-        // Map serviceRates (object {id: rate}) to shopDetails.services array
-        const servicesArray = Object.keys(serviceRates || {}).map(sId => ({
+        // Parse service rates if sent as stringified JSON
+        let parsedRates = serviceRates;
+        if (typeof serviceRates === 'string') {
+            try { parsedRates = JSON.parse(serviceRates); } catch (e) { parsedRates = {}; }
+        }
+
+        const servicesArray = Object.keys(parsedRates || {}).map(sId => ({
             id: sId,
-            vendorRate: Number(serviceRates[sId]),
-            status: 'pending' // Individual service status
+            vendorRate: Number(parsedRates[sId]),
+            status: 'pending'
         }));
 
-        user.role = 'Vendor';
-        user.status = 'pending'; // Global account status
-        user.displayName = shopName || user.displayName;
+        // Basic Profile & KYV
+        user.role = 'Customer'; // Keep as Customer until final approval
+        user.status = 'pending';
         user.isProfileComplete = true;
+        user.onboardingStage = 'INITIAL_REVIEW';
         
+        user.ownerName = ownerName || user.displayName;
+        user.businessType = businessType;
+        user.facilityName = facilityName;
+        user.panNumber = panNumber;
+        user.aadharNumber = aadharNumber;
+        user.gstNumber = gstNumber;
+        user.businessAddress = businessAddress;
+        user.displayName = facilityName || user.displayName;
+
         user.shopDetails = {
-            name: shopName,
+            name: facilityName,
             address: businessAddress,
             gst: gstNumber,
-            msmeStatus: msmeStatus,
             services: servicesArray
         };
 
+        // Handle Location
+        if (location) {
+            try {
+                const parsedLoc = typeof location === 'string' ? JSON.parse(location) : location;
+                user.location = {
+                    lat: Number(parsedLoc.lat),
+                    lng: Number(parsedLoc.lng)
+                };
+            } catch (e) {
+                console.error('Location Parse Error:', e);
+            }
+        }
+
         user.bankDetails = {
-            accountHolder: bankAccountName,
+            accountHolderName: bankAccountName,
             accountNumber: bankAccountNumber,
             ifscCode: ifscCode,
             bankName: bankName
         };
 
+        // Handle File Uploads (Cloudinary URLs from Multer)
+        if (req.files) {
+            const files = req.files;
+            if (files.panDoc) user.panDoc = files.panDoc[0].path;
+            if (files.gstDoc) user.gstDoc = files.gstDoc[0].path;
+            if (files.aadharDoc) user.aadharDoc = files.aadharDoc[0].path;
+            if (files.msmeDoc) user.msmeDoc = files.msmeDoc[0].path;
+            if (files.franchiseDoc) user.franchiseDoc = files.franchiseDoc[0].path;
+            if (files.chequeDoc) user.chequeDoc = files.chequeDoc[0].path;
+            if (files.exteriorPhoto) user.exteriorPhoto = files.exteriorPhoto[0].path;
+            if (files.walkthroughVideo) user.walkthroughVideo = files.walkthroughVideo[0].path;
+            
+            if (files.interiorPhotos) {
+                user.interiorPhotos = files.interiorPhotos.map(f => f.path);
+            }
+        }
+
         await user.save();
-        console.log(`✅ [VENDOR_REGISTRATION] User ${user.phone} successfully submitted application (PENDING APPROVAL)`);
+        console.log(`🚀 [VENDOR_REGISTRATION] User ${user.phone} dossier submitted for review`);
 
         res.status(200).json({ 
-            message: 'Application submitted successfully! Waiting for Admin approval.', 
+            message: 'Vendor application dossier submitted successfully!', 
             user: {
                 id: user._id,
                 role: user.role,
                 status: user.status,
-                isProfileComplete: user.isProfileComplete
+                onboardingStage: user.onboardingStage
             }
         });
     } catch (err) {
         console.error('Become Vendor Error:', err);
-        res.status(500).json({ message: 'Error submitting vendor application' });
+        res.status(500).json({ message: 'Internal server error during dossier submission' });
+    }
+};
+
+// Phase 2: Submit selected services and rates
+export const submitVendorServices = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { services } = req.body; // Array of { id, vendorRate }
+
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const Service = (await import('../models/MasterService.js')).default;
+        
+        const servicesWithMetadata = await Promise.all(services.map(async (svc) => {
+            const master = await Service.findById(svc.id);
+            return {
+                id: svc.id,
+                name: master?.itemName || 'Unknown Service',
+                icon: master?.icon || 'local_laundry_service',
+                vendorRate: svc.vendorRate,
+                status: 'pending'
+            };
+        }));
+
+        user.shopDetails.services = servicesWithMetadata;
+
+        user.onboardingStage = 'FINAL_REVIEW';
+        await user.save();
+
+        res.status(200).json({ message: 'Services submitted for final audit!', user });
+    } catch (err) {
+        console.error('Submit Services Error:', err);
+        res.status(500).json({ message: 'Error submitting services' });
     }
 };
 
@@ -527,6 +609,9 @@ export const updateUserProfile = async (req, res) => {
                     pincode: updates.pincode || user.shopDetails.pincode,
                     city: updates.city || user.shopDetails.city
                 };
+            } else if (key === 'location') {
+                submissionData.append(key, JSON.stringify(formData[key]));
+            } else if (formData[key] !== null) {
             } else if (user.role === 'Supplier') {
                 user.supplierDetails = {
                     ...user.supplierDetails,
@@ -688,7 +773,7 @@ export const vendorLogin = async (req, res) => {
 };
 export const tempSeedUser = async (req, res) => {
     try {
-        const phone = '9926335339';
+        const phone = '9926723112';
         const otp = '123456';
         let user = await User.findOne({ phone });
         

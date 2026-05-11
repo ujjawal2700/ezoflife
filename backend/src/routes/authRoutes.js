@@ -14,7 +14,8 @@ import {
     becomeSupplier, 
     tempSeedUser,
     updateFcmToken,
-    getVendorEarnings
+    getVendorEarnings,
+    submitVendorServices
 } from '../controllers/authController.js';
 import upload from '../middleware/upload.js';
 
@@ -36,7 +37,18 @@ router.get('/get-status', getStatus);
 router.get('/profile/:id', getUserProfile);
 router.patch('/profile/update/:id', updateUserProfile);
 router.patch('/update-documents/:id', upload.single('document'), updateVendorDocuments);
-router.patch('/become-vendor/:id', becomeVendor);
+router.patch('/become-vendor/:id', upload.fields([
+    { name: 'panDoc', maxCount: 1 },
+    { name: 'gstDoc', maxCount: 1 },
+    { name: 'aadharDoc', maxCount: 1 },
+    { name: 'msmeDoc', maxCount: 1 },
+    { name: 'franchiseDoc', maxCount: 1 },
+    { name: 'chequeDoc', maxCount: 1 },
+    { name: 'exteriorPhoto', maxCount: 1 },
+    { name: 'interiorPhotos', maxCount: 2 },
+    { name: 'walkthroughVideo', maxCount: 1 }
+]), becomeVendor);
+router.patch('/become-vendor/:id/submit-services', submitVendorServices);
 router.post('/become-supplier/:id', (req, res, next) => {
     upload.fields([
         { name: 'gstCert', maxCount: 1 },

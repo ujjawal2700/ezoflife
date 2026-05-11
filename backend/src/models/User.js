@@ -123,14 +123,34 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-    isOnline: {
-        type: Boolean,
-        default: false
-    },
-    fcmToken: {
-        type: String,
-        default: ''
-    }
+    // Vendor Onboarding Expanded Fields (Phase 2)
+    ownerName: { type: String, default: '' },
+    businessType: { type: String, default: '' },
+    facilityName: { type: String, default: '' },
+    panNumber: { type: String, default: '' },
+    aadharNumber: { type: String, default: '' },
+    gstNumber: { type: String, default: '' },
+    businessAddress: { type: String, default: '' },
+    
+    // Facility Media
+    exteriorPhoto: { type: String, default: '' },
+    interiorPhotos: [{ type: String }],
+    walkthroughVideo: { type: String, default: '' },
+    
+    // Legal Document URLs
+    panDoc: { type: String, default: '' },
+    gstDoc: { type: String, default: '' },
+    aadharDoc: { type: String, default: '' },
+    msmeDoc: { type: String, default: '' },
+    franchiseDoc: { type: String, default: '' },
+    chequeDoc: { type: String, default: '' },
+    
+    // Onboarding Metadata
+    onboardingStage: { type: String, default: 'NONE' },
+    tier: { type: String, enum: ['Economy', 'Standard', 'Gold'], default: 'Standard' },
+
+    isOnline: { type: Boolean, default: false },
+    fcmToken: { type: String, default: '' }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);

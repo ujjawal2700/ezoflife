@@ -3,6 +3,7 @@ import express from 'express';
 import { 
     getPendingApprovals, 
     approveVendor, 
+    approveFinalVendor,
     rejectVendor, 
     getDashboardStats,
     getAllVendors,
@@ -57,6 +58,9 @@ router.get('/customer-payments', getCustomerPaymentSummary);
 router.get('/vendor-payments', getVendorPaymentSummary);
 router.post('/record-vendor-payout', recordVendorPayout);
 router.get('/vendor-payouts/:vendorId', getVendorPayoutHistory);
+router.get('/vendor-request/:id', getVendorById);
+router.patch('/vendor-request/:id/approve-initial', approveVendor); 
+router.patch('/vendor-request/:id/approve-final', approveFinalVendor);
 
 // Supplier Management
 router.get('/suppliers', getAllSuppliers);

@@ -203,6 +203,19 @@ export const authApi = {
             throw error;
         }
     },
+    submitVendorServices: async (id, services) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/become-vendor/${id}/submit-services`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ services })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Submit Services Error:', error);
+            throw error;
+        }
+    },
     updateDocuments: async (id, formData) => {
         try {
             const response = await fetch(`${BASE_URL}/auth/update-documents/${id}`, {
@@ -482,6 +495,40 @@ export const adminApi = {
             return await response.json();
         } catch (error) {
             console.error('Reject Vendor Error:', error);
+            throw error;
+        }
+    },
+    getVendorRequestById: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Vendor Request Error:', error);
+            throw error;
+        }
+    },
+    approveInitialVendor: async (id, tier) => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}/approve-initial`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tier })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Initial Approval Error:', error);
+            throw error;
+        }
+    },
+    approveFinalVendor: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}/approve-final`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Final Approval Error:', error);
             throw error;
         }
     },
