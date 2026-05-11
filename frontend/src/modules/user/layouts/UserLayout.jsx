@@ -194,6 +194,7 @@ const UserLayout = () => {
     '/user/success-feedback',
     '/user/verification',
     '/user/land',
+    '/user/referral',
     '/land',
     '/vendor'
   ];
