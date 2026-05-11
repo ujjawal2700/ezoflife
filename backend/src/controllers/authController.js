@@ -95,7 +95,7 @@ export const requestOtp = async (req, res) => {
         // UNIFIED LOGIN LOGIC
         if (mode === 'login') {
             if (!user) {
-                return res.status(404).json({ message: 'Account not found. Please signup first.' });
+                return res.status(404).json({ message: 'Your number is not registered' });
             }
         }
 

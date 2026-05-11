@@ -100,6 +100,13 @@ const userSchema = new mongoose.Schema({
         ifscCode: { type: String, default: '' },
         bankName: { type: String, default: '' }
     },
+    bankVerification: {
+        amount: { type: Number, default: 0 },
+        isVerified: { type: Boolean, default: false },
+        lastRequested: { type: Date }
+    },
+    isVerifiedSupplier: { type: Boolean, default: false },
+    successfulDeliveries: { type: Number, default: 0 },
     isProfileComplete: {
         type: Boolean,
         default: false

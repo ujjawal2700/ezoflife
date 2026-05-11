@@ -28,14 +28,33 @@ const AdminSupplierRequestDetailPage = () => {
     }
   };
 
-  const handleApprove = async () => {
+  const handleInitialApprove = async () => {
     try {
-        const response = await fetch(`${BASE_URL}/supplier/requests/${id}/approve`, {
+        const response = await fetch(`${BASE_URL}/supplier/requests/${id}/approve-initial`, {
             method: 'PATCH'
         });
         if (response.ok) {
-            toast.success('Supplier approved successfully');
+            toast.success('Initial Documents Approved! Supplier can now select products.');
+            fetchRequest();
+        } else {
+            toast.error('Operation failed');
+        }
+    } catch (error) {
+        toast.error('Approval failed');
+    }
+  };
+
+  const handleFinalApprove = async () => {
+    try {
+        const response = await fetch(`${BASE_URL}/supplier/requests/${id}/approve-final`, {
+            method: 'PATCH'
+        });
+        if (response.ok) {
+            toast.success('Supplier officially onboarded!');
             navigate('/admin/supplier-requests');
+        } else {
+            const err = await response.json();
+            toast.error(err.message || 'Final approval failed');
         }
     } catch (error) {
         toast.error('Approval failed');
@@ -66,143 +85,172 @@ const AdminSupplierRequestDetailPage = () => {
   if (!request) return <div className="p-20 text-center font-black uppercase tracking-widest text-rose-500">Request not found</div>;
 
   return (
-    <div className="p-8 pb-32 max-w-6xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
-        <button onClick={() => navigate(-1)} className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm transition-all"><span className="material-symbols-outlined">arrow_back</span></button>
-        <div>
-          <h1 className="text-3xl font-black tracking-tighter text-slate-900 uppercase">Review <span className="text-primary">Application</span></h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">{request.businessName} • {request.status}</p>
+    <div className="p-8 pb-32 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center gap-6">
+            <button onClick={() => navigate(-1)} className="w-14 h-14 rounded-3xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm transition-all hover:scale-105 active:scale-95">
+                <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div>
+                <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">Supplier <span className="text-primary">Verification</span></h1>
+                <div className="flex items-center gap-3 mt-1">
+                    <span className="px-3 py-1 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{request.onboardingStage?.replace(/_/g, ' ')}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{request.registeredBusinessName}</span>
+                </div>
+            </div>
+        </div>
+
+        <div className="flex gap-3">
+            {request.onboardingStage === 'Initial_Approval_Pending' && (
+                <button onClick={handleInitialApprove} className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all">Approve Documents</button>
+            )}
+            {request.onboardingStage === 'Final_Approval_Pending' && (
+                <button onClick={handleFinalApprove} className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">Final Onboarding</button>
+            )}
+            {request.status !== 'Rejected' && request.status !== 'Approved' && (
+                <button onClick={() => setShowRejectModal(true)} className="px-8 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 hover:scale-105 transition-all">Reject</button>
+            )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column: Info Sections */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Section 1: Personal */}
-          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300 mb-8 pb-4 border-b border-slate-50 flex items-center gap-3">
-              <span className="material-symbols-outlined text-sm">person</span>
-              Personal Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Full Name</p>
-                <p className="font-bold text-slate-900">{request.fullName}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Phone</p>
-                <p className="font-bold text-slate-900">{request.phone}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Email</p>
-                <p className="font-bold text-slate-900">{request.email}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Address</p>
-                <p className="font-bold text-slate-900">{request.address}</p>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        {/* Left: Info Blocks */}
+        <div className="lg:col-span-2 space-y-10">
+            {/* Business Card */}
+            <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm">
+                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-300 mb-8 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-sm">factory</span>
+                    Entity Identity
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registered Name</p>
+                        <p className="font-bold text-slate-900">{request.registeredBusinessName}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Type</p>
+                        <p className="font-bold text-slate-900">{request.entityType}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GST Verified</p>
+                        <p className={`font-black uppercase text-[10px] ${request.isGstVerified ? 'text-emerald-500' : 'text-rose-500'}`}>{request.isGstVerified ? 'YES' : 'NO'}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact Person</p>
+                        <p className="font-bold text-slate-900">{request.contactPersonName}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Designation</p>
+                        <p className="font-bold text-slate-900">{request.designation}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">PAN Number</p>
+                        <p className="font-bold text-slate-900 uppercase">{request.panNumber}</p>
+                    </div>
+                </div>
             </div>
-          </div>
 
-          {/* Section 2: Bank */}
-          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300 mb-8 pb-4 border-b border-slate-50 flex items-center gap-3">
-              <span className="material-symbols-outlined text-sm">account_balance</span>
-              Banking Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Holder Name</p>
-                <p className="font-bold text-slate-900">{request.bankAccountName}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Bank Name</p>
-                <p className="font-bold text-slate-900">{request.bankName}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Account Number</p>
-                <p className="font-bold text-slate-900">{request.bankAccountNumber}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">IFSC Code</p>
-                <p className="font-bold text-slate-900 uppercase">{request.ifscCode}</p>
-              </div>
+            {/* Warehouse & Logistics */}
+            <div className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm">
+                <h3 className="text-xs font-black uppercase tracking-[0.3em] text-slate-300 mb-8 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-sm">local_shipping</span>
+                    Logistics & Infrastructure
+                </h3>
+                <div className="space-y-8">
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Warehouse Address</p>
+                        <p className="font-bold text-slate-900">{request.warehouseAddress}</p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[8px] font-black text-slate-400 uppercase mb-2">Vehicles</p>
+                            <div className="flex flex-wrap gap-2">
+                                {request.vehicles?.map(v => <span key={v} className="px-2 py-1 bg-white border border-slate-200 rounded text-[8px] font-black text-slate-600 uppercase">{v}</span>)}
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[8px] font-black text-slate-400 uppercase mb-2">Service Areas</p>
+                            <div className="flex flex-wrap gap-2">
+                                {request.serviceableAreas?.map(a => <span key={a} className="px-2 py-1 bg-white border border-slate-200 rounded text-[8px] font-black text-slate-600 uppercase">{a}</span>)}
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <p className="text-[8px] font-black text-slate-400 uppercase mb-2">Frequency</p>
+                            <div className="flex flex-wrap gap-2">
+                                {request.deliveryFrequency?.map(f => <span key={f} className="px-2 py-1 bg-white border border-slate-200 rounded text-[8px] font-black text-slate-600 uppercase">{f}</span>)}
+                            </div>
+                        </div>
+                    </div>
+                    {/* Warehouse Photos */}
+                    <div className="grid grid-cols-3 gap-4">
+                        {[...request.warehousePhotos, request.dispatchPhoto].map((url, i) => url && (
+                            <a key={i} href={url} target="_blank" rel="noreferrer" className="aspect-square rounded-3xl overflow-hidden border-2 border-slate-100 shadow-sm hover:scale-105 transition-all">
+                                <img src={url} alt="Warehouse" className="w-full h-full object-cover" />
+                            </a>
+                        ))}
+                    </div>
+                </div>
             </div>
-          </div>
 
-          {/* Section 3: Business */}
-          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-300 mb-8 pb-4 border-b border-slate-50 flex items-center gap-3">
-              <span className="material-symbols-outlined text-sm">factory</span>
-              Business Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Business Name</p>
-                <p className="font-bold text-slate-900">{request.businessName}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Type</p>
-                <p className="font-bold text-slate-900">{request.businessType}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">GST Number</p>
-                <p className="font-bold text-slate-900 uppercase">{request.gstNumber || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Business Address</p>
-                <p className="font-bold text-slate-900">{request.businessAddress}</p>
-              </div>
-            </div>
-          </div>
+            {/* Selected Products (If Phase >= Final_Approval_Pending) */}
+            {(request.onboardingStage === 'Final_Approval_Pending' || request.onboardingStage === 'Onboarded') && (
+                <div className="bg-primary/5 rounded-[3rem] p-10 border border-primary/20 shadow-sm">
+                    <h3 className="text-xs font-black uppercase tracking-[0.3em] text-primary mb-8 flex items-center gap-3">
+                        <span className="material-symbols-outlined text-sm">inventory_2</span>
+                        Supply Catalog Selection
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {request.selectedProducts?.map((p, i) => (
+                            <div key={i} className="p-5 bg-white rounded-2xl border border-primary/10 flex justify-between items-center">
+                                <div>
+                                    <p className="text-sm font-black text-slate-900">{p.productName}</p>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase">{p.category}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-primary uppercase">{p.capacityPerMonth}</p>
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase">Monthly Capacity</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
 
-        {/* Right Column: Documents & Actions */}
-        <div className="space-y-8">
-          <div className="bg-slate-950 rounded-[2.5rem] p-10 text-white shadow-2xl">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-8 flex items-center gap-3">
-              <span className="material-symbols-outlined text-sm">description</span>
-              Uploaded Documents
-            </h3>
-            <div className="space-y-4">
-              {[
-                { label: 'GST Certificate', url: request.gstDoc },
-                { label: 'Udyog Aadhaar', url: request.udyogAadharDoc },
-                { label: 'Aadhaar Card', url: request.aadharDoc },
-                { label: 'Address Proof', url: request.addressProofDoc },
-              ].map((doc, i) => doc.url && (
-                <a key={i} href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
-                  <div className="flex items-center gap-4">
-                    <span className="material-symbols-outlined text-primary">visibility</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest">{doc.label}</span>
-                  </div>
-                  <span className="material-symbols-outlined text-white/20 group-hover:text-white transition-colors">open_in_new</span>
-                </a>
-              ))}
+        {/* Right: Documents & Financials */}
+        <div className="space-y-10">
+            <div className="bg-slate-950 rounded-[3rem] p-10 text-white shadow-2xl">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-8 flex items-center gap-3">
+                    <span className="material-symbols-outlined text-sm">account_balance</span>
+                    Financials & Compliance
+                </h3>
+                <div className="space-y-6">
+                    <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-[9px] font-black text-white/40 uppercase mb-2">Settlement Account</p>
+                        <p className="font-black text-sm">{request.accountNumber?.replace(/./g, '*')}</p>
+                        <p className="text-[10px] font-bold text-primary uppercase mt-1">{request.bankName} • {request.ifscCode}</p>
+                    </div>
+                    <div className="space-y-3">
+                        {[
+                            { label: 'GST Form', url: request.gstDoc },
+                            { label: 'PAN Copy', url: request.panDoc },
+                            { label: 'Cancelled Cheque', url: request.cancelledChequeDoc },
+                            { label: 'Price List (PDF)', url: request.priceListDoc },
+                            { label: 'Auth Letter', url: request.manufacturerAuthDoc },
+                        ].map((doc, i) => doc.url && (
+                            <a key={i} href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                                <span className="text-[9px] font-black uppercase tracking-widest">{doc.label}</span>
+                                <span className="material-symbols-outlined text-primary text-sm">visibility</span>
+                            </a>
+                        ))}
+                    </div>
+                </div>
             </div>
-          </div>
-
-          {request.status === 'Pending' && (
-            <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm space-y-4">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6">Review Decisions</h3>
-              <button 
-                onClick={handleApprove}
-                className="w-full py-6 bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
-              >
-                Approve Application <span className="material-symbols-outlined text-lg">check_circle</span>
-              </button>
-              <button 
-                onClick={() => setShowRejectModal(true)}
-                className="w-full py-6 bg-rose-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-rose-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
-              >
-                Reject Application <span className="material-symbols-outlined text-lg">cancel</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Reject Reason Modal */}
+      {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setShowRejectModal(false)} />

@@ -37,6 +37,7 @@ import MaterialsCatalogPage from '../pages/MaterialsCatalogPage';
 import SupportTicketsPage from '../pages/SupportTicketsPage';
 import FeedbackForm from '../pages/FeedbackForm';
 import RegisterAsSupplierPage from '../pages/RegisterAsSupplierPage';
+import SupplierProductSelectionPage from '../pages/SupplierProductSelectionPage';
 import RiderSimulation from '../pages/RiderSimulation';
 
 
@@ -85,6 +86,7 @@ const UserRoutes = () => {
         <Route path="/terms" element={<TermsConditionsPage />} />
         <Route path="/become-vendor" element={<RegisterAsVendorPage />} />
         <Route path="/become-supplier" element={<RegisterAsSupplierPage />} />
+        <Route path="/become-supplier/select-products" element={<SupplierProductSelectionPage />} />
         <Route path="/more" element={<MoreMenuPage />} />
         <Route path="/materials" element={<MaterialsCatalogPage />} />
         <Route path="/feedback" element={<FeedbackForm />} />

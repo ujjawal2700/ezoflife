@@ -78,17 +78,27 @@ export default function TopBar({ onMenuClick }) {
                     <Home size={12} className="text-slate-900" />
                     <ChevronRight size={10} />
                     <span className="text-slate-900 uppercase tracking-tighter">SPINZYT ADMIN</span>
-                    {pathParts.slice(1).map((part, i) => (
-                        <React.Fragment key={part}>
-                            <ChevronRight size={10} />
-                            <span className="text-slate-500 uppercase transition-colors hover:text-slate-900 cursor-pointer text-[9px] font-black">
-                                {part.replace('-', ' ')}
-                            </span>
-                        </React.Fragment>
-                    ))}
+                    {pathParts.slice(1).map((part, i) => {
+                        // Skip IDs (MongoDB IDs are 24 chars) and specific redundant paths
+                        if (part.length > 20 || part === 'supplier-requests') return null;
+                        
+                        return (
+                            <React.Fragment key={part}>
+                                <ChevronRight size={10} />
+                                <span className="text-slate-500 uppercase transition-colors hover:text-slate-900 cursor-pointer text-[9px] font-black">
+                                    {part.replace('-', ' ')}
+                                </span>
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
                 <h1 className="text-[12px] font-black text-slate-900 uppercase tracking-tight tabular-nums leading-none">
-                    {pathParts[pathParts.length - 1]?.replace('-', ' ') || 'Insights Dashboard'}
+                    {(() => {
+                        const lastPart = pathParts[pathParts.length - 1];
+                        if (!lastPart) return 'Insights Dashboard';
+                        if (lastPart.length > 20) return 'Review Details'; // Human readable title for ID pages
+                        return lastPart.replace('-', ' ');
+                    })()}
                 </h1>
             </div>
 

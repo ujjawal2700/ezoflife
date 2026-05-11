@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { authApi } from '../../../lib/api';
 
 const AuthPage = () => {
@@ -25,14 +26,25 @@ const AuthPage = () => {
     setApiError('');
     try {
       const response = await authApi.requestOtp(phone, otpChannel, type, extraData);
+      
+      // Always set lastRequestedPhone to prevent infinite loops on error
+      setLastRequestedPhone(phone);
+
       if (response.message === 'OTP sent successfully') {
-        setLastRequestedPhone(phone);
         navigate('/user/otp', { state: { phone, channel: otpChannel } });
       } else {
-        setApiError(response.message || 'Something went wrong');
+        const errorMsg = response.message || 'Something went wrong';
+        setApiError(errorMsg);
+        if (errorMsg === 'Your number is not registered') {
+            toast.error(errorMsg, {
+                icon: '🚫',
+                style: { borderRadius: '20px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' }
+            });
+        }
       }
     } catch (error) {
       setApiError('Server error. Please try again later.');
+      setLastRequestedPhone(phone); // Also set here to stop the loop
     } finally {
       setLoading(false);
     }
