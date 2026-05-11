@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
@@ -469,21 +470,6 @@ const HomePage = () => {
     }
   }, [selectedPickup, maxServiceTime, availableDates, pickupTime]);
 
-  const handlePhotoUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length || !activeServiceForPhoto) return;
-    setUploading(true);
-    try {
-      const uploaded = [];
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('media', file);
-        const res = await mediaApi.upload(formData);
-        if (res.url) uploaded.push(res.url);
-      }
-      setItemPhotos(prev => ({ ...prev, [activeServiceForPhoto]: [...(prev[activeServiceForPhoto] || []), ...uploaded] }));
-    } catch (error) { console.error('Upload Error:', error); alert('Photo upload failed'); } finally { setUploading(false); setActiveServiceForPhoto(null); e.target.value = ''; }
-  };
 
   const handleCartClick = () => {
     if (Object.keys(selectedQuantities).length === 0) return alert('Please select at least one service');
@@ -586,23 +572,40 @@ const HomePage = () => {
     }
   }, [isSameAsPickup, pickupAddress]);
 
-  const handlePhotoFileChange = (e) => {
+  const handlePhotoFileChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0 || !activePhotoService) return;
     
-    const newPhotoUrls = files.map(file => URL.createObjectURL(file));
-    
-    setItemPhotos(prev => {
-      const updated = { 
-        ...prev, 
-        [activePhotoService.id]: [...(prev[activePhotoService.id] || []), ...newPhotoUrls] 
-      };
-      localStorage.setItem('item_photos', JSON.stringify(updated));
-      return updated;
-    });
-    
-    toast.success('Photos added!');
-    setActivePhotoService(null);
+    setUploading(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('media', file);
+        const res = await mediaApi.upload(formData);
+        if (res.url) {
+          uploadedUrls.push(res.url);
+        }
+      }
+
+      setItemPhotos(prev => {
+        const updated = { 
+          ...prev, 
+          [activePhotoService.id]: [...(prev[activePhotoService.id] || []), ...uploadedUrls] 
+        };
+        localStorage.setItem('item_photos', JSON.stringify(updated));
+        return updated;
+      });
+      
+      toast.success('Photos uploaded successfully!');
+    } catch (error) {
+      console.error('Upload Error:', error);
+      toast.error('Failed to upload photos');
+    } finally {
+      setUploading(false);
+      setActivePhotoService(null);
+      e.target.value = ''; // Reset input
+    }
   };
 
   const handleDeletePhoto = (serviceId, photoUrl) => {
@@ -1429,7 +1432,7 @@ const HomePage = () => {
         <AnimatePresence>
           {activePhotoService && (
             <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActivePhotoService(null)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-[320px] bg-white rounded-[2rem] p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto hide-scrollbar border border-slate-100">
                 <div className="flex justify-end">
                   <button onClick={() => setActivePhotoService(null)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
