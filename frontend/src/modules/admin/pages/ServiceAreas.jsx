@@ -47,29 +47,93 @@ export default function ServiceAreas() {
   const onPolygonComplete = (polygon) => {
     const path = polygon.getPath();
     const coordinates = [];
+    const googlePath = [];
     for (let i = 0; i < path.getLength(); i++) {
         const point = path.getAt(i);
         coordinates.push([point.lng(), point.lat()]);
+        googlePath.push(new window.google.maps.LatLng(point.lat(), point.lng()));
     }
     // Close the polygon for GeoJSON
     coordinates.push(coordinates[0]);
     
-    setDrawingMode(null);
-    setSelectedArea({
-        name: 'New Zone',
-        description: '',
-        coordinates: coordinates,
-        pricingFactor: 1.0,
-        color: '#3b82f6'
+    // Find Points to Sample for Pincode Detection (Center + Vertices)
+    const bounds = new window.google.maps.LatLngBounds();
+    googlePath.forEach(pt => bounds.extend(pt));
+    const center = bounds.getCenter();
+
+    // Check for overlaps with existing areas
+    const existingPolygons = areas.map(a => {
+        const paths = a.boundary.coordinates[0].map(coord => ({ lat: coord[1], lng: coord[0] }));
+        return new window.google.maps.Polygon({ paths });
     });
-    setIsEditing(true);
+
+    const isOverlapping = existingPolygons.some(poly => {
+        // Check if center is inside OR if any vertex is inside
+        const isCenterInside = window.google.maps.geometry.poly.containsLocation(center, poly);
+        const isAnyVertexInside = googlePath.some(vertex => window.google.maps.geometry.poly.containsLocation(vertex, poly));
+        return isCenterInside || isAnyVertexInside;
+    });
+
+    if (isOverlapping) {
+        toast.error('Overlap Detected! You cannot draw a zone inside or over an existing one.', {
+            icon: '🚫',
+            style: { borderRadius: '10px', background: '#333', color: '#fff' }
+        });
+        polygon.setMap(null);
+        return;
+    }
+
+    const samplePoints = [center, ...googlePath];
+
+    // Reverse Geocode all sample points to catch multiple pincodes
+    const geocoder = new window.google.maps.Geocoder();
+    const detectPincodes = async () => {
+        const pincodes = new Set();
+        
+        for (const point of samplePoints) {
+            try {
+                const response = await new Promise((resolve, reject) => {
+                    geocoder.geocode({ location: point }, (results, status) => {
+                        if (status === 'OK') resolve(results);
+                        else reject(status);
+                    });
+                });
+
+                if (response && response[0]) {
+                    const pincodeObj = response[0].address_components.find(c => c.types.includes('postal_code'));
+                    if (pincodeObj) pincodes.add(pincodeObj.long_name);
+                }
+            } catch (err) {
+                console.warn('Geocoding sample point failed:', err);
+            }
+        }
+
+        setDrawingMode(null);
+        setSelectedArea({
+            name: 'New Zone',
+            description: '',
+            coordinates: coordinates,
+            pricingFactor: 1.0,
+            color: '#3b82f6',
+            dynamicSurgeMultiplier: 1.0,
+            basePriceMultiplier: 1.0,
+            discountPriceMultiplier: 1.0,
+            heritageMultiplier: 1.0,
+            isActive: true,
+            pincodes: Array.from(pincodes)
+        });
+        setIsEditing(true);
+    };
+
+    detectPincodes();
     
     // Remove the temporary polygon from the map
     polygon.setMap(null);
   };
 
   const handleSaveArea = async () => {
-    if (!selectedArea.name) {
+    const finalName = selectedArea.name || selectedArea.areaName;
+    if (!finalName) {
         toast.error('Please enter a name for the zone');
         return;
     }
@@ -81,10 +145,18 @@ export default function ServiceAreas() {
         
         const method = selectedArea._id ? 'PATCH' : 'POST';
         
+        // Ensure we send coordinates and areaName explicitly
+        const payload = {
+            ...selectedArea,
+            areaName: finalName,
+            name: finalName,
+            coordinates: selectedArea.coordinates || selectedArea.boundary?.coordinates[0]
+        };
+
         const response = await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(selectedArea)
+            body: JSON.stringify(payload)
         });
 
         if (response.ok) {
@@ -216,6 +288,97 @@ export default function ServiceAreas() {
                                 className="w-full h-[52px] p-2 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer"
                             />
                         </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Surge (x)</label>
+                                <input 
+                                    type="number" step="0.1"
+                                    value={selectedArea.dynamicSurgeMultiplier || 1.0} 
+                                    onChange={(e) => setSelectedArea({...selectedArea, dynamicSurgeMultiplier: parseFloat(e.target.value)})}
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Base (x)</label>
+                                <input 
+                                    type="number" step="0.1"
+                                    value={selectedArea.basePriceMultiplier || 1.0} 
+                                    onChange={(e) => setSelectedArea({...selectedArea, basePriceMultiplier: parseFloat(e.target.value)})}
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Disc. (x)</label>
+                                <input 
+                                    type="number" step="0.1"
+                                    value={selectedArea.discountPriceMultiplier || 1.0} 
+                                    onChange={(e) => setSelectedArea({...selectedArea, discountPriceMultiplier: parseFloat(e.target.value)})}
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Heritage (x)</label>
+                                <input 
+                                    type="number" step="0.1"
+                                    value={selectedArea.heritageMultiplier || 1.0} 
+                                    onChange={(e) => setSelectedArea({...selectedArea, heritageMultiplier: parseFloat(e.target.value)})}
+                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Status (Active)</label>
+                            <div className="flex gap-2">
+                                {['Y', 'N'].map(opt => (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => setSelectedArea({...selectedArea, isActive: opt === 'Y'})}
+                                        className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${
+                                            (opt === 'Y' && selectedArea.isActive) || (opt === 'N' && !selectedArea.isActive)
+                                                ? 'bg-slate-900 text-white shadow-lg'
+                                                : 'bg-slate-100 text-slate-400'
+                                        }`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Automatic Fields Data */}
+                        <div className="pt-4 border-t border-slate-100 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <CheckCircle size={10} className="text-emerald-500" /> Detected Pincodes (Auto)
+                                </label>
+                                <div className="flex flex-wrap gap-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-100 min-h-[40px]">
+                                    {selectedArea.pincodes?.length > 0 ? (
+                                        selectedArea.pincodes.map(p => (
+                                            <span key={p} className="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] font-bold text-slate-600">
+                                                {p}
+                                            </span>
+                                        ))
+                                    ) : (
+                                        <span className="text-[9px] font-bold text-slate-300 uppercase italic">No pincodes detected yet</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                    <Navigation size={10} className="text-primary" /> Boundary Walls (Auto)
+                                </label>
+                                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 max-h-[100px] overflow-y-auto no-scrollbar">
+                                    <p className="text-[8px] font-bold text-slate-400 leading-relaxed break-all font-mono">
+                                        {selectedArea.coordinates?.map(c => `[${c[0].toFixed(4)}, ${c[1].toFixed(4)}]`).join(', ')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
                             <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
                             <p className="text-[9px] font-bold text-blue-700 leading-relaxed uppercase tracking-widest">

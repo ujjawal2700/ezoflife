@@ -14,23 +14,48 @@ export const getPincodeMappings = async (req, res) => {
 // Admin: Create a new service area
 export const createServiceArea = async (req, res) => {
     try {
-        const { areaName, city, coordinates, color, multiplier, minimumOrderValue } = req.body;
+        const { 
+            name, // Frontend sends 'name' instead of 'areaName' sometimes
+            areaName, 
+            city, 
+            coordinates, 
+            color, 
+            multiplier, 
+            minimumOrderValue,
+            dynamicSurgeMultiplier,
+            basePriceMultiplier,
+            discountPriceMultiplier,
+            heritageMultiplier,
+            isActive,
+            pincodes
+        } = req.body;
 
         // Validation
-        if (!areaName || !coordinates || !Array.isArray(coordinates)) {
+        if (!(name || areaName) || !coordinates || !Array.isArray(coordinates)) {
             return res.status(400).json({ message: 'Missing required fields or invalid coordinates' });
         }
 
+        // Auto-generate excelFenceId (Starts from 1, 2, 3...)
+        const lastArea = await ServiceArea.findOne({ excelFenceId: { $ne: null } }).sort({ excelFenceId: -1 });
+        const nextId = (lastArea?.excelFenceId || 0) + 1;
+
         const newArea = new ServiceArea({
-            areaName,
-            city,
+            areaName: name || areaName,
+            city: city || 'Nashik',
             boundary: {
                 type: 'Polygon',
-                coordinates: [coordinates] // Wrap in another array for GeoJSON Polygon
+                coordinates: [coordinates] 
             },
             color,
             multiplier: multiplier || 1.0,
-            minimumOrderValue
+            minimumOrderValue: minimumOrderValue || 0,
+            dynamicSurgeMultiplier: dynamicSurgeMultiplier || 1.0,
+            basePriceMultiplier: basePriceMultiplier || 1.0,
+            discountPriceMultiplier: discountPriceMultiplier || 1.0,
+            heritageMultiplier: heritageMultiplier || 1.0,
+            isActive: isActive !== undefined ? isActive : true,
+            pincodes: pincodes || [],
+            excelFenceId: nextId
         });
 
         await newArea.save();
@@ -57,12 +82,24 @@ export const updateServiceArea = async (req, res) => {
         const { id } = req.params;
         const updates = req.body;
 
+        if (updates.name) {
+            updates.areaName = updates.name;
+            delete updates.name;
+        }
+
         if (updates.coordinates) {
             updates.boundary = {
                 type: 'Polygon',
                 coordinates: [updates.coordinates]
             };
             delete updates.coordinates;
+        }
+
+        // Ensure every zone has an excelFenceId
+        const existing = await ServiceArea.findById(id);
+        if (existing && !existing.excelFenceId) {
+            const lastArea = await ServiceArea.findOne().sort({ excelFenceId: -1 });
+            updates.excelFenceId = (lastArea?.excelFenceId || 0) + 1;
         }
 
         const updatedArea = await ServiceArea.findByIdAndUpdate(id, updates, { new: true });

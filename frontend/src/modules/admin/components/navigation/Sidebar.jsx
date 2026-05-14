@@ -82,6 +82,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                         { label: 'Category Management', path: '/admin/categories' },
                         { label: 'Master Services', path: '/admin/master-services' },
                         { label: 'Service Geofence', path: '/admin/geofence-table' },
+                        { label: 'Master Pricing Table', path: '/admin/master-pricing' },
                         { label: 'Geofence Pincode Mapping', path: '/admin/geofence-pincode-mapping' },
                         { label: 'Services', path: '/admin/services' },
                         { label: 'Pricing Preview', path: '/admin/pricing-preview' },

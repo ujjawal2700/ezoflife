@@ -103,74 +103,99 @@ const AllServicesPage = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 gap-5"
+          className="space-y-12"
         >
           <AnimatePresence mode="popLayout">
             {loading ? (
-              [...Array(6)].map((_, i) => (
-                <div key={i} className="h-32 bg-white rounded-[2.5rem] p-7 border border-outline-variant/10 shadow-sm animate-pulse flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100" />
-                  <div className="flex-1 space-y-3">
-                    <div className="h-4 bg-slate-100 rounded w-1/2" />
-                    <div className="h-3 bg-slate-100 rounded w-full" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-32 bg-white rounded-[2.5rem] p-7 border border-outline-variant/10 shadow-sm animate-pulse flex items-center gap-6">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100" />
+                    <div className="flex-1 space-y-3">
+                      <div className="h-4 bg-slate-100 rounded w-1/2" />
+                      <div className="h-3 bg-slate-100 rounded w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // Grouped Render
+              Object.entries(
+                filteredServices.reduce((acc, service) => {
+                  const catName = service.categoryId?.mainCategory || 'Uncategorized';
+                  if (!acc[catName]) acc[catName] = [];
+                  acc[catName].push(service);
+                  return acc;
+                }, {})
+              ).map(([categoryName, catServices]) => (
+                <div key={categoryName} className="space-y-6">
+                  <div className="flex items-center gap-4">
+                    <h2 className="text-sm font-black uppercase tracking-[0.3em] text-primary whitespace-nowrap">{categoryName}</h2>
+                    <div className="h-px w-full bg-slate-100" />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {catServices.map((service) => (
+                      <motion.div 
+                        key={service._id}
+                        layout
+                        variants={itemVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          if (service.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
+                          navigate('/user/service-info', { state: { selectedService: { 
+                            id: service._id, 
+                            _id: service._id,
+                            title: service.itemName || service.name, 
+                            name: service.itemName || service.name,
+                            desc: service.description, 
+                            image: service.image || service.icon, 
+                            vendorId: service.vendorId,
+                            color: 'primary', 
+                            price: `₹${service.discountedPrice || service.basePrice}/${service.unit}`,
+                            totalPrice: service.discountedPrice || service.basePrice,
+                            discountedPrice: service.discountedPrice,
+                            basePrice: service.basePrice
+                          } } });
+                        }}
+                        className="bg-white rounded-[2.5rem] p-7 border border-outline-variant/10 shadow-sm flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-primary/5 transition-all"
+                      >
+                        <div className="flex items-center gap-6">
+                          <div className={`w-16 h-16 rounded-2xl bg-primary-container/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors overflow-hidden`}>
+                            {service.image || service.icon ? (
+                                <img src={service.image || service.icon} alt={service.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <span className="material-symbols-outlined text-3xl">local_laundry_service</span>
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="font-headline font-black text-lg text-on-surface leading-tight mb-1">{service.itemName || service.name}</h3>
+                            <p className="text-on-surface-variant text-[11px] font-bold opacity-60 leading-relaxed line-clamp-1">
+                              {service.categoryId?.subCategory} • {service.description}
+                            </p>
+                            <div className="mt-2 flex items-center gap-2">
+                              {(service.basePrice || 0) > (service.discountedPrice || 0) && (
+                                <span className="text-[10px] font-bold text-slate-400 line-through">
+                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                                </span>
+                              )}
+                              <span className="text-[12px] font-black text-primary uppercase tracking-widest">
+                                ₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}/{service.unit?.replace('_', ' ')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-all opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0">chevron_right</span>
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
               ))
-            ) : filteredServices.map((service) => (
-              <motion.div 
-                key={service._id}
-                layout
-                variants={itemVariants}
-                initial="hidden"
-                animate="visible"
-                exit={{ opacity: 0, scale: 0.95 }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  if (service.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
-                  navigate('/user/service-info', { state: { selectedService: { 
-                    id: service._id, 
-                    _id: service._id,
-                    title: service.name, 
-                    name: service.name,
-                    desc: service.description, 
-                    image: service.image, 
-                    vendorId: service.vendorId,
-                    color: 'primary', 
-                    price: `₹${service.totalPrice}/${service.unit}`,
-                    totalPrice: service.discountedPrice || service.basePrice,
-                    discountedPrice: service.discountedPrice,
-                    basePrice: service.basePrice
-                  } } });
-                }}
-                className="bg-white rounded-[2.5rem] p-7 border border-outline-variant/10 shadow-sm flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-primary/5 transition-all"
-              >
-                <div className="flex items-center gap-6">
-                  <div className={`w-16 h-16 rounded-2xl bg-primary-container/20 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors overflow-hidden`}>
-                    {service.image ? (
-                        <img src={service.image} alt={service.name} className="w-full h-full object-cover" />
-                    ) : (
-                        <span className="material-symbols-outlined text-3xl">local_laundry_service</span>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-headline font-black text-lg text-on-surface leading-tight mb-1">{service.name}</h3>
-                    <p className="text-on-surface-variant text-[11px] font-bold opacity-60 leading-relaxed line-clamp-1">{service.description}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      {(service.basePrice || 0) > (service.discountedPrice || 0) && (
-                        <span className="text-[10px] font-bold text-slate-400 line-through">
-                          ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
-                        </span>
-                      )}
-                      <span className="text-[12px] font-black text-primary uppercase tracking-widest">
-                        ₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}/{service.unit?.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-all opacity-0 group-hover:opacity-100 translate-x-[-10px] group-hover:translate-x-0">chevron_right</span>
-              </motion.div>
-            ))}
+            )}
           </AnimatePresence>
         </motion.div>
 

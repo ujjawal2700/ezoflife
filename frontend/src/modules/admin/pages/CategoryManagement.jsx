@@ -202,16 +202,14 @@ const CategoryManagement = () => {
                             </div>
 
                             <div className="space-y-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Category ID (Excel Reference)</label>
-                                    <input 
-                                        type="number"
-                                        value={formData.excelCategoryId}
-                                        onChange={e => setFormData({...formData, excelCategoryId: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. 101"
-                                    />
-                                </div>
+                                {editingCategory && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Category ID (Excel Reference)</label>
+                                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
+                                            {formData.excelCategoryId || 'Auto-generated'}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Category Name</label>

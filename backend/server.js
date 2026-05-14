@@ -39,6 +39,7 @@ import legalRoutes from './src/routes/legalRoutes.js';
 import supplierRoutes from './src/routes/supplierRoutes.js';
 import geofenceRoutes from './src/routes/geofenceRoutes.js';
 import areaOverrideRoutes from './src/routes/areaOverrideRoutes.js';
+import masterPricingRoutes from './src/routes/masterPricingRoutes.js';
 
 import SystemConfig from './src/models/SystemConfig.js';
 import { getSystemConfig, updateSystemConfig } from './src/controllers/adminController.js';
@@ -132,6 +133,7 @@ app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/geofence', geofenceRoutes);
 app.use('/api/area-overrides', areaOverrideRoutes);
+app.use('/api/master-pricing', masterPricingRoutes);
 
 // Labor Routes
 app.post('/api/labor/add', addSpecialist);

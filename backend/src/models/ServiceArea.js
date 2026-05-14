@@ -56,6 +56,10 @@ const serviceAreaSchema = new mongoose.Schema({
     discountPriceMultiplier: {
         type: Number,
         default: 1.0
+    },
+    heritageMultiplier: {
+        type: Number,
+        default: 1.0
     }
 }, { timestamps: true });
 

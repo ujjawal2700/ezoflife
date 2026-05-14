@@ -30,7 +30,8 @@ const MasterServiceManagement = () => {
         discountedPrice: 0,
         unit: 'per_item',
         isActive: true,
-        serviceType: 'normal'
+        serviceType: 'normal',
+        excelCategoryId: ''
     });
 
     useEffect(() => {
@@ -84,7 +85,8 @@ const MasterServiceManagement = () => {
                 discountedPrice: service.discountedPrice,
                 unit: service.unit || 'per_item',
                 isActive: service.isActive !== undefined ? service.isActive : true,
-                serviceType: service.serviceType || 'normal'
+                serviceType: service.serviceType || 'normal',
+                excelCategoryId: service.excelCategoryId || ''
             });
         } else {
             setCurrentService(null);
@@ -102,7 +104,8 @@ const MasterServiceManagement = () => {
                 discountedPrice: 0,
                 unit: 'per_item',
                 isActive: true,
-                serviceType: 'normal'
+                serviceType: 'normal',
+                excelCategoryId: ''
             });
         }
         setIsModalOpen(true);
@@ -137,6 +140,15 @@ const MasterServiceManagement = () => {
     };
 
     const columns = useMemo(() => [
+        {
+            header: 'Cat ID',
+            key: 'excelCategoryId',
+            render: (val) => (
+                <span className="font-black text-slate-400 tabular-nums bg-slate-50 px-2 py-1 rounded-sm border border-slate-100 text-[9px]">
+                    {val || '—'}
+                </span>
+            )
+        },
         {
             header: 'SKU ID',
             key: 'skuId',
@@ -280,16 +292,14 @@ const MasterServiceManagement = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                 {/* Left Column: Identification */}
                                 <div className="space-y-6">
+                                {currentService && (
                                     <div className="space-y-1.5">
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SKU ID (Excel PK)</label>
-                                        <input 
-                                            required
-                                            value={formData.skuId}
-                                            onChange={e => setFormData({...formData, skuId: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                            placeholder="e.g. SKU-1001"
-                                        />
+                                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
+                                            {formData.skuId}
+                                        </div>
                                     </div>
+                                )}
 
                                     <div className="space-y-1.5">
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Item Name</label>
@@ -325,7 +335,15 @@ const MasterServiceManagement = () => {
                                                 disabled={!selectedMain}
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer"
                                                 value={formData.categoryId}
-                                                onChange={e => setFormData({...formData, categoryId: e.target.value})}
+                                                onChange={e => {
+                                                    const catId = e.target.value;
+                                                    const selectedCat = categories.find(c => c._id === catId);
+                                                    setFormData({
+                                                        ...formData, 
+                                                        categoryId: catId,
+                                                        excelCategoryId: selectedCat?.excelCategoryId || undefined
+                                                    });
+                                                }}
                                             >
                                                 <option value="">Select</option>
                                                 {subCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}

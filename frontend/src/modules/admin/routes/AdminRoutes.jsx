@@ -49,6 +49,7 @@ import CustomerPayments from '../pages/CustomerPayments';
 import AdminInvoiceSettings from '../pages/AdminInvoiceSettings';
 import ReferralManagement from '../pages/ReferralManagement';
 import AdminSettings from '../pages/AdminSettings';
+import MasterPricingRegistry from '../pages/MasterPricingRegistry';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -114,6 +115,7 @@ const AdminRoutes = () => {
         <Route path="/geofence-pincode-mapping" element={<GeofencePincodeMapping />} />
         <Route path="/pricing-preview" element={<PricingPreview />} />
         <Route path="/pricing-overrides" element={<AreaPricingOverrides />} />
+        <Route path="/master-pricing" element={<MasterPricingRegistry />} />
         <Route path="/feedback" element={<FeedbackManagement />} />
         <Route path="/customer-payments" element={<CustomerPayments />} />
         <Route path="/supplier-requests" element={<AdminSupplierRequestsPage />} />

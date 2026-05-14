@@ -5,16 +5,54 @@ import mongoose from 'mongoose';
 
 export const createMasterService = async (req, res) => {
     try {
-        const { itemName, categoryId, basePrice, discountedPrice, unit, description, isActive, icon, tier, skuId } = req.body;
+        const { itemName, categoryId, basePrice, discountedPrice, unit, description, isActive, icon, tier, excelCategoryId } = req.body;
+        
         const exists = await MasterService.findOne({ itemName });
         if (exists) return res.status(400).json({ message: 'Service already exists' });
 
+        // 1. Fetch Category details for SKU components
+        const Category = (await import('../models/Category.js')).default;
+        const category = await Category.findById(categoryId);
+        if (!category) return res.status(400).json({ message: 'Invalid category' });
+
+        // 2. Build SKU components
+        const prefix = "SPZ";
+        const catCode = category.mainCategory.substring(0, 3).toUpperCase().replace(/\s+/g, '');
+        const subCatCode = category.subCategory.substring(0, 3).toUpperCase().replace(/\s+/g, '');
+        const itemCode = itemName.substring(0, 5).toUpperCase().replace(/\s+/g, '');
+
+        // 3. Find latest sequence for this pattern
+        const skuPrefix = `${prefix}-${catCode}-${subCatCode}-${itemCode}`;
+        const lastService = await MasterService.findOne({ skuId: new RegExp(`^${skuPrefix}`) }).sort({ createdAt: -1 });
+        
+        let sequence = 0;
+        if (lastService && lastService.skuId) {
+            const parts = lastService.skuId.split('-');
+            const lastSeq = parseInt(parts[parts.length - 1]);
+            if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+        }
+
+        const formattedSeq = sequence.toString().padStart(3, '0');
+        const finalSkuId = `${skuPrefix}-${formattedSeq}`;
+
         const service = new MasterService({ 
-            itemName, categoryId, basePrice, discountedPrice, unit, description, isActive, icon, tier, skuId 
+            itemName, 
+            categoryId, 
+            basePrice, 
+            discountedPrice, 
+            unit, 
+            description, 
+            isActive, 
+            icon, 
+            tier, 
+            skuId: finalSkuId,
+            excelCategoryId: excelCategoryId || category.excelCategoryId
         });
+
         await service.save();
         res.status(201).json(service);
     } catch (err) {
+        console.error('Create Master Service Error:', err);
         res.status(500).json({ message: err.message });
     }
 };
