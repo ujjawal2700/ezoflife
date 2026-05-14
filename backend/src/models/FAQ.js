@@ -23,6 +23,10 @@ const faqSchema = new mongoose.Schema({
         type: String,
         enum: ['Customer', 'Vendor', 'Supplier', 'All'],
         default: 'All'
+    },
+    youtubeUrl: {
+        type: String,
+        trim: true
     }
 }, { timestamps: true });
 

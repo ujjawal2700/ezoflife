@@ -228,6 +228,18 @@ export const authApi = {
             throw error;
         }
     },
+    updateProfileImage: async (id, formData) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/update-profile-image/${id}`, {
+                method: 'PATCH',
+                body: formData
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Profile Image API Error:', error);
+            throw error;
+        }
+    },
     updateFcmToken: async (userId, fcmToken) => {
         try {
             const response = await fetch(`${BASE_URL}/auth/update-fcm-token`, {
@@ -238,6 +250,28 @@ export const authApi = {
             return await response.json();
         } catch (error) {
             console.error('Update FCM Token Error:', error);
+            throw error;
+        }
+    },
+    getDraftCart: async (userId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/cart/${userId}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get Cart Error:', error);
+            throw error;
+        }
+    },
+    updateDraftCart: async (userId, cart) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/cart/${userId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Cart Error:', error);
             throw error;
         }
     }
@@ -486,11 +520,12 @@ export const adminApi = {
             throw error;
         }
     },
-    rejectVendor: async (id) => {
+    rejectVendor: async (id, data) => {
         try {
             const response = await fetch(`${BASE_URL}/admin/reject-vendor/${id}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
             return await response.json();
         } catch (error) {

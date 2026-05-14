@@ -9,6 +9,15 @@ import {
 import toast from 'react-hot-toast';
 import { adminApi } from '../../../lib/api';
 
+const getYouTubeEmbedUrl = (url) => {
+  if (!url || typeof url !== 'string') return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) 
+    ? `https://www.youtube.com/embed/${match[2]}`
+    : null;
+};
+
 const AdminVendorRequestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -16,6 +25,41 @@ const AdminVendorRequestDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [tier, setTier] = useState('Standard');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionForm, setRejectionForm] = useState({
+      status: 'revision_required',
+      reason: '',
+      rejectionFlags: []
+  });
+
+  const REVISION_FLAGS = [
+    { id: 'ownerName', label: 'Owner Name' },
+    { id: 'businessType', label: 'Entity Type' },
+    { id: 'facilityName', label: 'Facility Name' },
+    { id: 'panNumber', label: 'PAN Number' },
+    { id: 'panDoc', label: 'PAN Document' },
+    { id: 'gstNumber', label: 'GST Number' },
+    { id: 'gstDoc', label: 'GST Document' },
+    { id: 'aadharNumber', label: 'Aadhaar Number' },
+    { id: 'aadharDoc', label: 'Aadhaar Document' },
+    { id: 'msmeDoc', label: 'MSME Document' },
+    { id: 'franchiseDoc', label: 'Franchise Document' },
+    { id: 'location', label: 'GPS Location' },
+    { id: 'businessAddress', label: 'Address' },
+    { id: 'exteriorPhoto', label: 'Exterior Photo' },
+    { id: 'interiorPhotos', label: 'Interior Photos' },
+    { id: 'bankDetails', label: 'Bank Details' },
+    { id: 'chequeDoc', label: 'Cheque Document' }
+  ];
+
+  const toggleFlag = (flagId) => {
+    setRejectionForm(prev => {
+        const flags = prev.rejectionFlags.includes(flagId)
+            ? prev.rejectionFlags.filter(f => f !== flagId)
+            : [...prev.rejectionFlags, flagId];
+        return { ...prev, rejectionFlags: flags };
+    });
+  };
 
   useEffect(() => {
     fetchVendor();
@@ -66,6 +110,21 @@ const AdminVendorRequestDetailPage = () => {
     } finally {
         setIsProcessing(false);
     }
+  };
+
+  const handleRejectSubmit = async () => {
+      if (!rejectionForm.reason.trim()) return toast.error('Please provide a reason');
+      try {
+          setIsProcessing(true);
+          const result = await adminApi.rejectVendor(id, rejectionForm);
+          toast.success(rejectionForm.status === 'revision_required' ? 'Clarification request sent to vendor' : 'Vendor application rejected');
+          navigate('/admin/vendors/approvals?tab=Vendor');
+      } catch (error) {
+          toast.error('Failed to process rejection');
+      } finally {
+          setIsProcessing(false);
+          setShowRejectModal(false);
+      }
   };
 
   if (loading) return <div className="p-20 text-center font-black uppercase tracking-widest text-slate-300">Loading Vendor Dossier...</div>;
@@ -135,6 +194,14 @@ const AdminVendorRequestDetailPage = () => {
                     Waiting for Vendor Service Selection
                 </div>
             )}
+
+            <button 
+                onClick={() => setShowRejectModal(true)}
+                className="px-6 py-4 bg-white text-rose-500 border border-rose-100 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-rose-50 transition-all flex items-center gap-2 ml-2"
+            >
+                Reject / Clarification
+                <X size={16} />
+            </button>
         </div>
       </div>
 
@@ -265,15 +332,35 @@ const AdminVendorRequestDetailPage = () => {
                                     </button>
                                 </div>
                             ))}
-                            {vendor.walkthroughVideo && (
-                                <div className="col-span-2 aspect-video rounded-2xl bg-slate-900 overflow-hidden relative group">
-                                    <video src={vendor.walkthroughVideo} className="w-full h-full object-cover opacity-60" />
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                                        <PlayCircle size={48} className="text-white cursor-pointer hover:scale-110 transition-transform" onClick={() => window.open(vendor.walkthroughVideo, '_blank')} />
-                                        <span className="text-[9px] font-black text-white uppercase tracking-[0.2em]">Walkthrough Audit</span>
+                            {vendor.walkthroughVideo && (() => {
+                                const ytUrl = getYouTubeEmbedUrl(vendor.walkthroughVideo);
+                                return (
+                                    <div className="col-span-2 aspect-video rounded-2xl bg-slate-900 overflow-hidden relative group">
+                                        {ytUrl ? (
+                                            <div 
+                                                className="w-full h-full relative z-10"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <iframe 
+                                                    src={ytUrl} 
+                                                    className="w-full h-full" 
+                                                    frameBorder="0" 
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                    allowFullScreen 
+                                                />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <video src={vendor.walkthroughVideo} className="w-full h-full object-cover opacity-60" />
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+                                                    <PlayCircle size={48} className="text-white cursor-pointer hover:scale-110 transition-transform" onClick={() => window.open(vendor.walkthroughVideo, '_blank')} />
+                                                    <span className="text-[9px] font-black text-white uppercase tracking-[0.2em]">Walkthrough Audit</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -368,6 +455,99 @@ const AdminVendorRequestDetailPage = () => {
             )}
         </div>
       </div>
+
+      {/* Rejection Modal */}
+      <AnimatePresence>
+          {showRejectModal && (
+              <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
+                  <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }} 
+                    onClick={() => setShowRejectModal(false)}
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" 
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
+                  >
+                      <div className="p-8 bg-slate-900 text-white">
+                          <h3 className="text-xl font-black uppercase tracking-tighter">Action Required</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Request revision or reject application</p>
+                      </div>
+                      
+                      <div className="p-8 space-y-6">
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Status</label>
+                              <div className="grid grid-cols-2 gap-3">
+                                  {[
+                                      { id: 'revision_required', label: 'Revision Required', icon: 'history' },
+                                      { id: 'rejected', label: 'Permanent Reject', icon: 'cancel' }
+                                  ].map(opt => (
+                                      <button 
+                                        key={opt.id}
+                                        onClick={() => setRejectionForm({...rejectionForm, status: opt.id})}
+                                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${rejectionForm.status === opt.id ? 'border-primary bg-primary/5' : 'border-slate-100 hover:border-slate-200'}`}
+                                      >
+                                          <span className="material-symbols-outlined text-primary">{opt.icon}</span>
+                                          <span className={`text-[9px] font-black uppercase tracking-tight ${rejectionForm.status === opt.id ? 'text-primary' : 'text-slate-400'}`}>{opt.label}</span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason / Admin Notes</label>
+                              <textarea 
+                                value={rejectionForm.reason}
+                                onChange={(e) => setRejectionForm({...rejectionForm, reason: e.target.value})}
+                                placeholder="E.g. Aadhar card is blurry, please re-upload or shop name mismatch..."
+                                className="w-full h-24 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all resize-none"
+                              />
+                          </div>
+
+                          {rejectionForm.status === 'revision_required' && (
+                              <div className="space-y-3">
+                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Items for Revision</label>
+                                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-slate-100 rounded-2xl custom-scrollbar">
+                                      {REVISION_FLAGS.map(flag => (
+                                          <button 
+                                              key={flag.id}
+                                              onClick={() => toggleFlag(flag.id)}
+                                              className={`flex items-center gap-2 p-2 rounded-xl border transition-all text-left ${rejectionForm.rejectionFlags.includes(flag.id) ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 text-slate-400'}`}
+                                          >
+                                              <span className="material-symbols-outlined text-xs">
+                                                  {rejectionForm.rejectionFlags.includes(flag.id) ? 'check_box' : 'check_box_outline_blank'}
+                                              </span>
+                                              <span className="text-[8px] font-black uppercase tracking-tight">{flag.label}</span>
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+                          )}
+
+                          <div className="flex gap-3 pt-4">
+                              <button 
+                                onClick={() => setShowRejectModal(false)}
+                                className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={handleRejectSubmit}
+                                disabled={isProcessing}
+                                className="flex-1 py-4 bg-slate-950 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all disabled:opacity-50"
+                              >
+                                {isProcessing ? 'Processing...' : 'Submit Action'}
+                              </button>
+                          </div>
+                      </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
     </div>
   );
 };

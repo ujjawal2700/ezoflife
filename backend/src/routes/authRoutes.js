@@ -15,7 +15,10 @@ import {
     tempSeedUser,
     updateFcmToken,
     getVendorEarnings,
-    submitVendorServices
+    submitVendorServices,
+    updateProfileImage,
+    getDraftCart,
+    updateDraftCart
 } from '../controllers/authController.js';
 import upload from '../middleware/upload.js';
 
@@ -37,6 +40,7 @@ router.get('/get-status', getStatus);
 router.get('/profile/:id', getUserProfile);
 router.patch('/profile/update/:id', updateUserProfile);
 router.patch('/update-documents/:id', upload.single('document'), updateVendorDocuments);
+router.patch('/update-profile-image/:id', upload.single('image'), updateProfileImage);
 router.patch('/become-vendor/:id', upload.fields([
     { name: 'panDoc', maxCount: 1 },
     { name: 'gstDoc', maxCount: 1 },
@@ -65,5 +69,7 @@ router.post('/become-supplier/:id', (req, res, next) => {
 }, becomeSupplier);
 
 router.get('/vendor-earnings', getVendorEarnings);
+router.get('/cart/:id', getDraftCart);
+router.post('/cart/:id', updateDraftCart);
 
 export default router;

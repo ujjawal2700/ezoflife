@@ -98,13 +98,21 @@ export const approveFinalVendor = async (req, res) => {
     }
 };
 
-// Reject a vendor
+// Reject or Request Revision for a vendor
 export const rejectVendor = async (req, res) => {
     try {
         const { id } = req.params;
+        const { reason, status, rejectionFlags } = req.body; // status can be 'rejected' or 'revision_required'
+        
+        const targetStatus = status || 'rejected';
+
         const vendor = await User.findByIdAndUpdate(
             id, 
-            { status: 'rejected' }, 
+            { 
+                status: targetStatus,
+                rejectionReason: reason || 'Criteria not met',
+                rejectionFlags: rejectionFlags || []
+            }, 
             { new: true }
         );
 
@@ -112,10 +120,13 @@ export const rejectVendor = async (req, res) => {
             return res.status(404).json({ message: 'Vendor not found' });
         }
 
-        res.status(200).json({ message: 'Vendor rejected', vendor });
+        res.status(200).json({ 
+            message: `Vendor application ${targetStatus === 'revision_required' ? 'sent for revision' : 'rejected'}`, 
+            vendor 
+        });
     } catch (err) {
         console.error('Reject Vendor Error:', err);
-        res.status(500).json({ message: 'Error rejecting vendor' });
+        res.status(500).json({ message: 'Error updating vendor status' });
     }
 };
 
@@ -218,9 +229,18 @@ export const rejectSupplier = async (req, res) => {
         }
 
         // 2. Fallback to direct User update
-        const supplier = await User.findByIdAndUpdate(id, { status: 'rejected' }, { new: true });
+        const { rejectionFlags } = req.body;
+        const supplier = await User.findByIdAndUpdate(
+            id, 
+            { 
+                status: 'revision_required',
+                rejectionReason: reason || 'Revision required for some documents',
+                rejectionFlags: rejectionFlags || []
+            }, 
+            { new: true }
+        );
         if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
-        res.status(200).json({ message: 'Supplier rejected successfully', supplier });
+        res.status(200).json({ message: 'Supplier marked for revision', supplier });
     } catch (err) {
         console.error('Reject Supplier Error:', err);
         res.status(500).json({ message: 'Error rejecting supplier' });

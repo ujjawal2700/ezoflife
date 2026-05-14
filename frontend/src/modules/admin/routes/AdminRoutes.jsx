@@ -41,11 +41,14 @@ import AdminVendorRequestDetailPage from '../pages/AdminVendorRequestDetailPage'
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
+import ServiceGeofenceTable from '../pages/ServiceGeofenceTable';
+import GeofencePincodeMapping from '../pages/GeofencePincodeMapping';
 import PricingPreview from '../pages/PricingPreview';
 import AreaPricingOverrides from '../pages/AreaPricingOverrides';
 import CustomerPayments from '../pages/CustomerPayments';
 import AdminInvoiceSettings from '../pages/AdminInvoiceSettings';
 import ReferralManagement from '../pages/ReferralManagement';
+import AdminSettings from '../pages/AdminSettings';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -107,6 +110,8 @@ const AdminRoutes = () => {
         <Route path="/privacy-policy" element={<AdminLegalPage type="privacy-policy" />} />
         <Route path="/terms-conditions" element={<AdminLegalPage type="terms-conditions" />} />
         <Route path="/geofencing" element={<ServiceAreas />} />
+        <Route path="/geofence-table" element={<ServiceGeofenceTable />} />
+        <Route path="/geofence-pincode-mapping" element={<GeofencePincodeMapping />} />
         <Route path="/pricing-preview" element={<PricingPreview />} />
         <Route path="/pricing-overrides" element={<AreaPricingOverrides />} />
         <Route path="/feedback" element={<FeedbackManagement />} />
@@ -115,6 +120,7 @@ const AdminRoutes = () => {
         <Route path="/supplier-requests/:id" element={<AdminSupplierRequestDetailPage />} />
         <Route path="/invoice-settings" element={<AdminInvoiceSettings />} />
         <Route path="/referral-settings" element={<ReferralManagement />} />
+        <Route path="/settings" element={<AdminSettings />} />
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
 

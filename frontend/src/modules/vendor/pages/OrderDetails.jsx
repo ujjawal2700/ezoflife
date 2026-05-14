@@ -248,6 +248,12 @@ const OrderDetails = () => {
             {/* Floating Action Button (Above Bottom Nav) */}
             <div className="fixed bottom-24 left-0 right-0 z-[60] px-6">
                 <div className="max-w-md mx-auto bg-white/40 backdrop-blur-2xl p-3 rounded-[2.5rem] border border-white/40 shadow-2xl flex items-center gap-3">
+                    {order.status === 'Assigned' && (
+                        <div className="flex-1 h-16 rounded-[1.8rem] bg-slate-100 text-slate-500 font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 border border-slate-200">
+                            Rider Picking Up from Customer
+                            <span className="material-symbols-outlined text-lg animate-pulse">delivery_dining</span>
+                        </div>
+                    )}
                     {order.status === 'Picked Up' && (
                         <motion.button 
                             whileTap={{ scale: 0.98 }}
@@ -259,7 +265,7 @@ const OrderDetails = () => {
                             }}
                             className="flex-1 h-16 rounded-[1.8rem] bg-slate-950 text-white font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl"
                         >
-                            Start Processing
+                            Receive & Start Processing
                             <span className="material-symbols-outlined text-lg">play_circle</span>
                         </motion.button>
                     )}

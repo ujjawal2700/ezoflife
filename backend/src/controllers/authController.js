@@ -666,6 +666,26 @@ export const updateVendorDocuments = async (req, res) => {
     }
 };
 
+export const updateProfileImage = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!req.file) {
+            return res.status(400).json({ message: 'No image file uploaded' });
+        }
+
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        user.image = req.file.path; // Cloudinary URL
+        await user.save();
+        
+        res.status(200).json(user);
+    } catch (err) {
+        console.error('Update Profile Image Error:', err);
+        res.status(500).json({ message: 'Error updating profile image' });
+    }
+};
+
 // Admin registering a vendor
 export const registerVendor = async (req, res) => {
     try {
@@ -797,5 +817,33 @@ export const tempSeedUser = async (req, res) => {
     } catch (err) {
         console.error('Seed Error:', err);
         res.status(500).json({ message: 'Seed failed', error: err.message });
+    }
+};
+
+export const getDraftCart = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id).select('draftCart');
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.status(200).json(user.draftCart || {});
+    } catch (err) {
+        console.error('Get Cart Error:', err);
+        res.status(500).json({ message: 'Error fetching cart' });
+    }
+};
+
+export const updateDraftCart = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { cart } = req.body;
+        const user = await User.findById(id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        user.draftCart = cart;
+        await user.save();
+        res.status(200).json({ message: 'Cart updated successfully', cart: user.draftCart });
+    } catch (err) {
+        console.error('Update Cart Error:', err);
+        res.status(500).json({ message: 'Error updating cart' });
     }
 };

@@ -147,19 +147,15 @@ const MaterialRequestPage = () => {
                 ) : (
                     <motion.div key="main-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         {/* Header */}
-                        <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-6 border-b border-slate-100">
-                            <div className="flex items-center justify-between mb-6">
+                        <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 border-b border-slate-100">
+                            <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center gap-4">
                                     <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
                                         <span className="material-symbols-outlined text-primary">arrow_back</span>
                                     </motion.button>
                                     <div>
                                         <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none mb-1">Order Supplies</h1>
-                                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">Admin Approved Catalog</p>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-slate-400">inventory</span>
                                 </div>
                             </div>
 
@@ -180,7 +176,7 @@ const MaterialRequestPage = () => {
                             </div>
                         </header>
 
-                        <main className="max-w-xl mx-auto px-6 pt-8">
+                        <main className="max-w-xl mx-auto px-6 pt-2">
                             {activeTab === 'catalog' ? (
                                 <motion.div 
                                     initial={{ opacity: 0, y: 20 }}
@@ -250,7 +246,7 @@ const MaterialRequestPage = () => {
                                 <motion.div 
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="space-y-4"
+                                    className="space-y-2"
                                 >
                                     {vendorOrders.length === 0 ? (
                                         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -260,74 +256,72 @@ const MaterialRequestPage = () => {
                                             <h3 className="text-lg font-black text-slate-900">No requests yet</h3>
                                             <p className="text-xs font-bold text-slate-400 max-w-[200px] mt-2">Your supply requests will appear here once you place them.</p>
                                         </div>
-                                    ) : (
-                                        vendorOrders.map((order) => (
-                                            <div key={order._id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Request ID</p>
-                                                        <h4 className="text-sm font-black text-slate-900 tracking-tight">#{order.b2bOrderId}</h4>
+                                    ) : (                                        vendorOrders.map((order) => (
+                                            <div key={order._id} className="bg-white p-4 rounded-[1.8rem] border border-slate-100 shadow-sm space-y-3">
+                                                {/* Header Row: ID, Status, Actions */}
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="text-xs font-black text-slate-900 tracking-tight">#{order.b2bOrderId}</h4>
+                                                        <span className={`px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest ${getStatusColor(order.status)}`}>
+                                                            {order.status}
+                                                        </span>
                                                     </div>
-                                                    <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${getStatusColor(order.status)}`}>
-                                                        {order.status}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-center gap-4 py-2 border-y border-slate-50">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Items</p>
-                                                        <p className="text-xs font-bold text-slate-700 leading-relaxed">
-                                                            {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
-                                                        <p className="text-sm font-black text-slate-900">₹{order.totalAmount}</p>
-                                                    </div>
-                                                </div>
-
-                                                {order.supplier ? (
-                                                    <div className="flex flex-col gap-3">
-                                                        <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3">
-                                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                                <span className="material-symbols-outlined text-sm text-primary">person</span>
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-0.5">Assigned Supplier</p>
-                                                                <p className="text-xs font-black text-slate-900">{order.supplier.displayName}</p>
-                                                            </div>
+                                                    
+                                                    <div className="flex items-center gap-1.5">
+                                                        {order.supplier && (
                                                             <button 
                                                                 onClick={() => window.open(`tel:${order.supplier.phone}`)}
-                                                                className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                                                className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all"
+                                                                title="Call Supplier"
                                                             >
-                                                                <span className="material-symbols-outlined text-sm">call</span>
+                                                                <span className="material-symbols-outlined text-[16px]">call</span>
                                                             </button>
-                                                        </div>
-
+                                                        )}
                                                         {order.status === 'Delivered' && (
                                                             <button 
                                                                 onClick={() => openInvoice(order)}
-                                                                className="w-full h-12 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-all active:scale-95"
+                                                                className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"
+                                                                title="View Invoice"
                                                             >
-                                                                <FileText size={16} />
-                                                                View Invoice
+                                                                <span className="material-symbols-outlined text-[16px]">description</span>
                                                             </button>
                                                         )}
                                                     </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-2 px-2">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                                        <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Searching Nearby Suppliers...</p>
+                                                </div>
+
+                                                {/* Items and Total Row */}
+                                                <div className="flex items-center justify-between py-2 border-y border-slate-50">
+                                                    <div className="flex-1 min-w-0 pr-4">
+                                                        <p className="text-[10px] font-bold text-slate-600 truncate">
+                                                            {order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-[11px] font-black text-slate-900">₹{order.totalAmount}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Supplier Info (Small) */}
+                                                {order.supplier && (
+                                                    <div className="flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-xl">
+                                                        <span className="material-symbols-outlined text-[14px] text-slate-400">person</span>
+                                                        <p className="text-[9px] font-black text-slate-900 truncate">
+                                                            Supplier: {order.supplier.displayName}
+                                                        </p>
+                                                    </div>
+                                                )}
+
+                                                {!order.supplier && (
+                                                    <div className="flex items-center gap-1.5 px-1">
+                                                        <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span>
+                                                        <p className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Searching...</p>
                                                     </div>
                                                 )}
                                                 
-                                                <div className="flex items-center justify-between pt-1">
-                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                        Placed on {new Date(order.createdAt).toLocaleDateString()}
-                                                    </p>
-                                                    <p className="text-[9px] font-black text-primary uppercase tracking-widest">
-                                                        Delivery: {order.deliveryDay}, {new Date(order.deliveryDate).toLocaleDateString()}
-                                                    </p>
+                                                {/* Date Row */}
+                                                <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest opacity-60">
+                                                    <p>Placed: {new Date(order.createdAt).toLocaleDateString()}</p>
+                                                    <p className="text-primary text-right">Delivery: {new Date(order.deliveryDate).toLocaleDateString()}</p>
                                                 </div>
                                             </div>
                                         ))

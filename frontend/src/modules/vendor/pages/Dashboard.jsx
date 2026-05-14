@@ -194,6 +194,7 @@ const Dashboard = () => {
 
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
 
     const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
     const vendorData = JSON.parse(vendorDataRaw);
@@ -596,81 +597,102 @@ const Dashboard = () => {
                 )}
             </AnimatePresence>
 
+            <AnimatePresence>
+                {selectedOrderForDetails && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 bg-slate-950/40 backdrop-blur-md">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-sm rounded-[2rem] p-6 shadow-2xl space-y-6"
+                        >
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Order Details</h3>
+                                <button onClick={() => setSelectedOrderForDetails(null)} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                    <span className="material-symbols-outlined text-xl">close</span>
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {selectedOrderForDetails.items.map((item, idx) => (
+                                    <div key={idx} className="flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                        <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-300 overflow-hidden">
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="material-symbols-outlined">image</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[11px] font-black text-slate-900 uppercase">{item.name}</p>
+                                            <p className="text-[10px] font-bold text-slate-400">Quantity: {item.quantity || 1}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <VendorHeader />
+            
             {/* 🚀 MAIN CONTENT AREA */}
-            <main className="max-w-xl mx-auto px-6 pt-24 space-y-8 min-h-screen">
+            <main className="max-w-xl mx-auto px-6 pt-4 space-y-4 min-h-screen">
                 
-                {/* 0. EARNINGS TODAY (BLACK & WHITE PREMIUM) */}
-                <section>
+                {/* 0. DAYS SUMMARY (ULTRA COMPACT) */}
+                <section className="max-w-md mx-auto w-full">
                     <motion.div 
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        whileHover={{ y: -5 }}
                         className="relative group cursor-default"
                     >
-                        <div className="relative bg-white text-slate-900 p-9 rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.06)] overflow-hidden border border-slate-100">
-                            {/* Sophisticated Pattern */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full blur-[80px] -mr-32 -mt-32"></div>
-                            
+                        <div className="relative bg-white text-slate-900 p-4 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.04)] overflow-hidden border border-slate-100">
                             <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-8">
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] leading-none">Wallet Balance</p>
-                                        <h3 className="text-sm font-black text-slate-900 uppercase tracking-tighter mt-1">Pending Payout</h3>
-                                    </div>
-                                    <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-xl shadow-slate-900/20">
-                                        <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
+                                <div className="flex items-center justify-between mb-3 px-1">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none">Days Summary</p>
+                                    <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                                        <span className="material-symbols-outlined text-lg">analytics</span>
                                     </div>
                                 </div>
                                 
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-2xl font-black text-slate-300 tracking-tight leading-none">₹</span>
-                                    <h2 className="text-7xl font-black tracking-tighter leading-none text-slate-900">{(summary?.pendingBalance || 0).toLocaleString()}</h2>
-                                    
-                                    <div className={`flex items-center gap-1.5 px-4 py-2 rounded-2xl border ${(summary?.pendingBalance || 0) > 0 ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-slate-100 text-slate-400'} transition-all ml-4`}>
-                                        <span className="material-symbols-outlined text-sm font-black">{(summary?.pendingBalance || 0) > 0 ? 'verified' : 'info'}</span>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">
-                                            {(summary?.pendingBalance || 0) > 0 ? 'Available' : 'Settled'}
-                                        </span>
-                                    </div>
+                                <div className="grid grid-cols-1 gap-0.5">
+                                    {[
+                                        { label: 'New Request', value: poolOrders.length, icon: 'notifications_active', color: 'text-rose-500', bg: 'bg-rose-50' },
+                                        { label: 'Upcoming Pickup', value: allOrders.filter(o => o.status === 'Assigned').length, icon: 'schedule', color: 'text-amber-500', bg: 'bg-amber-50' },
+                                        { label: 'Active Order', value: categorizedOrders['In Progress'].length, icon: 'motion_photos_on', color: 'text-blue-500', bg: 'bg-blue-50' },
+                                        { label: 'Business Booked Today', value: `₹${dailyEarnings.toLocaleString()}`, icon: 'payments', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                                        { label: 'Total Payout Received', value: `₹${(summary?.totalPaid || 0).toLocaleString()}`, icon: 'account_balance_wallet', color: 'text-slate-900', bg: 'bg-slate-50' },
+                                        { label: 'Ready For Delivery', value: (categorizedOrders['Ready'] || []).length, icon: 'local_shipping', color: 'text-indigo-500', bg: 'bg-indigo-50' },
+                                    ].map((stat, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group/item">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-7 h-7 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm`}>
+                                                    <span className="material-symbols-outlined text-[15px]">{stat.icon}</span>
+                                                </div>
+                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">{stat.label}</span>
+                                            </div>
+                                            <span className="text-xs font-black text-slate-900 tracking-tighter">
+                                                {stat.value}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                {/* Micro Details */}
-                                <div className="mt-8 pt-8 border-t border-slate-100 flex items-center justify-between">
-                                    <div className="flex items-center gap-10">
-                                        <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Earnings</p>
-                                            <p className="text-lg font-black text-slate-900 mt-1">
-                                                ₹{(summary?.totalEarnings || 0).toLocaleString()}
-                                            </p>
-                                        </div>
-                                        <div className="w-px h-10 bg-slate-100"></div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Received</p>
-                                            <p className="text-lg font-black text-slate-900 mt-1">
-                                                ₹{(summary?.totalPaid || 0).toLocaleString()}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => navigate('/vendor/earnings')}
-                                        className="w-12 h-12 rounded-full border-2 border-slate-100 flex items-center justify-center text-slate-900 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
-                                    >
-                                        <span className="material-symbols-outlined text-xl font-black">arrow_forward</span>
-                                    </button>
-                                </div>
+                                <button 
+                                    onClick={() => navigate('/vendor/earnings')}
+                                    className="mt-2 w-full py-2.5 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all flex items-center justify-center gap-2"
+                                >
+                                    Report <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                </button>
                             </div>
                         </div>
                     </motion.div>
                 </section>
 
-                {/* 1. ORDER WORKFLOW TABS (NOW AT THE TOP) */}
-                <section className="space-y-6">
-                    <div className="flex flex-col gap-5">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-black text-slate-900 tracking-tight">Order Hub</h3>
-
-                        </div>
-
+                {/* 1. ORDER WORKFLOW TABS */}
+                <section className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner w-full">
                             {['Available', 'In Progress', 'Completed'].map((tab) => (
                                 <button 
@@ -744,95 +766,77 @@ const Dashboard = () => {
                                             </div>
                                         )}
                                         {(activeTab === 'In Progress' ? (categorizedOrders['In Progress'] || []) : displayCompletedOrders).length > 0 ? (
-                                            (activeTab === 'In Progress' ? (categorizedOrders['In Progress'] || []) : displayCompletedOrders).map((order) => (
-                                            <motion.div 
-                                                key={order._id}
-                                                layout
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.95 }}
-                                                className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-5 cursor-pointer hover:border-primary/20 transition-all group"
-                                                onClick={() => navigate(`/vendor/order/${order._id}`)}
-                                            >
-                                                {/* Header: ID & Status */}
-                                                <div className="flex justify-between items-center">
-                                                    <span className="bg-slate-100 text-slate-900 px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest">
-                                                        {order.orderId}
-                                                    </span>
-                                                    <span className={`px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
-                                                        activeTab === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                    }`}>
-                                                        {activeTab === 'Completed' ? 'COMPLETED' : order.status}
-                                                    </span>
-                                                </div>
+                                            (activeTab === 'In Progress' ? (categorizedOrders['In Progress'] || []) : displayCompletedOrders).map((order) => {
+                                                const getFriendlyStatus = (status) => {
+                                                    if (status === 'Assigned') return 'Awaiting Pickup';
+                                                    if (status === 'Picked Up') return 'Awaiting Articles';
+                                                    if (status === 'In Progress') return 'Work In Progress';
+                                                    if (status === 'Ready') return 'Marked as Ready';
+                                                    return status;
+                                                };
 
-                                                {/* Content: Service Info */}
-                                                <div className="flex items-center gap-5">
-                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                                                        activeTab === 'In Progress' ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'
-                                                    }`}>
-                                                        <span className="material-symbols-outlined text-2xl">
-                                                            {activeTab === 'In Progress' ? 'autofps_select' : 'local_shipping'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="text-base font-black text-slate-900 truncate">
-                                                            {order.items[0]?.name} {order.items.length > 1 ? `+${order.items.length - 1} more` : ''}
-                                                        </h4>
-                                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                                            {order.items.map((item, idx) => (
-                                                                <span key={idx} className="text-[9px] font-bold text-slate-400 uppercase">
-                                                                    {item.name} {idx < order.items.length - 1 ? '•' : ''}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <span className="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors">chevron_right</span>
-                                                </div>
+                                                const posessionTime = Math.floor((new Date() - new Date(order.updatedAt)) / (1000 * 60));
 
-                                                {/* Footer: Time & Action */}
-                                                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                                                            <span className="material-symbols-outlined text-lg">timer</span>
+                                                return (
+                                                    <motion.div 
+                                                        key={order._id}
+                                                        layout
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, scale: 0.95 }}
+                                                        className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3 relative overflow-hidden group"
+                                                    >
+                                                        {/* 1) Date & 2) Order ID */}
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                                {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                                                            </span>
+                                                            <span className="bg-slate-900 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                                #{order.orderId}
+                                                            </span>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Time In Shop</p>
-                                                            <p className="text-[11px] font-black text-slate-900 mt-0.5">
-                                                                {Math.floor((new Date() - new Date(order.updatedAt)) / (1000 * 60))} Mins
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    
 
-                                                    {activeTab === 'In Progress' && order.status === 'Picked Up' && (
-                                                        <div className="flex items-center gap-2 bg-amber-50 px-4 py-2.5 rounded-xl border border-amber-100">
-                                                            <div className="relative">
-                                                                <span className="material-symbols-outlined text-amber-500 text-xl animate-pulse">electric_moped</span>
-                                                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full animate-ping"></span>
+                                                        {/* 3) Current Status */}
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`w-2 h-2 rounded-full animate-pulse ${
+                                                                order.status === 'In Progress' ? 'bg-blue-500' : (order.status === 'Ready' ? 'bg-emerald-500' : 'bg-amber-500')
+                                                            }`}></div>
+                                                            <h4 className={`text-[11px] font-black uppercase tracking-tight ${
+                                                                order.status === 'In Progress' ? 'text-blue-600' : (order.status === 'Ready' ? 'text-emerald-600' : 'text-amber-600')
+                                                            }`}>
+                                                                {getFriendlyStatus(order.status)}
+                                                            </h4>
+                                                        </div>
+
+                                                        {/* 4) Article Possession & 5) Details Button */}
+                                                        <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className="material-symbols-outlined text-[14px] text-slate-400">timer</span>
+                                                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
+                                                                    Possession: <span className="text-slate-900 font-black">{posessionTime}m</span>
+                                                                </p>
                                                             </div>
-                                                            <div className="flex flex-col">
-                                                                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none">Rider Pickup</p>
-                                                                <p className="text-[8px] font-bold text-amber-400 uppercase mt-1">En Route to Shop</p>
+                                                            <div className="flex gap-2">
+                                                                <button 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedOrderForDetails(order);
+                                                                    }}
+                                                                    className="px-3 py-1.5 bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
+                                                                >
+                                                                    Details
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => navigate(`/vendor/order/${order._id}`)}
+                                                                    className="w-7 h-7 bg-primary/10 text-primary rounded-lg flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                                                                </button>
                                                             </div>
                                                         </div>
-                                                    )}
-
-                                                    {activeTab === 'Completed' && (
-                                                        <div className="flex items-center gap-2 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-100">
-                                                            <div className="relative">
-                                                                <span className="material-symbols-outlined text-emerald-500 text-xl animate-bounce">local_shipping</span>
-                                                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none">Rider Alerted</p>
-                                                                <p className="text-[8px] font-bold text-emerald-400 uppercase mt-1">Waiting Pickup</p>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </motion.div>
-                                        ))
+                                                    </motion.div>
+                                                );
+                                            })
                                     ) : (
                                         <div className="py-24 text-center opacity-30">
                                             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">

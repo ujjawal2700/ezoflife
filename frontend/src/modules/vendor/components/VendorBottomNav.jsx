@@ -25,13 +25,12 @@ const VendorBottomNav = () => {
   if (hideRoutes.some(route => location.pathname === route)) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[100] pb-8 pt-4 px-6 flex justify-center pointer-events-none">
+    <nav className="fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-100 flex justify-center pointer-events-none h-16">
       <motion.div 
         layout
-        initial={{ y: 80, opacity: 0 }}
+        initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 40 }}
-        className="bg-white/95 backdrop-blur-2xl rounded-full shadow-[0_32px_64px_rgba(0,0,0,0.12)] pointer-events-auto flex justify-around items-center w-[95%] max-w-md border border-black/5 h-16 overflow-visible"
+        className="pointer-events-auto flex justify-around items-center w-full h-full overflow-visible"
       >
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;

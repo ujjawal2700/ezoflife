@@ -65,7 +65,7 @@ const UserProfilePage = () => {
               onClick={() => setIsEditing(true)}
               className="absolute top-4 right-4 bg-slate-950 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg z-10"
             >
-              MANAGE
+              MANAGE PROFILE
             </motion.button>
           ) : (
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
@@ -143,7 +143,7 @@ const UserProfilePage = () => {
                 <span className="material-symbols-outlined text-slate-400 text-lg">location_on</span>
                 <h3 className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Saved Addresses</h3>
               </div>
-              <button onClick={() => navigate('/user/profile/addresses')} className="text-[8px] font-black text-slate-400 uppercase border border-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-all">MANAGE</button>
+              <button onClick={() => navigate('/user/profile/addresses')} className="text-[8px] font-black text-slate-400 uppercase border border-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-all">MANAGE ADDRESS</button>
             </div>
             <div className="space-y-2.5">
               {(user.addresses && user.addresses.length > 0) ? (
@@ -225,7 +225,11 @@ const UserProfilePage = () => {
         <div className="px-2">
           <button
             onClick={() => { 
-              const keysToRemove = ['token', 'user', 'userData', 'userId', 'last_visited_vendor_id', 'userType'];
+              const keysToRemove = [
+                'token', 'user', 'userData', 'userId', 'last_visited_vendor_id', 'userType',
+                'cart_quantities', 'pickup_date', 'pickup_time', 'delivery_date', 'delivery_time',
+                'pickup_address', 'drop_address', 'order_notes', 'item_photos', 'selected_tier', 'is_express'
+              ];
               keysToRemove.forEach(k => localStorage.removeItem(k));
               navigate('/user/auth'); 
               toast.success('Logged out successfully'); 

@@ -55,9 +55,23 @@ const HelpCenterPage = () => {
             );
     }, [faqs, searchQuery, userRole]);
 
+    const [playingId, setPlayingId] = useState(null);
+
+    useEffect(() => {
+        // Force body selection to be auto to prevent iframe click blocking
+        document.body.style.userSelect = 'auto';
+        document.body.style.webkitUserSelect = 'auto';
+        document.body.style.touchAction = 'auto';
+        return () => {
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+            document.body.style.touchAction = 'pan-x pan-y';
+        };
+    }, []);
+
     const getYouTubeId = (url) => {
-        if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        if (!url || typeof url !== 'string') return null;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     };
@@ -74,7 +88,6 @@ const HelpCenterPage = () => {
                 subject: ticketData.subject,
                 category: ticketData.category,
                 description: ticketData.description,
-                // Metadata for backend auto-population logic if needed
                 userMetadata: {
                     name: userData.name,
                     phone: userData.phone,
@@ -102,7 +115,7 @@ const HelpCenterPage = () => {
     };
 
     return (
-        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-body">
+        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-body relative">
             <header className="px-6 pt-6 flex items-center mb-8">
                 <div className="flex items-center gap-4">
                     <motion.button 
@@ -144,16 +157,19 @@ const HelpCenterPage = () => {
                         <div className="py-20 text-center opacity-30 italic text-sm font-black uppercase tracking-widest">Loading solutions...</div>
                     ) : filteredFaqs.map((faq) => {
                         const isOpen = expandedId === faq._id;
-                        const videoId = getYouTubeId(faq.youtubeUrl);
+                        const vId = getYouTubeId(faq.youtubeUrl);
+                        const isThisPlaying = playingId === faq._id;
 
                         return (
-                            <motion.div 
+                            <div 
                                 key={faq._id}
-                                variants={itemVariants}
                                 className={`bg-white rounded-[2rem] border transition-all ${isOpen ? 'border-slate-900/10 shadow-lg' : 'border-slate-200/50 shadow-sm'}`}
                             >
                                 <button 
-                                    onClick={() => setExpandedId(isOpen ? null : faq._id)}
+                                    onClick={() => {
+                                        setExpandedId(isOpen ? null : faq._id);
+                                        setPlayingId(null);
+                                    }}
                                     className="w-full px-6 py-5 flex items-center justify-between text-left"
                                 >
                                     <div className="flex-1 pr-4">
@@ -164,35 +180,121 @@ const HelpCenterPage = () => {
                                         expand_more
                                     </span>
                                 </button>
-                                <AnimatePresence>
-                                    {isOpen && (
-                                        <motion.div 
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden"
-                                        >
-                                            <div className="px-6 pb-6 border-t border-slate-50 pt-4 space-y-4">
-                                                <div 
-                                                    className="text-xs font-medium text-slate-600 leading-relaxed rich-text-content"
-                                                    dangerouslySetInnerHTML={{ __html: faq.answer }}
-                                                />
-                                                {videoId && (
-                                                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
-                                                        <iframe 
-                                                            src={`https://www.youtube.com/embed/${videoId}`}
-                                                            title="YouTube video player"
-                                                            className="absolute inset-0 w-full h-full"
-                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                            allowFullScreen
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
+                                {isOpen && (
+                                    <div className="overflow-visible pointer-events-auto relative z-[100]">
+                                        <div className="px-6 pb-6 border-t border-slate-50 pt-4 space-y-4">
+                                            <div 
+                                                className="text-xs font-medium text-slate-600 leading-relaxed rich-text-content"
+                                                dangerouslySetInnerHTML={{ __html: faq.answer }}
+                                            />
+                                            {vId && (
+                                                <div className="space-y-3">
+                                                    {isThisPlaying && (
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setPlayingId(null);
+                                                            }}
+                                                            className="w-full py-2 bg-slate-900 text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-lg mb-2 shadow-lg"
+                                                        >
+                                                            Close Tutorial [X]
+                                                        </button>
+                                                    )}
+                                                        {(() => {
+                                                            const match = faq.youtubeUrl?.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/);
+                                                            const videoId = (match && match[2].length === 11) ? match[2] : null;
+                                                            
+                                                            if (isThisPlaying) {
+                                                                return (
+                                                                    <div key="playing" className="aspect-video rounded-2xl overflow-hidden bg-slate-900 shadow-inner relative z-[9999] pointer-events-auto group/player">
+                                                                        <iframe 
+                                                                            id={`player-${faq._id}`}
+                                                                            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1`}
+                                                                            className="w-full h-full pointer-events-none"
+                                                                            frameBorder="0"
+                                                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                            allowFullScreen
+                                                                        />
+                                                                        {/* The Magic Overlay */}
+                                                                        <div 
+                                                                            className="absolute inset-0 z-[10000] cursor-pointer"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                const iframe = document.getElementById(`player-${faq._id}`);
+                                                                                if (iframe) {
+                                                                                    // Toggle logic: we send both but YouTube handles state
+                                                                                    // Since we don't know state, we alternate or just send pause if playing
+                                                                                    // A better way is to toggle a local state
+                                                                                    const isCurrentlyPaused = e.currentTarget.getAttribute('data-paused') === 'true';
+                                                                                    if (isCurrentlyPaused) {
+                                                                                        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                                                                                        e.currentTarget.setAttribute('data-paused', 'false');
+                                                                                    } else {
+                                                                                        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                                                                                        e.currentTarget.setAttribute('data-paused', 'true');
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        {/* Visual indicator for pause state on the overlay */}
+                                                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-active/player:opacity-100 transition-opacity">
+                                                                            <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                                                                <span className="material-symbols-outlined text-white text-4xl">touch_app</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                        return (
+                                                            <div 
+                                                                key="preview"
+                                                                className="aspect-video rounded-2xl overflow-hidden bg-slate-900 shadow-inner relative z-[30] cursor-pointer group"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setPlayingId(faq._id);
+                                                                }}
+                                                            >
+                                                                <div className="relative w-full h-full">
+                                                                    {videoId ? (
+                                                                        <img 
+                                                                            src={`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
+                                                                            alt="Video Preview"
+                                                                            className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-all"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                                                            <span className="material-symbols-outlined text-white/20 text-4xl">play_circle</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                                        <div className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
+                                                                            <span className="material-symbols-outlined text-3xl">play_arrow</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+                                                                        <span className="text-[10px] font-black uppercase text-white tracking-widest">Tap to start tutorial</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            window.open(faq.youtubeUrl, '_blank');
+                                                        }}
+                                                        className="w-full py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 transition-all"
+                                                    >
+                                                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                                        Watch on YouTube App
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         );
                     })}
 

@@ -1,4 +1,15 @@
 import ServiceArea from '../models/ServiceArea.js';
+import PincodeMapping from '../models/PincodeMapping.js';
+
+// Admin: Get all pincode mappings
+export const getPincodeMappings = async (req, res) => {
+    try {
+        const mappings = await PincodeMapping.find().sort({ mappingId: 1 });
+        res.status(200).json(mappings);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
 
 // Admin: Create a new service area
 export const createServiceArea = async (req, res) => {

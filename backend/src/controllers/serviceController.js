@@ -16,12 +16,14 @@ export const getAllServices = async (req, res) => {
             query.serviceType = serviceType;
         }
 
-        if (vendorId && vendorId !== 'undefined' && vendorId !== 'null') {
+        if (vendorId) {
+            if (vendorId === 'undefined' || vendorId === 'null') {
+                // If vendorId is literally 'undefined' string, return empty
+                return res.status(200).json([]);
+            }
             const mongoose = (await import('mongoose')).default;
             const vId = mongoose.Types.ObjectId.isValid(vendorId) ? new mongoose.Types.ObjectId(vendorId) : vendorId;
             query.vendorId = vId;
-            // When filtering by vendor, we don't care if it's master or not, 
-            // but usually vendorId services are NOT master.
         }
 
         const services = await Service.find(query).sort({ createdAt: -1 }).lean();

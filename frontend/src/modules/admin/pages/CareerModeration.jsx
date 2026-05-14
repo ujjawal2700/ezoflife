@@ -26,9 +26,26 @@ const CareerModeration = () => {
     });
     const [newSkill, setNewSkill] = useState('');
 
+    const [adminAddresses, setAdminAddresses] = useState([]);
+    const [adminCompany, setAdminCompany] = useState('EzOfLife Corporate');
+
     useEffect(() => {
         fetchJobs();
         fetchApplications();
+        // Load addresses from settings
+        const savedAddresses = localStorage.getItem('admin_addresses');
+        if (savedAddresses) {
+            setAdminAddresses(JSON.parse(savedAddresses));
+        }
+        // Load company name from settings
+        const savedProfile = localStorage.getItem('admin_profile');
+        if (savedProfile) {
+            const profile = JSON.parse(savedProfile);
+            if (profile.companyName) {
+                setAdminCompany(profile.companyName);
+                setForm(prev => ({ ...prev, companyName: profile.companyName }));
+            }
+        }
     }, []);
 
     const fetchJobs = async () => {
@@ -92,11 +109,11 @@ const CareerModeration = () => {
             toast.success('Corporate Job Posted Successfully');
             setForm({ 
                 title: '', 
-                companyName: 'EzOfLife Corporate', 
+                companyName: adminCompany, 
                 description: '', 
                 requirements: '', 
                 experience: '1-2 Years',
-                location: 'Gurgaon (HQ)', 
+                location: adminAddresses[0]?.address || '', 
                 type: 'Full-time', 
                 salary: 'As per Industry',
                 skills: ['Punctual', 'Steam Iron Exp']
@@ -378,12 +395,37 @@ const CareerModeration = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Salary Range</label>
-                                    <input required placeholder="e.g. 25k - 30k" value={form.salary} onChange={e => setForm({...form, salary: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold" />
+                                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Salary Range (Monthly)</label>
+                                    <select 
+                                        required 
+                                        value={form.salary} 
+                                        onChange={e => setForm({...form, salary: e.target.value})} 
+                                        className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold border-none outline-none focus:ring-2 focus:ring-slate-200 appearance-none"
+                                    >
+                                        <option value="" disabled>Select Salary Bracket</option>
+                                        <option value="10000-20000">₹10,000 - ₹20,000</option>
+                                        <option value="20000-30000">₹20,000 - ₹30,000</option>
+                                        <option value="30000-40000">₹30,000 - ₹40,000</option>
+                                        <option value="50000+">₹50,000+</option>
+                                        <option value="As per Industry">As per Industry</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Location</label>
-                                    <input required value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold" />
+                                    <select 
+                                        required 
+                                        value={form.location} 
+                                        onChange={e => setForm({...form, location: e.target.value})} 
+                                        className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold border-none outline-none focus:ring-2 focus:ring-slate-200"
+                                    >
+                                        <option value="" disabled>Select Office Location</option>
+                                        {adminAddresses.map(addr => (
+                                            <option key={addr.id} value={addr.address}>
+                                                {addr.type}: {addr.address}
+                                            </option>
+                                        ))}
+                                        <option value="Remote">Remote</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Skills & Qualifications</label>
@@ -417,10 +459,6 @@ const CareerModeration = () => {
                                             ADD
                                         </button>
                                     </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Requirements (CSV)</label>
-                                    <input value={form.requirements} onChange={e => setForm({...form, requirements: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold" />
                                 </div>
                                 <div className="flex gap-3 pt-4">
                                     <button type="button" onClick={() => setIsCreating(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase">Cancel</button>
@@ -475,16 +513,37 @@ const CareerModeration = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Salary Range</label>
-                                    <input required value={form.salary} onChange={e => setForm({...form, salary: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold" />
+                                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Salary Range (Monthly)</label>
+                                    <select 
+                                        required 
+                                        value={form.salary} 
+                                        onChange={e => setForm({...form, salary: e.target.value})} 
+                                        className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold border-none outline-none focus:ring-2 focus:ring-slate-200 appearance-none"
+                                    >
+                                        <option value="" disabled>Select Salary Bracket</option>
+                                        <option value="10000-20000">₹10,000 - ₹20,000</option>
+                                        <option value="20000-30000">₹20,000 - ₹30,000</option>
+                                        <option value="30000-40000">₹30,000 - ₹40,000</option>
+                                        <option value="50000+">₹50,000+</option>
+                                        <option value="As per Industry">As per Industry</option>
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Location</label>
-                                    <input required value={form.location} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold" />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 ml-4 uppercase">Requirements (CSV)</label>
-                                    <input value={form.requirements} onChange={e => setForm({...form, requirements: e.target.value})} className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold" />
+                                    <select 
+                                        required 
+                                        value={form.location} 
+                                        onChange={e => setForm({...form, location: e.target.value})} 
+                                        className="w-full bg-slate-50 rounded-2xl p-4 text-sm font-bold border-none outline-none focus:ring-2 focus:ring-slate-200"
+                                    >
+                                        <option value="" disabled>Select Office Location</option>
+                                        {adminAddresses.map(addr => (
+                                            <option key={addr.id} value={addr.address}>
+                                                {addr.type}: {addr.address}
+                                            </option>
+                                        ))}
+                                        <option value="Remote">Remote</option>
+                                    </select>
                                 </div>
                                 <div className="flex gap-3 pt-4">
                                     <button type="button" onClick={() => { setIsEditing(false); setEditingJob(null); }} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-2xl font-black text-[10px] uppercase">Cancel</button>

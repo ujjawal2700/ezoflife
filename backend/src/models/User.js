@@ -14,11 +14,15 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'approved', 'rejected'],
+        enum: ['pending', 'approved', 'rejected', 'revision_required'],
         default: function() {
             if (!this) return 'approved';
             return this.role === 'Vendor' ? 'pending' : 'approved';
         }
+    },
+    rejectionReason: {
+        type: String,
+        default: ''
     },
     email: {
         type: String,
@@ -150,7 +154,28 @@ const userSchema = new mongoose.Schema({
     tier: { type: String, enum: ['Economy', 'Standard', 'Gold'], default: 'Standard' },
 
     isOnline: { type: Boolean, default: false },
-    fcmToken: { type: String, default: '' }
+    fcmToken: { type: String, default: '' },
+    image: { type: String, default: '' },
+
+    // DRAFT CART FOR PERSISTENCE
+    draftCart: {
+        selectedQuantities: { type: Map, of: Number, default: {} },
+        selectedTier: { type: String, default: 'Standard' },
+        isExpress: { type: Boolean, default: false },
+        pickup: {
+            date: { type: String, default: '' },
+            time: { type: String, default: '' },
+            address: { type: Object, default: null }
+        },
+        delivery: {
+            date: { type: String, default: '' },
+            time: { type: String, default: '' },
+            address: { type: Object, default: null }
+        },
+        orderNotes: { type: String, default: '' },
+        itemPhotos: { type: Map, of: [String], default: {} }
+    },
+    rejectionFlags: [String]
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);

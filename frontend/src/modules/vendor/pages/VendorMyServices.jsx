@@ -172,16 +172,8 @@ const VendorMyServices = () => {
                             <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
                         </button>
                         <h1 className="text-3xl font-black tracking-tighter text-slate-950 uppercase leading-none">My Services.</h1>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Rate Card Management</p>
                     </div>
                     <div className="flex gap-3">
-                        <button 
-                            onClick={() => navigate('/vendor/promotions')}
-                            className="px-6 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 font-black text-[10px] uppercase tracking-widest gap-2 hover:scale-105 transition-all"
-                        >
-                            <span className="material-symbols-outlined text-sm">redeem</span>
-                            Promotions
-                        </button>
                         <button 
                             onClick={() => navigate('/vendor/services/add')}
                             className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20 hover:scale-105 transition-all"

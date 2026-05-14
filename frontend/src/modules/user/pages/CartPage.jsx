@@ -602,13 +602,6 @@ const CartPage = () => {
               <div>
                 <h2 className="text-xl font-black uppercase tracking-tighter leading-none">Order Summary</h2>
               </div>
-              <button 
-                onClick={() => navigate('/user/home')}
-                className="text-[10px] font-black text-white/40 uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-xl hover:bg-white/5 transition-all flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-[12px]">edit</span>
-                EDIT
-              </button>
             </div>
 
             <div className="grid grid-cols-[1fr_1.15fr] gap-2 relative z-10">
@@ -628,7 +621,7 @@ const CartPage = () => {
                     <span className="material-symbols-outlined text-white/60 text-[12px]">bolt</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Mode</p>
+                    <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Delivery Mode</p>
                     <p className="text-[10px] font-black text-white uppercase">{isExpress ? 'Express' : 'Normal'}</p>
                   </div>
                 </div>
@@ -641,7 +634,7 @@ const CartPage = () => {
                     <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Pickup Time & Address</p>
+                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Pickup Address & Time</p>
                     <div className="flex items-center gap-1 mt-1 whitespace-nowrap">
                       <span className="text-[7px] font-black text-white/40 uppercase px-1 py-0.5 bg-white/5 rounded border border-white/5 shrink-0">
                         {selectedPickupAddress?.type || 'NA'}
@@ -655,7 +648,7 @@ const CartPage = () => {
                     <span className="material-symbols-outlined text-white/60 text-[12px]">local_shipping</span>
                   </div>
                   <div className="flex-1 min-w-0 text-left">
-                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Dropoff Time & Address</p>
+                    <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Dropoff Address & Time</p>
                     <div className="flex items-center gap-1 mt-1 whitespace-nowrap">
                       <span className="text-[7px] font-black text-white/40 uppercase px-1 py-0.5 bg-white/5 rounded border border-white/5 shrink-0">
                         {(isSameAddress ? selectedPickupAddress?.type : selectedDropAddress?.type) || 'NA'}

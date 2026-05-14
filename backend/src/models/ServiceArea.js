@@ -44,6 +44,18 @@ const serviceAreaSchema = new mongoose.Schema({
     },
     excelFenceId: {
         type: Number
+    },
+    dynamicSurgeMultiplier: {
+        type: Number,
+        default: 1.0
+    },
+    basePriceMultiplier: {
+        type: Number,
+        default: 1.0
+    },
+    discountPriceMultiplier: {
+        type: Number,
+        default: 1.0
     }
 }, { timestamps: true });
 

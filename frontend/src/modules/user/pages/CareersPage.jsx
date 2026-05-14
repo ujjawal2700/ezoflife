@@ -155,13 +155,21 @@ const CareersPage = () => {
                                         <div className="flex-1">
                                             <h3 className="font-black text-lg tracking-tight text-on-surface mb-1">{job.title}</h3>
                                             <div className="flex items-center gap-3">
-                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">{job.vendor?.displayName || 'Vendor Post'}</span>
+                                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${job.creatorRole === 'Admin' ? 'text-indigo-600' : 'text-primary'}`}>
+                                                    {job.creatorRole === 'Admin' ? (job.companyName || 'Official Post') : (job.vendor?.displayName || 'Vendor Post')}
+                                                </span>
                                                 <span className="w-1 h-1 rounded-full bg-outline-variant/30"></span>
                                                 <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest">{job.applicantsCount || 0} Applicants</span>
                                                 <span className="w-1 h-1 rounded-full bg-outline-variant/30"></span>
                                                 <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{job.jobType}</span>
                                             </div>
                                         </div>
+                                        {job.creatorRole === 'Admin' && (
+                                            <div className="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-1.5 shrink-0">
+                                                <span className="material-symbols-outlined text-[12px] text-indigo-600">verified</span>
+                                                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Verified</span>
+                                            </div>
+                                        )}
                                         <div className="bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/10 flex items-center gap-1.5 shrink-0">
                                             <span className="material-symbols-outlined text-[12px] text-primary">location_on</span>
                                             <span className="text-[9px] font-black uppercase tracking-widest">{job.location}</span>

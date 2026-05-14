@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -7,6 +7,7 @@ import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 
 const VendorProfile = () => {
     const navigate = useNavigate();
+    const fileInputRef = useRef(null);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const { isLoaded } = useJsApiLoader({
@@ -141,6 +142,26 @@ const VendorProfile = () => {
         }
     };
 
+    const handleImageChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const loadingToast = toast.loading('Updating profile image...');
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const userId = user.id || user._id;
+            const updatedUser = await authApi.updateProfileImage(userId, formData);
+
+            setUser(updatedUser);
+            toast.success('Profile image updated', { id: loadingToast });
+        } catch (err) {
+            console.error('Image upload error:', err);
+            toast.error('Failed to update image', { id: loadingToast });
+        }
+    };
+
     useEffect(() => {
         if (isEditModalOpen) {
             document.body.style.overflow = 'hidden';
@@ -164,153 +185,169 @@ const VendorProfile = () => {
 
     return (
         <div className="text-slate-900 min-h-screen pb-40 font-sans">
-            <main className="max-w-md mx-auto px-6 pt-10 space-y-10">
+            <main className="max-w-md mx-auto px-6 pt-2 space-y-8">
 
-                {/* PROFILE HEADER - REDESIGNED FOR CUSTOMER LAYOUT */}
-                <header className="flex flex-col items-center text-center space-y-6">
-                    <div className="relative group">
-                        <div className="w-32 h-32 rounded-[2.8rem] bg-white border-[6px] border-white shadow-2xl overflow-hidden relative z-10">
+                {/* PROFILE HEADER - REDESIGNED FOR LEFT ALIGNMENT */}
+                {/* PROFILE HEADER */}
+                <header className="flex items-center gap-6">
+                    <div className="relative group flex-shrink-0">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImageChange}
+                            accept="image/*"
+                            className="hidden"
+                        />
+                        <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-24 h-24 rounded-3xl bg-white border-4 border-white shadow-xl overflow-hidden relative z-10 cursor-pointer group-hover:opacity-90 transition-opacity"
+                        >
                             <img
                                 src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=200"}
                                 alt="Profile"
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                className="w-full h-full object-cover"
                             />
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
+                            </div>
                         </div>
-                        <div className="absolute -inset-2 bg-gradient-to-br from-primary/20 to-indigo-500/20 rounded-[3.2rem] blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="absolute -bottom-1 -right-1 w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center border-4 border-white shadow-lg z-20">
-                            <span className="material-symbols-outlined text-[18px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
+                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg z-20">
+                            <span className="material-symbols-outlined text-[14px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <div className="space-y-1">
-                            <h2 className="text-3xl font-black tracking-tighter text-slate-950 leading-tight">
-                                {user.shopDetails?.name || user.displayName}
-                            </h2>
-                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">{user.role || 'Service Partner'}</p>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-2 pt-2">
-                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-                                <span className="material-symbols-outlined text-sm text-slate-400">call</span>
-                                <span className="text-xs font-black text-slate-900 tracking-widest">{user.phone}</span>
-                            </div>
-                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-sm">
-                                <span className="material-symbols-outlined text-sm text-slate-400">mail</span>
-                                <span className="text-xs font-black text-slate-900 tracking-tight lowercase">{user.email || 'partner@ezoflife.in'}</span>
-                            </div>
-                        </div>
-
-                        <div className="pt-4">
-                            <span className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm ${user.status === 'approved' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
-                                Account {user.status.toUpperCase()}
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-black tracking-tighter text-slate-950 leading-tight">
+                            {user.shopDetails?.name || user.displayName}
+                        </h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{user.role || 'Service Partner'}</p>
+                        <div className="pt-1">
+                            <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] border shadow-sm ${user.status === 'approved' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
+                                {user.status}
                             </span>
                         </div>
                     </div>
                 </header>
 
-                {/* 1. BUSINESS DETAILS SECTION */}
+                {/* UNIFIED PROFILE BOX */}
                 <section className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Business Details</h3>
+                    <div className="flex justify-end px-1">
                         <button
                             onClick={() => handleEditClick('shop')}
-                            className="text-[10px] font-black text-primary uppercase tracking-widest bg-primary/5 px-4 py-1.5 rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-all"
+                            className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/5 px-4 py-2 rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-all flex items-center gap-2"
                         >
-                            EDIT
+                            <span className="material-symbols-outlined text-[14px]">settings</span>
+                            Manage
                         </button>
                     </div>
 
-                    <div className="bg-white p-7 rounded-[2.8rem] border border-slate-100 shadow-sm space-y-6">
-                        <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
-                                <p className="text-[13px] font-black text-slate-900 tracking-tight">{user.shopDetails?.name || 'N/A'}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Phone</p>
-                                <p className="text-[13px] font-black text-slate-900 tracking-tight">{user.phone}</p>
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Business Address</p>
-                            <p className="text-[13px] font-black text-slate-900 tracking-tight leading-snug">{user.shopDetails?.address || 'N/A'}</p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-6 pt-2">
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GST Number</p>
-                                <p className="text-[13px] font-black text-slate-900 tracking-tight">{user.shopDetails?.gst || 'Individual'}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MSME Status</p>
-                                <p className="text-[13px] font-black text-emerald-600 tracking-tight flex items-center gap-1 uppercase">
-                                    <span className="material-symbols-outlined text-[14px]">check_circle</span> {user.shopDetails?.msmeStatus || 'N/A'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* 3. FINANCIAL PAYOUT DETAILS SECTION */}
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Bank Details</h3>
-                        <button
-                            onClick={() => handleEditClick('bank')}
-                            className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-white px-5 py-2 rounded-full shadow-lg shadow-white/10 hover:bg-slate-200 transition-all relative z-20"
-                        >
-                            EDIT
-                        </button>
-                    </div>
-
-                    <div className="bg-slate-950 text-white p-7 rounded-[2.8rem] shadow-2xl shadow-slate-900/20 space-y-6 relative overflow-hidden">
-                        <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
-
-                        <div className="space-y-1 relative z-10">
-                            <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Account Holder</p>
-                            <p className="text-[15px] font-black text-white tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-6 relative z-10">
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Bank Name</p>
-                                <p className="text-[13px] font-black text-white tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">IFSC Code</p>
-                                <p className="text-[13px] font-black text-white tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
+                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+                        {/* 0. CONTACT INFO */}
+                        <div className="p-7 space-y-4">
+                            <div className="grid grid-cols-1 gap-4 pl-1">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                        <span className="material-symbols-outlined text-lg">call</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Mobile Number</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-widest">{user.phone}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                        <span className="material-symbols-outlined text-lg">mail</span>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Email Address</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight lowercase">{user.email || 'partner@ezoflife.in'}</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 relative z-10">
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Account Number</p>
-                                <p className="text-[13px] font-black text-white tracking-[0.2em]">
-                                    {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
-                                </p>
+                        {/* 1. BUSINESS INFO */}
+                        <div className="p-7 space-y-5">
+                            <div className="grid grid-cols-1 gap-5 pl-1">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
+                                    <p className="text-sm font-black text-slate-900 tracking-tight">{user.shopDetails?.name || 'N/A'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Address</p>
+                                    <p className="text-xs font-bold text-slate-600 leading-relaxed">{user.shopDetails?.address || 'N/A'}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GST Number</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">{user.shopDetails?.gst || 'Individual'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MSME Status</p>
+                                        <p className="text-xs font-black text-emerald-600 tracking-tight flex items-center gap-1 uppercase">
+                                            <span className="material-symbols-outlined text-[14px]">check_circle</span> {user.shopDetails?.msmeStatus || 'N/A'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 2. BANK INFO */}
+                        <div className="p-7 bg-slate-50/50 space-y-5">
+                            <div className="flex justify-end mb-2">
+                                <button 
+                                    onClick={() => handleEditClick('bank')}
+                                    className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1"
+                                >
+                                    <span className="material-symbols-outlined text-[12px]">edit</span>
+                                    Update Bank
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-5 pl-1">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
+                                    <p className="text-sm font-black text-slate-900 tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
+                                    <p className="text-xs font-black text-slate-900 tracking-[0.15em]">
+                                        {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 {/* 4. DOCUMENTS SECTION */}
-                <section className="space-y-4">
+                <section className="space-y-3">
                     <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Business Documents</h3>
-                        <span className="material-symbols-outlined text-slate-200">folder_shared</span>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Verification Documents</h3>
+                        <span className="material-symbols-outlined text-slate-200 text-lg">folder_shared</span>
                     </div>
 
-                    <div className="bg-white p-7 rounded-[2.8rem] border border-slate-100 shadow-sm space-y-4">
+                    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
                         {(user.documents && user.documents.length > 0) ? (
                             user.documents.map((doc, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 rounded-3xl border border-slate-100">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-slate-400">
-                                            <span className="material-symbols-outlined">description</span>
+                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-400">
+                                            <span className="material-symbols-outlined text-lg">description</span>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">{doc.type}</p>
-                                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-[8px] font-black text-primary uppercase tracking-widest">View Document</a>
+                                            <p className="text-[9px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1">{doc.type}</p>
+                                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-[7px] font-black text-primary uppercase tracking-widest">View File</a>
                                         </div>
                                     </div>
                                     <label className="cursor-pointer">
@@ -319,19 +356,19 @@ const VendorProfile = () => {
                                             className="hidden"
                                             onChange={(e) => handleDocumentUpdate(doc.type, e.target.files[0])}
                                         />
-                                        <span className="material-symbols-outlined text-slate-300 hover:text-primary transition-colors text-xl">upload_file</span>
+                                        <span className="material-symbols-outlined text-slate-300 hover:text-primary transition-colors text-lg">upload_file</span>
                                     </label>
                                 </div>
                             ))
                         ) : (
-                            <div className="text-center py-6">
-                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No documents found</p>
+                            <div className="text-center py-4">
+                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">No documents uploaded</p>
                             </div>
                         )}
 
                         {/* Option to add missing ones if needed or standard set */}
                         {(!user.documents || user.documents.length < 2) && (
-                            <div className="pt-2">
+                            <div className="pt-2 border-t border-slate-50 mt-2">
                                 <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-3 text-center">Add Missing Documents</p>
                                 <div className="flex gap-2">
                                     {['GST Document', 'MSME Document'].filter(t => !user.documents?.some(d => d.type === t)).map(type => (
@@ -349,43 +386,43 @@ const VendorProfile = () => {
                 </section>
 
                 {/* 5. LEGAL & POLICIES SECTION */}
-                <section className="space-y-4">
+                <section className="space-y-3">
                     <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>
-                        <span className="material-symbols-outlined text-slate-200">policy</span>
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>
+                        <span className="material-symbols-outlined text-slate-200 text-lg">policy</span>
                     </div>
 
-                    <div className="bg-white rounded-[2.8rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
                         <button
                             onClick={() => navigate('/user/terms?role=vendor')}
-                            className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
+                            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group text-left"
                         >
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-xl">gavel</span>
+                                <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-lg">gavel</span>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">Terms of Service</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rules & Regulations</p>
+                                    <p className="text-xs font-black text-slate-900 leading-none mb-1">Terms of Service</p>
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Rules & Regulations</p>
                                 </div>
                             </div>
-                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
+                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
                         </button>
 
                         <button
                             onClick={() => navigate('/user/privacy?role=vendor')}
-                            className="w-full flex items-center justify-between p-6 hover:bg-slate-50 transition-colors group text-left"
+                            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group text-left"
                         >
                             <div className="flex items-center gap-4">
-                                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-xl">verified_user</span>
+                                <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                    <span className="material-symbols-outlined text-lg">verified_user</span>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-black text-slate-900 leading-none mb-1">Privacy Policy</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Data Protection Protocol</p>
+                                    <p className="text-xs font-black text-slate-900 leading-none mb-1">Privacy Policy</p>
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Data Protection Protocol</p>
                                 </div>
                             </div>
-                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors">chevron_right</span>
+                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
                         </button>
                     </div>
                 </section>
@@ -394,7 +431,7 @@ const VendorProfile = () => {
                 <div className="flex flex-col gap-4 pt-4">
                     <button
                         onClick={handleSignOut}
-                        className="w-full py-5 bg-rose-50 border border-rose-100 rounded-[2rem] text-[11px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
+                        className="w-full py-5 bg-rose-50 border border-rose-100 rounded-[2rem] text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
                     >
                         <span className="material-symbols-outlined text-lg">logout</span>
                         Logout
@@ -402,7 +439,7 @@ const VendorProfile = () => {
                 </div>
 
                 <div className="text-center pb-12">
-                    <p className="text-[9px] font-black text-slate-200 uppercase tracking-[0.6em]">EZ OF LIFE PARTNER • v3.0.0</p>
+                    <p className="text-[8px] font-black text-slate-200 uppercase tracking-[0.6em]">EZ OF LIFE PARTNER • v3.0.0</p>
                 </div>
             </main>
 

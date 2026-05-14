@@ -174,7 +174,6 @@ export default function ServiceAreas() {
                                         </div>
                                         <div className="flex flex-col">
                                             <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{area.name}</span>
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Factor: {area.pricingFactor}x</span>
                                         </div>
                                     </div>
                                     <button 
@@ -208,30 +207,19 @@ export default function ServiceAreas() {
                                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-wider focus:border-slate-900 outline-none"
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Pricing Factor</label>
-                                <input 
-                                    type="number" step="0.1"
-                                    value={selectedArea.pricingFactor} 
-                                    onChange={(e) => setSelectedArea({...selectedArea, pricingFactor: parseFloat(e.target.value)})}
-                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black focus:border-slate-900 outline-none"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Map Color</label>
-                                <input 
-                                    type="color"
-                                    value={selectedArea.color} 
-                                    onChange={(e) => setSelectedArea({...selectedArea, color: e.target.value})}
-                                    className="w-full h-[52px] p-2 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer"
-                                />
-                            </div>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Map Color</label>
+                            <input 
+                                type="color"
+                                value={selectedArea.color} 
+                                onChange={(e) => setSelectedArea({...selectedArea, color: e.target.value})}
+                                className="w-full h-[52px] p-2 bg-slate-50 border border-slate-200 rounded-2xl cursor-pointer"
+                            />
                         </div>
-                        <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
-                            <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                            <p className="text-[9px] font-bold text-amber-700 leading-relaxed uppercase tracking-widest">
-                                Changing the boundary or pricing factor will immediately affect customer calculations.
+                        <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
+                            <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
+                            <p className="text-[9px] font-bold text-blue-700 leading-relaxed uppercase tracking-widest">
+                                Boundaries defined here will be used for service availability checks.
                             </p>
                         </div>
                         <button 

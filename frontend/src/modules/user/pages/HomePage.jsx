@@ -98,6 +98,7 @@ const HomePage = () => {
     return dates;
   }, []);
 
+
   const timeSlots = useMemo(() => [
     '07:00 AM - 09:00 AM', '09:00 AM - 11:00 AM', '11:00 AM - 01:00 PM',
     '01:00 PM - 03:00 PM', '03:00 PM - 05:00 PM', '05:00 PM - 07:00 PM',
@@ -277,6 +278,74 @@ const HomePage = () => {
   useEffect(() => {
     localStorage.setItem('cart_quantities', JSON.stringify(selectedQuantities));
   }, [selectedQuantities]);
+
+  // --- BACKEND CART SYNC ---
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [hasLoadedCart, setHasLoadedCart] = useState(false);
+
+  useEffect(() => {
+    const loadCart = async () => {
+        try {
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userId = userData._id || userData.id;
+            if (userId) {
+                const cart = await authApi.getDraftCart(userId);
+                if (cart && Object.keys(cart).length > 0) {
+                    if (cart.selectedQuantities) setSelectedQuantities(cart.selectedQuantities);
+                    if (cart.selectedTier) setSelectedTier(cart.selectedTier);
+                    if (cart.isExpress !== undefined) setIsExpress(cart.isExpress);
+                    if (cart.pickup) {
+                        setSelectedPickup(cart.pickup.date || '');
+                        setPickupTime(cart.pickup.time || '');
+                        setPickupAddress(cart.pickup.address || null);
+                    }
+                    if (cart.delivery) {
+                        setSelectedDelivery(cart.delivery.date || '');
+                        setDeliveryTime(cart.delivery.time || '');
+                        setDropAddress(cart.delivery.address || null);
+                    }
+                    if (cart.orderNotes) setOrderNotes(cart.orderNotes);
+                    if (cart.itemPhotos) setItemPhotos(cart.itemPhotos);
+                }
+            }
+            setHasLoadedCart(true);
+        } catch (err) {
+            console.error('Failed to load cart:', err);
+            setHasLoadedCart(true);
+        }
+    };
+    loadCart();
+  }, []);
+
+  // Sync effect
+  useEffect(() => {
+    if (!hasLoadedCart) return;
+
+    const syncCart = async () => {
+        try {
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userId = userData._id || userData.id;
+            if (!userId) return;
+
+            const cartData = {
+                selectedQuantities,
+                selectedTier,
+                isExpress,
+                pickup: { date: selectedPickup, time: pickupTime, address: pickupAddress },
+                delivery: { date: selectedDelivery, time: deliveryTime, address: dropAddress },
+                orderNotes,
+                itemPhotos
+            };
+            
+            await authApi.updateDraftCart(userId, cartData);
+        } catch (err) {
+            console.error('Failed to sync cart:', err);
+        }
+    };
+
+    const timeout = setTimeout(syncCart, 2000); // Debounce sync
+    return () => clearTimeout(timeout);
+  }, [selectedQuantities, selectedTier, isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime, pickupAddress, dropAddress, orderNotes, itemPhotos, hasLoadedCart]);
 
   const fetchConfig = async () => {
     try {
@@ -688,7 +757,7 @@ const HomePage = () => {
           <button 
             disabled={!selectedTier}
             onClick={() => setShowSlotPicker(true)}
-            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-tighter border transition-all flex flex-row items-center justify-center gap-1.5 ${!selectedTier ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
+            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-[0.05em] border transition-all flex flex-row items-center justify-center gap-1.5 ${!selectedTier ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
           >
             <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
             <span className="text-left">Schedule Pickup and Drop-off</span>
@@ -1397,33 +1466,17 @@ const HomePage = () => {
         <AnimatePresence>
           {cartItemsCount > 0 && (
             <motion.div 
-              initial={{ y: 100 }} 
-              animate={{ y: 0 }} 
-              exit={{ y: 100 }}
-              className="fixed bottom-[70px] left-0 right-0 z-[150] bg-[#161B28] text-white border-t border-white/5"
+              initial={{ y: 100, opacity: 0 }} 
+              animate={{ y: 0, opacity: 1 }} 
+              exit={{ y: 100, opacity: 0 }}
+              className="fixed bottom-[80px] right-6 z-[150]"
             >
-              <div className="px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-5">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-1">Final Total</span>
-                    <span className="text-xl font-black tracking-tight">₹{Math.round(cartTotal)}</span>
-                  </div>
-                  
-                  <div className="w-[1px] h-8 bg-white/10" />
-                  
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{cartItemsCount} Items</span>
-                </div>
-
                 <button 
                   onClick={handleCartClick}
-                  className="flex items-center gap-3 group"
+                  className="bg-primary text-white px-10 py-4.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/50 active:scale-95 transition-all border-2 border-white/20"
                 >
-                  <span className="text-[10px] font-black uppercase tracking-widest">Verify & Pay</span>
-                  <div className="w-10 h-10 rounded-full bg-slate-700/50 flex items-center justify-center group-hover:bg-slate-600 transition-all">
-                    <span className="material-symbols-outlined text-white text-xl">east</span>
-                  </div>
+                  Review and Pay
                 </button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

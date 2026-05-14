@@ -20,6 +20,10 @@ const WalkInOrderPage = () => {
     const vendorId = vendorData?._id || vendorData?.id;
 
     const fetchServices = async () => {
+        if (!vendorId) {
+            console.warn('WalkInHub: No vendorId found, skipping service fetch.');
+            return;
+        }
         try {
             // Fetch only vendor's approved services
             const data = await serviceApi.getAll({ vendorId });

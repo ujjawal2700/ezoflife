@@ -51,14 +51,34 @@ const masterServiceSchema = new mongoose.Schema({
     excelCategoryId: {
         type: Number
     },
+    avgWeight: {
+        type: String,
+        default: '0.5'
+    },
+    seasonality: {
+        type: String,
+        default: 'All Season'
+    },
+    estimateTAT: {
+        type: String,
+        default: '48 Hours'
+    },
+    expressMultiplier: {
+        type: Number,
+        default: 2
+    },
+    gst: {
+        type: Number,
+        default: 5
+    },
     completionTime: {
         type: Number,
         default: 1
     },
     serviceType: {
         type: String,
-        enum: ['individual', 'retail'],
-        default: 'individual'
+        enum: ['normal', 'retail'],
+        default: 'normal'
     }
 }, { timestamps: true });
 
