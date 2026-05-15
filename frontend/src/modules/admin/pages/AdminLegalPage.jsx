@@ -110,7 +110,7 @@ const AdminLegalPage = ({ type }) => {
         <div className="p-8 space-y-8 max-w-5xl mx-auto">
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none uppercase italic">{displayTitle}</h1>
+                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none uppercase">{displayTitle}</h1>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Manage official documents by role</p>
                 </div>
                 
@@ -148,7 +148,7 @@ const AdminLegalPage = ({ type }) => {
                                     </span>
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-black tracking-tight text-slate-900 uppercase italic">
+                                    <h3 className="text-xl font-black tracking-tight text-slate-900 uppercase">
                                         {pdfUrl ? 'Policy PDF Ready' : `Upload ${displayTitle}`}
                                     </h3>
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">

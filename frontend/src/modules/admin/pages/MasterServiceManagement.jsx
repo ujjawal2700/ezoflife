@@ -37,7 +37,8 @@ const MasterServiceManagement = () => {
         unit: 'per_item',
         isActive: true,
         serviceType: 'normal',
-        excelCategoryId: ''
+        excelCategoryId: '',
+        sacCode: '9994'
     });
 
     useEffect(() => {
@@ -107,7 +108,8 @@ const MasterServiceManagement = () => {
                 unit: service.unit || 'per_item',
                 isActive: service.isActive !== undefined ? service.isActive : true,
                 serviceType: service.serviceType || 'normal',
-                excelCategoryId: service.excelCategoryId || ''
+                excelCategoryId: service.excelCategoryId || '',
+                sacCode: service.sacCode || '9994'
             });
         } else {
             setCurrentService(null);
@@ -129,7 +131,8 @@ const MasterServiceManagement = () => {
                 unit: 'per_item',
                 isActive: true,
                 serviceType: 'normal',
-                excelCategoryId: ''
+                excelCategoryId: '',
+                sacCode: '9994'
             });
         }
         setIsModalOpen(true);
@@ -183,19 +186,18 @@ const MasterServiceManagement = () => {
             )
         },
         {
+            header: 'SAC',
+            key: 'sacCode',
+            render: (val) => (
+                <span className="font-bold text-slate-400 text-[10px] tracking-widest">
+                    {val || '9994'}
+                </span>
+            )
+        },
+        {
             header: 'Item Name',
             key: 'itemName',
             render: (val) => <span className="font-bold text-slate-800 uppercase tracking-tight">{val}</span>
-        },
-        {
-            header: 'Main Category',
-            key: 'categoryId',
-            render: (val) => <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{val?.mainCategory || '—'}</span>
-        },
-        {
-            header: 'Sub Category',
-            key: 'categoryId',
-            render: (val) => <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{val?.name || '—'}</span>
         },
         {
             header: 'Weight',
@@ -366,11 +368,31 @@ const MasterServiceManagement = () => {
                                 {/* Left Column: Identification */}
                                 <div className="space-y-6">
                                 {currentService && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SKU ID (Excel PK)</label>
-                                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
-                                            {formData.skuId}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SKU ID (Excel PK)</label>
+                                            <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
+                                                {formData.skuId}
+                                            </div>
                                         </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
+                                            <input 
+                                                value={formData.sacCode}
+                                                onChange={e => setFormData({...formData, sacCode: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                {!currentService && (
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
+                                        <input 
+                                            value={formData.sacCode}
+                                            onChange={e => setFormData({...formData, sacCode: e.target.value})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        />
                                     </div>
                                 )}
 

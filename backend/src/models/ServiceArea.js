@@ -60,6 +60,14 @@ const serviceAreaSchema = new mongoose.Schema({
     heritageMultiplier: {
         type: Number,
         default: 1.0
+    },
+    platformMultiplier: {
+        type: Number,
+        default: 1.0
+    },
+    freeDeliveryThreshold: {
+        type: Number,
+        default: 500
     }
 }, { timestamps: true });
 

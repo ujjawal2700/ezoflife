@@ -81,6 +81,33 @@ const MasterPricingRegistry = () => {
             )
         },
         {
+            header: 'SAC',
+            key: 'serviceId',
+            render: (val) => (
+                <span className="font-black text-slate-400 text-[10px] tracking-widest uppercase">
+                    {val?.sacCode || '9994'}
+                </span>
+            )
+        },
+        {
+            header: 'Category',
+            key: 'categoryId',
+            render: (val) => (
+                <span className="text-[9px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-100 uppercase tracking-widest">
+                    {val?.mainCategory || '—'}
+                </span>
+            )
+        },
+        {
+            header: 'Sub-Category',
+            key: 'categoryId',
+            render: (val) => (
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    {val?.subCategory || '—'}
+                </span>
+            )
+        },
+        {
             header: 'Base (₹)',
             key: 'discountPrice',
             render: (val) => <span className="font-bold text-slate-400 text-[11px]">₹{val}</span>

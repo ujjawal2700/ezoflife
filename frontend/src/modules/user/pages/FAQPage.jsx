@@ -25,16 +25,23 @@ const FAQPage = () => {
     }, []);
 
     const filteredFaqs = useMemo(() => {
-        const userRole = localStorage.getItem('userRole') || 'Customer';
+        const token = localStorage.getItem('token');
+        const userRole = localStorage.getItem('userRole');
+        
         const roleMapping = {
             'customer': 'Customer',
             'vendor': 'Vendor',
             'supplier': 'Supplier'
         };
-        const currentRole = roleMapping[userRole.toLowerCase()] || 'Customer';
+        const currentRole = userRole ? (roleMapping[userRole.toLowerCase()] || 'Customer') : null;
 
         return faqs
-            .filter(f => !f.targetRole || f.targetRole === 'All' || f.targetRole === currentRole)
+            .filter(f => {
+                // If not logged in, only show 'All'
+                if (!token) return f.targetRole === 'All';
+                // If logged in, show 'All' AND their specific role
+                return f.targetRole === 'All' || f.targetRole === currentRole;
+            })
             .filter(f => 
                 f.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
                 f.answer.toLowerCase().includes(searchQuery.toLowerCase())

@@ -39,6 +39,10 @@ const masterServiceSchema = new mongoose.Schema({
         unique: true,
         sparse: true
     },
+    sacCode: {
+        type: String,
+        default: '9994'
+    },
     icon: { 
         type: String, 
         default: 'local_laundry_service' 

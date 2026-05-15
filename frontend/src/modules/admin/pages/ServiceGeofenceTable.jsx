@@ -3,7 +3,7 @@ import { BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { 
     Download, MapPin, Globe, Zap, Percent, ShieldCheck, 
-    ChevronRight, Info, Settings, MoreHorizontal, Map, Trash2, X, Save, Edit2
+    ChevronRight, Info, Settings, MoreHorizontal, Map, Trash2, X, Save, Edit2, TrendingUp, Truck
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
@@ -54,7 +54,9 @@ const ServiceGeofenceTable = () => {
                     basePriceMultiplier: editingArea.basePriceMultiplier,
                     discountPriceMultiplier: editingArea.discountPriceMultiplier,
                     heritageMultiplier: editingArea.heritageMultiplier,
-                    showDiscount: editingArea.showDiscount
+                    showDiscount: editingArea.showDiscount,
+                    platformMultiplier: editingArea.platformMultiplier,
+                    freeDeliveryThreshold: editingArea.freeDeliveryThreshold
                 })
             });
             if (res.ok) {
@@ -118,16 +120,6 @@ const ServiceGeofenceTable = () => {
             )
         },
         {
-            header: 'Express Mult.',
-            key: 'dynamicSurgeMultiplier',
-            render: (val) => (
-                <div className="flex items-center gap-1.5 text-amber-600 font-bold">
-                    <Zap size={10} className="text-amber-400" />
-                    <span>{val || 1.0}x</span>
-                </div>
-            )
-        },
-        {
             header: 'Base Mult.',
             key: 'basePriceMultiplier',
             render: (val) => (
@@ -138,11 +130,11 @@ const ServiceGeofenceTable = () => {
             )
         },
         {
-            header: 'Disc. Mult.',
-            key: 'discountPriceMultiplier',
+            header: 'Express Mult.',
+            key: 'dynamicSurgeMultiplier',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
-                    <Percent size={10} className="text-emerald-400" />
+                <div className="flex items-center gap-1.5 text-amber-600 font-bold">
+                    <Zap size={10} className="text-amber-400" />
                     <span>{val || 1.0}x</span>
                 </div>
             )
@@ -153,6 +145,16 @@ const ServiceGeofenceTable = () => {
             render: (val) => (
                 <div className="flex items-center gap-1.5 text-purple-600 font-bold">
                     <ShieldCheck size={10} className="text-purple-400" />
+                    <span>{val || 1.0}x</span>
+                </div>
+            )
+        },
+        {
+            header: 'Disc. Mult.',
+            key: 'discountPriceMultiplier',
+            render: (val) => (
+                <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                    <Percent size={10} className="text-emerald-400" />
                     <span>{val || 1.0}x</span>
                 </div>
             )
@@ -173,6 +175,26 @@ const ServiceGeofenceTable = () => {
                 <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
                     {val ? 'Y' : 'N'}
                 </span>
+            )
+        },
+        {
+            header: 'Platform Mult.',
+            key: 'platformMultiplier',
+            render: (val) => (
+                <div className="flex items-center gap-1.5 text-blue-600 font-bold">
+                    <TrendingUp size={10} className="text-blue-400" />
+                    <span>{val || 1.0}x</span>
+                </div>
+            )
+        },
+        {
+            header: 'Free Delivery Threshold',
+            key: 'freeDeliveryThreshold',
+            render: (val) => (
+                <div className="flex items-center gap-1.5 text-rose-600 font-bold">
+                    <Truck size={10} className="text-rose-400" />
+                    <span>₹{val || 0}</span>
+                </div>
             )
         },
         {
@@ -309,6 +331,28 @@ const ServiceGeofenceTable = () => {
                                         value={editingArea.heritageMultiplier || 1.0} 
                                         onChange={(e) => setEditingArea({...editingArea, heritageMultiplier: parseFloat(e.target.value)})}
                                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-purple-500 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <TrendingUp size={10} className="text-blue-500" /> Platform Multiplier (x)
+                                    </label>
+                                    <input 
+                                        type="number" step="0.1"
+                                        value={editingArea.platformMultiplier || 1.0} 
+                                        onChange={(e) => setEditingArea({...editingArea, platformMultiplier: parseFloat(e.target.value)})}
+                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <Truck size={10} className="text-rose-500" /> Free Delivery Threshold (₹)
+                                    </label>
+                                    <input 
+                                        type="number"
+                                        value={editingArea.freeDeliveryThreshold || 500} 
+                                        onChange={(e) => setEditingArea({...editingArea, freeDeliveryThreshold: parseFloat(e.target.value)})}
+                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-rose-500 transition-all"
                                     />
                                 </div>
                             </div>

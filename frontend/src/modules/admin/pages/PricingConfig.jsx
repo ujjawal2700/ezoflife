@@ -172,29 +172,6 @@ export default function PricingConfig() {
 
       <div className="p-8 space-y-8 max-w-[1400px] mx-auto w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Free Delivery Threshold Card */}
-            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
-                <div className="p-6 bg-rose-50/30 border-b border-rose-100 flex items-center gap-4">
-                    <div className="w-10 h-10 bg-rose-600 text-white flex items-center justify-center rounded-sm">
-                        <Award size={18} />
-                    </div>
-                    <div>
-                        <h3 className="text-[11px] font-black text-rose-900 uppercase tracking-widest">Free Delivery Threshold (₹)</h3>
-                        <p className="text-[9px] font-bold text-rose-600/60 uppercase tracking-widest mt-1">Shipping Waiver Limit</p>
-                    </div>
-                </div>
-                <div className="p-8 space-y-6">
-                    <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold">₹</span>
-                        <input 
-                            type="number" 
-                            value={freeDeliveryThreshold}
-                            onChange={(e) => setFreeDeliveryThreshold(e.target.value)}
-                            className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
-                        />
-                    </div>
-                </div>
-            </div>
 
             {/* Advance Payment Card */}
             <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
@@ -244,30 +221,6 @@ export default function PricingConfig() {
                 </div>
             </div>
 
-            {/* Platform Fee Multiplier Card */}
-            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
-                <div className="p-6 bg-amber-50/30 border-b border-amber-100 flex items-center gap-4">
-                    <div className="w-10 h-10 bg-amber-600 text-white flex items-center justify-center rounded-sm">
-                        <TrendingUp size={18} />
-                    </div>
-                    <div>
-                        <h3 className="text-[11px] font-black text-amber-900 uppercase tracking-widest">Platform Fee Mult. (x)</h3>
-                        <p className="text-[9px] font-bold text-amber-600/60 uppercase tracking-widest mt-1">Global Service Scaling</p>
-                    </div>
-                </div>
-                <div className="p-8 space-y-6">
-                    <div className="relative group">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-bold">x</span>
-                        <input 
-                            type="number" 
-                            step="0.1"
-                            value={platformFeeMultiplier}
-                            onChange={(e) => setPlatformFeeMultiplier(e.target.value)}
-                            className="w-full pl-10 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all"
-                        />
-                    </div>
-                </div>
-            </div>
         </div>
 
         {/* Action Button Section */}

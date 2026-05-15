@@ -87,23 +87,24 @@ const FAQManagement = () => {
                             >
                                 <option value="General">General</option>
                                 <option value="Orders">Orders</option>
-                                <option value="Payments">Payments</option>
-                                <option value="Vendor">Vendor</option>
-                                <option value="Supplier">Supplier</option>
+                                <option value="Payment">Payment</option>
+                                <option value="Shipping">Shipping</option>
                             </select>
                         </div>
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Audience</label>
-                            <select 
-                                value={newFaq.targetRole}
-                                onChange={(e) => setNewFaq({ ...newFaq, targetRole: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 focus:border-primary/30 outline-none text-sm font-bold"
-                            >
-                                <option value="All">All Roles</option>
-                                <option value="Customer">Customer</option>
-                                <option value="Vendor">Vendor</option>
-                                <option value="Supplier">Supplier</option>
-                            </select>
+                            <div className="flex gap-1 p-1 bg-slate-100 rounded-2xl w-full">
+                                {['All', 'Customer', 'Vendor', 'Supplier'].map((role) => (
+                                    <button
+                                        key={role}
+                                        type="button"
+                                        onClick={() => setNewFaq({ ...newFaq, targetRole: role })}
+                                        className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${newFaq.targetRole === role ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        {role}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -175,7 +176,7 @@ const FAQManagement = () => {
                             <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-all">
                                 <HelpCircle size={20} />
                             </div>
-                            <div className="flex-1 space-y-1">
+                            <div className="flex-1 space-y-1 min-w-0">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">{faq.category}</span>
@@ -190,9 +191,9 @@ const FAQManagement = () => {
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
-                                <h4 className="text-sm font-black text-slate-900 tracking-tight">{faq.question}</h4>
+                                <h4 className="text-base font-black text-slate-900 tracking-tight leading-snug">{faq.question}</h4>
                                 <div 
-                                    className="text-xs text-slate-500 font-bold leading-relaxed line-clamp-2"
+                                    className="text-[13px] text-slate-600 font-medium leading-relaxed break-words whitespace-pre-wrap"
                                     dangerouslySetInnerHTML={{ __html: faq.answer }}
                                 />
                                 {faq.youtubeUrl && (
