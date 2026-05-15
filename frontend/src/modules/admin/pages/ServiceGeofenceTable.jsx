@@ -3,7 +3,7 @@ import { BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { 
     Download, MapPin, Globe, Zap, Percent, ShieldCheck, 
-    ChevronRight, Info, Settings, MoreHorizontal, Map, Trash2, X, Save
+    ChevronRight, Info, Settings, MoreHorizontal, Map, Trash2, X, Save, Edit2
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
@@ -53,7 +53,8 @@ const ServiceGeofenceTable = () => {
                     dynamicSurgeMultiplier: editingArea.dynamicSurgeMultiplier,
                     basePriceMultiplier: editingArea.basePriceMultiplier,
                     discountPriceMultiplier: editingArea.discountPriceMultiplier,
-                    heritageMultiplier: editingArea.heritageMultiplier
+                    heritageMultiplier: editingArea.heritageMultiplier,
+                    showDiscount: editingArea.showDiscount
                 })
             });
             if (res.ok) {
@@ -117,7 +118,7 @@ const ServiceGeofenceTable = () => {
             )
         },
         {
-            header: 'Surge Mult.',
+            header: 'Express Mult.',
             key: 'dynamicSurgeMultiplier',
             render: (val) => (
                 <div className="flex items-center gap-1.5 text-amber-600 font-bold">
@@ -157,7 +158,16 @@ const ServiceGeofenceTable = () => {
             )
         },
         {
-            header: 'IsActive',
+            header: 'Show Discount',
+            key: 'showDiscount',
+            render: (val) => (
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                    {val ? 'Y' : 'N'}
+                </span>
+            )
+        },
+        {
+            header: 'Curr Ind',
             key: 'isActive',
             render: (val) => (
                 <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
@@ -175,13 +185,7 @@ const ServiceGeofenceTable = () => {
                         onClick={() => setEditingArea(row)}
                         className="p-2 hover:bg-blue-50 rounded-lg text-blue-400 hover:text-blue-600 transition-all"
                     >
-                        <Settings size={14} />
-                    </button>
-                    <button 
-                        onClick={() => handleDeleteArea(row._id)}
-                        className="p-2 hover:bg-rose-50 rounded-lg text-rose-300 hover:text-rose-600 transition-all"
-                    >
-                        <Trash2 size={14} />
+                        <Edit2 size={14} />
                     </button>
                 </div>
             )
@@ -248,7 +252,7 @@ const ServiceGeofenceTable = () => {
                             <div className="grid grid-cols-1 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                        <Zap size={10} className="text-amber-500" /> Dynamic Surge Multiplier
+                                        <Zap size={10} className="text-amber-500" /> Express Multiplier
                                     </label>
                                     <input 
                                         type="number" step="0.1"
@@ -278,6 +282,23 @@ const ServiceGeofenceTable = () => {
                                         onChange={(e) => setEditingArea({...editingArea, discountPriceMultiplier: parseFloat(e.target.value)})}
                                         className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-emerald-500 transition-all"
                                     />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                        <Percent size={10} className="text-amber-500" /> Show Discount Price (Y/N)
+                                    </label>
+                                    <div className="flex gap-2">
+                                        {[true, false].map(opt => (
+                                            <button 
+                                                key={opt.toString()}
+                                                type="button"
+                                                onClick={() => setEditingArea({...editingArea, showDiscount: opt})}
+                                                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${editingArea.showDiscount === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                            >
+                                                {opt ? 'Y' : 'N'}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">

@@ -38,10 +38,10 @@ const MoreMenuPage = () => {
           ]
         },
         {
-          title: "Help & Support",
+          title: "Help & FAQ",
           icon: "support_agent",
           items: [
-            { icon: "help_center", title: "Help & Support", desc: "FAQs & Instant Help", path: "/user/support" }
+            { icon: "help_center", title: "Help & FAQ", desc: "FAQs & Instant Help", path: "/user/support" }
           ]
         },
       ];

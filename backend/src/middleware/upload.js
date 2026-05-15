@@ -15,11 +15,22 @@ const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: async (req, file) => {
     const isVideo = file.mimetype.startsWith('video/');
+    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    
+    // Sanitize filename: replace spaces/special chars with hyphens
+    const cleanName = file.originalname
+      .split('.')[0]
+      .replace(/[^a-zA-Z0-9]/g, '-')
+      .replace(/-+/g, '-');
+
     return {
       folder: 'ezoflife/documents',
-      resource_type: 'auto', // Important for videos
-      allowed_formats: ['jpg', 'png', 'jpeg', 'pdf', 'mp4', 'mov', 'avi'],
-      public_id: `${Date.now()}-${file.originalname.split('.')[0]}`,
+      // For PDFs, use 'raw' to avoid them being treated as images/thumbnails
+      resource_type: isPdf ? 'raw' : (isVideo ? 'video' : 'image'),
+      // IMPORTANT: Don't set allowed_formats for 'raw' files
+      allowed_formats: isPdf ? undefined : ['jpg', 'png', 'jpeg', 'mp4', 'mov', 'avi'],
+      // For raw files, the extension MUST be part of the public_id to be served correctly
+      public_id: `${Date.now()}-${cleanName}${isPdf ? '.pdf' : ''}`,
     };
   },
 });

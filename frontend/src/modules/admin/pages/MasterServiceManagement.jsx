@@ -17,6 +17,9 @@ const MasterServiceManagement = () => {
     const [categories, setCategories] = useState([]);
     const [selectedMain, setSelectedMain] = useState('');
 
+    const [filterMain, setFilterMain] = useState('');
+    const [filterSub, setFilterSub] = useState('');
+
     const [formData, setFormData] = useState({
         itemName: '',
         categoryId: '',
@@ -26,8 +29,11 @@ const MasterServiceManagement = () => {
         estimateTAT: '48 Hours',
         expressMultiplier: 2,
         gst: 5,
+        heritageGst: 18,
+        heritageMultiplier: 1.5,
         basePrice: 0,
         discountedPrice: 0,
+        curr_ind: 'y',
         unit: 'per_item',
         isActive: true,
         serviceType: 'normal',
@@ -68,6 +74,18 @@ const MasterServiceManagement = () => {
         return categories.filter(c => c.mainCategory === selectedMain);
     }, [categories, selectedMain]);
 
+    const filteredServices = useMemo(() => {
+        return services.filter(service => {
+            const matchesMain = !filterMain || service.categoryId?.mainCategory === filterMain;
+            const matchesSub = !filterSub || service.categoryId?._id === filterSub;
+            return matchesMain && matchesSub;
+        });
+    }, [services, filterMain, filterSub]);
+
+    const filterSubCategoryList = useMemo(() => {
+        return categories.filter(c => c.mainCategory === filterMain);
+    }, [categories, filterMain]);
+
     const handleOpenModal = (service = null) => {
         if (service) {
             setCurrentService(service);
@@ -81,8 +99,11 @@ const MasterServiceManagement = () => {
                 estimateTAT: service.estimateTAT || '48 Hours',
                 expressMultiplier: service.expressMultiplier || 2,
                 gst: service.gst || 5,
+                heritageGst: service.heritageGst || 18,
+                heritageMultiplier: service.heritageMultiplier || 1.5,
                 basePrice: service.basePrice,
                 discountedPrice: service.discountedPrice,
+                curr_ind: service.curr_ind || 'y',
                 unit: service.unit || 'per_item',
                 isActive: service.isActive !== undefined ? service.isActive : true,
                 serviceType: service.serviceType || 'normal',
@@ -100,8 +121,11 @@ const MasterServiceManagement = () => {
                 estimateTAT: '48 Hours',
                 expressMultiplier: 2,
                 gst: 5,
+                heritageGst: 18,
+                heritageMultiplier: 1.5,
                 basePrice: 0,
                 discountedPrice: 0,
+                curr_ind: 'y',
                 unit: 'per_item',
                 isActive: true,
                 serviceType: 'normal',
@@ -161,12 +185,17 @@ const MasterServiceManagement = () => {
         {
             header: 'Item Name',
             key: 'itemName',
-            render: (val, row) => (
-                <div className="flex flex-col">
-                    <span className="font-bold text-slate-800 uppercase tracking-tight">{val}</span>
-                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{row.categoryId?.mainCategory}</span>
-                </div>
-            )
+            render: (val) => <span className="font-bold text-slate-800 uppercase tracking-tight">{val}</span>
+        },
+        {
+            header: 'Main Category',
+            key: 'categoryId',
+            render: (val) => <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{val?.mainCategory || '—'}</span>
+        },
+        {
+            header: 'Sub Category',
+            key: 'categoryId',
+            render: (val) => <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{val?.name || '—'}</span>
         },
         {
             header: 'Weight',
@@ -199,16 +228,6 @@ const MasterServiceManagement = () => {
             )
         },
         {
-            header: 'Express',
-            key: 'expressMultiplier',
-            render: (val) => (
-                <div className="flex items-center gap-1.5 text-amber-600 font-bold">
-                    <Zap size={10} className="text-amber-400" />
-                    <span>{val || '2'}x</span>
-                </div>
-            )
-        },
-        {
             header: 'Base Price',
             key: 'basePrice',
             render: (val) => <span className="font-bold text-slate-400 line-through">₹{val}</span>
@@ -219,6 +238,15 @@ const MasterServiceManagement = () => {
             render: (val) => <span className="font-black text-slate-900">₹{val}</span>
         },
         {
+            header: 'Curr Ind',
+            key: 'curr_ind',
+            render: (val) => (
+                <span className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest ${val === 'y' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                    {val || 'y'}
+                </span>
+            )
+        },
+        {
             header: 'Actions',
             key: 'actions',
             align: 'right',
@@ -226,9 +254,6 @@ const MasterServiceManagement = () => {
                 <div className="flex items-center justify-end gap-2">
                     <button onClick={() => handleOpenModal(row)} className="p-2 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-slate-900 transition-all">
                         <Edit2 size={14} />
-                    </button>
-                    <button onClick={() => handleDelete(row._id)} className="p-2 hover:bg-rose-50 rounded-sm text-slate-400 hover:text-rose-600 transition-all">
-                        <Trash2 size={14} />
                     </button>
                 </div>
             )
@@ -256,10 +281,58 @@ const MasterServiceManagement = () => {
             />
 
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+                {/* Filter Bar */}
+                <div className="bg-white p-4 border border-slate-200 rounded-sm flex flex-wrap items-center gap-4 shadow-sm">
+                    <div className="flex items-center gap-2 text-slate-400">
+                        <Filter size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Filters</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 flex-1">
+                        <div className="w-64">
+                            <select 
+                                value={filterMain}
+                                onChange={e => {
+                                    setFilterMain(e.target.value);
+                                    setFilterSub('');
+                                }}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none cursor-pointer"
+                            >
+                                <option value="">All Main Categories</option>
+                                {mainCategoryList.map(m => <option key={m} value={m}>{m}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="w-64">
+                            <select 
+                                value={filterSub}
+                                disabled={!filterMain}
+                                onChange={e => setFilterSub(e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none disabled:opacity-50 cursor-pointer"
+                            >
+                                <option value="">All Sub Categories</option>
+                                {filterSubCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}
+                            </select>
+                        </div>
+
+                        {(filterMain || filterSub) && (
+                            <button 
+                                onClick={() => {
+                                    setFilterMain('');
+                                    setFilterSub('');
+                                }}
+                                className="px-4 py-2.5 text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 rounded-sm transition-all flex items-center gap-2"
+                            >
+                                <X size={12} /> Clear Filters
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <DataGrid 
                     title="Master Service Catalog"
                     columns={columns}
-                    data={services}
+                    data={filteredServices}
                     loading={isLoading}
                 />
             </div>
@@ -383,37 +456,103 @@ const MasterServiceManagement = () => {
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none"
                                             />
                                         </div>
+                                    <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST (%)</label>
-                                            <input 
-                                                type="number"
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Essential GST (%)</label>
+                                            <select 
+                                                required
                                                 value={formData.gst}
                                                 onChange={e => setFormData({...formData, gst: parseFloat(e.target.value)})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none"
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            >
+                                                {[0, 5, 12, 18, 28].map(rate => (
+                                                    <option key={rate} value={rate}>{rate}%</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Heritage GST (%)</label>
+                                            <select 
+                                                required
+                                                value={formData.heritageGst}
+                                                onChange={e => setFormData({...formData, heritageGst: parseFloat(e.target.value)})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                            >
+                                                {[0, 5, 12, 18, 28].map(rate => (
+                                                    <option key={rate} value={rate}>{rate}%</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ref. Heritage Multiplier (x)</label>
+                                            <span className="text-[8px] font-bold text-amber-500 uppercase tracking-widest">For Preview Only</span>
+                                        </div>
+                                        <input 
+                                            type="number" step="0.1"
+                                            value={formData.heritageMultiplier}
+                                            onChange={e => setFormData({...formData, heritageMultiplier: parseFloat(e.target.value) || 1.0})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:border-amber-500 transition-all"
+                                            placeholder="e.g. 1.5"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Base Price</label>
+                                            <input 
+                                                type="number"
+                                                required
+                                                value={formData.basePrice}
+                                                onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-black text-slate-900 outline-none focus:border-slate-900"
+                                            />
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest block ml-1">Discounted Price</label>
+                                            <input 
+                                                type="number"
+                                                required
+                                                value={formData.discountedPrice}
+                                                onChange={e => setFormData({...formData, discountedPrice: parseFloat(e.target.value) || 0})}
+                                                className="w-full px-4 py-3 bg-slate-900 text-white rounded-sm text-[11px] font-black outline-none"
                                             />
                                         </div>
                                     </div>
 
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Base Price</label>
-                                        <input 
-                                            type="number"
-                                            required
-                                            value={formData.basePrice}
-                                            onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-black text-slate-900 outline-none focus:border-slate-900"
-                                        />
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Curr Ind (Y/N)</label>
+                                        <div className="flex gap-2">
+                                            {['y', 'n'].map(opt => (
+                                                <button 
+                                                    key={opt}
+                                                    type="button"
+                                                    onClick={() => setFormData({...formData, curr_ind: opt})}
+                                                    className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.curr_ind === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                                >
+                                                    {opt.toUpperCase()}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest block ml-1">Global Discounted Price</label>
-                                        <input 
-                                            type="number"
-                                            required
-                                            value={formData.discountedPrice}
-                                            onChange={e => setFormData({...formData, discountedPrice: parseFloat(e.target.value)})}
-                                            className="w-full px-4 py-3 bg-slate-900 text-white rounded-sm text-[11px] font-black outline-none"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block ml-1">Essential Final (Base)</label>
+                                            <div className="w-full px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-sm text-[11px] font-black text-emerald-700 flex justify-between items-center">
+                                                <span>₹{(formData.basePrice * (1 + formData.gst / 100)).toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block ml-1">Essential Final (Disc)</label>
+                                            <div className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-sm text-[11px] font-black text-blue-700 flex justify-between items-center">
+                                                <span>₹{(formData.discountedPrice * (1 + formData.gst / 100)).toFixed(2)}</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="space-y-1.5">

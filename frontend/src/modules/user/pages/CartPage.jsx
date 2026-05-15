@@ -186,7 +186,7 @@ const CartPage = () => {
             const configs = await shippingConfigApi.getConfig();
             const exMult = configs.find(c => c.key === 'express_multiplier');
             if (exMult) setExpressMultiplier(Number(exMult.value));
-            const platMult = configs.find(c => c.key === 'platform_multiplier');
+            const platMult = configs.find(c => c.key === 'platform_fee_multiplier');
             if (platMult) setPlatformMultiplier(Number(platMult.value));
             const gst = configs.find(c => c.key === 'gst_percent');
             if (gst) setGstPercent(Number(gst.value));
@@ -371,20 +371,27 @@ const CartPage = () => {
   const { pricingFactor, zone } = useLocationStore();
 
   const getItemPrice = (item) => {
-    // Priority: discountedPrice -> totalPrice -> basePrice
-    const price = item.discountedPrice || item.totalPrice || item.basePrice || 0;
-    return Math.round(price * (pricingFactor || 1));
+    // Priority: Respect showDiscountPrice toggle from Master Service
+    const basePrice = item.basePrice || item.totalPrice || 0;
+    const discountedPrice = item.discountedPrice || basePrice;
+    
+    // If showDiscountPrice is false, explicitly use basePrice
+    const sourcePrice = (item.showDiscountPrice === false) ? basePrice : discountedPrice;
+    
+    return Math.round(sourcePrice * (pricingFactor || 1));
   };
 
   const areaMultiplier = 1; // Default to 1, can be linked to location later
   
-  // V_Items = (Base * Area * Express * Platform)
+  // V_Items = Base + (Base * (Express - 1)) + (Base * (Platform - 1))
   const currentExpressMultiplier = isExpress ? expressMultiplier : 1;
   
   const V_Items = useMemo(() => {
     return cartItems.reduce((acc, item) => {
-        const itemBase = getItemPrice(item) * (quantities[item._id || item.id] || 0);
-        return acc + (itemBase * areaMultiplier * currentExpressMultiplier * platformMultiplier);
+        const itemBase = getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier;
+        const expressSurcharge = itemBase * (currentExpressMultiplier - 1);
+        const platformFee = itemBase * (platformMultiplier - 1);
+        return acc + itemBase + expressSurcharge + platformFee;
     }, 0);
   }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, platformMultiplier]);
 
@@ -405,9 +412,9 @@ const CartPage = () => {
         return acc + (getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier);
     }, 0);
     
-    // Multiplicative logic breakdown
-    const expressSurcharge = baseWithArea * platformMultiplier * (currentExpressMultiplier - 1);
-    const platformFee = baseWithArea * currentExpressMultiplier * (platformMultiplier - 1);
+    // Additive logic breakdown based on Base Price
+    const expressSurcharge = baseWithArea * (currentExpressMultiplier - 1);
+    const platformFee = baseWithArea * (platformMultiplier - 1);
     
     return {
         baseWithArea,

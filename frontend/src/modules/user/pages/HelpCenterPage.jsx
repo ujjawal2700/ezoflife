@@ -170,7 +170,7 @@ const HelpCenterPage = () => {
                                         setExpandedId(isOpen ? null : faq._id);
                                         setPlayingId(null);
                                     }}
-                                    className="w-full px-6 py-5 flex items-center justify-between text-left"
+                                    className="w-full px-6 pt-5 pb-2 flex items-center justify-between text-left"
                                 >
                                     <div className="flex-1 pr-4">
                                         <span className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase block mb-1">{faq.category}</span>
@@ -181,10 +181,10 @@ const HelpCenterPage = () => {
                                     </span>
                                 </button>
                                 {isOpen && (
-                                    <div className="overflow-visible pointer-events-auto relative z-[100]">
-                                        <div className="px-6 pb-6 border-t border-slate-50 pt-4 space-y-4">
+                                    <div className="overflow-hidden pointer-events-auto relative z-[100]">
+                                        <div className="px-6 pb-6 border-t border-slate-50 pt-1 space-y-3">
                                             <div 
-                                                className="text-xs font-medium text-slate-600 leading-relaxed rich-text-content"
+                                                className="text-xs font-medium text-slate-600 leading-relaxed rich-text-content break-words"
                                                 dangerouslySetInnerHTML={{ __html: faq.answer }}
                                             />
                                             {vId && (

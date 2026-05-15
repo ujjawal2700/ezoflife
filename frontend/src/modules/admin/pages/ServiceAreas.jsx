@@ -211,55 +211,8 @@ export default function ServiceAreas() {
       />
 
       <div className="p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 max-w-[1600px] mx-auto w-full">
-        {/* Sidebar: Zones List & Editor */}
+        {/* Sidebar: Zone Editor */}
         <div className="xl:col-span-1 space-y-6">
-            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-900 flex items-center gap-2">
-                        <Layers size={14} className="text-primary" /> Active Zones
-                    </h3>
-                    <span className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black text-slate-400 uppercase">{areas.length} Areas</span>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto">
-                    {areas.length === 0 ? (
-                        <div className="p-12 text-center">
-                            <MapPin size={32} className="text-slate-200 mx-auto mb-4" />
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No zones defined</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-slate-100">
-                            {areas.map(area => (
-                                <div 
-                                    key={area._id}
-                                    onClick={() => {
-                                        setSelectedArea({
-                                            ...area,
-                                            coordinates: area.boundary.coordinates[0]
-                                        });
-                                        setIsEditing(true);
-                                    }}
-                                    className={`p-5 cursor-pointer transition-all hover:bg-slate-50 flex items-center justify-between group ${selectedArea?._id === area._id ? 'bg-primary/5 border-l-4 border-primary' : ''}`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: area.color }}>
-                                            <Navigation size={14} />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{area.name}</span>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteArea(area._id); }}
-                                        className="opacity-0 group-hover:opacity-100 p-2 text-rose-300 hover:text-rose-600 transition-all"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
 
             {isEditing && selectedArea && (
                 <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-4">
@@ -291,7 +244,7 @@ export default function ServiceAreas() {
 
                         <div className="grid grid-cols-3 gap-3">
                             <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Surge (x)</label>
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Express (x)</label>
                                 <input 
                                     type="number" step="0.1"
                                     value={selectedArea.dynamicSurgeMultiplier || 1.0} 

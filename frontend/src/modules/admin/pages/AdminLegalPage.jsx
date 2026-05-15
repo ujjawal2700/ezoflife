@@ -8,24 +8,32 @@ const AdminLegalPage = ({ type }) => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [content, setContent] = useState('');
     const [pdfUrl, setPdfUrl] = useState('');
+    const [hasExistingDoc, setHasExistingDoc] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    const resolvePdfUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+        const cleanPath = url.replace(/^uploads[/\\]+/, '');
+        return `${UPLOADS_URL}${cleanPath}`;
+    };
 
     const fetchDocument = async (docType, docRole) => {
         try {
             setLoading(true);
             const data = await legalApi.getByType(`${docType}-${docRole}`);
-            if (data) {
-                setContent(data.content || '');
+            if (data && !data.message) {
                 setPdfUrl(data.pdfUrl || '');
+                setHasExistingDoc(!!data.pdfUrl);
             } else {
-                setContent('');
                 setPdfUrl('');
+                setHasExistingDoc(false);
             }
         } catch (error) {
             console.error('Fetch document error:', error);
-            setContent('');
             setPdfUrl('');
+            setHasExistingDoc(false);
         } finally {
             setLoading(false);
         }
@@ -36,10 +44,12 @@ const AdminLegalPage = ({ type }) => {
     }, [type, role]);
 
     const handleSave = async () => {
+        if (!pdfUrl || uploading) return;
         try {
             setSaving(true);
-            await legalApi.update(`${type}-${role}`, { content, pdfUrl });
-            toast.success('Document updated successfully');
+            await legalApi.update(`${type}-${role}`, { content: '', pdfUrl });
+            toast.success(`Your ${role.charAt(0).toUpperCase() + role.slice(1)} Policy Published`);
+            setHasExistingDoc(true);
         } catch (error) {
             toast.error('Failed to update document');
         } finally {
@@ -47,7 +57,7 @@ const AdminLegalPage = ({ type }) => {
         }
     };
 
-    const handlePdfUpload = async (e) => {
+    const handlePdfUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
@@ -59,16 +69,39 @@ const AdminLegalPage = ({ type }) => {
         const formData = new FormData();
         formData.append('media', file);
 
-        try {
-            setUploading(true);
-            const data = await mediaApi.upload(formData);
-            setPdfUrl(data.fileUrl);
-            toast.success('PDF uploaded successfully');
-        } catch (error) {
-            toast.error('Upload failed');
-        } finally {
+        setUploading(true);
+        setUploadProgress(0);
+        setPdfUrl(''); // Clear current URL until upload succeeds
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/media/upload-pdf`, true);
+
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                setUploadProgress(percentComplete);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status === 201 || xhr.status === 200) {
+                const data = JSON.parse(xhr.responseText);
+                setPdfUrl(data.fileUrl);
+                toast.success('PDF uploaded successfully');
+            } else {
+                toast.error('Upload failed');
+            }
             setUploading(false);
-        }
+            setUploadProgress(0);
+        };
+
+        xhr.onerror = () => {
+            toast.error('Upload failed');
+            setUploading(false);
+            setUploadProgress(0);
+        };
+
+        xhr.send(formData);
     };
 
     const displayTitle = type === 'privacy-policy' ? 'Privacy Policy' : 'Terms & Conditions';
@@ -107,80 +140,111 @@ const AdminLegalPage = ({ type }) => {
                     </div>
                 ) : (
                     <>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center px-1">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Document Content</label>
-                                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Target: {role.toUpperCase()}</span>
-                            </div>
-                            <textarea 
-                                value={content}
-                                onChange={(e) => setContent(e.target.value)}
-                                placeholder={`Enter ${displayTitle} content for ${role}s...`}
-                                className="w-full h-[450px] bg-slate-50 border-none rounded-[2.5rem] p-10 text-sm font-medium focus:ring-4 focus:ring-primary/5 transition-all resize-none shadow-inner"
-                            />
-                        </div>
+                        <div className="bg-slate-50/50 p-12 rounded-[2.5rem] border border-slate-100 border-dashed">
+                            <div className="flex flex-col items-center text-center gap-6">
+                                <div className="w-20 h-20 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 flex items-center justify-center">
+                                    <span className={`material-symbols-outlined text-4xl ${pdfUrl ? 'text-green-500' : 'text-slate-200'}`}>
+                                        {pdfUrl ? 'check_circle' : 'picture_as_pdf'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black tracking-tight text-slate-900 uppercase italic">
+                                        {pdfUrl ? 'Policy PDF Ready' : `Upload ${displayTitle}`}
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">
+                                        {pdfUrl ? 'You can update the existing file or save changes' : `Target: ${role.toUpperCase()} Documents`}
+                                    </p>
+                                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end bg-slate-50/50 p-8 rounded-[2.5rem]">
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">PDF Version (Optional)</label>
-                                <div className="flex gap-4">
-                                    <input 
-                                        type="text"
-                                        value={pdfUrl}
-                                        onChange={(e) => setPdfUrl(e.target.value)}
-                                        placeholder="Paste PDF URL or upload"
-                                        className="flex-1 bg-white border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
-                                    />
-                                    {pdfUrl && (
-                                        <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="w-12 h-12 bg-white text-slate-400 border border-slate-100 rounded-2xl flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all shadow-sm">
-                                            <span className="material-symbols-outlined">open_in_new</span>
-                                        </a>
+                                <div className="w-full max-w-md space-y-6">
+                                    {/* Preview Block - ABOVE Upload Button */}
+                                    {pdfUrl && !uploading && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="flex items-center gap-4 p-4 bg-white rounded-[1.5rem] border border-slate-100 shadow-xl shadow-slate-200/20"
+                                        >
+                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
+                                                <span className="material-symbols-outlined">description</span>
+                                            </div>
+                                            <div className="flex-1 text-left truncate">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">Current File</p>
+                                                <p className="text-xs font-bold text-slate-900 truncate">
+                                                    {pdfUrl.split('/').pop().substring(0, 30)}...
+                                                </p>
+                                            </div>
+                                            <a 
+                                                href={resolvePdfUrl(pdfUrl)} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10"
+                                            >
+                                                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                                            </a>
+                                        </motion.div>
                                     )}
+
+                                    {/* Progress Bar */}
+                                    {uploading && (
+                                        <div className="space-y-3 p-6 bg-white rounded-[1.5rem] border border-slate-100">
+                                            <div className="flex justify-between items-end">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Uploading File</p>
+                                                <p className="text-[10px] font-black text-slate-400">{uploadProgress}%</p>
+                                            </div>
+                                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                <motion.div 
+                                                    className="h-full bg-slate-900"
+                                                    initial={{ width: 0 }}
+                                                    animate={{ width: `${uploadProgress}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="relative">
+                                        <input 
+                                            type="file" 
+                                            id="pdf-upload" 
+                                            accept=".pdf" 
+                                            onChange={handlePdfUpload}
+                                            className="hidden" 
+                                        />
+                                        <label 
+                                            htmlFor="pdf-upload"
+                                            className={`w-full py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest border-2 border-dashed flex items-center justify-center gap-4 cursor-pointer transition-all ${uploading ? 'bg-white/50 text-slate-300 border-slate-100 pointer-events-none' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-900 hover:text-slate-900 shadow-sm'}`}
+                                        >
+                                            {uploading ? (
+                                                <>
+                                                    <span className="material-symbols-outlined animate-spin">sync</span>
+                                                    Uploading...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="material-symbols-outlined">{pdfUrl ? 'edit_document' : 'upload_file'}</span>
+                                                    {pdfUrl ? 'Change PDF File' : 'Select Official PDF'}
+                                                </>
+                                            )}
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div className="relative">
-                                <input 
-                                    type="file" 
-                                    id="pdf-upload" 
-                                    accept=".pdf" 
-                                    onChange={handlePdfUpload}
-                                    className="hidden" 
-                                />
-                                <label 
-                                    htmlFor="pdf-upload"
-                                    className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border-2 border-dashed flex items-center justify-center gap-3 cursor-pointer transition-all ${uploading ? 'bg-white/50 text-slate-300 border-slate-100' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900'}`}
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <span className="material-symbols-outlined animate-spin">sync</span>
-                                            Uploading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="material-symbols-outlined">upload_file</span>
-                                            Upload Official PDF
-                                        </>
-                                    )}
-                                </label>
-                            </div>
                         </div>
 
-                        <div className="pt-4 flex justify-end">
+                        <div className="pt-4 flex justify-center">
                             <button 
                                 onClick={handleSave}
-                                disabled={saving}
-                                className={`px-12 py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-4 transition-all ${saving ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-slate-950 text-white hover:scale-[1.02] active:scale-[0.98] shadow-slate-900/20'}`}
+                                disabled={saving || uploading || !pdfUrl}
+                                className={`px-16 py-6 rounded-[2rem] font-black text-[12px] uppercase tracking-[0.3em] shadow-2xl flex items-center justify-center gap-5 transition-all ${saving || uploading || !pdfUrl ? 'bg-slate-100 text-slate-400 cursor-not-allowed scale-95 opacity-50' : 'bg-slate-950 text-white hover:scale-[1.02] active:scale-[0.98] shadow-slate-900/30'}`}
                             >
                                 {saving ? (
                                     <>
-                                        <span className="material-symbols-outlined animate-spin text-lg">sync</span>
-                                        Saving...
+                                        <span className="material-symbols-outlined animate-spin text-xl">sync</span>
+                                        Publishing...
                                     </>
                                 ) : (
                                     <>
-                                        <span className="material-symbols-outlined text-lg">verified</span>
-                                        Update Policy
+                                        <span className="material-symbols-outlined text-xl">{hasExistingDoc ? 'published_with_changes' : 'verified'}</span>
+                                        {hasExistingDoc ? 'Update Policy' : 'Save Policy'}
                                     </>
                                 )}
                             </button>

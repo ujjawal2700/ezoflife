@@ -1,14 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { legalApi } from '../../../lib/api';
+import { legalApi, UPLOADS_URL } from '../../../lib/api';
 
 const TermsConditionsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const role = searchParams.get('role') || 'customer';
+  const rawRole = searchParams.get('role') || 'customer';
+  const role = rawRole.toLowerCase();
   const [doc, setDoc] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const resolvePdfUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const cleanPath = url.replace(/^uploads[/\\]+/, '');
+    return `${UPLOADS_URL}${cleanPath}`;
+  };
 
   useEffect(() => {
     const fetchDoc = async () => {
@@ -80,7 +88,7 @@ const TermsConditionsPage = () => {
               {doc?.pdfUrl && (
                 <motion.div variants={itemVariants} className="pt-8">
                   <a 
-                    href={doc.pdfUrl} 
+                    href={resolvePdfUrl(doc.pdfUrl)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center justify-between p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl shadow-slate-900/10 active:scale-95 transition-all"

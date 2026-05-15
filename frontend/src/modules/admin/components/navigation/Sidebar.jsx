@@ -59,7 +59,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     ]
                 },
                 { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
-                { icon: MapPin, label: 'Service Zones', path: '/admin/geofencing' },
                 { 
                     icon: CreditCard, 
                     label: 'Payments', 
@@ -78,19 +77,12 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     label: 'Services & Pricing', 
                     path: '/admin/services',
                     subItems: [
-                        { label: 'Geofence Management', path: '/admin/geofencing' },
                         { label: 'Category Management', path: '/admin/categories' },
+                        { label: 'Geofence Management', path: '/admin/geofencing' },
                         { label: 'Master Services', path: '/admin/master-services' },
                         { label: 'Service Geofence', path: '/admin/geofence-table' },
                         { label: 'Master Pricing Table', path: '/admin/master-pricing' },
-                        { label: 'Geofence Pincode Mapping', path: '/admin/geofence-pincode-mapping' },
-                        { label: 'Services', path: '/admin/services' },
-                        { label: 'Pricing Preview', path: '/admin/pricing-preview' },
-                        { label: 'Area Pricing Overrides', path: '/admin/pricing-overrides' },
-                        { label: 'Edit Rates', path: '/admin/pricing' },
-                        { label: 'Essential Fee', path: '/admin/pricing?type=essential' },
-                        { label: 'Heritage Fee', path: '/admin/pricing?type=heritage' },
-                        { label: 'Express Surcharge', path: '/admin/pricing?type=express' },
+                        { label: 'Global Policies', path: '/admin/pricing' },
                     ]
                 },
                 { 
@@ -140,11 +132,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
             group: 'Network', items: [
                 { icon: Briefcase, label: 'Career Center', path: '/admin/careers' },
                 { icon: Star, label: 'Ranking Engine', path: '/admin/vendor-ranking' },
-            ]
-        },
-        {
-            group: 'Financials', items: [
-                { icon: ShieldCheck, label: 'B2B Settlements', path: '/admin/b2b-escrow' },
             ]
         },
         {

@@ -124,29 +124,15 @@ export default function OnboardingApprovals() {
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         
-        {/* Tab Selection */}
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div className="flex flex-col">
-                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                    Verification Queue
-                    <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-black not-italic tracking-widest rounded-sm">
-                        {filteredData.length} REQUESTS
-                    </span>
-                </h2>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Audit and verify partner documentation</p>
-            </div>
-
-            <div className="bg-white p-1 rounded-xl border border-slate-200 flex gap-1 shadow-sm">
-                {['Vendor', 'Supplier'].map(tab => (
-                    <button 
-                        key={tab}
-                        onClick={() => handleTabChange(tab)}
-                        className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-lg ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
-                    >
-                        {tab} Requests
-                    </button>
-                ))}
-            </div>
+        {/* Header Information */}
+        <div className="flex flex-col">
+            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
+                Verification Queue
+                <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-black not-italic tracking-widest rounded-sm">
+                    {filteredData.length} REQUESTS
+                </span>
+            </h2>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Audit and verify {activeTab.toLowerCase()} documentation</p>
         </div>
 
         {/* Table Container */}
