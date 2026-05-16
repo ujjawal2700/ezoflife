@@ -1,6 +1,13 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { 
+    sendVendorApplicationConfirmation, 
+    sendAdminVendorApplicationNotification,
+    sendSupplierApplicationConfirmation,
+    sendAdminSupplierApplicationNotification
+} from '../utils/emailHelper.js';
+import { sendWhatsAppMessage, sendSMSMessage } from '../utils/communicationHelper.js';
 
 // Mock OTP Generator - Hardcoded to 123456 for Testing
 const generateOTP = () => '123456';
@@ -235,6 +242,29 @@ export const becomeVendor = async (req, res) => {
         await user.save();
         console.log(`🚀 [VENDOR_REGISTRATION] User ${user.phone} dossier submitted for review`);
 
+        // Send confirmation email if user has email set
+        if (user.email) {
+            sendVendorApplicationConfirmation(user).catch(err => {
+                console.error('Vendor Application Confirmation Email Failed:', err);
+            });
+        }
+
+        // Send notification email to Admin
+        sendAdminVendorApplicationNotification(user).catch(err => {
+            console.error('Admin Vendor Application Notification Failed:', err);
+        });
+
+        // Send WhatsApp & SMS Notification to User
+        const commsMessage = "Thank you for submitting your details to Spinzyt! We have received your inquiry and our team is looking over it. We will get back to you ASAP to discuss the next steps! – The Spinzyt Team";
+        
+        sendWhatsAppMessage(user.phone, commsMessage).catch(err => {
+            console.error('Vendor WhatsApp Notification Failed:', err);
+        });
+
+        sendSMSMessage(user.phone, commsMessage).catch(err => {
+            console.error('Vendor SMS Notification Failed:', err);
+        });
+
         res.status(200).json({ 
             message: 'Vendor application dossier submitted successfully!', 
             user: {
@@ -351,6 +381,29 @@ export const becomeSupplier = async (req, res) => {
         
         await user.save();
         console.log(`✅ [SUPPLIER_REGISTRATION] User ${user.phone} registered as Supplier (PENDING APPROVAL)`);
+
+        // Send confirmation email to User
+        if (user.email) {
+            sendSupplierApplicationConfirmation(user).catch(err => {
+                console.error('Supplier Application Confirmation Email Failed:', err);
+            });
+        }
+
+        // Send notification email to Admin
+        sendAdminSupplierApplicationNotification(user).catch(err => {
+            console.error('Admin Supplier Application Notification Failed:', err);
+        });
+
+        // Send WhatsApp & SMS Notification to User
+        const commsMessage = "Thank you for submitting your details to Spinzyt! We have received your inquiry and our team is looking over it. We will get back to you ASAP to discuss the next steps! – The Spinzyt Team";
+        
+        sendWhatsAppMessage(user.phone, commsMessage).catch(err => {
+            console.error('Supplier WhatsApp Notification Failed:', err);
+        });
+
+        sendSMSMessage(user.phone, commsMessage).catch(err => {
+            console.error('Supplier SMS Notification Failed:', err);
+        });
 
         res.status(200).json({ 
             message: 'Registration successful! Waiting for Admin verification.', 

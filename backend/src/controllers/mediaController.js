@@ -1,5 +1,7 @@
 import Media from '../models/Media.js';
 import AdInquiry from '../models/AdInquiry.js';
+import { sendInquiryConfirmation, sendAdminInquiryNotification } from '../utils/emailHelper.js';
+import { sendWhatsAppMessage, sendSMSMessage } from '../utils/communicationHelper.js';
 
 export const uploadMedia = async (req, res) => {
     console.log('--- POST Upload Media Kit Requested (Cloudinary) ---');
@@ -65,11 +67,30 @@ export const getLatestMedia = async (req, res) => {
         console.error('Error in getLatestMedia:', err);
         res.status(500).json({ message: err.message });
     }
-};export const submitInquiry = async (req, res) => {
+};
+
+export const submitInquiry = async (req, res) => {
     try {
         const { brandName, email, phone, location, budget, timeline } = req.body;
         const inquiry = new AdInquiry({ brandName, email, phone, location, budget, timeline });
         await inquiry.save();
+
+        // Send confirmation email to Customer (with PDF)
+        sendInquiryConfirmation(inquiry).catch(err => {
+            console.error('Customer Email Failed:', err);
+        });
+
+        // Send notification email to Admin (No PDF, direct details)
+        sendAdminInquiryNotification(inquiry).catch(err => {
+            console.error('Admin Notification Failed:', err);
+        });
+
+        // WhatsApp & SMS Notifications (Simulation mode)
+        const notificationText = `Thank you for submitting your details to Spinzyt! We have received your inquiry and our team is looking over it. We will get back to you ASAP to discuss the next steps! – The Spinzyt Team`;
+        
+        sendWhatsAppMessage(phone, notificationText);
+        sendSMSMessage(phone, notificationText);
+
         res.status(201).json(inquiry);
     } catch (err) {
         res.status(500).json({ message: err.message });

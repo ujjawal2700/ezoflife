@@ -75,6 +75,10 @@ const masterServiceSchema = new mongoose.Schema({
         type: Number,
         default: 5
     },
+    heritageGst: {
+        type: Number,
+        default: 18
+    },
     completionTime: {
         type: Number,
         default: 1
@@ -83,6 +87,10 @@ const masterServiceSchema = new mongoose.Schema({
         type: String,
         enum: ['normal', 'retail'],
         default: 'normal'
+    },
+    allowDiscount: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

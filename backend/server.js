@@ -182,7 +182,6 @@ mongoose.connect(MONGODB_URI)
                     },
                     { upsert: true, new: true }
                 );
-                console.log(`🚀 [CRITICAL_SEED] SUCCESS: Synchronized ${userData.role} (${userData.phone}) with OTP ${otp}`);
             }
         } catch (e) {
             console.error('❌ [CRITICAL_SEED] FAILED:', e.message);

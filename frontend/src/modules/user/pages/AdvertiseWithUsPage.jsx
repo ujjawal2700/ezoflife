@@ -110,7 +110,7 @@ const AdvertiseWithUsPage = () => {
                                             placeholder="e.g. Nike" 
                                             value={formData.brandName}
                                             onChange={(e) => setFormData(prev => ({ ...prev, brandName: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>
                                 </div>
@@ -123,7 +123,7 @@ const AdvertiseWithUsPage = () => {
                                             placeholder="marketing@nike.com" 
                                             value={formData.email}
                                             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>
                                 </div>
@@ -137,7 +137,7 @@ const AdvertiseWithUsPage = () => {
                                                 placeholder="+91 ..." 
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                             />
                                         </div>
                                     </div>
@@ -150,7 +150,7 @@ const AdvertiseWithUsPage = () => {
                                                 placeholder="e.g. Pan India" 
                                                 value={formData.location}
                                                 onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                             />
                                         </div>
                                     </div>
@@ -165,7 +165,7 @@ const AdvertiseWithUsPage = () => {
                                             placeholder="50,000" 
                                             value={formData.budget}
                                             onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>
                                 </div>

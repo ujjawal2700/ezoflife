@@ -80,12 +80,14 @@ const ServiceInfoPage = () => {
                 <div className="flex flex-col">
                   <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant opacity-40 mb-1">Starting Rate</p>
                   <div className="flex items-center gap-3">
-                    {(service.basePrice || 0) > (service.discountedPrice || 0) && (
+                    {(service.allowDiscount && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
                       <span className="text-sm font-bold text-slate-400 line-through">
                         ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
                       </span>
                     )}
-                    <p className="text-2xl font-black text-primary">₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</p>
+                    <p className="text-2xl font-black text-primary">
+                      ₹{Math.round(((service.allowDiscount ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}
+                    </p>
                   </div>
                 </div>
               </div>

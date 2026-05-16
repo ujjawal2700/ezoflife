@@ -92,7 +92,7 @@ const PartnershipInquiryPage = () => {
                                             placeholder="e.g. Acme Logistics" 
                                             value={formData.companyName}
                                             onChange={(e) => setFormData(p => ({ ...p, companyName: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>
                                 </div>
@@ -105,7 +105,7 @@ const PartnershipInquiryPage = () => {
                                             placeholder="partnership@company.com" 
                                             value={formData.email}
                                             onChange={(e) => setFormData(p => ({ ...p, email: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>
                                 </div>
@@ -119,7 +119,7 @@ const PartnershipInquiryPage = () => {
                                                 placeholder="+91 ..." 
                                                 value={formData.phone}
                                                 onChange={(e) => setFormData(p => ({ ...p, phone: e.target.value }))}
-                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                             />
                                         </div>
                                     </div>
@@ -132,7 +132,7 @@ const PartnershipInquiryPage = () => {
                                                 placeholder="e.g. Mumbai, MH" 
                                                 value={formData.location}
                                                 onChange={(e) => setFormData(p => ({ ...p, location: e.target.value }))}
-                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                             />
                                         </div>
                                     </div>
@@ -145,7 +145,7 @@ const PartnershipInquiryPage = () => {
                                             placeholder="https://company.com" 
                                             value={formData.website}
                                             onChange={(e) => setFormData(p => ({ ...p, website: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
                                         />
                                     </div>
                                 </div>
@@ -175,7 +175,7 @@ const PartnershipInquiryPage = () => {
                                             placeholder="How can we grow together?" 
                                             value={formData.proposal}
                                             onChange={(e) => setFormData(p => ({ ...p, proposal: e.target.value }))}
-                                            className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-bold placeholder:text-outline-variant/40 resize-none" 
+                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-sm font-bold placeholder:text-outline-variant/40 resize-none" 
                                         />
                                     </div>
                                 </div>

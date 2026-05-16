@@ -156,10 +156,11 @@ const AllServicesPage = () => {
                             image: service.image || service.icon, 
                             vendorId: service.vendorId,
                             color: 'primary', 
-                            price: `₹${service.discountedPrice || service.basePrice}/${service.unit}`,
-                            totalPrice: service.discountedPrice || service.basePrice,
+                            price: `₹${(service.allowDiscount ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0}/${service.unit}`,
+                            totalPrice: service.allowDiscount ? (service.discountedPrice || service.basePrice) : service.basePrice,
                             discountedPrice: service.discountedPrice,
-                            basePrice: service.basePrice
+                            basePrice: service.basePrice,
+                            allowDiscount: service.allowDiscount
                           } } });
                         }}
                         className="bg-white rounded-[2.5rem] p-7 border border-outline-variant/10 shadow-sm flex items-center justify-between group cursor-pointer hover:shadow-xl hover:shadow-primary/5 transition-all"
@@ -178,13 +179,13 @@ const AllServicesPage = () => {
                               {service.categoryId?.subCategory} • {service.description}
                             </p>
                             <div className="mt-2 flex items-center gap-2">
-                              {(service.basePrice || 0) > (service.discountedPrice || 0) && (
+                              {(service.allowDiscount && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
                                 <span className="text-[10px] font-bold text-slate-400 line-through">
                                   ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
                                 </span>
                               )}
                               <span className="text-[12px] font-black text-primary uppercase tracking-widest">
-                                ₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}/{service.unit?.replace('_', ' ')}
+                                ₹{Math.round(((service.allowDiscount ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}/{service.unit?.replace('_', ' ')}
                               </span>
                             </div>
                           </div>

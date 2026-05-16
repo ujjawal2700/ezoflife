@@ -559,7 +559,8 @@ const HomePage = () => {
           id: serviceId, _id: serviceId, name: service.name, title: service.name, desc: service.description,
           image: service.image, vendorId: service.vendorId, vendor: service.vendor,
           color: isHeritage ? 'heritage' : (i % 3 === 0 ? 'primary' : i % 3 === 1 ? 'secondary' : 'tertiary'),
-          price: `₹${service.totalPrice}.00`, totalPrice: service.totalPrice, basePrice: service.basePrice
+          price: `₹${service.totalPrice}.00`, totalPrice: service.totalPrice, basePrice: service.basePrice,
+          allowDiscount: service.allowDiscount
         }
       }
     });
@@ -865,8 +866,14 @@ const HomePage = () => {
                           <div className="flex items-center gap-2.5 shrink-0">
                             {/* Price */}
                             <div className="flex flex-col items-end">
-                              <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>₹{Math.round((service.discountedPrice || service.basePrice || 0) * (pricingFactor || 1))}</span>
-                              {(service.basePrice || 0) > (service.discountedPrice || 0) && <span className="text-[8px] font-bold line-through text-slate-300">₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}</span>}
+                              <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>
+                                ₹{Math.round(((service.allowDiscount ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}
+                              </span>
+                              {(service.allowDiscount && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
+                                <span className="text-[8px] font-bold line-through text-slate-300">
+                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                                </span>
+                              )}
                             </div>
 
                             {/* Qty Controls */}

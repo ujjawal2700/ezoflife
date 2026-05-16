@@ -38,7 +38,8 @@ const MasterServiceManagement = () => {
         isActive: true,
         serviceType: 'normal',
         excelCategoryId: '',
-        sacCode: '9994'
+        sacCode: '9994',
+        allowDiscount: true
     });
 
     useEffect(() => {
@@ -109,7 +110,8 @@ const MasterServiceManagement = () => {
                 isActive: service.isActive !== undefined ? service.isActive : true,
                 serviceType: service.serviceType || 'normal',
                 excelCategoryId: service.excelCategoryId || '',
-                sacCode: service.sacCode || '9994'
+                sacCode: service.sacCode || '9994',
+                allowDiscount: service.allowDiscount !== undefined ? service.allowDiscount : true
             });
         } else {
             setCurrentService(null);
@@ -132,7 +134,8 @@ const MasterServiceManagement = () => {
                 isActive: true,
                 serviceType: 'normal',
                 excelCategoryId: '',
-                sacCode: '9994'
+                sacCode: '9994',
+                allowDiscount: true
             });
         }
         setIsModalOpen(true);
@@ -596,6 +599,21 @@ const MasterServiceManagement = () => {
                                                 className="w-4 h-4 rounded-sm border-slate-300 text-slate-900 focus:ring-slate-900"
                                             />
                                             <label htmlFor="isActive" className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Active</label>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Allow Discount (Y/N)</label>
+                                            <div className="flex gap-2">
+                                                {[true, false].map(opt => (
+                                                    <button 
+                                                        key={opt.toString()}
+                                                        type="button"
+                                                        onClick={() => setFormData({...formData, allowDiscount: opt})}
+                                                        className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.allowDiscount === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                                    >
+                                                        {opt ? 'Yes' : 'No'}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

@@ -37,6 +37,7 @@ import ServiceAreas from '../pages/ServiceAreas';
 import AdminSupplierRequestsPage from '../pages/AdminSupplierRequestsPage';
 import AdminSupplierRequestDetailPage from '../pages/AdminSupplierRequestDetailPage';
 import AdminVendorRequestDetailPage from '../pages/AdminVendorRequestDetailPage';
+import AdminBrandInquiries from '../pages/AdminBrandInquiries';
 
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
@@ -81,6 +82,7 @@ const AdminRoutes = () => {
         }
       >
         <Route path="/ads" element={<AdminAdvertisementPage />} />
+        <Route path="/advertise" element={<AdminBrandInquiries />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/orders" element={<Orders />} />

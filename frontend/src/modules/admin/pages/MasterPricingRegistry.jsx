@@ -71,25 +71,6 @@ const MasterPricingRegistry = () => {
             )
         },
         {
-            header: 'Service SKU',
-            key: 'serviceId',
-            render: (val) => (
-                <div className="flex flex-col">
-                    <span className="font-bold text-slate-800 uppercase tracking-tight text-[10px]">{val?.itemName}</span>
-                    <span className="text-[8px] text-blue-500 font-black tracking-widest uppercase">{val?.skuId || 'NO-SKU'}</span>
-                </div>
-            )
-        },
-        {
-            header: 'SAC',
-            key: 'serviceId',
-            render: (val) => (
-                <span className="font-black text-slate-400 text-[10px] tracking-widest uppercase">
-                    {val?.sacCode || '9994'}
-                </span>
-            )
-        },
-        {
             header: 'Category',
             key: 'categoryId',
             render: (val) => (
@@ -108,26 +89,238 @@ const MasterPricingRegistry = () => {
             )
         },
         {
-            header: 'Base (₹)',
-            key: 'discountPrice',
-            render: (val) => <span className="font-bold text-slate-400 text-[11px]">₹{val}</span>
+            header: 'Service Name',
+            key: 'serviceId',
+            render: (val) => (
+                <span className="font-bold text-slate-800 uppercase tracking-tight text-[10px]">{val?.itemName}</span>
+            )
         },
         {
-            header: 'Multipliers',
-            key: 'multipliers',
-            render: (_, row) => (
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-sm border border-amber-100 text-[9px] font-black">
-                        <Zap size={8} /> {row.surgeMultiplier}x
-                    </div>
-                    <div className="flex items-center gap-1 text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-sm border border-blue-100 text-[9px] font-black">
-                        <Map size={8} /> {row.areaMultiplier}x
-                    </div>
-                    <div className="flex items-center gap-1 text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-sm border border-purple-100 text-[9px] font-black">
-                        <ShieldCheck size={8} /> {row.heritageMultiplier}x
-                    </div>
+            header: 'SKU',
+            key: 'serviceId',
+            render: (val) => (
+                <span className="text-[8px] text-blue-500 font-black tracking-widest uppercase">{val?.skuId || 'NO-SKU'}</span>
+            )
+        },
+        {
+            header: 'GST%',
+            key: 'serviceId',
+            render: (val) => (
+                <span className="text-[9px] font-black text-slate-500 tabular-nums">
+                    {val?.gst || 5}%
+                </span>
+            )
+        },
+        {
+            header: 'SAC',
+            key: 'serviceId',
+            render: (val) => (
+                <span className="font-black text-slate-400 text-[10px] tracking-widest uppercase">
+                    {val?.sacCode || '9994'}
+                </span>
+            )
+        },
+        {
+            header: 'Global Price',
+            key: 'basePrice',
+            render: (val) => <span className="font-bold text-slate-400 text-[11px] line-through decoration-slate-300">₹{val}</span>
+        },
+        {
+            header: 'Global Discount',
+            key: 'discountPrice',
+            render: (val) => <span className="font-black text-slate-900 text-[11px]">₹{val}</span>
+        },
+        {
+            header: 'Base Mult.',
+            key: 'fenceId',
+            render: (val) => (
+                <div className="flex items-center gap-1 text-blue-600 font-bold text-[9px]">
+                    <Percent size={8} className="text-blue-400" />
+                    <span>{val?.basePriceMultiplier || 1.0}x</span>
                 </div>
             )
+        },
+        {
+            header: 'Heritage Mult.',
+            key: 'fenceId',
+            render: (val) => (
+                <div className="flex items-center gap-1 text-purple-600 font-bold text-[9px]">
+                    <ShieldCheck size={8} className="text-purple-400" />
+                    <span>{val?.heritageMultiplier || 1.0}x</span>
+                </div>
+            )
+        },
+        {
+            header: 'Express Mult.',
+            key: 'fenceId',
+            render: (val) => (
+                <div className="flex items-center gap-1 text-amber-600 font-bold text-[9px]">
+                    <Zap size={8} className="text-amber-400" />
+                    <span>{val?.dynamicSurgeMultiplier || 1.0}x</span>
+                </div>
+            )
+        },
+        {
+            header: 'Disc. Mult.',
+            key: 'fenceId',
+            render: (val) => (
+                <div className="flex items-center gap-1 text-emerald-600 font-bold text-[9px]">
+                    <Percent size={8} className="text-emerald-400" />
+                    <span>{val?.discountPriceMultiplier || 1.0}x</span>
+                </div>
+            )
+        },
+        {
+            header: 'Base Price (Normal)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                const gst = row.serviceId?.gst || 5;
+                const priceBeforeTax = globalDiscounted * baseMult;
+                const final = Math.round(priceBeforeTax * (1 + gst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Base Price (Express)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                const expressMult = row.fenceId?.dynamicSurgeMultiplier || 1.0;
+                const gst = row.serviceId?.gst || 5;
+                const priceBeforeTax = globalDiscounted * baseMult * expressMult;
+                const final = Math.round(priceBeforeTax * (1 + gst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-amber-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-amber-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Heritage Price (Normal)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                const heritageMult = row.fenceId?.heritageMultiplier || 1.0;
+                const hGst = row.serviceId?.heritageGst || 18;
+                const priceBeforeTax = globalDiscounted * baseMult * heritageMult;
+                const final = Math.round(priceBeforeTax * (1 + hGst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-purple-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Heritage Price (Express)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                const heritageMult = row.fenceId?.heritageMultiplier || 1.0;
+                const expressMult = row.fenceId?.dynamicSurgeMultiplier || 1.0;
+                const hGst = row.serviceId?.heritageGst || 18;
+                const priceBeforeTax = globalDiscounted * baseMult * heritageMult * expressMult;
+                const final = Math.round(priceBeforeTax * (1 + hGst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-rose-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-rose-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Discount Price (Normal)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                // Only apply discount multiplier if service allows it
+                const discMult = row.serviceId?.allowDiscount ? (row.fenceId?.discountPriceMultiplier || 1.0) : 1.0;
+                const gst = row.serviceId?.gst || 5;
+                const priceBeforeTax = globalDiscounted * baseMult * discMult;
+                const final = Math.round(priceBeforeTax * (1 + gst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-emerald-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Discount Price (Express)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                // Only apply discount multiplier if service allows it
+                const discMult = row.serviceId?.allowDiscount ? (row.fenceId?.discountPriceMultiplier || 1.0) : 1.0;
+                const expressMult = row.fenceId?.dynamicSurgeMultiplier || 1.0;
+                const gst = row.serviceId?.gst || 5;
+                const priceBeforeTax = globalDiscounted * baseMult * discMult * expressMult;
+                const final = Math.round(priceBeforeTax * (1 + gst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-emerald-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Disc. Heritage Price (Normal)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                const heritageMult = row.fenceId?.heritageMultiplier || 1.0;
+                // Only apply discount multiplier if service allows it
+                const discMult = row.serviceId?.allowDiscount ? (row.fenceId?.discountPriceMultiplier || 1.0) : 1.0;
+                const hGst = row.serviceId?.heritageGst || 18;
+                const priceBeforeTax = globalDiscounted * baseMult * heritageMult * discMult;
+                const final = Math.round(priceBeforeTax * (1 + hGst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-purple-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Disc. Heritage Price (Express)',
+            key: 'finalPrice',
+            render: (_, row) => {
+                const globalDiscounted = row.discountPrice || 0;
+                const baseMult = row.fenceId?.basePriceMultiplier || 1.0;
+                const heritageMult = row.fenceId?.heritageMultiplier || 1.0;
+                // Only apply discount multiplier if service allows it
+                const discMult = row.serviceId?.allowDiscount ? (row.fenceId?.discountPriceMultiplier || 1.0) : 1.0;
+                const expressMult = row.fenceId?.dynamicSurgeMultiplier || 1.0;
+                const hGst = row.serviceId?.heritageGst || 18;
+                const priceBeforeTax = globalDiscounted * baseMult * heritageMult * discMult * expressMult;
+                const final = Math.round(priceBeforeTax * (1 + hGst / 100));
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-rose-600 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-rose-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                    </div>
+                );
+            }
         },
         {
             header: 'Final Price',

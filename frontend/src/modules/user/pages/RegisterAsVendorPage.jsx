@@ -4,6 +4,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { BASE_URL, authApi, UPLOADS_URL } from '../../../lib/api';
 
+const getFieldStatus = (fieldName, isRevisionRequired, currentUser) => {
+    if (!isRevisionRequired || !currentUser?.rejectionFlags) return 'normal';
+    return currentUser.rejectionFlags.includes(fieldName) ? 'rejected' : 'approved';
+};
+
+const FieldHighlight = ({ name, children, isRevisionRequired, currentUser }) => {
+    const status = getFieldStatus(name, isRevisionRequired, currentUser);
+    if (status === 'rejected') {
+        return (
+            <div className="relative">
+                <div className="absolute -left-3 top-0 bottom-0 w-1 bg-rose-500 rounded-full animate-pulse" />
+                {children}
+                <div className="mt-2 flex items-center gap-1.5 text-rose-600">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest">Correction Required</span>
+                </div>
+            </div>
+        );
+    }
+    return children;
+};
+
 const RegisterAsVendorPage = () => {
   const navigate = useNavigate();
   const [showLanding, setShowLanding] = useState(true);
@@ -142,28 +164,6 @@ const RegisterAsVendorPage = () => {
         }
     }
   }, [isRevisionRequired]);
-
-  const getFieldStatus = (fieldName) => {
-    if (!isRevisionRequired || !currentUser?.rejectionFlags) return 'normal';
-    return currentUser.rejectionFlags.includes(fieldName) ? 'rejected' : 'approved';
-  };
-
-  const FieldHighlight = ({ name, children }) => {
-    const status = getFieldStatus(name);
-    if (status === 'rejected') {
-        return (
-            <div className="relative">
-                <div className="absolute -left-3 top-0 bottom-0 w-1 bg-rose-500 rounded-full animate-pulse" />
-                {children}
-                <div className="mt-2 flex items-center gap-1.5 text-rose-600">
-                    <span className="material-symbols-outlined text-xs">error</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest">Correction Required</span>
-                </div>
-            </div>
-        );
-    }
-    return children;
-  };
 
   useEffect(() => {
     localStorage.setItem('vendor_onboarding_form', JSON.stringify(formData));
@@ -678,8 +678,8 @@ const RegisterAsVendorPage = () => {
                     <div className="space-y-6">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-2">Owner Full Name</label>
-                            <FieldHighlight name="ownerName">
-                                <div className={`relative group ${getFieldStatus('ownerName') === 'rejected' ? 'ring-2 ring-rose-500/20' : ''}`}>
+                            <FieldHighlight name="ownerName" isRevisionRequired={isRevisionRequired} currentUser={currentUser}>
+                                <div className={`relative group ${getFieldStatus('ownerName', isRevisionRequired, currentUser) === 'rejected' ? 'ring-2 ring-rose-500/20' : ''}`}>
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-primary opacity-40">
                                         <span className="material-symbols-outlined">person</span>
                                     </div>
@@ -688,7 +688,7 @@ const RegisterAsVendorPage = () => {
                                         value={formData.ownerName}
                                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                                         placeholder="ENTER OWNER'S FULL LEGAL NAME"
-                                        className={`w-full pl-16 p-6 bg-white border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm ${getFieldStatus('ownerName') === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
+                                        className={`w-full pl-16 p-3.5 bg-white border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm ${getFieldStatus('ownerName', isRevisionRequired, currentUser) === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
                                     />
                                 </div>
                             </FieldHighlight>
@@ -696,12 +696,12 @@ const RegisterAsVendorPage = () => {
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-2">Business Entity Type</label>
-                            <FieldHighlight name="businessType">
+                            <FieldHighlight name="businessType" isRevisionRequired={isRevisionRequired} currentUser={currentUser}>
                                 <div className="relative">
                                     <button 
                                         type="button"
                                         onClick={() => setShowTypePicker(true)}
-                                        className={`w-full pl-16 p-6 bg-white border rounded-[1.5rem] font-bold text-sm text-left outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm flex items-center justify-between ${getFieldStatus('businessType') === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
+                                        className={`w-full pl-16 p-3.5 bg-white border rounded-[1.5rem] font-bold text-sm text-left outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm flex items-center justify-between ${getFieldStatus('businessType', isRevisionRequired, currentUser) === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="absolute left-6 top-1/2 -translate-y-1/2 text-primary opacity-40">
@@ -766,8 +766,8 @@ const RegisterAsVendorPage = () => {
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-2">Facility Name</label>
-                            <FieldHighlight name="facilityName">
-                                <div className={`relative group ${getFieldStatus('facilityName') === 'rejected' ? 'ring-2 ring-rose-500/20' : ''}`}>
+                            <FieldHighlight name="facilityName" isRevisionRequired={isRevisionRequired} currentUser={currentUser}>
+                                <div className={`relative group ${getFieldStatus('facilityName', isRevisionRequired, currentUser) === 'rejected' ? 'ring-2 ring-rose-500/20' : ''}`}>
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-primary opacity-40">
                                         <span className="material-symbols-outlined">storefront</span>
                                     </div>
@@ -776,7 +776,7 @@ const RegisterAsVendorPage = () => {
                                         value={formData.facilityName}
                                         onChange={(e) => setFormData({ ...formData, facilityName: e.target.value })}
                                         placeholder="ENTER SHOP/FACTORY NAME"
-                                        className={`w-full pl-16 p-6 bg-white border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm ${getFieldStatus('facilityName') === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
+                                        className={`w-full pl-16 p-3.5 bg-white border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm ${getFieldStatus('facilityName', isRevisionRequired, currentUser) === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
                                     />
                                 </div>
                             </FieldHighlight>
@@ -784,15 +784,24 @@ const RegisterAsVendorPage = () => {
                     </div>
                 </section>
 
-                <div className="fixed bottom-28 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
-                    <button 
-                        type="button"
-                        onClick={handleNext}
-                        className="w-full max-w-2xl mx-auto bg-primary text-on-primary py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all"
-                    >
-                        Continue
-                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                    </button>
+                <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
+                    <div className="max-w-2xl mx-auto flex gap-4">
+                        <button 
+                            type="button"
+                            onClick={() => setShowLanding(true)}
+                            className="flex-1 py-3 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
+                        >
+                            Back
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={handleNext}
+                            className="flex-[2] bg-slate-900 text-on-primary py-3 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                        >
+                            Continue
+                            <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         )}
@@ -951,11 +960,11 @@ const RegisterAsVendorPage = () => {
                     </div>
                 </section>
 
-                <div className="fixed bottom-28 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
+                <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
                     <div className="max-w-2xl mx-auto flex gap-4">
                         <button 
                             onClick={() => setStep(1)}
-                            className="flex-1 py-6 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
+                            className="flex-1 py-3 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
                         >
                             Back
                         </button>
@@ -983,7 +992,7 @@ const RegisterAsVendorPage = () => {
                                 }
                                 setStep(3);
                             }}
-                            className="flex-[2] bg-slate-900 text-white py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
+                            className="flex-[2] bg-slate-900 text-white py-3 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3 active:scale-95 transition-all"
                         >
                             Next
                             <span className="material-symbols-outlined">arrow_forward</span>
@@ -1047,7 +1056,7 @@ const RegisterAsVendorPage = () => {
                                     onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
                                     placeholder="ENTER FULL ADDRESS WITH LANDMARK..."
                                     rows={4}
-                                    className="w-full p-6 bg-white border border-outline-variant/10 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase tracking-tight shadow-sm resize-none"
+                                    className="w-full p-4.5 bg-white border border-outline-variant/10 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase tracking-tight shadow-sm resize-none"
                                 />
                             </FieldHighlight>
                         </div>
@@ -1133,12 +1142,12 @@ const RegisterAsVendorPage = () => {
                     </div>
                 </section>
 
-                <div className="fixed bottom-28 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
+                <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
                     <div className="max-w-2xl mx-auto flex gap-4">
                         <button 
                             type="button"
                             onClick={() => setStep(2)}
-                            className="flex-1 py-6 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
+                            className="flex-1 py-3 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
                         >
                             Back
                         </button>
@@ -1159,7 +1168,7 @@ const RegisterAsVendorPage = () => {
                                 }
                                 setStep(4);
                             }}
-                            className="flex-[2] bg-primary text-on-primary py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all"
+                            className="flex-[2] bg-primary text-on-primary py-3 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all"
                         >
                             Next Step
                             <span className="material-symbols-outlined text-lg">arrow_forward</span>
@@ -1281,18 +1290,18 @@ const RegisterAsVendorPage = () => {
                     </div>
                 </section>
 
-                <div className="fixed bottom-28 left-0 right-0 p-6 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
+                <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
                     <div className="max-w-2xl mx-auto flex gap-4">
                         <button 
                             onClick={() => setStep(3)}
-                            className="flex-1 py-6 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
+                            className="flex-1 py-3 border border-outline-variant/10 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] hover:bg-slate-50 transition-all"
                         >
                             Back
                         </button>
                         <button 
                             onClick={handleSubmit}
                             disabled={isSubmitting || !bankVerified || !isAgreed}
-                            className="flex-[2] bg-primary text-on-primary py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
+                            className="flex-[2] bg-primary text-on-primary py-3 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50"
                         >
                             {isSubmitting ? 'Submitting...' : 'Submit for Review'}
                             {!isSubmitting && <span className="material-symbols-outlined text-lg">send</span>}
