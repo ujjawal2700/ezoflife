@@ -25,7 +25,42 @@ export const categoryController = {
 
     getAll: async (req, res) => {
         try {
-            const categories = await Category.find();
+            const { page, limit, mainCategory, subCategory, isActive } = req.query;
+            
+            let query = {};
+            if (mainCategory) {
+                query.mainCategory = { $regex: mainCategory, $options: 'i' };
+            }
+            if (subCategory) {
+                query.subCategory = { $regex: subCategory, $options: 'i' };
+            }
+            if (isActive !== undefined && isActive !== '') {
+                query.isActive = isActive === 'true';
+            }
+
+            if (page && limit) {
+                const pageNumber = parseInt(page, 10);
+                const limitNumber = parseInt(limit, 10);
+                const skip = (pageNumber - 1) * limitNumber;
+
+                const total = await Category.countDocuments(query);
+                const categories = await Category.find(query)
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limitNumber);
+
+                return res.json({
+                    data: categories,
+                    pagination: {
+                        total,
+                        page: pageNumber,
+                        limit: limitNumber,
+                        totalPages: Math.ceil(total / limitNumber)
+                    }
+                });
+            }
+
+            const categories = await Category.find(query).sort({ createdAt: -1 });
             res.json(categories);
         } catch (error) {
             res.status(500).json({ message: error.message });
@@ -54,6 +89,25 @@ export const categoryController = {
     delete: async (req, res) => {
         try {
             const { id } = req.params;
+
+            // 1. Check if linked to Master Services
+            const MasterService = (await import('../models/MasterService.js')).default;
+            const linkedServicesCount = await MasterService.countDocuments({ categoryId: id });
+            if (linkedServicesCount > 0) {
+                return res.status(400).json({ 
+                    message: `Cannot delete Category: It is currently linked to ${linkedServicesCount} active Master Service(s).` 
+                });
+            }
+
+            // 2. Check if linked to Master Pricing Registry
+            const MasterPricing = (await import('../models/MasterPricing.js')).default;
+            const linkedPricingCount = await MasterPricing.countDocuments({ categoryId: id });
+            if (linkedPricingCount > 0) {
+                return res.status(400).json({ 
+                    message: `Cannot delete Category: It is currently linked to ${linkedPricingCount} records in the Master Pricing Registry.` 
+                });
+            }
+
             await Category.findByIdAndDelete(id);
             res.json({ message: 'Category deleted successfully' });
         } catch (error) {

@@ -11,13 +11,20 @@ import DataGrid from '../components/tables/DataGrid';
 const GeofencePincodeMapping = () => {
     const [mappings, setMappings] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
 
-    const fetchMappings = async () => {
+    const fetchMappings = async (page = 1) => {
         try {
             setLoading(true);
-            const res = await fetch(`${BASE_URL}/geofence/pincode-mappings`);
-            const data = await res.json();
-            setMappings(data);
+            const res = await fetch(`${BASE_URL}/geofence/pincode-mappings?page=${page}&limit=${pagination.limit}`);
+            const result = await res.json();
+            
+            if (result.data && result.pagination) {
+                setMappings(result.data);
+                setPagination(result.pagination);
+            } else {
+                setMappings(Array.isArray(result) ? result : []);
+            }
         } catch (err) {
             toast.error('Failed to load mappings');
         } finally {
@@ -26,7 +33,7 @@ const GeofencePincodeMapping = () => {
     };
 
     useEffect(() => {
-        fetchMappings();
+        fetchMappings(1);
     }, []);
 
     const columns = useMemo(() => [
@@ -114,10 +121,10 @@ const GeofencePincodeMapping = () => {
                     <div className="hidden md:flex gap-10">
                         <div className="text-center">
                             <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Total Mappings</p>
-                            <p className="text-xl font-black">{mappings.length}</p>
+                            <p className="text-xl font-black">{pagination.total || mappings.length}</p>
                         </div>
                         <div className="text-center">
-                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Active Pincodes</p>
+                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Active Pincodes (Page)</p>
                             <p className="text-xl font-black text-emerald-400">{new Set(mappings.map(m => m.pincode)).size}</p>
                         </div>
                     </div>
@@ -128,6 +135,8 @@ const GeofencePincodeMapping = () => {
                     columns={columns}
                     data={mappings}
                     loading={loading}
+                    pagination={pagination}
+                    onPageChange={(newPage) => fetchMappings(newPage)}
                 />
             </div>
         </div>

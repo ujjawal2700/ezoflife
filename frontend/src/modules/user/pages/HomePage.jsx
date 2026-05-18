@@ -11,7 +11,38 @@ import { requestForToken } from '../../../lib/firebase';
 const HomePage = () => {
   console.log('HomePage Rendering');
   const navigate = useNavigate();
-  const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData } = useLocationStore();
+  const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData, allowDiscount } = useLocationStore();
+
+  const updateGeofenceForAddress = async (addressStr) => {
+    if (!addressStr) return;
+    try {
+      if (window.google && window.google.maps) {
+        const geocoder = new window.google.maps.Geocoder();
+        geocoder.geocode({ address: addressStr }, async (results, status) => {
+          if (status === 'OK' && results[0]) {
+            const lat = results[0].geometry.location.lat();
+            const lng = results[0].geometry.location.lng();
+            console.log(`[Geofence] Geocoded pickup address ${addressStr} to coordinates: ${lat}, ${lng}`);
+            
+            const zoneInfo = await geofenceApi.checkAvailability(lat, lng);
+            if (zoneInfo.available) {
+              setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor, allowDiscount: zoneInfo.allowDiscount });
+              console.log(`[Geofence] Zone matches: ${zoneInfo.name} (Multiplier: ${zoneInfo.pricingFactor}x, Discount Allowed: ${zoneInfo.allowDiscount})`);
+            } else {
+              setZoneData({ name: null, pricingFactor: 1, allowDiscount: true });
+              console.log('[Geofence] Address not in any service zone, using default pricing.');
+            }
+          } else {
+            console.warn('[Geofence] Geocoding failed for pickup address:', status);
+          }
+        });
+      } else {
+        console.warn('[Geofence] Google Maps JS API not loaded.');
+      }
+    } catch (err) {
+      console.error('[Geofence] Error in updateGeofenceForAddress:', err);
+    }
+  };
 
   // FCM TOKEN REGISTRATION
   useEffect(() => {
@@ -44,23 +75,7 @@ const HomePage = () => {
     };
   }, [location, setPromptOpen]);
 
-  useEffect(() => {
-    if (location) {
-      const recheckZone = async () => {
-        try {
-          const zoneInfo = await geofenceApi.checkAvailability(location.lat, location.lng);
-          if (zoneInfo.available) {
-            setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
-          } else {
-            setZoneData({ name: null, pricingFactor: 1 });
-          }
-        } catch (err) {
-          console.error('Silent zone check failed:', err);
-        }
-      };
-      recheckZone();
-    }
-  }, [location, setZoneData]);
+  // Removed misplaced useEffect hook to avoid accessing pickupAddress before initialization.
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState(() => localStorage.getItem('selected_tier')); 
@@ -200,6 +215,29 @@ const HomePage = () => {
     type: 'Other'
   });
 
+  useEffect(() => {
+    if (pickupAddress && pickupAddress.address) {
+      updateGeofenceForAddress(pickupAddress.address);
+      return;
+    }
+
+    if (location) {
+      const recheckZone = async () => {
+        try {
+          const zoneInfo = await geofenceApi.checkAvailability(location.lat, location.lng);
+          if (zoneInfo.available) {
+            setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor, allowDiscount: zoneInfo.allowDiscount });
+          } else {
+            setZoneData({ name: null, pricingFactor: 1, allowDiscount: true });
+          }
+        } catch (err) {
+          console.error('Silent zone check failed:', err);
+        }
+      };
+      recheckZone();
+    }
+  }, [location, pickupAddress, setZoneData]);
+
   const handleSaveCustomAddress = async () => {
     const { line1, line2, floor, landmark, pincode, city, state } = addressDetails;
     if (!line1 || !city || !state) return alert('Please fill in required address fields (Line 1, City, State)');
@@ -220,6 +258,7 @@ const HomePage = () => {
     if (activeAddressType === 'pickup') {
       setPickupAddress(newAddr);
       if (isSameAsPickup) setDropAddress(newAddr);
+      updateGeofenceForAddress(newAddr.address);
     } else {
       setDropAddress(newAddr);
     }
@@ -397,7 +436,11 @@ const HomePage = () => {
         // Synchronize selected addresses
         if (addrList.length > 0) {
           const isPickupStillValid = pickupAddress && addrList.some(a => a.id === pickupAddress.id);
-          if (!isPickupStillValid) setPickupAddress(addrList[0]);
+          const finalPickupAddr = isPickupStillValid ? pickupAddress : addrList[0];
+          setPickupAddress(finalPickupAddr);
+          if (finalPickupAddr) {
+            updateGeofenceForAddress(finalPickupAddr.address);
+          }
           
           const isDropStillValid = dropAddress && addrList.some(a => a.id === dropAddress.id);
           if (!isDropStillValid && isSameAsPickup) setDropAddress(addrList[0]);
@@ -420,6 +463,18 @@ const HomePage = () => {
       setLoading(true);
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
       const customerType = (userData.customerType || localStorage.getItem('userType') || 'individual').toLowerCase();
+      
+      // Fetch all categories to check which ones are active
+      const activeCategoryIds = new Set();
+      try {
+        const allCats = await categoryApi.getAll();
+        if (Array.isArray(allCats)) {
+          allCats.filter(c => c.isActive).forEach(c => activeCategoryIds.add(c._id.toString()));
+        }
+      } catch (err) {
+        console.error('Error loading active categories:', err);
+      }
+
       let data = [];
       try {
         const [masterRes, customRes] = await Promise.all([
@@ -445,7 +500,14 @@ const HomePage = () => {
         const isApproved = s.isMaster || s.approvalStatus === 'Approved';
         const target = (s.targetAudience || 'both').toLowerCase();
         const isMatch = target === 'both' || target === customerType || (customerType === 'retail' && target === 'individual');
-        return isActive && isApproved && isMatch;
+        
+        // Category must be active
+        const sCatId = s.categoryId?._id || s.categoryId || s.category?._id || s.category;
+        const isCategoryActive = sCatId ? activeCategoryIds.has(sCatId.toString()) : true;
+
+        const isCurrIndActive = s.isMaster ? (String(s.curr_ind || 'y').toLowerCase() === 'y') : true;
+
+        return isActive && isApproved && isMatch && isCategoryActive && isCurrIndActive;
       });
       setServices(filtered);
     } catch (error) { console.error('Error fetching services:', error); } finally { setLoading(false); }
@@ -513,7 +575,7 @@ const HomePage = () => {
     return Object.entries(selectedQuantities).reduce((acc, [id, q]) => {
       const service = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
       if (!service) return acc;
-      const actualPrice = service.discountedPrice || service.totalPrice || service.basePrice || 0;
+      const actualPrice = (allowDiscount !== false) ? (service.discountedPrice || service.basePrice || 0) : (service.basePrice || 0);
       const price = actualPrice * (pricingFactor || 1);
       return acc + (price * q);
     }, 0);
@@ -560,7 +622,7 @@ const HomePage = () => {
           image: service.image, vendorId: service.vendorId, vendor: service.vendor,
           color: isHeritage ? 'heritage' : (i % 3 === 0 ? 'primary' : i % 3 === 1 ? 'secondary' : 'tertiary'),
           price: `₹${service.totalPrice}.00`, totalPrice: service.totalPrice, basePrice: service.basePrice,
-          allowDiscount: service.allowDiscount
+          allowDiscount: allowDiscount !== false
         }
       }
     });
@@ -854,7 +916,7 @@ const HomePage = () => {
                         >
                           {/* Left: Info Block */}
                           <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <h4 onClick={() => handleServiceClick(serviceId, service, i)} className={`font-black text-[9px] uppercase line-clamp-1 cursor-pointer tracking-tight mb-0.5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
+                            <h4 className={`font-black text-[9px] uppercase line-clamp-1 tracking-tight mb-0.5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
                             <div className="flex gap-1 items-center">
                               <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.mainCategory || 'Cat'}</span>
                               <span className={`w-0.5 h-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-slate-200'}`} />
@@ -867,9 +929,9 @@ const HomePage = () => {
                             {/* Price */}
                             <div className="flex flex-col items-end">
                               <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>
-                                ₹{Math.round(((service.allowDiscount ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}
+                                ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}
                               </span>
-                              {(service.allowDiscount && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
+                              {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
                                 <span className="text-[8px] font-bold line-through text-slate-300">
                                   ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
                                 </span>
@@ -988,6 +1050,7 @@ const HomePage = () => {
                                       setPickupAddress(addr);
                                       if (isSameAsPickup) setDropAddress(addr);
                                       setOpenDropdown(null);
+                                      updateGeofenceForAddress(addr.address);
                                     }}
                                     className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
                                   >

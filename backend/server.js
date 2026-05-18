@@ -399,3 +399,5 @@ server.listen(PORT, () => {
     console.log(`🌐 Allowed Frontend: ${process.env.FRONTEND_URL || 'All (*)'}`);
     logToFile(msg);
 });
+
+// trigger restart

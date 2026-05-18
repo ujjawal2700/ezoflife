@@ -1,9 +1,34 @@
 import ServiceArea from '../models/ServiceArea.js';
 import PincodeMapping from '../models/PincodeMapping.js';
+import { masterPricingService } from '../services/masterPricingService.js';
 
 // Admin: Get all pincode mappings
 export const getPincodeMappings = async (req, res) => {
     try {
+        const { page, limit } = req.query;
+
+        if (page && limit) {
+            const pageNumber = parseInt(page, 10);
+            const limitNumber = parseInt(limit, 10);
+            const skip = (pageNumber - 1) * limitNumber;
+
+            const total = await PincodeMapping.countDocuments();
+            const mappings = await PincodeMapping.find()
+                .sort({ mappingId: 1 })
+                .skip(skip)
+                .limit(limitNumber);
+
+            return res.status(200).json({
+                data: mappings,
+                pagination: {
+                    total,
+                    page: pageNumber,
+                    limit: limitNumber,
+                    totalPages: Math.ceil(total / limitNumber)
+                }
+            });
+        }
+
         const mappings = await PincodeMapping.find().sort({ mappingId: 1 });
         res.status(200).json(mappings);
     } catch (err) {
@@ -27,7 +52,8 @@ export const createServiceArea = async (req, res) => {
             discountPriceMultiplier,
             heritageMultiplier,
             isActive,
-            pincodes
+            pincodes,
+            allowDiscount
         } = req.body;
 
         // Validation
@@ -41,13 +67,13 @@ export const createServiceArea = async (req, res) => {
 
         const newArea = new ServiceArea({
             areaName: name || areaName,
-            city: city || 'Nashik',
+            city: city || 'Indore',
             boundary: {
                 type: 'Polygon',
                 coordinates: [coordinates] 
             },
             color,
-            multiplier: multiplier || 1.0,
+            multiplier: multiplier || basePriceMultiplier || 1.0,
             minimumOrderValue: minimumOrderValue || 0,
             dynamicSurgeMultiplier: dynamicSurgeMultiplier || 1.0,
             basePriceMultiplier: basePriceMultiplier || 1.0,
@@ -55,10 +81,20 @@ export const createServiceArea = async (req, res) => {
             heritageMultiplier: heritageMultiplier || 1.0,
             isActive: isActive !== undefined ? isActive : true,
             pincodes: pincodes || [],
-            excelFenceId: nextId
+            excelFenceId: nextId,
+            allowDiscount: allowDiscount !== undefined ? allowDiscount : true
         });
 
         await newArea.save();
+
+        // Auto-sync master pricing entries for this new zone!
+        try {
+            await masterPricingService.syncAreaWithServices(newArea._id);
+            console.log(`✅ [AUTO_SYNC] Master pricing synced for new area: ${newArea.areaName}`);
+        } catch (syncErr) {
+            console.error('Auto Sync master pricing failed on creation:', syncErr);
+        }
+
         res.status(201).json(newArea);
     } catch (err) {
         console.error('Create Service Area Error:', err);
@@ -102,8 +138,20 @@ export const updateServiceArea = async (req, res) => {
             updates.excelFenceId = (lastArea?.excelFenceId || 0) + 1;
         }
 
+        if (updates.basePriceMultiplier !== undefined) {
+            updates.multiplier = updates.basePriceMultiplier;
+        }
+
         const updatedArea = await ServiceArea.findByIdAndUpdate(id, updates, { new: true });
         if (!updatedArea) return res.status(404).json({ message: 'Area not found' });
+
+        // Auto-sync master pricing entries for this updated zone!
+        try {
+            await masterPricingService.syncAreaWithServices(updatedArea._id);
+            console.log(`✅ [AUTO_SYNC] Master pricing synced for updated area: ${updatedArea.areaName}`);
+        } catch (syncErr) {
+            console.error('Auto Sync master pricing failed on update:', syncErr);
+        }
 
         res.status(200).json(updatedArea);
     } catch (err) {
@@ -156,8 +204,9 @@ export const checkLocationAvailability = async (req, res) => {
             available: true,
             areaId: area._id,
             name: area.areaName,
-            pricingFactor: area.multiplier || 1.0,
-            minimumOrderValue: area.minimumOrderValue
+            pricingFactor: area.basePriceMultiplier || area.multiplier || 1.0,
+            minimumOrderValue: area.minimumOrderValue,
+            allowDiscount: area.allowDiscount !== false
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

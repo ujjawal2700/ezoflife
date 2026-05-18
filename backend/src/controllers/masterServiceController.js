@@ -5,7 +5,10 @@ import mongoose from 'mongoose';
 
 export const createMasterService = async (req, res) => {
     try {
-        const { itemName, categoryId, basePrice, discountedPrice, unit, description, isActive, icon, tier, excelCategoryId } = req.body;
+        const { 
+            itemName, categoryId, basePrice, discountedPrice, unit, description, 
+            isActive, icon, tier, excelCategoryId, curr_ind, allowDiscount, gst, sacCode, estimateTAT, avgWeight 
+        } = req.body;
         
         const exists = await MasterService.findOne({ itemName });
         if (exists) return res.status(400).json({ message: 'Service already exists' });
@@ -46,7 +49,13 @@ export const createMasterService = async (req, res) => {
             icon, 
             tier, 
             skuId: finalSkuId,
-            excelCategoryId: excelCategoryId || category.excelCategoryId
+            excelCategoryId: excelCategoryId || category.excelCategoryId,
+            curr_ind: curr_ind || 'y',
+            allowDiscount: allowDiscount !== undefined ? allowDiscount : true,
+            gst: gst || 5,
+            sacCode: sacCode || '9994',
+            estimateTAT: estimateTAT || '48 Hours',
+            avgWeight: avgWeight || '0.5'
         });
 
         await service.save();
@@ -59,12 +68,39 @@ export const createMasterService = async (req, res) => {
 
 export const getAllMasterServices = async (req, res) => {
     try {
-        const { serviceType } = req.query;
+        const { serviceType, page, limit } = req.query;
         let query = {};
-        if (serviceType) query.serviceType = serviceType;
+        if (serviceType) {
+            query.serviceType = serviceType === 'individual' ? 'normal' : serviceType;
+        }
+
+        if (page && limit) {
+            const pageNumber = parseInt(page, 10);
+            const limitNumber = parseInt(limit, 10);
+            const skip = (pageNumber - 1) * limitNumber;
+
+            const total = await MasterService.countDocuments(query);
+            const services = await MasterService.find(query)
+                .populate('categoryId')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limitNumber)
+                .lean();
+
+            return res.status(200).json({
+                data: services,
+                pagination: {
+                    total,
+                    page: pageNumber,
+                    limit: limitNumber,
+                    totalPages: Math.ceil(total / limitNumber)
+                }
+            });
+        }
 
         const services = await MasterService.find(query)
             .populate('categoryId')
+            .sort({ createdAt: -1 })
             .lean();
         
         res.status(200).json(services);
@@ -105,7 +141,9 @@ export const getPricingPreview = async (req, res) => {
         const logisticsFee = getConfig('normal_logistics_fee', 50); // default 50
         const gstPercentage = getConfig('gst_percentage', 18); // default 18%
         let query = { isActive: true };
-        if (serviceType) query.serviceType = serviceType;
+        if (serviceType) {
+            query.serviceType = serviceType === 'individual' ? 'normal' : serviceType;
+        }
         if (category_id) {
             if (mongoose.Types.ObjectId.isValid(category_id)) {
                 query.categoryId = category_id;

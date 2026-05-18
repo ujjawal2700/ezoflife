@@ -68,6 +68,10 @@ const serviceAreaSchema = new mongoose.Schema({
     freeDeliveryThreshold: {
         type: Number,
         default: 500
+    },
+    allowDiscount: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

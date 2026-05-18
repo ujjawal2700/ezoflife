@@ -111,6 +111,7 @@ export default function ServiceAreas() {
         setDrawingMode(null);
         setSelectedArea({
             name: 'New Zone',
+            city: 'Indore',
             description: '',
             coordinates: coordinates,
             pricingFactor: 1.0,
@@ -120,6 +121,7 @@ export default function ServiceAreas() {
             discountPriceMultiplier: 1.0,
             heritageMultiplier: 1.0,
             isActive: true,
+            allowDiscount: true,
             pincodes: Array.from(pincodes)
         });
         setIsEditing(true);
@@ -226,9 +228,18 @@ export default function ServiceAreas() {
                         <div className="space-y-2">
                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Zone Name</label>
                             <input 
-                                value={selectedArea.name} 
+                                value={selectedArea.name || selectedArea.areaName || ''} 
                                 onChange={(e) => setSelectedArea({...selectedArea, name: e.target.value})}
-                                placeholder="E.G. NASHIK WEST"
+                                placeholder="E.G. PALASIYA ZONE"
+                                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-wider focus:border-slate-900 outline-none"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
+                            <input 
+                                value={selectedArea.city || ''} 
+                                onChange={(e) => setSelectedArea({...selectedArea, city: e.target.value})}
+                                placeholder="E.G. INDORE"
                                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-wider focus:border-slate-900 outline-none"
                             />
                         </div>
@@ -291,6 +302,26 @@ export default function ServiceAreas() {
                                         onClick={() => setSelectedArea({...selectedArea, isActive: opt === 'Y'})}
                                         className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${
                                             (opt === 'Y' && selectedArea.isActive) || (opt === 'N' && !selectedArea.isActive)
+                                                ? 'bg-slate-900 text-white shadow-lg'
+                                                : 'bg-slate-100 text-slate-400'
+                                        }`}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Allow Discount (Y/N)</label>
+                            <div className="flex gap-2">
+                                {['Y', 'N'].map(opt => (
+                                    <button
+                                        key={opt}
+                                        type="button"
+                                        onClick={() => setSelectedArea({...selectedArea, allowDiscount: opt === 'Y'})}
+                                        className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${
+                                            (opt === 'Y' && selectedArea.allowDiscount !== false) || (opt === 'N' && selectedArea.allowDiscount === false)
                                                 ? 'bg-slate-900 text-white shadow-lg'
                                                 : 'bg-slate-100 text-slate-400'
                                         }`}

@@ -24,6 +24,7 @@ router.get('/', getAllMasterServices);
 router.get('/:serviceId/vendors', getVendorPricingReport);
 router.get('/preview', getPricingPreview);
 router.put('/:id', updateMasterService);
+router.patch('/:id', updateMasterService);
 router.delete('/:id', deleteMasterService);
 
 export default router;

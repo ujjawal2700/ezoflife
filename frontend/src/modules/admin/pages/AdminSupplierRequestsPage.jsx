@@ -19,6 +19,8 @@ const AdminSupplierRequestsPage = () => {
     const navigate = useNavigate();
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchRequests();
@@ -55,6 +57,12 @@ const AdminSupplierRequestsPage = () => {
     const formatStageName = (stage) => {
         return stage?.replace(/_/g, ' ') || 'Unknown';
     };
+
+    const paginatedRequests = React.useMemo(() => {
+        return requests.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    }, [requests, page]);
+
+    const totalPages = Math.ceil(requests.length / itemsPerPage) || 1;
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
@@ -123,7 +131,7 @@ const AdminSupplierRequestsPage = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                requests.map((req) => (
+                                paginatedRequests.map((req) => (
                                     <tr key={req._id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
@@ -171,6 +179,31 @@ const AdminSupplierRequestsPage = () => {
                             )}
                         </tbody>
                     </table>
+                    
+                    {/* Pagination Controls */}
+                    {requests.length > 0 && (
+                        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
+                            <div className="flex items-center gap-1">
+                                <button 
+                                    disabled={page <= 1 || loading}
+                                    onClick={() => setPage(p => p - 1)}
+                                    className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Prev
+                                </button>
+                                <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                                    PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+                                </span>
+                                <button 
+                                    disabled={page >= totalPages || loading}
+                                    onClick={() => setPage(p => p + 1)}
+                                    className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

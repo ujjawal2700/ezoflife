@@ -7,6 +7,8 @@ const AdminAdvertisementPage = () => {
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [page, setPage] = useState(1);
+    const itemsPerPage = 10;
     
     // Form state
     const [title, setTitle] = useState('');
@@ -107,6 +109,12 @@ const AdminAdvertisementPage = () => {
             toast.error('Delete failed');
         }
     };
+
+    const paginatedAds = React.useMemo(() => {
+        return ads.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+    }, [ads, page]);
+
+    const totalPages = Math.ceil(ads.length / itemsPerPage) || 1;
 
     return (
         <div className="p-8 space-y-8 max-w-6xl mx-auto">
@@ -242,7 +250,7 @@ const AdminAdvertisementPage = () => {
                                         <td colSpan="4" className="px-8 py-12 text-center text-slate-400">Loading your campaigns...</td>
                                     </tr>
                                 ) : (
-                                    ads.map((ad) => (
+                                    paginatedAds.map((ad) => (
                                         <tr key={ad._id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-8 py-6">
                                                 <div className="flex items-center gap-4">
@@ -296,6 +304,31 @@ const AdminAdvertisementPage = () => {
                                 )}
                             </tbody>
                         </table>
+                        
+                        {/* Pagination Controls */}
+                        {ads.length > 0 && (
+                            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
+                                <div className="flex items-center gap-1">
+                                    <button 
+                                        disabled={page <= 1 || loading}
+                                        onClick={() => setPage(p => p - 1)}
+                                        className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    >
+                                        Prev
+                                    </button>
+                                    <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                                        PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+                                    </span>
+                                    <button 
+                                        disabled={page >= totalPages || loading}
+                                        onClick={() => setPage(p => p + 1)}
+                                        className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                    >
+                                        Next
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </motion.div>
             </div>

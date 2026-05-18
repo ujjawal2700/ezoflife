@@ -12,8 +12,34 @@ export default function DataGrid({
     footer,
     density = 'compact', // compact, standard
     stickyHeader = true,
-    loading = false
+    loading = false,
+    pagination,
+    onPageChange,
+    showFilter = true,
+    showSearch = true,
+    onDownload
 }) {
+    const [searchTerm, setSearchTerm] = React.useState('');
+
+    const filteredData = React.useMemo(() => {
+        if (!searchTerm) return data;
+        const lowerSearch = searchTerm.toLowerCase();
+        return data.filter(row => {
+            return Object.keys(row).some(key => {
+                const val = row[key];
+                if (val === null || val === undefined) return false;
+                if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+                    if (key === 'isActive') {
+                        const statusStr = val ? 'active' : 'inactive';
+                        return statusStr.includes(lowerSearch);
+                    }
+                    return String(val).toLowerCase().includes(lowerSearch);
+                }
+                return false;
+            });
+        });
+    }, [data, searchTerm]);
+
     return (
         <div className="w-full bg-white border border-slate-200 flex flex-col rounded-sm">
             {/* Grid Header Strip */}
@@ -24,26 +50,32 @@ export default function DataGrid({
                         {title}
                     </h3>
                     <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
-                        {data.length} TOTAL ENTITIES
+                        {pagination ? pagination.total : data.length} TOTAL ENTITIES
                     </span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="relative group lg:block hidden">
-                        <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-slate-900 transition-all" />
-                        <input 
-                            type="text" 
-                            placeholder="Filter records..." 
-                            className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-300 transition-all outline-none w-48"
-                        />
-                    </div>
+                    {showSearch && (
+                        <div className="relative group lg:block hidden">
+                            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-slate-900 transition-all" />
+                            <input 
+                                 type="text" 
+                                 value={searchTerm}
+                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                 placeholder="Filter records..." 
+                                 className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-300 transition-all outline-none w-48"
+                            />
+                        </div>
+                    )}
                     {actions}
                     <div className="h-4 w-px bg-slate-100 mx-1" />
-                    <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
+                    <button onClick={onDownload} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm" title="Download Excel/CSV">
                         <Download size={14} />
                     </button>
-                    <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
-                        <Filter size={14} />
-                    </button>
+                    {showFilter && (
+                        <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
+                            <Filter size={14} />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -89,8 +121,8 @@ export default function DataGrid({
                                     </div>
                                 </td>
                             </tr>
-                        ) : data.length > 0 ? (
-                            data.map((row, rowIdx) => (
+                        ) : filteredData.length > 0 ? (
+                            filteredData.map((row, rowIdx) => (
                                 <tr
                                     key={rowIdx}
                                     onClick={() => onRowClick?.(row)}
@@ -135,9 +167,23 @@ export default function DataGrid({
             {/* Pagination / Aggregation Intelligence */}
             <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
                 <div className="flex items-center gap-1">
-                    <button className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white transition-all">Prev</button>
-                    <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">PG 01 / 01</span>
-                    <button className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white transition-all">Next</button>
+                    <button 
+                        disabled={!pagination || pagination.page <= 1 || loading}
+                        onClick={() => onPageChange?.(pagination.page - 1)}
+                        className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        Prev
+                    </button>
+                    <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                        PG {String(pagination?.page || 1).padStart(2, '0')} / {String(pagination?.totalPages || 1).padStart(2, '0')}
+                    </span>
+                    <button 
+                        disabled={!pagination || pagination.page >= pagination?.totalPages || loading}
+                        onClick={() => onPageChange?.(pagination.page + 1)}
+                        className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        Next
+                    </button>
                 </div>
             </div>
         </div>

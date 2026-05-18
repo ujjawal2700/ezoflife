@@ -368,15 +368,15 @@ const CartPage = () => {
     });
   };
 
-  const { pricingFactor, zone } = useLocationStore();
+  const { pricingFactor, zone, allowDiscount } = useLocationStore();
 
   const getItemPrice = (item) => {
-    // Priority: Respect showDiscountPrice toggle from Master Service
+    // Priority: Respect showDiscountPrice or allowDiscount toggle from Master Service
     const basePrice = item.basePrice || item.totalPrice || 0;
     const discountedPrice = item.discountedPrice || basePrice;
     
-    // If showDiscountPrice is false, explicitly use basePrice
-    const sourcePrice = (item.showDiscountPrice === false) ? basePrice : discountedPrice;
+    // If allowDiscount is false or showDiscountPrice is false, explicitly use basePrice
+    const sourcePrice = (allowDiscount === false || item.showDiscountPrice === false) ? basePrice : discountedPrice;
     
     return Math.round(sourcePrice * (pricingFactor || 1));
   };

@@ -17,6 +17,8 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All'); 
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
   
   // Modals state
   const [editingUser, setEditingUser] = useState(null);
@@ -60,7 +62,12 @@ export default function Users() {
 
   useEffect(() => {
     fetchUsers();
+    setPage(1); // Reset page on tab change
   }, [activeTab]);
+
+  useEffect(() => {
+    setPage(1); // Reset page on search change
+  }, [searchQuery]);
 
   useEffect(() => {
     // REFRESHED VENDOR SERVICE FETCHER
@@ -195,6 +202,10 @@ export default function Users() {
          u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   }, [users, searchQuery]);
+
+  const paginatedUsers = useMemo(() => {
+    return filteredUsers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [filteredUsers, page]);
 
   const stats = useMemo(() => [
     { label: 'Total Base', value: users.length, change: 'Across All Roles', trend: 'up', icon: UsersIcon },
@@ -353,8 +364,14 @@ export default function Users() {
         <DataGrid 
           title={`${activeTab} Index`.toUpperCase()}
           columns={columns}
-          data={filteredUsers}
+          data={paginatedUsers}
           loading={loading}
+          pagination={{
+            page,
+            totalPages: Math.ceil(filteredUsers.length / itemsPerPage) || 1,
+            total: filteredUsers.length
+          }}
+          onPageChange={setPage}
         />
       </div>
 

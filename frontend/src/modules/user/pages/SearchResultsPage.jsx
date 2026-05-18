@@ -108,8 +108,7 @@ const SearchResultsPage = () => {
                         initial="hidden"
                         animate="visible"
                         exit={{ opacity: 0, scale: 0.95 }}
-                        onClick={() => navigate('/user/service-info', { state: { selectedService: item } })}
-                        className="bg-white p-6 rounded-[2rem] border border-outline-variant/10 shadow-sm flex items-center justify-between group cursor-pointer"
+                        className="bg-white p-6 rounded-[2rem] border border-outline-variant/10 shadow-sm flex items-center justify-between group"
                     >
                         <div className="flex items-center gap-5">
                             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">

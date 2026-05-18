@@ -91,6 +91,11 @@ const masterServiceSchema = new mongoose.Schema({
     allowDiscount: {
         type: Boolean,
         default: true
+    },
+    curr_ind: {
+        type: String,
+        enum: ['y', 'n'],
+        default: 'y'
     }
 }, { timestamps: true });
 

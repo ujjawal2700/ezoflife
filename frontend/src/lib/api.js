@@ -6,8 +6,17 @@ export const categoryApi = {
         const res = await fetch(`${BASE_URL}/categories`);
         return res.json();
     },
+    getPaginated: async (page = 1, limit = 10, filters = {}) => {
+        const queryParams = new URLSearchParams({
+            page,
+            limit,
+            ...filters
+        }).toString();
+        const res = await fetch(`${BASE_URL}/categories?${queryParams}`);
+        return res.json();
+    },
     getMain: async () => {
-        const res = await fetch(`${BASE_URL}/categories`);
+        const res = await fetch(`${BASE_URL}/categories?isActive=true`);
         const data = await res.json();
         // Return unique main categories with name as id
         return Array.from(new Set(data.map(c => c.mainCategory)))
@@ -15,7 +24,7 @@ export const categoryApi = {
             .map(name => ({ _id: name, name }));
     },
     getSub: async (mainCategoryName) => {
-        const res = await fetch(`${BASE_URL}/categories`);
+        const res = await fetch(`${BASE_URL}/categories?isActive=true`);
         const data = await res.json();
         return data.filter(c => c.mainCategory === mainCategoryName);
     },

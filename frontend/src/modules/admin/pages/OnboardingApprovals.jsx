@@ -38,6 +38,8 @@ export default function OnboardingApprovals() {
   const [isProcessing, setIsProcessing] = useState(null);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showDocSelector, setShowDocSelector] = useState(null);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchPending();
@@ -46,6 +48,7 @@ export default function OnboardingApprovals() {
   useEffect(() => {
     const tabFromUrl = new URLSearchParams(location.search).get('tab') === 'Supplier' ? 'Supplier' : 'Vendor';
     setActiveTab(tabFromUrl);
+    setPage(1); // Reset page on tab change
   }, [location.search]);
 
   const handleTabChange = (tab) => {
@@ -73,6 +76,10 @@ export default function OnboardingApprovals() {
         role === 'Supplier' ? await adminApi.rejectSupplier(id) : await adminApi.rejectVendor(id);
       }
       setRawUsers(prev => prev.filter(req => req._id !== id));
+      // Adjust page if current page becomes empty
+      const remainingItems = filteredData.length - 1;
+      const totalPages = Math.ceil(remainingItems / itemsPerPage) || 1;
+      if (page > totalPages) setPage(totalPages);
     } catch (err) {
       console.error('Action Error:', err);
       alert('Action failed. Try again.');
@@ -96,6 +103,12 @@ export default function OnboardingApprovals() {
         status: 'Pending'
       }));
   }, [rawUsers, activeTab]);
+
+  const paginatedData = useMemo(() => {
+    return filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  }, [filteredData, page]);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50/50 pb-20">
@@ -165,7 +178,7 @@ export default function OnboardingApprovals() {
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">No pending {activeTab} requests at this time.</p>
                             </td>
                         </tr>
-                    ) : filteredData.map((req) => (
+                    ) : paginatedData.map((req) => (
                         <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-8 py-6">
                                 <div className="flex items-center gap-4">
@@ -273,6 +286,31 @@ export default function OnboardingApprovals() {
                     ))}
                 </tbody>
             </table>
+            
+            {/* Pagination Controls */}
+            {filteredData.length > 0 && (
+                <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
+                    <div className="flex items-center gap-1">
+                        <button 
+                            disabled={page <= 1 || loading}
+                            onClick={() => setPage(p => p - 1)}
+                            className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            Prev
+                        </button>
+                        <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                            PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+                        </span>
+                        <button 
+                            disabled={page >= totalPages || loading}
+                            onClick={() => setPage(p => p + 1)}
+                            className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
 
         {/* Document Viewer Modal Overlay */}

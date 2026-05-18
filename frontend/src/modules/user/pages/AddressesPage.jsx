@@ -81,24 +81,30 @@ const AddressesPage = () => {
       }
 
       // 1. Filter out any existing addresses of the same type if it's Home or Office
-      let updatedList = (user.addresses || []).filter(a => {
-        if (newType === 'Home' || newType === 'Office') {
-          return a.type !== newType;
-        }
-        if (editingAddress) {
-          return (a._id || a.id) !== (editingAddress._id || editingAddress.id);
-        }
-        return true;
-      });
+      let updatedList = (user.addresses || [])
+        .filter(a => typeof a === 'object' && a !== null)
+        .filter(a => {
+          if (newType === 'Home' || newType === 'Office') {
+            return a.type !== newType;
+          }
+          if (editingAddress) {
+            return (a._id || a.id) !== (editingAddress._id || editingAddress.id);
+          }
+          return true;
+        });
       
       const newAddrObj = {
         type: newType,
         address: fullAddressString,
-        city: formData.city,
-        pincode: formData.pincode,
-        location: formData.location,
+        city: formData.city || '',
+        pincode: formData.pincode || '',
+        location: formData.location || { lat: 0, lng: 0 },
         isDefault: updatedList.length === 0
       };
+
+      if (editingAddress) {
+        newAddrObj._id = editingAddress._id || editingAddress.id;
+      }
 
       updatedList.push(newAddrObj);
 
@@ -108,9 +114,9 @@ const AddressesPage = () => {
         // Also sync main address for backward compatibility if it's default
         ...(newAddrObj.isDefault ? { 
             address: fullAddressString, 
-            city: formData.city, 
-            pincode: formData.pincode, 
-            location: formData.location 
+            city: formData.city || '', 
+            pincode: formData.pincode || '', 
+            location: formData.location || { lat: 0, lng: 0 }
         } : {})
       });
 
@@ -150,8 +156,41 @@ const AddressesPage = () => {
     setEditingAddress(null);
   };
 
-  const deleteAddress = (id) => {
-    setAddresses(addresses.filter(addr => addr.id !== id));
+  const deleteAddress = async (addrId) => {
+    try {
+      setIsLoading(true);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user.id || user._id;
+
+      if (!userId) {
+        toast.error('Session expired. Please login again.');
+        return;
+      }
+
+      // Filter out the address by matching its _id or id
+      const updatedList = (user.addresses || [])
+        .filter(a => typeof a === 'object' && a !== null)
+        .filter(a => (a._id || a.id) !== addrId);
+
+      // Update Profile on Server
+      const updatedUser = await authApi.updateProfile(userId, {
+        addresses: updatedList
+      });
+
+      // Update local storage
+      const mergedUser = { ...user, ...updatedUser };
+      localStorage.setItem('user', JSON.stringify(mergedUser));
+      
+      // Update UI list
+      setAddresses(mergedUser.addresses || []);
+
+      toast.success('Address deleted successfully');
+    } catch (err) {
+      console.error('Delete Address Error:', err);
+      toast.error('Failed to delete address');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -197,7 +236,7 @@ const AddressesPage = () => {
           <AnimatePresence mode="popLayout">
             {addresses.map((addr) => (
               <motion.div 
-                key={addr.id}
+                key={addr._id || addr.id || addr.address}
                 layout
                 variants={itemVariants}
                 initial="hidden"
@@ -230,7 +269,7 @@ const AddressesPage = () => {
                     {!addr.isDefault && (
                       <motion.button 
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => deleteAddress(addr.id)}
+                        onClick={() => deleteAddress(addr._id || addr.id)}
                         className="w-10 h-10 flex items-center justify-center text-on-surface/20 hover:text-error transition-colors bg-slate-50 rounded-xl"
                       >
                         <span className="material-symbols-outlined text-lg">delete</span>

@@ -89,7 +89,6 @@ const ServiceGeofenceTable = () => {
                     </div>
                     <div className="flex flex-col">
                         <span className="font-bold text-slate-800 uppercase tracking-tight">{val}</span>
-                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{row.city || 'Nashik'}, {row.state || 'MH'}</span>
                     </div>
                 </div>
             )
@@ -252,61 +251,69 @@ const ServiceGeofenceTable = () => {
             {/* Edit Multipliers Modal */}
             {editingArea && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-md rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
+                    <div className="bg-white w-full max-w-2xl rounded-sm border border-slate-200 shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-300">
                         <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div>
-                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-tighter">Edit Zone Parameters</h3>
+                                <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Edit Zone Parameters</h3>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Fence ID: {editingArea.excelFenceId}</p>
                             </div>
-                            <button onClick={() => setEditingArea(null)} className="p-2 hover:bg-white rounded-xl transition-all shadow-sm"><X size={16}/></button>
+                            <button onClick={() => setEditingArea(null)} className="p-2 hover:bg-slate-100 rounded-sm transition-all"><X size={16}/></button>
                         </div>
                         
                         <div className="p-8 space-y-6">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Area Name</label>
-                                <input 
-                                    value={editingArea.areaName} 
-                                    onChange={(e) => setEditingArea({...editingArea, areaName: e.target.value})}
-                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black uppercase tracking-wider outline-none focus:border-slate-900 transition-all"
-                                />
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                                {/* Area Name */}
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Area Name</label>
+                                    <input 
+                                        value={editingArea.areaName} 
+                                        onChange={(e) => setEditingArea({...editingArea, areaName: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                    />
+                                </div>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                {/* Express Multiplier */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Zap size={10} className="text-amber-500" /> Express Multiplier
                                     </label>
                                     <input 
                                         type="number" step="0.1"
                                         value={editingArea.dynamicSurgeMultiplier} 
                                         onChange={(e) => setEditingArea({...editingArea, dynamicSurgeMultiplier: parseFloat(e.target.value)})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-amber-500 transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+
+                                {/* Base Price Multiplier */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Percent size={10} className="text-blue-500" /> Base Price Multiplier
                                     </label>
                                     <input 
                                         type="number" step="0.1"
                                         value={editingArea.basePriceMultiplier} 
                                         onChange={(e) => setEditingArea({...editingArea, basePriceMultiplier: parseFloat(e.target.value)})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+
+                                {/* Discount Price Multiplier */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Percent size={10} className="text-emerald-500" /> Discount Price Multiplier
                                     </label>
                                     <input 
                                         type="number" step="0.1"
                                         value={editingArea.discountPriceMultiplier} 
                                         onChange={(e) => setEditingArea({...editingArea, discountPriceMultiplier: parseFloat(e.target.value)})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-emerald-500 transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+
+                                {/* Show Discount Price */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Percent size={10} className="text-amber-500" /> Show Discount Price (Y/N)
                                     </label>
                                     <div className="flex gap-2">
@@ -315,51 +322,57 @@ const ServiceGeofenceTable = () => {
                                                 key={opt.toString()}
                                                 type="button"
                                                 onClick={() => setEditingArea({...editingArea, showDiscount: opt})}
-                                                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${editingArea.showDiscount === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                                className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${editingArea.showDiscount === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
                                             >
                                                 {opt ? 'Y' : 'N'}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+
+                                {/* Heritage Multiplier */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <ShieldCheck size={10} className="text-purple-500" /> Heritage Multiplier
                                     </label>
                                     <input 
                                         type="number" step="0.1"
                                         value={editingArea.heritageMultiplier || 1.0} 
                                         onChange={(e) => setEditingArea({...editingArea, heritageMultiplier: parseFloat(e.target.value)})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-purple-500 transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+
+                                {/* Platform Multiplier */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <TrendingUp size={10} className="text-blue-500" /> Platform Multiplier (x)
                                     </label>
                                     <input 
                                         type="number" step="0.1"
                                         value={editingArea.platformMultiplier || 1.0} 
                                         onChange={(e) => setEditingArea({...editingArea, platformMultiplier: parseFloat(e.target.value)})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-blue-500 transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-2">
+
+                                {/* Free Delivery Threshold */}
+                                <div className="space-y-1.5 md:col-span-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Truck size={10} className="text-rose-500" /> Free Delivery Threshold (₹)
                                     </label>
                                     <input 
                                         type="number"
                                         value={editingArea.freeDeliveryThreshold || 500} 
                                         onChange={(e) => setEditingArea({...editingArea, freeDeliveryThreshold: parseFloat(e.target.value)})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-black outline-none focus:border-rose-500 transition-all"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
                             </div>
 
                             <button 
                                 onClick={handleUpdateArea}
-                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4"
+                                className="w-full py-4 bg-slate-950 text-white rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2 mt-6 border border-slate-900"
                             >
                                 <Save size={14} /> Update Parameters
                             </button>

@@ -662,9 +662,6 @@ export const updateUserProfile = async (req, res) => {
                     pincode: updates.pincode || user.shopDetails.pincode,
                     city: updates.city || user.shopDetails.city
                 };
-            } else if (key === 'location') {
-                submissionData.append(key, JSON.stringify(formData[key]));
-            } else if (formData[key] !== null) {
             } else if (user.role === 'Supplier') {
                 user.supplierDetails = {
                     ...user.supplierDetails,

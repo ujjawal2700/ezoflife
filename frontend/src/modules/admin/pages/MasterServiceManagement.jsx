@@ -17,8 +17,8 @@ const MasterServiceManagement = () => {
     const [categories, setCategories] = useState([]);
     const [selectedMain, setSelectedMain] = useState('');
 
-    const [filterMain, setFilterMain] = useState('');
-    const [filterSub, setFilterSub] = useState('');
+    const [filterCatId, setFilterCatId] = useState('');
+    const [filterCurrInd, setFilterCurrInd] = useState('');
 
     const [formData, setFormData] = useState({
         itemName: '',
@@ -38,14 +38,15 @@ const MasterServiceManagement = () => {
         isActive: true,
         serviceType: 'normal',
         excelCategoryId: '',
-        sacCode: '9994',
-        allowDiscount: true
+        sacCode: '9994'
     });
 
     useEffect(() => {
-        fetchServices();
         fetchCategories();
+        fetchServices();
     }, []);
+
+    const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
 
     const fetchCategories = async () => {
         try {
@@ -56,16 +57,57 @@ const MasterServiceManagement = () => {
         }
     };
 
-    const fetchServices = async () => {
+    const fetchServices = async (page = 1) => {
         try {
             setIsLoading(true);
-            const data = await masterServiceApi.getAll();
-            setServices(data);
+            const data = await masterServiceApi.getAll({ page, limit: pagination.limit });
+            if (data && data.pagination) {
+                setServices(data.data);
+                setPagination(data.pagination);
+            } else {
+                setServices(Array.isArray(data) ? data : []);
+            }
         } catch (err) {
             toast.error('Failed to fetch services');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleDownload = () => {
+        if (!services || services.length === 0) {
+            toast.error('No services available to download');
+            return;
+        }
+        const headers = ['SKU ID', 'Cat ID', 'SAC Code', 'Item Name', 'Avg Weight (KG)', 'Estimate TAT', 'GST (%)', 'Global Base Price', 'Global Discount Price', 'Status', 'Active'];
+        const rows = services.map(svc => [
+            svc.skuId || '—',
+            svc.excelCategoryId || svc.categoryId?.excelCategoryId || '—',
+            svc.sacCode || '9994',
+            svc.itemName || '',
+            svc.avgWeight || '0.5',
+            svc.estimateTAT || '48 Hours',
+            svc.gst || 5,
+            svc.basePrice || 0,
+            svc.discountedPrice || 0,
+            String(svc.curr_ind).toUpperCase(),
+            svc.isActive ? 'Active' : 'Inactive'
+        ]);
+
+        const csvRows = [
+            headers.join(','),
+            ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvRows], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Master_Services_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Excel/CSV downloaded successfully');
     };
 
     const mainCategoryList = useMemo(() => {
@@ -76,17 +118,23 @@ const MasterServiceManagement = () => {
         return categories.filter(c => c.mainCategory === selectedMain);
     }, [categories, selectedMain]);
 
+    const catIdList = useMemo(() => {
+        return Array.from(
+            new Set(
+                services
+                    .map(s => s.excelCategoryId || s.categoryId?.excelCategoryId)
+                    .filter(Boolean)
+            )
+        ).sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
+    }, [services]);
+
     const filteredServices = useMemo(() => {
         return services.filter(service => {
-            const matchesMain = !filterMain || service.categoryId?.mainCategory === filterMain;
-            const matchesSub = !filterSub || service.categoryId?._id === filterSub;
-            return matchesMain && matchesSub;
+            const matchesCatId = !filterCatId || String(service.excelCategoryId) === String(filterCatId) || String(service.categoryId?.excelCategoryId) === String(filterCatId);
+            const matchesCurrInd = !filterCurrInd || String(service.curr_ind).toLowerCase() === String(filterCurrInd).toLowerCase();
+            return matchesCatId && matchesCurrInd;
         });
-    }, [services, filterMain, filterSub]);
-
-    const filterSubCategoryList = useMemo(() => {
-        return categories.filter(c => c.mainCategory === filterMain);
-    }, [categories, filterMain]);
+    }, [services, filterCatId, filterCurrInd]);
 
     const handleOpenModal = (service = null) => {
         if (service) {
@@ -110,8 +158,7 @@ const MasterServiceManagement = () => {
                 isActive: service.isActive !== undefined ? service.isActive : true,
                 serviceType: service.serviceType || 'normal',
                 excelCategoryId: service.excelCategoryId || '',
-                sacCode: service.sacCode || '9994',
-                allowDiscount: service.allowDiscount !== undefined ? service.allowDiscount : true
+                sacCode: service.sacCode || '9994'
             });
         } else {
             setCurrentService(null);
@@ -134,8 +181,7 @@ const MasterServiceManagement = () => {
                 isActive: true,
                 serviceType: 'normal',
                 excelCategoryId: '',
-                sacCode: '9994',
-                allowDiscount: true
+                sacCode: '9994'
             });
         }
         setIsModalOpen(true);
@@ -151,7 +197,7 @@ const MasterServiceManagement = () => {
                 await masterServiceApi.create(formData);
                 toast.success('New SKU created');
             }
-            fetchServices();
+            fetchServices(pagination.page);
             setIsModalOpen(false);
         } catch (err) {
             toast.error(err.message || 'Operation failed');
@@ -163,7 +209,7 @@ const MasterServiceManagement = () => {
         try {
             await masterServiceApi.delete(id);
             toast.success('Deleted');
-            fetchServices();
+            fetchServices(pagination.page);
         } catch (err) {
             toast.error('Failed');
         }
@@ -171,19 +217,19 @@ const MasterServiceManagement = () => {
 
     const columns = useMemo(() => [
         {
-            header: 'Cat ID',
-            key: 'excelCategoryId',
+            header: 'SKU ID',
+            key: 'skuId',
             render: (val) => (
-                <span className="font-black text-slate-400 tabular-nums bg-slate-50 px-2 py-1 rounded-sm border border-slate-100 text-[9px]">
+                <span className="font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-sm border border-slate-100 text-[10px]">
                     {val || '—'}
                 </span>
             )
         },
         {
-            header: 'SKU ID',
-            key: 'skuId',
+            header: 'Cat ID',
+            key: 'excelCategoryId',
             render: (val) => (
-                <span className="font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-sm border border-slate-100 text-[10px]">
+                <span className="font-black text-slate-400 tabular-nums bg-slate-50 px-2 py-1 rounded-sm border border-slate-100 text-[9px]">
                     {val || '—'}
                 </span>
             )
@@ -215,12 +261,32 @@ const MasterServiceManagement = () => {
         {
             header: 'Est. TAT',
             key: 'estimateTAT',
-            render: (val) => (
-                <div className="flex items-center gap-1.5 text-slate-500 font-bold">
-                    <Clock size={10} className="text-slate-300" />
-                    <span>{val || '48 Hours'}</span>
-                </div>
-            )
+            render: (val) => {
+                const formatTAT = (v) => {
+                    if (!v) return '48 Hours';
+                    const str = String(v).toLowerCase().trim();
+                    if (str.includes('day')) {
+                        const num = parseFloat(str);
+                        if (!isNaN(num)) return `${num * 24} Hours`;
+                    }
+                    const num = parseFloat(str);
+                    if (!isNaN(num) && !str.includes('hour')) {
+                        if (num <= 10) return `${num * 24} Hours`;
+                        return `${num} Hours`;
+                    }
+                    if (str.includes('hour')) {
+                        const num = parseFloat(str);
+                        if (!isNaN(num)) return `${num} Hours`;
+                    }
+                    return v;
+                };
+                return (
+                    <div className="flex items-center gap-1.5 text-slate-500 font-bold">
+                        <Clock size={10} className="text-slate-300" />
+                        <span>{formatTAT(val)}</span>
+                    </div>
+                );
+            }
         },
         {
             header: 'GST',
@@ -233,17 +299,17 @@ const MasterServiceManagement = () => {
             )
         },
         {
-            header: 'Base Price',
+            header: 'Global Base Price',
             key: 'basePrice',
-            render: (val) => <span className="font-bold text-slate-400 line-through">₹{val}</span>
+            render: (val) => <span className="font-bold text-slate-900">₹{val}</span>
         },
         {
-            header: 'Discount Price',
+            header: 'Global Discount Price',
             key: 'discountedPrice',
             render: (val) => <span className="font-black text-slate-900">₹{val}</span>
         },
         {
-            header: 'Curr Ind',
+            header: 'Status',
             key: 'curr_ind',
             render: (val) => (
                 <span className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest ${val === 'y' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
@@ -251,6 +317,7 @@ const MasterServiceManagement = () => {
                 </span>
             )
         },
+
         {
             header: 'Actions',
             key: 'actions',
@@ -268,7 +335,7 @@ const MasterServiceManagement = () => {
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader 
-                title="Global SKU Registry" 
+                title="Master Service" 
                 actions={[
                     {
                         label: "Bulk Upload",
@@ -277,7 +344,7 @@ const MasterServiceManagement = () => {
                         variant: 'secondary'
                     },
                     {
-                        label: "Add New SKU",
+                        label: "Add New Service",
                         icon: Plus,
                         onClick: () => handleOpenModal(),
                         variant: 'primary'
@@ -286,59 +353,49 @@ const MasterServiceManagement = () => {
             />
 
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-                {/* Filter Bar */}
-                <div className="bg-white p-4 border border-slate-200 rounded-sm flex flex-wrap items-center gap-4 shadow-sm">
-                    <div className="flex items-center gap-2 text-slate-400">
-                        <Filter size={14} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Filters</span>
-                    </div>
-
-                    <div className="flex items-center gap-4 flex-1">
-                        <div className="w-64">
-                            <select 
-                                value={filterMain}
-                                onChange={e => {
-                                    setFilterMain(e.target.value);
-                                    setFilterSub('');
-                                }}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none cursor-pointer"
-                            >
-                                <option value="">All Main Categories</option>
-                                {mainCategoryList.map(m => <option key={m} value={m}>{m}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="w-64">
-                            <select 
-                                value={filterSub}
-                                disabled={!filterMain}
-                                onChange={e => setFilterSub(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none disabled:opacity-50 cursor-pointer"
-                            >
-                                <option value="">All Sub Categories</option>
-                                {filterSubCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}
-                            </select>
-                        </div>
-
-                        {(filterMain || filterSub) && (
-                            <button 
-                                onClick={() => {
-                                    setFilterMain('');
-                                    setFilterSub('');
-                                }}
-                                className="px-4 py-2.5 text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 rounded-sm transition-all flex items-center gap-2"
-                            >
-                                <X size={12} /> Clear Filters
-                            </button>
-                        )}
-                    </div>
-                </div>
-
                 <DataGrid 
-                    title="Master Service Catalog"
+                    title=""
+                    showFilter={false}
+                    actions={
+                        <div className="flex items-center gap-2">
+                            <select 
+                                value={filterCatId}
+                                onChange={e => setFilterCatId(e.target.value)}
+                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
+                            >
+                                <option value="">All Cat IDs</option>
+                                {catIdList.map(id => <option key={id} value={id}>{id}</option>)}
+                            </select>
+
+                            <select 
+                                value={filterCurrInd}
+                                onChange={e => setFilterCurrInd(e.target.value)}
+                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
+                            >
+                                <option value="">All Status</option>
+                                <option value="y">Y</option>
+                                <option value="n">N</option>
+                            </select>
+
+                            {(filterCatId || filterCurrInd) && (
+                                <button 
+                                    onClick={() => {
+                                        setFilterCatId('');
+                                        setFilterCurrInd('');
+                                    }}
+                                    className="px-3 py-1.5 text-[9px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 rounded-sm transition-all flex items-center gap-1.5"
+                                >
+                                    <X size={10} /> Clear
+                                </button>
+                            )}
+                        </div>
+                    }
                     columns={columns}
                     data={filteredServices}
                     loading={isLoading}
+                    pagination={pagination}
+                    onPageChange={(newPage) => fetchServices(newPage)}
+                    onDownload={handleDownload}
                 />
             </div>
 
@@ -358,8 +415,7 @@ const MasterServiceManagement = () => {
                                         <Settings size={18} />
                                     </div>
                                     <div>
-                                        <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest">{currentService ? 'Edit SKU Configuration' : 'Register New SKU'}</h3>
-                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Master Catalog Engine</p>
+                                        <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest">{currentService ? 'Edit Service Details' : 'Register New Service'}</h3>
                                     </div>
                                 </div>
                                 <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-50 rounded-full text-slate-400">
@@ -368,270 +424,169 @@ const MasterServiceManagement = () => {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                {/* Left Column: Identification */}
-                                <div className="space-y-6">
-                                {currentService && (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SKU ID (Excel PK)</label>
-                                            <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
-                                                {formData.skuId}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
-                                            <input 
-                                                value={formData.sacCode}
-                                                onChange={e => setFormData({...formData, sacCode: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                                {!currentService && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
-                                        <input 
-                                            value={formData.sacCode}
-                                            onChange={e => setFormData({...formData, sacCode: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        />
-                                    </div>
-                                )}
+                                {/* SAC Code */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
+                                    <input 
+                                        required
+                                        value={formData.sacCode}
+                                        onChange={e => setFormData({...formData, sacCode: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
 
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Item Name</label>
+                                {/* Item Name */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Item Name</label>
+                                    <input 
+                                        required
+                                        value={formData.itemName}
+                                        onChange={e => setFormData({...formData, itemName: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        placeholder="e.g. Cotton Saree"
+                                    />
+                                </div>
+
+                                {/* Main Category */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Main Category</label>
+                                    <select 
+                                        required
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                        value={selectedMain}
+                                        onChange={e => {
+                                            setSelectedMain(e.target.value);
+                                            setFormData({...formData, categoryId: ''});
+                                        }}
+                                    >
+                                        <option value="">Select Category</option>
+                                        {mainCategoryList.map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
+                                </div>
+
+                                {/* Sub Category */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Sub Category</label>
+                                    <select 
+                                        required
+                                        disabled={!selectedMain}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer"
+                                        value={formData.categoryId}
+                                        onChange={e => {
+                                            const catId = e.target.value;
+                                            const selectedCat = categories.find(c => c._id === catId);
+                                            setFormData({
+                                                ...formData, 
+                                                categoryId: catId,
+                                                excelCategoryId: selectedCat?.excelCategoryId || undefined
+                                            });
+                                        }}
+                                    >
+                                        <option value="">Select Sub Category</option>
+                                        {subCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}
+                                    </select>
+                                </div>
+
+                                {/* Avg Weight */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Avg Weight (KG)</label>
+                                    <input 
+                                        required
+                                        value={formData.avgWeight}
+                                        onChange={e => setFormData({...formData, avgWeight: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                    />
+                                </div>
+
+                                {/* Estimate TAT */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Estimate TAT</label>
+                                    <input 
+                                        required
+                                        value={formData.estimateTAT}
+                                        onChange={e => setFormData({...formData, estimateTAT: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                    />
+                                </div>
+
+                                {/* Seasonality */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Seasonality</label>
+                                    <input 
+                                        required
+                                        value={formData.seasonality}
+                                        onChange={e => setFormData({...formData, seasonality: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                    />
+                                </div>
+
+                                {/* GST (%) */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST (%)</label>
+                                    <select 
+                                        required
+                                        value={formData.gst}
+                                        onChange={e => setFormData({...formData, gst: parseFloat(e.target.value)})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
+                                    >
+                                        {[0, 5, 12, 18, 28].map(rate => (
+                                            <option key={rate} value={rate}>{rate}%</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Status (Y/N) */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Status (Y/N)</label>
+                                    <div className="flex gap-2">
+                                        {['y', 'n'].map(opt => (
+                                            <button 
+                                                key={opt}
+                                                type="button"
+                                                onClick={() => setFormData({...formData, curr_ind: opt})}
+                                                className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.curr_ind === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                            >
+                                                {opt.toUpperCase()}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Global Base Price */}
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Base Price</label>
+                                    <input 
+                                        type="number"
+                                        required
+                                        value={formData.basePrice}
+                                        onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:border-slate-900 focus:bg-white transition-all"
+                                    />
+                                </div>
+
+                                {/* Discounted Price - ONLY visible if curr_ind === 'y' */}
+                                {formData.curr_ind === 'y' && (
+                                    <div className="space-y-1.5 col-span-2">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Discount Price</label>
                                         <input 
+                                            type="number"
                                             required
-                                            value={formData.itemName}
-                                            onChange={e => setFormData({...formData, itemName: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                            placeholder="e.g. Cotton Saree"
+                                            value={formData.discountedPrice}
+                                            onChange={e => setFormData({...formData, discountedPrice: parseFloat(e.target.value) || 0})}
+                                            className="w-full px-4 py-3 bg-slate-900 text-white rounded-sm text-[11px] font-black outline-none"
                                         />
                                     </div>
+                                )}
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Main Category</label>
-                                            <select 
-                                                required
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
-                                                value={selectedMain}
-                                                onChange={e => {
-                                                    setSelectedMain(e.target.value);
-                                                    setFormData({...formData, categoryId: ''});
-                                                }}
-                                            >
-                                                <option value="">Select</option>
-                                                {mainCategoryList.map(m => <option key={m} value={m}>{m}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Sub Category</label>
-                                            <select 
-                                                required
-                                                disabled={!selectedMain}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer"
-                                                value={formData.categoryId}
-                                                onChange={e => {
-                                                    const catId = e.target.value;
-                                                    const selectedCat = categories.find(c => c._id === catId);
-                                                    setFormData({
-                                                        ...formData, 
-                                                        categoryId: catId,
-                                                        excelCategoryId: selectedCat?.excelCategoryId || undefined
-                                                    });
-                                                }}
-                                            >
-                                                <option value="">Select</option>
-                                                {subCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}
-                                            </select>
-                                        </div>
-                                    </div>
 
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Avg Weight (KG)</label>
-                                            <input 
-                                                value={formData.avgWeight}
-                                                onChange={e => setFormData({...formData, avgWeight: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none"
-                                            />
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Estimate TAT</label>
-                                            <input 
-                                                value={formData.estimateTAT}
-                                                onChange={e => setFormData({...formData, estimateTAT: e.target.value})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Column: Pricing & Logistics */}
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Express Mult.</label>
-                                            <input 
-                                                type="number" step="0.1"
-                                                value={formData.expressMultiplier}
-                                                onChange={e => setFormData({...formData, expressMultiplier: parseFloat(e.target.value)})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none"
-                                            />
-                                        </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Essential GST (%)</label>
-                                            <select 
-                                                required
-                                                value={formData.gst}
-                                                onChange={e => setFormData({...formData, gst: parseFloat(e.target.value)})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
-                                            >
-                                                {[0, 5, 12, 18, 28].map(rate => (
-                                                    <option key={rate} value={rate}>{rate}%</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Heritage GST (%)</label>
-                                            <select 
-                                                required
-                                                value={formData.heritageGst}
-                                                onChange={e => setFormData({...formData, heritageGst: parseFloat(e.target.value)})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
-                                            >
-                                                {[0, 5, 12, 18, 28].map(rate => (
-                                                    <option key={rate} value={rate}>{rate}%</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                    <div className="space-y-1.5">
-                                        <div className="flex justify-between items-center px-1">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ref. Heritage Multiplier (x)</label>
-                                            <span className="text-[8px] font-bold text-amber-500 uppercase tracking-widest">For Preview Only</span>
-                                        </div>
-                                        <input 
-                                            type="number" step="0.1"
-                                            value={formData.heritageMultiplier}
-                                            onChange={e => setFormData({...formData, heritageMultiplier: parseFloat(e.target.value) || 1.0})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:border-amber-500 transition-all"
-                                            placeholder="e.g. 1.5"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Base Price</label>
-                                            <input 
-                                                type="number"
-                                                required
-                                                value={formData.basePrice}
-                                                onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
-                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-black text-slate-900 outline-none focus:border-slate-900"
-                                            />
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest block ml-1">Discounted Price</label>
-                                            <input 
-                                                type="number"
-                                                required
-                                                value={formData.discountedPrice}
-                                                onChange={e => setFormData({...formData, discountedPrice: parseFloat(e.target.value) || 0})}
-                                                className="w-full px-4 py-3 bg-slate-900 text-white rounded-sm text-[11px] font-black outline-none"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Curr Ind (Y/N)</label>
-                                        <div className="flex gap-2">
-                                            {['y', 'n'].map(opt => (
-                                                <button 
-                                                    key={opt}
-                                                    type="button"
-                                                    onClick={() => setFormData({...formData, curr_ind: opt})}
-                                                    className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.curr_ind === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
-                                                >
-                                                    {opt.toUpperCase()}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block ml-1">Essential Final (Base)</label>
-                                            <div className="w-full px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-sm text-[11px] font-black text-emerald-700 flex justify-between items-center">
-                                                <span>₹{(formData.basePrice * (1 + formData.gst / 100)).toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block ml-1">Essential Final (Disc)</label>
-                                            <div className="w-full px-4 py-3 bg-blue-50 border border-blue-100 rounded-sm text-[11px] font-black text-blue-700 flex justify-between items-center">
-                                                <span>₹{(formData.discountedPrice * (1 + formData.gst / 100)).toFixed(2)}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Seasonality</label>
-                                        <input 
-                                            value={formData.seasonality}
-                                            onChange={e => setFormData({...formData, seasonality: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none"
-                                        />
-                                    </div>
-
-                                    <div className="flex items-center gap-4 pt-2">
-                                        <div className="flex items-center gap-2">
-                                            <input 
-                                                type="checkbox"
-                                                id="isActive"
-                                                checked={formData.isActive}
-                                                onChange={e => setFormData({...formData, isActive: e.target.checked})}
-                                                className="w-4 h-4 rounded-sm border-slate-300 text-slate-900 focus:ring-slate-900"
-                                            />
-                                            <label htmlFor="isActive" className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Active</label>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Allow Discount (Y/N)</label>
-                                            <div className="flex gap-2">
-                                                {[true, false].map(opt => (
-                                                    <button 
-                                                        key={opt.toString()}
-                                                        type="button"
-                                                        onClick={() => setFormData({...formData, allowDiscount: opt})}
-                                                        className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.allowDiscount === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
-                                                    >
-                                                        {opt ? 'Yes' : 'No'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
 
                             <div className="flex gap-4 mt-12 pt-8 border-t border-slate-100">
                                 <button 
-                                    type="button" 
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 py-4 rounded-sm font-black text-[10px] uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all border border-slate-100"
-                                >
-                                    Cancel
-                                </button>
-                                <button 
                                     type="submit"
-                                    className="flex-[2] bg-slate-900 text-white py-4 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:bg-black transition-all"
+                                    className="w-full bg-slate-950 hover:bg-black text-white py-4 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 transition-all border border-slate-900"
                                 >
-                                    {currentService ? 'Commit Changes' : 'Register SKU'}
+                                    Save
                                 </button>
                             </div>
                         </motion.form>
