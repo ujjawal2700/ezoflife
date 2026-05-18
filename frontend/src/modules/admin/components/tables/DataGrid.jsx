@@ -80,7 +80,7 @@ export default function DataGrid({
             </div>
 
             {/* Main Table Engine */}
-            <div className="overflow-x-auto no-scrollbar relative z-10">
+            <div className="overflow-x-auto relative z-10">
                 <table className="w-full border-collapse text-left min-w-[800px]">
                     <thead className={cn(
                         "bg-slate-50/50 border-b border-slate-200",

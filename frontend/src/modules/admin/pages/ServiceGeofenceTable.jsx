@@ -228,20 +228,9 @@ const ServiceGeofenceTable = () => {
             />
 
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-                {/* Tactical Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-white p-6 border border-slate-200 rounded-sm">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Zones</p>
-                        <h4 className="text-2xl font-black text-slate-900">{areas.length}</h4>
-                    </div>
-                    <div className="bg-white p-6 border border-slate-200 rounded-sm">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Polygons</p>
-                        <h4 className="text-2xl font-black text-emerald-600">{areas.filter(a => a.isActive).length}</h4>
-                    </div>
-                </div>
-
                 <DataGrid 
-                    title="Area Multiplier Registry"
+                    title=""
+                    showFilter={false}
                     columns={columns}
                     data={areas}
                     loading={loading}

@@ -275,8 +275,8 @@ html {
 
 /* Custom Tactical Scrollbar */
 .admin-theme ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 8px;
 }
 
 .admin-theme ::-webkit-scrollbar-track {
