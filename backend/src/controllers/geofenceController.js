@@ -1,6 +1,13 @@
 import ServiceArea from '../models/ServiceArea.js';
 import PincodeMapping from '../models/PincodeMapping.js';
 import { masterPricingService } from '../services/masterPricingService.js';
+import fs from 'fs';
+
+const debugLog = (msg) => {
+    try {
+        fs.appendFileSync('./REAL_USER_DEBUG.log', `${new Date().toISOString()} - [DEBUG_GEOFENCE] ${msg}\n`);
+    } catch (e) {}
+};
 
 // Admin: Get all pincode mappings
 export const getPincodeMappings = async (req, res) => {
@@ -105,9 +112,49 @@ export const createServiceArea = async (req, res) => {
 // Admin: Get all service areas
 export const getAllServiceAreas = async (req, res) => {
     try {
-        const areas = await ServiceArea.find().sort({ createdAt: -1 });
+        debugLog(`req.query: ${JSON.stringify(req.query)}`);
+        const query = {};
+        
+        if (req.query.areaName && req.query.areaName.trim() !== '') {
+            query.areaName = { $regex: req.query.areaName.trim(), $options: 'i' };
+        }
+
+        const parseMultiplier = (val) => {
+            if (!val || val.trim() === '') return undefined;
+            let cleanVal = val.trim().toLowerCase();
+            if (cleanVal.endsWith('x')) {
+                cleanVal = cleanVal.slice(0, -1).trim();
+            }
+            const num = Number(cleanVal);
+            return isNaN(num) ? -1 : num;
+        };
+
+        const baseVal = parseMultiplier(req.query.basePriceMultiplier);
+        if (baseVal !== undefined) {
+            query.basePriceMultiplier = baseVal;
+        }
+
+        const dynamicVal = parseMultiplier(req.query.dynamicSurgeMultiplier);
+        if (dynamicVal !== undefined) {
+            query.dynamicSurgeMultiplier = dynamicVal;
+        }
+
+        const heritageVal = parseMultiplier(req.query.heritageMultiplier);
+        if (heritageVal !== undefined) {
+            query.heritageMultiplier = heritageVal;
+        }
+
+        const discountVal = parseMultiplier(req.query.discountPriceMultiplier);
+        if (discountVal !== undefined) {
+            query.discountPriceMultiplier = discountVal;
+        }
+
+        debugLog(`Built Mongoose query: ${JSON.stringify(query)}`);
+        const areas = await ServiceArea.find(query).sort({ createdAt: -1 });
+        debugLog(`Fetched ${areas.length} areas. Data: ${JSON.stringify(areas)}`);
         res.status(200).json(areas);
     } catch (err) {
+        debugLog(`Error in getAllServiceAreas: ${err.message}`);
         res.status(500).json({ message: err.message });
     }
 };

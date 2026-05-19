@@ -11,25 +11,40 @@ export const masterPricingService = {
         const area = await ServiceArea.findById(fenceId);
         const services = await MasterService.find();
         
-        const pricingEntries = services.map(service => ({
-            serviceId: service._id,
-            categoryId: service.categoryId,
-            fenceId: area._id,
-            basePrice: service.basePrice,
-            discountPrice: service.discountedPrice,
-            gstPercent: service.gst || 18,
-            expressMultiplier: service.expressMultiplier || 1,
-            surgeMultiplier: area.dynamicSurgeMultiplier || 1,
-            areaMultiplier: area.basePriceMultiplier || 1,
-            discountMultiplier: area.discountPriceMultiplier || 1,
-            heritageMultiplier: area.heritageMultiplier || 1,
-            isActive: area.isActive
-        }));
+        const bulkOps = services.map(service => {
+            const expM = service.expressMultiplier !== undefined && service.expressMultiplier !== null ? service.expressMultiplier : 1;
+            const surgeM = area.dynamicSurgeMultiplier !== undefined && area.dynamicSurgeMultiplier !== null ? area.dynamicSurgeMultiplier : 1;
+            const areaM = area.basePriceMultiplier !== undefined && area.basePriceMultiplier !== null ? area.basePriceMultiplier : 1;
+            const discM = area.discountPriceMultiplier !== undefined && area.discountPriceMultiplier !== null ? area.discountPriceMultiplier : 1;
+            const heritageM = area.heritageMultiplier !== undefined && area.heritageMultiplier !== null ? area.heritageMultiplier : 1;
+            
+            const multipliers = expM * surgeM * areaM * discM * heritageM;
+            const finalPrice = Math.round(service.discountedPrice * multipliers);
 
-        // Use insertMany with ordered: false to skip duplicates
-        return await MasterPricing.insertMany(pricingEntries, { ordered: false }).catch(err => {
-            console.log('Syncing: Some records already existed, skipping duplicates.');
+            return {
+                updateOne: {
+                    filter: { serviceId: service._id, fenceId: area._id },
+                    update: {
+                        $set: {
+                            categoryId: service.categoryId,
+                            basePrice: service.basePrice,
+                            discountPrice: service.discountedPrice,
+                            gstPercent: service.gst !== undefined && service.gst !== null ? service.gst : 18,
+                            expressMultiplier: expM,
+                            surgeMultiplier: surgeM,
+                            areaMultiplier: areaM,
+                            discountMultiplier: discM,
+                            heritageMultiplier: heritageM,
+                            isActive: area.isActive,
+                            finalPrice: finalPrice
+                        }
+                    },
+                    upsert: true
+                }
+            };
         });
+
+        return await MasterPricing.bulkWrite(bulkOps);
     },
 
     /**

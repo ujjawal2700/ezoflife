@@ -17,11 +17,6 @@ export default function PageHeader({ title, showBack = false, actions = [] }) {
                         </button>
                     )}
                     <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5 mb-0.5 opacity-60">
-                            <Home size={10} className="text-slate-400" />
-                            <ChevronRight size={8} className="text-slate-300" />
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{pathParts[0].replace('-', ' ')}</span>
-                        </div>
                         <h1 className="text-sm font-bold text-slate-900 tracking-tighter uppercase leading-none">{title}</h1>
                     </div>
                 </div>
@@ -43,10 +38,6 @@ export default function PageHeader({ title, showBack = false, actions = [] }) {
                             {action.label}
                         </button>
                     ))}
-                    <div className="h-6 w-px bg-slate-100 mx-1" />
-                    <button className="p-2.5 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm transition-all relative group">
-                        <RefreshCw size={13} className="group-active:animate-spin" />
-                    </button>
                 </div>
             </div>
         </div>

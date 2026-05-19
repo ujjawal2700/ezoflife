@@ -12,7 +12,7 @@ const Support = () => {
         const fetchFaqs = async () => {
             try {
                 const data = await faqApi.getAll();
-                const vendorFaqs = data.filter(f => !f.targetRole || f.targetRole === 'Vendor' || f.targetRole === 'All');
+                const vendorFaqs = data.filter(f => (f.isActive !== false) && (!f.targetRole || f.targetRole === 'Vendor' || f.targetRole === 'All'));
                 setFaqs(vendorFaqs);
             } catch (error) {
                 console.error('Fetch Vendor FAQs Error:', error);

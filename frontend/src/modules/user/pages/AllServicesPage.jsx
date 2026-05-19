@@ -43,7 +43,7 @@ const AllServicesPage = () => {
   }, []);
 
   const filteredServices = useMemo(() => {
-    if (location && (!zone || !zone.name)) return [];
+    if (location && !zone) return [];
     return services.filter(service => 
       service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()))

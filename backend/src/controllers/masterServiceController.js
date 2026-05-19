@@ -212,6 +212,22 @@ export const updateMasterService = async (req, res) => {
     try {
         const { id } = req.params;
         const updated = await MasterService.findByIdAndUpdate(id, req.body, { new: true });
+        
+        // Propagate updates to MasterPricing
+        const MasterPricing = (await import('../models/MasterPricing.js')).default;
+        const pricings = await MasterPricing.find({ serviceId: id });
+        for (const p of pricings) {
+            p.basePrice = updated.basePrice;
+            p.discountPrice = updated.discountedPrice;
+            if (updated.gst !== undefined && updated.gst !== null) {
+                p.gstPercent = updated.gst;
+            }
+            if (updated.expressMultiplier !== undefined && updated.expressMultiplier !== null) {
+                p.expressMultiplier = updated.expressMultiplier;
+            }
+            await p.save();
+        }
+
         res.status(200).json(updated);
     } catch (err) {
         res.status(500).json({ message: err.message });

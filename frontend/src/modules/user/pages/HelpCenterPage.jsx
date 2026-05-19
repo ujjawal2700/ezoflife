@@ -48,6 +48,7 @@ const HelpCenterPage = () => {
         const currentRole = userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase(); // Normalize
         
         return faqs
+            .filter(f => f.isActive !== false)
             .filter(f => !f.targetRole || f.targetRole === 'All' || f.targetRole === currentRole)
             .filter(f => 
                 f.question.toLowerCase().includes(searchQuery.toLowerCase()) || 

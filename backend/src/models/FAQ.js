@@ -27,6 +27,10 @@ const faqSchema = new mongoose.Schema({
     youtubeUrl: {
         type: String,
         trim: true
+    },
+    isActive: {
+        type: Boolean,
+        default: true
     }
 }, { timestamps: true });
 

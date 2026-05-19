@@ -10,12 +10,40 @@ import DataGrid from '../components/tables/DataGrid';
 
 const ServiceGeofenceTable = () => {
     const [areas, setAreas] = useState([]);
+    const [uniqueAreaNames, setUniqueAreaNames] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Filter states
+    const [selectedAreaName, setSelectedAreaName] = useState('');
+    const [searchAreaNameInput, setSearchAreaNameInput] = useState('');
+    const [searchBaseMultiplier, setSearchBaseMultiplier] = useState('');
+    const [searchExpressMultiplier, setSearchExpressMultiplier] = useState('');
+    const [searchHeritageMultiplier, setSearchHeritageMultiplier] = useState('');
+    const [searchDiscountMultiplier, setSearchDiscountMultiplier] = useState('');
 
     const fetchAreas = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`${BASE_URL}/geofence/areas`);
+            const queryParams = new URLSearchParams();
+            
+            const activeAreaName = selectedAreaName || searchAreaNameInput;
+            if (activeAreaName) {
+                queryParams.append('areaName', activeAreaName);
+            }
+            if (searchBaseMultiplier) {
+                queryParams.append('basePriceMultiplier', searchBaseMultiplier);
+            }
+            if (searchExpressMultiplier) {
+                queryParams.append('dynamicSurgeMultiplier', searchExpressMultiplier);
+            }
+            if (searchHeritageMultiplier) {
+                queryParams.append('heritageMultiplier', searchHeritageMultiplier);
+            }
+            if (searchDiscountMultiplier) {
+                queryParams.append('discountPriceMultiplier', searchDiscountMultiplier);
+            }
+
+            const res = await fetch(`${BASE_URL}/geofence/areas?${queryParams.toString()}`);
             const data = await res.json();
             setAreas(data);
         } catch (err) {
@@ -25,9 +53,90 @@ const ServiceGeofenceTable = () => {
         }
     };
 
+    const handleDownload = () => {
+        if (!areas || areas.length === 0) {
+            toast.error('No service geofence areas available to download');
+            return;
+        }
+
+        const headers = [
+            'Fence ID',
+            'Area Name',
+            'City',
+            'Pincodes',
+            'Base Multiplier',
+            'Express Multiplier',
+            'Heritage Multiplier',
+            'Discount Multiplier',
+            'Platform Multiplier',
+            'Free Delivery Threshold',
+            'Minimum Order Value',
+            'Show Discount',
+            'Status'
+        ];
+
+        const escapeCSV = (str) => {
+            if (str === null || str === undefined) return "";
+            const stringified = String(str);
+            if (stringified.includes(",") || stringified.includes('"') || stringified.includes("\n")) {
+                return `"${stringified.replace(/"/g, '""')}"`;
+            }
+            return stringified;
+        };
+
+        const csvRows = [headers.join(",")];
+
+        for (const area of areas) {
+            const pincodesList = (area.pincodes || []).join('; ');
+            const rowData = [
+                area.excelFenceId || '—',
+                area.areaName || '',
+                area.city || '—',
+                pincodesList,
+                `${area.basePriceMultiplier || 1.0}x`,
+                `${area.dynamicSurgeMultiplier || 1.0}x`,
+                `${area.heritageMultiplier || 1.0}x`,
+                `${area.discountPriceMultiplier || 1.0}x`,
+                `${area.platformMultiplier || 1.0}x`,
+                `₹${area.freeDeliveryThreshold || 0}`,
+                `₹${area.minimumOrderValue || 0}`,
+                area.allowDiscount !== false ? 'Yes' : 'No',
+                area.isActive ? 'Active' : 'Inactive'
+            ];
+            csvRows.push(rowData.map(escapeCSV).join(","));
+        }
+
+        const csvString = csvRows.join("\n");
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `service_geofence_export_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Geofence registry exported successfully!');
+    };
+
+    // Load initial unique names for dropdown once on mount
+    useEffect(() => {
+        const loadInitialNames = async () => {
+            try {
+                const res = await fetch(`${BASE_URL}/geofence/areas`);
+                const data = await res.json();
+                const names = Array.from(new Set(data.map(a => a.areaName))).sort();
+                setUniqueAreaNames(names);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        loadInitialNames();
+    }, []);
+
+    // Refetch when filters change
     useEffect(() => {
         fetchAreas();
-    }, []);
+    }, [selectedAreaName, searchAreaNameInput, searchBaseMultiplier, searchExpressMultiplier, searchHeritageMultiplier, searchDiscountMultiplier]);
 
     const handleDeleteArea = async (id) => {
         if (!window.confirm('Delete this service zone?')) return;
@@ -220,23 +329,87 @@ const ServiceGeofenceTable = () => {
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader
                 title="Service Geofences"
-                actions={[
-                    {
-                        label: "Bulk Sync",
-                        icon: Download,
-                        onClick: () => toast.success('Syncing with Master Excel...'),
-                        variant: 'secondary'
-                    }
-                ]}
             />
 
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
                 <DataGrid
                     title=""
                     showFilter={false}
+                    showSearch={false}
+                    actions={
+                        <div className="flex items-center gap-2 flex-wrap">
+                            {/* Area Name Dropdown */}
+                            <select
+                                value={selectedAreaName}
+                                onChange={(e) => {
+                                    setSelectedAreaName(e.target.value);
+                                    if (e.target.value !== '') {
+                                        setSearchAreaNameInput('');
+                                    }
+                                }}
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900"
+                            >
+                                <option value="">SELECT AREA NAME</option>
+                                {uniqueAreaNames.map(name => (
+                                    <option key={name} value={name}>{name}</option>
+                                ))}
+                            </select>
+
+                            {/* Area Name Input */}
+                            <input
+                                type="text"
+                                value={searchAreaNameInput}
+                                onChange={(e) => {
+                                    setSearchAreaNameInput(e.target.value);
+                                    if (e.target.value !== '') {
+                                        setSelectedAreaName('');
+                                    }
+                                }}
+                                placeholder="TYPE AREA NAME..."
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
+                            />
+
+                            {/* Base Multiplier Input */}
+                            <input
+                                type="text"
+                                value={searchBaseMultiplier}
+                                onChange={(e) => setSearchBaseMultiplier(e.target.value)}
+                                placeholder="BASE MULTIPLIER..."
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-32 placeholder:text-slate-300"
+                            />
+
+                            {/* Express Multiplier Input */}
+                            <input
+                                type="text"
+                                value={searchExpressMultiplier}
+                                onChange={(e) => setSearchExpressMultiplier(e.target.value)}
+                                placeholder="EXPRESS MULTIPLIER..."
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
+                            />
+
+                            {/* Heritage Multiplier Input */}
+                            <input
+                                type="text"
+                                value={searchHeritageMultiplier}
+                                onChange={(e) => setSearchHeritageMultiplier(e.target.value)}
+                                placeholder="HERITAGE MULTIPLIER..."
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
+                            />
+
+                            {/* Discount Multiplier Input */}
+                            <input
+                                type="text"
+                                value={searchDiscountMultiplier}
+                                onChange={(e) => setSearchDiscountMultiplier(e.target.value)}
+                                placeholder="DISCOUNT MULTIPLIER..."
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
+                            />
+                        </div>
+                    }
                     columns={columns}
                     data={areas}
                     loading={loading}
+                    onDownload={handleDownload}
                 />
             </div>
 

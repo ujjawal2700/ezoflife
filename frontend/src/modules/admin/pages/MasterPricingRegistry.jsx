@@ -296,12 +296,12 @@ const MasterPricingRegistry = () => {
             )
         },
         {
-            header: 'Global Price',
+            header: 'Global Base Price',
             key: 'basePrice',
-            render: (val) => <span className="font-bold text-slate-400 text-[11px] line-through decoration-slate-300">₹{val}</span>
+            render: (val) => <span className="font-black text-slate-900 text-[11px]">₹{val}</span>
         },
         {
-            header: 'Global Discount',
+            header: 'Global Discount Price',
             key: 'discountPrice',
             render: (val) => <span className="font-black text-slate-900 text-[11px]">₹{val}</span>
         },

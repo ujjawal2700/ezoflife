@@ -45,3 +45,21 @@ export const deleteFAQ = async (req, res) => {
         res.status(500).json({ message: 'Error deleting FAQ', error: error.message });
     }
 };
+
+// Reorder FAQs
+export const reorderFAQs = async (req, res) => {
+    try {
+        const { orders } = req.body;
+        if (!Array.isArray(orders)) {
+            return res.status(400).json({ message: 'orders must be an array' });
+        }
+        await Promise.all(
+            orders.map(item => 
+                FAQ.findByIdAndUpdate(item.id, { order: item.order })
+            )
+        );
+        res.status(200).json({ message: 'FAQs reordered successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error reordering FAQs', error: error.message });
+    }
+};

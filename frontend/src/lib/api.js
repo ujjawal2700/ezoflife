@@ -1271,6 +1271,32 @@ export const faqApi = {
             console.error('Delete FAQ Error:', error);
             throw error;
         }
+    },
+    update: async (id, faqData) => {
+        try {
+            const response = await fetch(`${BASE_URL}/faqs/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(faqData)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update FAQ Error:', error);
+            throw error;
+        }
+    },
+    reorder: async (orders) => {
+        try {
+            const response = await fetch(`${BASE_URL}/faqs/reorder`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orders })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Reorder FAQs Error:', error);
+            throw error;
+        }
     }
 };
 

@@ -546,7 +546,7 @@ const HomePage = () => {
 
   const filteredServices = useMemo(() => {
     // If user has a location but no valid active zone, show nothing in this area
-    if (location && (!zone || !zone.name)) return [];
+    if (location && !zone) return [];
 
     let result = services.filter(s => {
       if (s.tier === 'Heritage' && selectedTier !== 'Heritage') return false;

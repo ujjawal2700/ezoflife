@@ -36,6 +36,7 @@ const FAQPage = () => {
         const currentRole = userRole ? (roleMapping[userRole.toLowerCase()] || 'Customer') : null;
 
         return faqs
+            .filter(f => f.isActive !== false)
             .filter(f => {
                 // If not logged in, only show 'All'
                 if (!token) return f.targetRole === 'All';

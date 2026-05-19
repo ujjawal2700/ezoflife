@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { faqApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
-import { PlusCircle, Trash2, HelpCircle, Save, Video } from 'lucide-react';
+import { PlusCircle, Trash2, HelpCircle, Save, Video, Edit2, GripVertical } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import StatusBadge from '../components/common/StatusBadge';
@@ -11,6 +11,44 @@ const FAQManagement = () => {
     const [loading, setLoading] = useState(true);
     const [newFaq, setNewFaq] = useState({ question: '', answer: '', category: 'General', targetRole: 'All', youtubeUrl: '' });
     const [isAdding, setIsAdding] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [draggedIndex, setDraggedIndex] = useState(null);
+
+    const handleDragStart = (e, index) => {
+        setDraggedIndex(index);
+        e.dataTransfer.effectAllowed = 'move';
+        // HTML5 drag standard setup
+        e.dataTransfer.setData('text/html', e.currentTarget);
+        e.currentTarget.classList.add('opacity-40', 'border-primary/50', 'scale-[0.98]');
+    };
+
+    const handleDragOver = (e, index) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === index) return;
+
+        const updatedFaqs = [...faqs];
+        const draggedItem = updatedFaqs[draggedIndex];
+        updatedFaqs.splice(draggedIndex, 1);
+        updatedFaqs.splice(index, 0, draggedItem);
+        
+        setDraggedIndex(index);
+        setFaqs(updatedFaqs);
+    };
+
+    const handleDragEnd = async (e) => {
+        e.currentTarget.classList.remove('opacity-40', 'border-primary/50', 'scale-[0.98]');
+        setDraggedIndex(null);
+        
+        try {
+            const orderPayload = faqs.map((faq, index) => ({
+                id: faq._id,
+                order: index
+            }));
+            await faqApi.reorder(orderPayload);
+        } catch (error) {
+            console.error('Save FAQ order error:', error);
+        }
+    };
 
     const fetchFaqs = async () => {
         try {
@@ -28,15 +66,41 @@ const FAQManagement = () => {
         fetchFaqs();
     }, []);
 
-    const handleCreate = async () => {
+    const handleSave = async () => {
         if (!newFaq.question || !newFaq.answer) return;
         try {
-            await faqApi.create(newFaq);
+            if (editingId) {
+                await faqApi.update(editingId, newFaq);
+                setEditingId(null);
+            } else {
+                await faqApi.create(newFaq);
+            }
             setNewFaq({ question: '', answer: '', category: 'General', targetRole: 'All', youtubeUrl: '' });
             setIsAdding(false);
             fetchFaqs();
         } catch (error) {
-            console.error('Create FAQ Error:', error);
+            console.error('Save FAQ Error:', error);
+        }
+    };
+
+    const handleEdit = (faq) => {
+        setNewFaq({
+            question: faq.question,
+            answer: faq.answer,
+            category: faq.category || 'General',
+            targetRole: faq.targetRole || 'All',
+            youtubeUrl: faq.youtubeUrl || ''
+        });
+        setEditingId(faq._id);
+        setIsAdding(true);
+    };
+
+    const handleToggleStatus = async (id, newStatus) => {
+        try {
+            await faqApi.update(id, { isActive: newStatus });
+            fetchFaqs();
+        } catch (error) {
+            console.error('Toggle FAQ Status Error:', error);
         }
     };
 
@@ -51,7 +115,7 @@ const FAQManagement = () => {
     };
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
             <PageHeader 
                 title="FAQ Management" 
                 actions={[
@@ -59,7 +123,13 @@ const FAQManagement = () => {
                         label: isAdding ? 'Cancel' : 'Add New FAQ', 
                         icon: PlusCircle, 
                         variant: isAdding ? 'secondary' : 'primary',
-                        onClick: () => setIsAdding(!isAdding)
+                        onClick: () => {
+                            if (isAdding) {
+                                setEditingId(null);
+                                setNewFaq({ question: '', answer: '', category: 'General', targetRole: 'All', youtubeUrl: '' });
+                            }
+                            setIsAdding(!isAdding);
+                        }
                     }
                 ]}
             />
@@ -157,11 +227,11 @@ const FAQManagement = () => {
                         </div>
                     </div>
                     <button 
-                        onClick={handleCreate}
+                        onClick={handleSave}
                         className="bg-primary text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/20"
                     >
                         <Save size={14} />
-                        Save FAQ
+                        {editingId ? 'Update FAQ' : 'Save FAQ'}
                     </button>
                 </div>
             )}
@@ -171,25 +241,61 @@ const FAQManagement = () => {
                 {loading ? (
                     <div className="h-40 flex items-center justify-center text-slate-400 italic">Loading FAQs...</div>
                 ) : (
-                    faqs.map((faq) => (
-                        <div key={faq._id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start gap-4 group hover:border-primary/20 transition-all">
-                            <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-all">
+                    faqs.map((faq, index) => (
+                        <div 
+                            key={faq._id} 
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, index)}
+                            onDragOver={(e) => handleDragOver(e, index)}
+                            onDragEnd={handleDragEnd}
+                            className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex items-start gap-4 group hover:border-primary/20 transition-all w-full max-w-full overflow-hidden cursor-grab active:cursor-grabbing"
+                        >
+                            <div className="text-slate-300 hover:text-slate-600 transition-colors cursor-grab active:cursor-grabbing shrink-0 pt-2.5">
+                                <GripVertical size={18} />
+                            </div>
+                            <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-all shrink-0">
                                 <HelpCircle size={20} />
                             </div>
                             <div className="flex-1 space-y-1 min-w-0">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-3 mb-3">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">{faq.category}</span>
                                         <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${faq.targetRole === 'Customer' ? 'bg-blue-50 text-blue-600' : faq.targetRole === 'Vendor' ? 'bg-orange-50 text-orange-600' : faq.targetRole === 'Supplier' ? 'bg-purple-50 text-purple-600' : 'bg-slate-50 text-slate-500'}`}>
                                             {faq.targetRole || 'All'}
                                         </span>
+                                        <StatusBadge status={faq.isActive !== false ? 'Active' : 'Inactive'} />
                                     </div>
-                                    <button 
-                                        onClick={() => handleDelete(faq._id)}
-                                        className="text-slate-300 hover:text-red-500 transition-colors"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                                        {faq.isActive !== false ? (
+                                            <button 
+                                                onClick={() => handleToggleStatus(faq._id, false)}
+                                                className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors border border-rose-100 cursor-pointer"
+                                            >
+                                                Inactive
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={() => handleToggleStatus(faq._id, true)}
+                                                className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer"
+                                            >
+                                                Active
+                                            </button>
+                                        )}
+                                        <button 
+                                            onClick={() => handleEdit(faq)}
+                                            className="text-slate-400 hover:text-blue-500 transition-colors p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
+                                            title="Edit FAQ"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(faq._id)}
+                                            className="text-slate-400 hover:text-red-500 transition-colors p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
+                                            title="Delete FAQ"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                                 <h4 className="text-base font-black text-slate-900 tracking-tight leading-snug">{faq.question}</h4>
                                 <div 
