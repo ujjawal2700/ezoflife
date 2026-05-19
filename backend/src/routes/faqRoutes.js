@@ -6,7 +6,7 @@ import {
     updateFAQ, 
     deleteFAQ,
     reorderFAQs
-} from '../controllers/FAQController.js';
+} from '../controllers/faqController.js';
 
 router.get('/', getAllFAQs);
 router.post('/reorder', reorderFAQs);
