@@ -144,8 +144,7 @@ const MasterPricingRegistry = () => {
                 "Disc. Heritage Price Express (Excl. GST)",
                 "Disc. Heritage Price Express (with GST)",
                 "GST (%)",
-                "Heritage GST (%)",
-                "Status"
+                "Heritage GST (%)"
             ];
 
             const escapeCSV = (str) => {
@@ -212,8 +211,7 @@ const MasterPricingRegistry = () => {
                     discHeritageExpressExcl,
                     discHeritageExpressIncl,
                     gst,
-                    hGst,
-                    row.isActive ? "Ready" : "Draft"
+                    hGst
                 ];
 
                 csvRows.push(rowData.join(","));
@@ -626,15 +624,6 @@ const MasterPricingRegistry = () => {
                     </div>
                 );
             }
-        },
-        {
-            header: 'Status',
-            key: 'isActive',
-            render: (val) => (
-                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${val ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
-                    {val ? 'Ready' : 'Draft'}
-                </span>
-            )
         }
     ], []);
 

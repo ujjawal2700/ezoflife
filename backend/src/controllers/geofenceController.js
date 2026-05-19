@@ -206,7 +206,10 @@ export const checkLocationAvailability = async (req, res) => {
             name: area.areaName,
             pricingFactor: area.basePriceMultiplier || area.multiplier || 1.0,
             minimumOrderValue: area.minimumOrderValue,
-            allowDiscount: area.allowDiscount !== false
+            allowDiscount: area.allowDiscount !== false,
+            platformMultiplier: area.platformMultiplier !== undefined ? area.platformMultiplier : 0,
+            expressMultiplier: area.dynamicSurgeMultiplier !== undefined ? area.dynamicSurgeMultiplier : 1.0,
+            heritageMultiplier: area.heritageMultiplier !== undefined ? area.heritageMultiplier : 1.0
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

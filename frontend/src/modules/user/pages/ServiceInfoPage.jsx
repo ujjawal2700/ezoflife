@@ -6,7 +6,10 @@ import UserHeader from '../components/UserHeader';
 import BottomNav from '../components/BottomNav';
 
 const ServiceInfoPage = () => {
-  const { pricingFactor, allowDiscount } = useLocationStore();
+  const { pricingFactor, allowDiscount, expressMultiplier, heritageMultiplier } = useLocationStore();
+  const isExpress = localStorage.getItem('is_express') === 'true';
+  const selectedTier = localStorage.getItem('selected_tier') || 'Essential';
+  const isHeritage = selectedTier === 'Heritage';
   const navigate = useNavigate();
   const location = useLocation();
   const service = location.state?.selectedService;
@@ -82,11 +85,11 @@ const ServiceInfoPage = () => {
                   <div className="flex items-center gap-3">
                     {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
                       <span className="text-sm font-bold text-slate-400 line-through">
-                        ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                        ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
                       </span>
                     )}
                     <p className="text-2xl font-black text-primary">
-                      ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}
+                      ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
                     </p>
                   </div>
                 </div>

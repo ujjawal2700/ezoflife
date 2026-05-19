@@ -68,10 +68,15 @@ export const createMasterService = async (req, res) => {
 
 export const getAllMasterServices = async (req, res) => {
     try {
-        const { serviceType, page, limit } = req.query;
+        const { serviceType, page, limit, activeOnly } = req.query;
         let query = {};
         if (serviceType) {
             query.serviceType = serviceType === 'individual' ? 'normal' : serviceType;
+        }
+
+        if (activeOnly === 'true') {
+            query.curr_ind = 'y';
+            query.isActive = true;
         }
 
         if (page && limit) {
@@ -99,11 +104,13 @@ export const getAllMasterServices = async (req, res) => {
         }
 
         const services = await MasterService.find(query)
-            .populate('categoryId')
+            .populate(activeOnly === 'true' ? { path: 'categoryId', match: { isActive: true } } : 'categoryId')
             .sort({ createdAt: -1 })
             .lean();
         
-        res.status(200).json(services);
+        const finalServices = activeOnly === 'true' ? services.filter(s => s.categoryId !== null) : services;
+        
+        res.status(200).json(finalServices);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }

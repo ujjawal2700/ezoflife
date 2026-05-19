@@ -11,33 +11,30 @@ import { requestForToken } from '../../../lib/firebase';
 const HomePage = () => {
   console.log('HomePage Rendering');
   const navigate = useNavigate();
-  const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData, allowDiscount } = useLocationStore();
+  const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData, allowDiscount, expressMultiplier, heritageMultiplier } = useLocationStore();
 
   const updateGeofenceForAddress = async (addressStr) => {
     if (!addressStr) return;
     try {
-      if (window.google && window.google.maps) {
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ address: addressStr }, async (results, status) => {
-          if (status === 'OK' && results[0]) {
-            const lat = results[0].geometry.location.lat();
-            const lng = results[0].geometry.location.lng();
-            console.log(`[Geofence] Geocoded pickup address ${addressStr} to coordinates: ${lat}, ${lng}`);
-            
-            const zoneInfo = await geofenceApi.checkAvailability(lat, lng);
-            if (zoneInfo.available) {
-              setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor, allowDiscount: zoneInfo.allowDiscount });
-              console.log(`[Geofence] Zone matches: ${zoneInfo.name} (Multiplier: ${zoneInfo.pricingFactor}x, Discount Allowed: ${zoneInfo.allowDiscount})`);
-            } else {
-              setZoneData({ name: null, pricingFactor: 1, allowDiscount: true });
-              console.log('[Geofence] Address not in any service zone, using default pricing.');
-            }
-          } else {
-            console.warn('[Geofence] Geocoding failed for pickup address:', status);
-          }
-        });
-      } else {
-        console.warn('[Geofence] Google Maps JS API not loaded.');
+      console.log(`[Geofence] Geocoding pickup address: ${addressStr}`);
+      const coords = await locationService.geocodeAddress(addressStr);
+      if (coords && coords.lat !== undefined && coords.lng !== undefined) {
+        console.log(`[Geofence] Geocoded address to coordinates: ${coords.lat}, ${coords.lng}`);
+        const zoneInfo = await geofenceApi.checkAvailability(coords.lat, coords.lng);
+        if (zoneInfo.available) {
+          setZoneData({ 
+            name: zoneInfo.name, 
+            pricingFactor: zoneInfo.pricingFactor, 
+            allowDiscount: zoneInfo.allowDiscount,
+            platformMultiplier: zoneInfo.platformMultiplier,
+            expressMultiplier: zoneInfo.expressMultiplier,
+            heritageMultiplier: zoneInfo.heritageMultiplier
+          });
+          console.log(`[Geofence] Zone matches: ${zoneInfo.name} (Multiplier: ${zoneInfo.pricingFactor}x, Discount Allowed: ${zoneInfo.allowDiscount}, Express Multiplier: ${zoneInfo.expressMultiplier}x, Heritage Multiplier: ${zoneInfo.heritageMultiplier}x)`);
+        } else {
+          setZoneData({ name: null, pricingFactor: 1, allowDiscount: true, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+          console.log('[Geofence] Address not in any service zone, using default pricing.');
+        }
       }
     } catch (err) {
       console.error('[Geofence] Error in updateGeofenceForAddress:', err);
@@ -226,9 +223,16 @@ const HomePage = () => {
         try {
           const zoneInfo = await geofenceApi.checkAvailability(location.lat, location.lng);
           if (zoneInfo.available) {
-            setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor, allowDiscount: zoneInfo.allowDiscount });
+            setZoneData({ 
+              name: zoneInfo.name, 
+              pricingFactor: zoneInfo.pricingFactor, 
+              allowDiscount: zoneInfo.allowDiscount,
+              platformMultiplier: zoneInfo.platformMultiplier,
+              expressMultiplier: zoneInfo.expressMultiplier,
+              heritageMultiplier: zoneInfo.heritageMultiplier
+            });
           } else {
-            setZoneData({ name: null, pricingFactor: 1, allowDiscount: true });
+            setZoneData({ name: null, pricingFactor: 1, allowDiscount: true, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
           }
         } catch (err) {
           console.error('Silent zone check failed:', err);
@@ -478,7 +482,7 @@ const HomePage = () => {
       let data = [];
       try {
         const [masterRes, customRes] = await Promise.all([
-          masterServiceApi.getAll({ serviceType: customerType }),
+          masterServiceApi.getAll({ serviceType: customerType, activeOnly: true }),
           serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
         ]);
         data = [
@@ -541,8 +545,11 @@ const HomePage = () => {
   const [showMoreServices, setShowMoreServices] = useState(false);
 
   const filteredServices = useMemo(() => {
+    // If user has a location but no valid active zone, show nothing in this area
+    if (location && (!zone || !zone.name)) return [];
+
     let result = services.filter(s => {
-      if ((s.tier || 'Essential') !== selectedTier) return false;
+      if (s.tier === 'Heritage' && selectedTier !== 'Heritage') return false;
       if (searchQuery && !s.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       if (selectedCategory && s.mainCategory !== selectedCategory.name) return false;
       if (selectedSubCategory && s.subCategoryName !== selectedSubCategory.name) return false;
@@ -576,10 +583,11 @@ const HomePage = () => {
       const service = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
       if (!service) return acc;
       const actualPrice = (allowDiscount !== false) ? (service.discountedPrice || service.basePrice || 0) : (service.basePrice || 0);
-      const price = actualPrice * (pricingFactor || 1);
+      const isHeritage = selectedTier === 'Heritage';
+      const price = actualPrice * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1);
       return acc + (price * q);
     }, 0);
-  }, [selectedQuantities, services, pricingFactor]);
+  }, [selectedQuantities, services, pricingFactor, isExpress, expressMultiplier, selectedTier, heritageMultiplier]);
 
   const maxServiceTime = useMemo(() => {
     let max = 1;
@@ -929,11 +937,11 @@ const HomePage = () => {
                             {/* Price */}
                             <div className="flex flex-col items-end">
                               <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>
-                                ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}
+                                ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
                               </span>
                               {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
                                 <span className="text-[8px] font-bold line-through text-slate-300">
-                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
                                 </span>
                               )}
                             </div>

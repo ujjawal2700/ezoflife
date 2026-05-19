@@ -6,7 +6,10 @@ import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const AllServicesPage = () => {
   const navigate = useNavigate();
-  const { pricingFactor, allowDiscount } = useLocationStore();
+  const { location, zone, pricingFactor, allowDiscount, expressMultiplier, heritageMultiplier } = useLocationStore();
+  const isExpress = localStorage.getItem('is_express') === 'true';
+  const selectedTier = localStorage.getItem('selected_tier') || 'Essential';
+  const isHeritage = selectedTier === 'Heritage';
   const [searchQuery, setSearchQuery] = useState('');
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +21,7 @@ const AllServicesPage = () => {
       const customerType = (userData.customerType || localStorage.getItem('userType') || 'individual').toLowerCase();
 
       const [masterRes, customRes] = await Promise.all([
-        masterServiceApi.getAll({ serviceType: customerType }),
+        masterServiceApi.getAll({ serviceType: customerType, activeOnly: true }),
         serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
       ]);
 
@@ -39,10 +42,13 @@ const AllServicesPage = () => {
     fetchServices();
   }, []);
 
-  const filteredServices = useMemo(() => services.filter(service => 
-    service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  ), [services, searchQuery]);
+  const filteredServices = useMemo(() => {
+    if (location && (!zone || !zone.name)) return [];
+    return services.filter(service => 
+      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (service.description && service.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [services, searchQuery, location, zone]);
 
 
   const containerVariants = useMemo(() => ({
@@ -163,11 +169,11 @@ const AllServicesPage = () => {
                             <div className="mt-2 flex items-center gap-2">
                               {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
                                 <span className="text-[10px] font-bold text-slate-400 line-through">
-                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1))}
+                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
                                 </span>
                               )}
                               <span className="text-[12px] font-black text-primary uppercase tracking-widest">
-                                ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1))}/{service.unit?.replace('_', ' ')}
+                                ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}/{service.unit?.replace('_', ' ')}
                               </span>
                             </div>
                           </div>

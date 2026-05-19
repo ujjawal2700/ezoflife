@@ -1326,7 +1326,7 @@ const ServiceSelectionView = ({ userId, onComplete }) => {
     useEffect(() => {
         const fetchMasters = async () => {
             try {
-                const response = await fetch(`${BASE_URL}/master-services`);
+                const response = await fetch(`${BASE_URL}/master-services?activeOnly=true`);
                 const data = await response.json();
                 setMasterServices(data);
             } catch (err) {

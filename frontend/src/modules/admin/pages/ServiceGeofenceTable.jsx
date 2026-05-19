@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
-import { 
-    Download, MapPin, Globe, Zap, Percent, ShieldCheck, 
+import {
+    Download, MapPin, Globe, Zap, Percent, ShieldCheck,
     ChevronRight, Info, Settings, MoreHorizontal, Map, Trash2, X, Save, Edit2, TrendingUp, Truck
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
@@ -54,7 +54,7 @@ const ServiceGeofenceTable = () => {
                     basePriceMultiplier: editingArea.basePriceMultiplier,
                     discountPriceMultiplier: editingArea.discountPriceMultiplier,
                     heritageMultiplier: editingArea.heritageMultiplier,
-                    showDiscount: editingArea.showDiscount,
+                    allowDiscount: editingArea.allowDiscount !== false,
                     platformMultiplier: editingArea.platformMultiplier,
                     freeDeliveryThreshold: editingArea.freeDeliveryThreshold
                 })
@@ -160,19 +160,22 @@ const ServiceGeofenceTable = () => {
         },
         {
             header: 'Show Discount',
-            key: 'showDiscount',
-            render: (val) => (
-                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
-                    {val ? 'Y' : 'N'}
-                </span>
-            )
+            key: 'allowDiscount',
+            render: (val) => {
+                const displayVal = val !== false;
+                return (
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${displayVal ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                        {displayVal ? 'Y' : 'N'}
+                    </span>
+                );
+            }
         },
         {
-            header: 'Curr Ind',
+            header: 'Status',
             key: 'isActive',
             render: (val) => (
                 <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
-                    {val ? 'Y' : 'N'}
+                    {val ? 'Active' : 'Inactive'}
                 </span>
             )
         },
@@ -202,7 +205,7 @@ const ServiceGeofenceTable = () => {
             align: 'right',
             render: (val, row) => (
                 <div className="flex items-center justify-end gap-2">
-                    <button 
+                    <button
                         onClick={() => setEditingArea(row)}
                         className="p-2 hover:bg-blue-50 rounded-lg text-blue-400 hover:text-blue-600 transition-all"
                     >
@@ -215,8 +218,8 @@ const ServiceGeofenceTable = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
-            <PageHeader 
-                title="Service Geofences" 
+            <PageHeader
+                title="Service Geofences"
                 actions={[
                     {
                         label: "Bulk Sync",
@@ -228,7 +231,7 @@ const ServiceGeofenceTable = () => {
             />
 
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-                <DataGrid 
+                <DataGrid
                     title=""
                     showFilter={false}
                     columns={columns}
@@ -246,17 +249,17 @@ const ServiceGeofenceTable = () => {
                                 <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest">Edit Zone Parameters</h3>
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Fence ID: {editingArea.excelFenceId}</p>
                             </div>
-                            <button onClick={() => setEditingArea(null)} className="p-2 hover:bg-slate-100 rounded-sm transition-all"><X size={16}/></button>
+                            <button onClick={() => setEditingArea(null)} className="p-2 hover:bg-slate-100 rounded-sm transition-all"><X size={16} /></button>
                         </div>
-                        
+
                         <div className="p-8 space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                                 {/* Area Name */}
                                 <div className="space-y-1.5 md:col-span-2">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Area Name</label>
-                                    <input 
-                                        value={editingArea.areaName} 
-                                        onChange={(e) => setEditingArea({...editingArea, areaName: e.target.value})}
+                                    <input
+                                        value={editingArea.areaName}
+                                        onChange={(e) => setEditingArea({ ...editingArea, areaName: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -266,10 +269,10 @@ const ServiceGeofenceTable = () => {
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Zap size={10} className="text-amber-500" /> Express Multiplier
                                     </label>
-                                    <input 
+                                    <input
                                         type="number" step="0.1"
-                                        value={editingArea.dynamicSurgeMultiplier} 
-                                        onChange={(e) => setEditingArea({...editingArea, dynamicSurgeMultiplier: parseFloat(e.target.value)})}
+                                        value={editingArea.dynamicSurgeMultiplier}
+                                        onChange={(e) => setEditingArea({ ...editingArea, dynamicSurgeMultiplier: parseFloat(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -279,10 +282,10 @@ const ServiceGeofenceTable = () => {
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Percent size={10} className="text-blue-500" /> Base Price Multiplier
                                     </label>
-                                    <input 
+                                    <input
                                         type="number" step="0.1"
-                                        value={editingArea.basePriceMultiplier} 
-                                        onChange={(e) => setEditingArea({...editingArea, basePriceMultiplier: parseFloat(e.target.value)})}
+                                        value={editingArea.basePriceMultiplier}
+                                        onChange={(e) => setEditingArea({ ...editingArea, basePriceMultiplier: parseFloat(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -292,10 +295,10 @@ const ServiceGeofenceTable = () => {
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Percent size={10} className="text-emerald-500" /> Discount Price Multiplier
                                     </label>
-                                    <input 
+                                    <input
                                         type="number" step="0.1"
-                                        value={editingArea.discountPriceMultiplier} 
-                                        onChange={(e) => setEditingArea({...editingArea, discountPriceMultiplier: parseFloat(e.target.value)})}
+                                        value={editingArea.discountPriceMultiplier}
+                                        onChange={(e) => setEditingArea({ ...editingArea, discountPriceMultiplier: parseFloat(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -306,16 +309,19 @@ const ServiceGeofenceTable = () => {
                                         <Percent size={10} className="text-amber-500" /> Show Discount Price (Y/N)
                                     </label>
                                     <div className="flex gap-2">
-                                        {[true, false].map(opt => (
-                                            <button 
-                                                key={opt.toString()}
-                                                type="button"
-                                                onClick={() => setEditingArea({...editingArea, showDiscount: opt})}
-                                                className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${editingArea.showDiscount === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
-                                            >
-                                                {opt ? 'Y' : 'N'}
-                                            </button>
-                                        ))}
+                                        {[true, false].map(opt => {
+                                            const isSelected = editingArea.allowDiscount !== false ? opt === true : opt === false;
+                                            return (
+                                                <button
+                                                    key={opt.toString()}
+                                                    type="button"
+                                                    onClick={() => setEditingArea({ ...editingArea, allowDiscount: opt })}
+                                                    className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                                >
+                                                    {opt ? 'Y' : 'N'}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -324,10 +330,10 @@ const ServiceGeofenceTable = () => {
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <ShieldCheck size={10} className="text-purple-500" /> Heritage Multiplier
                                     </label>
-                                    <input 
+                                    <input
                                         type="number" step="0.1"
-                                        value={editingArea.heritageMultiplier || 1.0} 
-                                        onChange={(e) => setEditingArea({...editingArea, heritageMultiplier: parseFloat(e.target.value)})}
+                                        value={editingArea.heritageMultiplier || 1.0}
+                                        onChange={(e) => setEditingArea({ ...editingArea, heritageMultiplier: parseFloat(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -337,10 +343,10 @@ const ServiceGeofenceTable = () => {
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <TrendingUp size={10} className="text-blue-500" /> Platform Multiplier (x)
                                     </label>
-                                    <input 
+                                    <input
                                         type="number" step="0.1"
-                                        value={editingArea.platformMultiplier || 1.0} 
-                                        onChange={(e) => setEditingArea({...editingArea, platformMultiplier: parseFloat(e.target.value)})}
+                                        value={editingArea.platformMultiplier || 1.0}
+                                        onChange={(e) => setEditingArea({ ...editingArea, platformMultiplier: parseFloat(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -350,20 +356,20 @@ const ServiceGeofenceTable = () => {
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
                                         <Truck size={10} className="text-rose-500" /> Free Delivery Threshold (₹)
                                     </label>
-                                    <input 
+                                    <input
                                         type="number"
-                                        value={editingArea.freeDeliveryThreshold || 500} 
-                                        onChange={(e) => setEditingArea({...editingArea, freeDeliveryThreshold: parseFloat(e.target.value)})}
+                                        value={editingArea.freeDeliveryThreshold || 500}
+                                        onChange={(e) => setEditingArea({ ...editingArea, freeDeliveryThreshold: parseFloat(e.target.value) })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={handleUpdateArea}
                                 className="w-full py-4 bg-slate-950 text-white rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2 mt-6 border border-slate-900"
                             >
-                                <Save size={14} /> Update Parameters
+                                <Save size={14} /> Save
                             </button>
                         </div>
                     </div>

@@ -27,7 +27,7 @@ const CartPage = () => {
       try {
         setLoading(true);
         const [masterRes, customRes] = await Promise.all([
-          masterServiceApi.getAll(),
+          masterServiceApi.getAll({ activeOnly: true }),
           serviceApi.getAll({ approvedOnly: true })
         ]);
         
@@ -368,7 +368,10 @@ const CartPage = () => {
     });
   };
 
-  const { pricingFactor, zone, allowDiscount } = useLocationStore();
+  const { pricingFactor, zone, allowDiscount, platformMultiplier: zonePlatformMultiplier, expressMultiplier: zoneExpressMultiplier, heritageMultiplier: zoneHeritageMultiplier } = useLocationStore();
+  const activePlatformMultiplier = zone ? (zonePlatformMultiplier !== undefined ? zonePlatformMultiplier : 0) : 0;
+  const activeExpressMultiplier = zone ? (zoneExpressMultiplier !== undefined ? zoneExpressMultiplier : expressMultiplier) : expressMultiplier;
+  const activeHeritageMultiplier = zone ? (zoneHeritageMultiplier !== undefined ? zoneHeritageMultiplier : 1) : 1;
 
   const getItemPrice = (item) => {
     // Priority: Respect showDiscountPrice or allowDiscount toggle from Master Service
@@ -378,25 +381,41 @@ const CartPage = () => {
     // If allowDiscount is false or showDiscountPrice is false, explicitly use basePrice
     const sourcePrice = (allowDiscount === false || item.showDiscountPrice === false) ? basePrice : discountedPrice;
     
-    return Math.round(sourcePrice * (pricingFactor || 1));
+    const isHeritage = selectedTier === 'Heritage';
+    return Math.round(sourcePrice * (pricingFactor || 1) * (isHeritage ? (activeHeritageMultiplier || 1) : 1));
   };
 
   const areaMultiplier = 1; // Default to 1, can be linked to location later
   
-  // V_Items = Base + (Base * (Express - 1)) + (Base * (Platform - 1))
-  const currentExpressMultiplier = isExpress ? expressMultiplier : 1;
+  // V_Items = Base + (Base * (Express - 1)) + (Base * PlatformMultiplier)
+  const currentExpressMultiplier = isExpress ? activeExpressMultiplier : 1;
   
   const V_Items = useMemo(() => {
     return cartItems.reduce((acc, item) => {
         const itemBase = getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier;
         const expressSurcharge = itemBase * (currentExpressMultiplier - 1);
-        const platformFee = itemBase * (platformMultiplier - 1);
+        const platformFee = itemBase * activePlatformMultiplier;
         return acc + itemBase + expressSurcharge + platformFee;
     }, 0);
-  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, platformMultiplier]);
+  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, activePlatformMultiplier]);
 
   const V = V_Items + normalLogisticsConfig;
-  const taxAmount = V * (gstPercent / 100);
+  const taxAmount = useMemo(() => {
+    const itemsGst = cartItems.reduce((acc, item) => {
+      const itemBase = getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier;
+      const expressSurcharge = itemBase * (currentExpressMultiplier - 1);
+      const taxableValue = itemBase + expressSurcharge;
+      
+      const itemGstPercent = selectedTier === 'Heritage' 
+        ? (item.heritageGst !== undefined && item.heritageGst !== null ? item.heritageGst : 18)
+        : (item.gst !== undefined && item.gst !== null ? item.gst : 5);
+        
+      return acc + (taxableValue * (itemGstPercent / 100));
+    }, 0);
+
+    return itemsGst;
+  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, selectedTier]);
+
   const grandTotal = V + taxAmount;
   
   const discount = useMemo(() => {
@@ -414,7 +433,7 @@ const CartPage = () => {
     
     // Additive logic breakdown based on Base Price
     const expressSurcharge = baseWithArea * (currentExpressMultiplier - 1);
-    const platformFee = baseWithArea * (platformMultiplier - 1);
+    const platformFee = baseWithArea * activePlatformMultiplier;
     
     return {
         baseWithArea,
@@ -423,7 +442,7 @@ const CartPage = () => {
         logisticsFee: normalLogisticsConfig,
         gstAmount: taxAmount
     };
-  }, [cartItems, quantities, areaMultiplier, platformMultiplier, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
+  }, [cartItems, quantities, areaMultiplier, activePlatformMultiplier, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
 
   const subtotal = priceBreakdown.baseWithArea;
 
@@ -554,6 +573,10 @@ const CartPage = () => {
         deliveryMode: isExpress ? 'Express' : 'Normal',
         deliveryCharge: normalLogisticsConfig,
         areaMultiplier: areaMultiplier,
+        platformMultiplier: activePlatformMultiplier,
+        expressMultiplier: activeExpressMultiplier,
+        heritageMultiplier: activeHeritageMultiplier,
+        selectedTier: selectedTier,
         promoApplied: isPromoApplied ? appliedPromoData?._id : null,
         discountAmount: discount,
         specialInstructions,
@@ -696,7 +719,7 @@ const CartPage = () => {
                   <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
-                  <span>GST (18%)</span>
+                  <span>GST</span>
                   <span className="text-white">₹{priceBreakdown.gstAmount.toFixed(0)}</span>
                 </div>
                 {isPromoApplied && (
@@ -850,7 +873,14 @@ const CartPage = () => {
                           {isHeritageService ? 'Heritage' : 'Essential'}
                         </span>
                       </div>
-                      <p className="text-[11px] font-black text-slate-900 tracking-tighter shrink-0">₹{totalPrice.toFixed(0)}</p>
+                      <div className="flex flex-col items-end shrink-0">
+                        <p className="text-[11px] font-black text-slate-900 tracking-tighter">
+                          ₹{Math.round(totalPrice + (totalPrice * ((selectedTier === 'Heritage' ? (item.heritageGst !== undefined && item.heritageGst !== null ? item.heritageGst : 18) : (item.gst !== undefined && item.gst !== null ? item.gst : 5)) / 100)))}
+                        </p>
+                        <p className="text-[6.5px] font-bold text-slate-400 tracking-tighter uppercase">
+                          ₹{totalPrice.toFixed(0)} + {selectedTier === 'Heritage' ? (item.heritageGst !== undefined && item.heritageGst !== null ? item.heritageGst : 18) : (item.gst !== undefined && item.gst !== null ? item.gst : 5)}% GST
+                        </p>
+                      </div>
                     </div>
                   </div>
 

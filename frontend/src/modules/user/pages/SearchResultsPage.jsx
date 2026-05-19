@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { serviceApi, masterServiceApi, BASE_URL } from '../../../lib/api';
+import { useLocationStore } from '../../../shared/stores/locationStore';
 
 const SearchResultsPage = () => {
   const navigate = useNavigate();
@@ -10,6 +11,7 @@ const SearchResultsPage = () => {
   const [query, setQuery] = useState(initialQuery);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { location: userLocation, zone } = useLocationStore();
   
   useEffect(() => {
     const fetchServices = async () => {
@@ -18,7 +20,7 @@ const SearchResultsPage = () => {
         const customerType = (userData.customerType || localStorage.getItem('userType') || 'individual').toLowerCase();
 
         const [masterRes, vendorRes] = await Promise.all([
-            masterServiceApi.getAll({ serviceType: customerType }),
+            masterServiceApi.getAll({ serviceType: customerType, activeOnly: true }),
             serviceApi.getAll({ approvedOnly: true, serviceType: customerType })
         ]);
         
@@ -38,17 +40,18 @@ const SearchResultsPage = () => {
     fetchServices();
   }, []);
 
-  const results = useMemo(() => 
-    services.filter(item => {
+  const results = useMemo(() => {
+    if (userLocation && (!zone || !zone.name)) return [];
+    
+    return services.filter(item => {
       const q = query.toLowerCase();
       const nameMatch = (item.name || '').toLowerCase().includes(q);
       const descMatch = (item.description || '').toLowerCase().includes(q);
       const tagsMatch = item.tags && item.tags.some(tag => tag.toLowerCase().includes(q));
       
       return nameMatch || descMatch || tagsMatch;
-    }),
-    [services, query]
-  );
+    });
+  }, [services, query, userLocation, zone]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },

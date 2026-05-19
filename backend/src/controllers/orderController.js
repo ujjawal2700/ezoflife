@@ -225,9 +225,17 @@ export const createOrder = async (req, res) => {
             SystemConfig.findOne({ key: 'advance_percentage' })
         ]);
 
+        const rawExpressMultiplier = req.body.expressMultiplier !== undefined ? Number(req.body.expressMultiplier) : null;
+        const normalizedExpressMultiplier = rawExpressMultiplier !== null 
+            ? (deliveryMode === 'Express' ? rawExpressMultiplier : 1) 
+            : (deliveryMode === 'Express' ? (Number(expressMult?.value) || 1.5) : 1);
+
+        const rawPlatformMultiplier = req.body.platformMultiplier !== undefined ? Number(req.body.platformMultiplier) : null;
+        const normalizedPlatformMultiplier = rawPlatformMultiplier !== null ? (1 + rawPlatformMultiplier) : (Number(platformMult?.value) || 1.1);
+
         const multipliers = {
-            expressMultiplier: deliveryMode === 'Express' ? (Number(expressMult?.value) || 1.5) : 1,
-            platformMultiplier: Number(platformMult?.value) || 1.1,
+            expressMultiplier: normalizedExpressMultiplier,
+            platformMultiplier: normalizedPlatformMultiplier,
             gstPercent: Number(gstPerc?.value) || 18,
             advancePerc: Number(advanceConfig?.value) || 100,
             areaMultiplier: req.body.areaMultiplier || 1 // Should be passed from frontend based on location
@@ -266,8 +274,8 @@ export const createOrder = async (req, res) => {
         // --- DROP-OFF CALCULATION ---
         const itemIds = items.map(i => i.serviceId);
         const [masterSvcs, customSvcs] = await Promise.all([
-            MasterService.find({ _id: { $in: itemIds.filter(id => id.length > 20) } }).select('completionTime'),
-            Service.find({ _id: { $in: itemIds.filter(id => id.length > 20) } }).select('completionTime')
+            MasterService.find({ _id: { $in: itemIds.filter(id => id && id.length > 20) } }).select('completionTime gst heritageGst tier'),
+            Service.find({ _id: { $in: itemIds.filter(id => id && id.length > 20) } }).select('completionTime gst tier')
         ]);
         const allSvcs = [...masterSvcs, ...customSvcs];
         const maxServiceTime = allSvcs.reduce((max, svc) => Math.max(max, svc.completionTime || 1), 1);
@@ -301,8 +309,34 @@ export const createOrder = async (req, res) => {
         const triggerTime = calculateTriggerTime(pickupSlot?.date, pickupSlot?.time);
 
         // Add logistics to V once
+        // Build a map of service DB details
+        const serviceDetailsMap = {};
+        allSvcs.forEach(s => {
+            if (s && s._id) {
+                serviceDetailsMap[s._id.toString()] = s;
+            }
+        });
+
+        // Compute dynamic item-specific GST on backend
+        let itemsGstTotal = 0;
+        processedItems.forEach(item => {
+            const dbSvc = serviceDetailsMap[item.serviceId?.toString()];
+            const dbGst = dbSvc ? dbSvc.gst : null;
+            const itemTier = dbSvc ? dbSvc.tier : 'Essential';
+            const activeTier = selectedTier || req.body.selectedTier || itemTier || 'Essential';
+            
+            const itemGstPercent = activeTier === 'Heritage' 
+              ? (dbSvc?.heritageGst !== undefined && dbSvc?.heritageGst !== null ? dbSvc.heritageGst : 18)
+              : (dbGst !== undefined && dbGst !== null ? dbGst : 5);
+              
+            const itemBase = item.pricing ? item.pricing.breakdown.baseWithArea : (item.price * item.quantity);
+            const expressSurcharge = item.pricing ? item.pricing.breakdown.expressSurcharge : 0;
+            const taxableValue = itemBase + expressSurcharge;
+            itemsGstTotal += taxableValue * (itemGstPercent / 100);
+        });
+
         const finalV = totalCalculatedV + finalPriceBreakdown.logisticsFee;
-        const finalGst = finalV * (multipliers.gstPercent / 100);
+        const finalGst = itemsGstTotal;
         finalPriceBreakdown.gstAmount = finalGst;
 
         const finalTotal = finalV + finalGst;

@@ -95,8 +95,27 @@ export const locationService = {
   },
 
   /**
-   * Search for locations using Google Places Autocomplete
+   * Geocode an address string to lat/lng using Google Maps API
    */
+  geocodeAddress: async (address) => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${API_KEY}`
+      );
+      const data = await response.json();
+      if (data.status === 'OK' && data.results.length > 0) {
+        const location = data.results[0].geometry.location;
+        return {
+          lat: location.lat,
+          lng: location.lng
+        };
+      }
+      throw new Error('Geocoding failed');
+    } catch (error) {
+      console.error('Geocoding Error:', error);
+      throw error;
+    }
+  },
   searchLocations: async (query) => {
     // Note: In a real app, you'd use the Google Maps JS Library for Autocomplete
     // For a stateless service, we'd use the Places API (requires session tokens for cost optimization)
