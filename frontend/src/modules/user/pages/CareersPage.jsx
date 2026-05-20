@@ -7,15 +7,32 @@ import toast from 'react-hot-toast';
 const CareersPage = () => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
+    const [nameFilter, setNameFilter] = useState('');
+    const [salaryFilter, setSalaryFilter] = useState('');
+    const [salaryOpen, setSalaryOpen] = useState(false);
+
+    const SALARY_OPTIONS = [
+        { label: 'Any Salary', value: '' },
+        { label: 'Up to ₹5,000', value: '5000' },
+        { label: 'Up to ₹10,000', value: '10000' },
+        { label: 'Up to ₹15,000', value: '15000' },
+        { label: 'Up to ₹20,000', value: '20000' },
+        { label: 'Up to ₹25,000', value: '25000' },
+        { label: 'Up to ₹30,000', value: '30000' },
+        { label: 'Up to ₹50,000', value: '50000' },
+        { label: 'Up to ₹75,000', value: '75000' },
+        { label: 'Up to ₹1,00,000', value: '100000' },
+    ];
+    const salaryLabel = SALARY_OPTIONS.find(o => o.value === salaryFilter)?.label || 'Any Salary';
     const [isApplied, setIsApplied] = useState(false);
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isApplying, setIsApplying] = useState(null); // Will store the job being applied to
+    const [isApplying, setIsApplying] = useState(null);
     const [applyForm, setApplyForm] = useState({
         applicantName: '',
         applicantEmail: '',
         applicantPhone: '',
-        resume: null, // Changed from resumeLink string to resume file object
+        resume: null,
         coverLetter: ''
     });
 
@@ -73,14 +90,28 @@ const CareersPage = () => {
         }
     };
 
-    
     const filteredJobs = useMemo(() => {
         if (!Array.isArray(jobs)) return [];
-        return jobs.filter(job => 
-            job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-            job.location.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [jobs, searchQuery]);
+        return jobs.filter(job => {
+            const q = searchQuery.toLowerCase();
+            const matchesSearch = !searchQuery ||
+                job.title.toLowerCase().includes(q) ||
+                (job.location || '').toLowerCase().includes(q);
+
+            const matchesName = !nameFilter ||
+                job.title.toLowerCase().includes(nameFilter.toLowerCase());
+
+            // Salary filter: extract number from salary string (e.g. "₹15000", "15,000", "15000/month")
+            const matchesSalary = !salaryFilter || (() => {
+                const salaryStr = (job.salary || '').replace(/[^\d]/g, ''); // remove all non-digits
+                const salaryNum = parseInt(salaryStr, 10);
+                const maxSalary = parseInt(salaryFilter, 10);
+                return !isNaN(salaryNum) && salaryNum <= maxSalary;
+            })();
+
+            return matchesSearch && matchesName && matchesSalary;
+        });
+    }, [jobs, searchQuery, nameFilter, salaryFilter]);
 
     const containerVariants = useMemo(() => ({
         hidden: { opacity: 0 },
@@ -97,7 +128,7 @@ const CareersPage = () => {
 
     return (
         <div className="bg-slate-50/50 text-on-surface min-h-screen pb-32 font-body">
-            <header className="px-6 pt-4 flex items-center mb-8 relative overflow-hidden">
+            <header className="px-6 pt-4 flex items-center mb-6 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -mr-32 -mt-32"></div>
                 
                 <div className="flex items-center gap-4 relative z-10">
@@ -109,17 +140,18 @@ const CareersPage = () => {
                         <span className="material-symbols-outlined text-xl">arrow_back</span>
                     </motion.button>
                     <div>
-                        <h1 className="text-2xl font-black tracking-tighter italic leading-none">Careers</h1>
+                        <h1 className="text-2xl font-black tracking-tighter leading-none">Careers</h1>
                         <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest opacity-40 mt-1">Join the Ecosystem</p>
                     </div>
                 </div>
             </header>
 
-            <main className="px-6 max-w-2xl mx-auto">
-                {/* Search Orchestrator */}
-                <motion.div initial="hidden" animate="visible" variants={itemVariants} className="space-y-6 mb-10">
-                    <div className="relative flex items-center bg-white rounded-3xl px-6 py-4 shadow-sm border border-outline-variant/10 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                        <span className="material-symbols-outlined text-outline-variant mr-3">search</span>
+            <main className="px-4 max-w-2xl mx-auto">
+                {/* Search + Filters */}
+                <motion.div initial="hidden" animate="visible" variants={itemVariants} className="space-y-3 mb-6">
+                    {/* Main Search */}
+                    <div className="relative flex items-center bg-white rounded-2xl px-4 py-3 shadow-sm border border-outline-variant/10 transition-all">
+                        <span className="material-symbols-outlined text-outline-variant mr-3 text-[20px]">search</span>
                         <input 
                             type="text" 
                             placeholder="Search by Skill or Location"
@@ -127,8 +159,117 @@ const CareersPage = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold w-full placeholder:text-outline-variant/40"
                         />
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery('')} className="text-slate-300 hover:text-slate-500">
+                                <span className="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        )}
                     </div>
+
+                    {/* Name & Salary Filters */}
+                    <div className="grid grid-cols-2 gap-2">
+                        {/* Name Filter */}
+                        <div className="relative flex items-center bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-outline-variant/10 transition-all">
+                            <span className="material-symbols-outlined text-outline-variant mr-2 text-[16px]">badge</span>
+                            <input 
+                                type="text" 
+                                placeholder="Filter by Name"
+                                value={nameFilter}
+                                onChange={(e) => setNameFilter(e.target.value)}
+                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-[11px] font-semibold w-full placeholder:text-outline-variant/40"
+                            />
+                            {nameFilter && (
+                                <button onClick={() => setNameFilter('')} className="text-slate-300 hover:text-slate-500 shrink-0">
+                                    <span className="material-symbols-outlined text-[14px]">close</span>
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Salary Custom Dropdown */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => setSalaryOpen(prev => !prev)}
+                                className="w-full flex items-center bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-outline-variant/10 transition-all gap-2"
+                            >
+                                <span className="material-symbols-outlined text-outline-variant text-[16px] shrink-0">payments</span>
+                                <span className={`text-[11px] font-semibold flex-1 text-left truncate ${salaryFilter ? 'text-slate-700' : 'text-outline-variant/60'}`}>
+                                    {salaryLabel}
+                                </span>
+                                <span className={`material-symbols-outlined text-outline-variant text-[14px] shrink-0 transition-transform duration-200 ${salaryOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                            </button>
+
+                            {/* Dropdown Panel — opens upward, constrained inside screen */}
+                            <AnimatePresence>
+                                {salaryOpen && (
+                                    <>
+                                        {/* Backdrop to close */}
+                                        <div
+                                            className="fixed inset-0 z-[40]"
+                                            onClick={() => setSalaryOpen(false)}
+                                        />
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 top-[calc(100%+6px)] z-[50] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[160px]"
+                                        >
+                                            {SALARY_OPTIONS.map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() => { setSalaryFilter(opt.value); setSalaryOpen(false); }}
+                                                    className={`w-full text-left px-4 py-2.5 text-[11px] font-semibold transition-colors ${
+                                                        salaryFilter === opt.value
+                                                            ? 'bg-primary text-white'
+                                                            : 'text-slate-700 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+
+                    {/* Active filter chips */}
+                    {(nameFilter || salaryFilter || searchQuery) && (
+                        <div className="flex flex-wrap gap-2">
+                            {searchQuery && (
+                                <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                                    <span className="material-symbols-outlined text-[12px]">search</span>
+                                    {searchQuery}
+                                    <button onClick={() => setSearchQuery('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
+                                </span>
+                            )}
+                            {nameFilter && (
+                                <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                                    <span className="material-symbols-outlined text-[12px]">badge</span>
+                                    {nameFilter}
+                                    <button onClick={() => setNameFilter('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
+                                </span>
+                            )}
+                            {salaryFilter && (
+                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                                    <span className="material-symbols-outlined text-[12px]">payments</span>
+                                    {salaryLabel}
+                                    <button onClick={() => setSalaryFilter('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
+                                </span>
+                            )}
+                        </div>
+                    )}
                 </motion.div>
+
+                {/* Result Count */}
+                {!loading && (
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-40 mb-4 px-1">
+                        {filteredJobs.length} {filteredJobs.length === 1 ? 'Opening' : 'Openings'} Found
+                    </p>
+                )}
 
                 {/* Job List */}
                 {loading ? (
@@ -149,38 +290,52 @@ const CareersPage = () => {
                                     key={job._id}
                                     variants={itemVariants}
                                     whileHover={{ scale: 1.01 }}
-                                    className="bg-white rounded-[2rem] p-6 border border-outline-variant/5 shadow-sm space-y-4"
+                                    className="bg-white rounded-[2rem] p-5 border border-outline-variant/5 shadow-sm space-y-3 overflow-hidden"
                                 >
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <h3 className="font-black text-lg tracking-tight text-on-surface mb-1">{job.title}</h3>
-                                            <div className="flex items-center gap-3">
-                                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${job.creatorRole === 'Admin' ? 'text-indigo-600' : 'text-primary'}`}>
-                                                    {job.creatorRole === 'Admin' ? (job.companyName || 'Official Post') : (job.vendor?.displayName || 'Vendor Post')}
-                                                </span>
-                                                <span className="w-1 h-1 rounded-full bg-outline-variant/30"></span>
-                                                <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest">{job.applicantsCount || 0} Applicants</span>
-                                                <span className="w-1 h-1 rounded-full bg-outline-variant/30"></span>
-                                                <span className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{job.jobType}</span>
-                                            </div>
+                                    {/* Title Row */}
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-black text-base tracking-tight text-on-surface truncate">{job.title}</h3>
+                                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${job.creatorRole === 'Admin' ? 'text-indigo-600' : 'text-primary'}`}>
+                                                {job.creatorRole === 'Admin' ? (job.companyName || 'Official Post') : (job.vendor?.displayName || 'Vendor Post')}
+                                            </span>
                                         </div>
-                                        {job.creatorRole === 'Admin' && (
-                                            <div className="bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100 flex items-center gap-1.5 shrink-0">
-                                                <span className="material-symbols-outlined text-[12px] text-indigo-600">verified</span>
-                                                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-widest">Verified</span>
-                                            </div>
-                                        )}
-                                        <div className="bg-surface-container-low px-3 py-1.5 rounded-xl border border-outline-variant/10 flex items-center gap-1.5 shrink-0">
-                                            <span className="material-symbols-outlined text-[12px] text-primary">location_on</span>
-                                            <span className="text-[9px] font-black uppercase tracking-widest">{job.location}</span>
+                                        {/* Location badge — fixed to right, won't overflow */}
+                                        <div className="bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/10 flex items-center gap-1 shrink-0 max-w-[120px]">
+                                            <span className="material-symbols-outlined text-[12px] text-primary shrink-0">location_on</span>
+                                            <span className="text-[8px] font-black uppercase tracking-wider truncate">{job.location}</span>
                                         </div>
                                     </div>
-                                    <p className="text-xs text-on-surface-variant font-medium leading-relaxed italic opacity-80 line-clamp-2">
-                                        "{job.description}"
-                                    </p>
+
+                                    {/* Meta Tags Row */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                            <span className="material-symbols-outlined text-[11px]">group</span>
+                                            {job.applicantsCount || 0} Applicants
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                            <span className="material-symbols-outlined text-[11px]">schedule</span>
+                                            {job.jobType}
+                                        </span>
+                                        {job.salary && (
+                                            <span className="inline-flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-emerald-600">
+                                                <span className="material-symbols-outlined text-[11px]">payments</span>
+                                                {job.salary}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Description */}
+                                    {job.description && (
+                                        <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed opacity-70 line-clamp-2">
+                                            "{job.description}"
+                                        </p>
+                                    )}
+
+                                    {/* Apply Button */}
                                     <button 
                                         onClick={() => setIsApplying(job)}
-                                        className="w-full py-4 bg-surface-container-high rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all border border-primary/10"
+                                        className="w-full py-3.5 bg-surface-container-high rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all border border-primary/10"
                                     >
                                         Apply Now
                                     </button>
@@ -339,4 +494,3 @@ const CareersPage = () => {
 };
 
 export default CareersPage;
-
