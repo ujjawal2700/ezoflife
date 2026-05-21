@@ -7,11 +7,14 @@ import {
     deleteFAQ,
     reorderFAQs
 } from '../controllers/faqController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 router.get('/', getAllFAQs);
-router.post('/reorder', reorderFAQs);
-router.post('/', createFAQ);
-router.patch('/:id', updateFAQ);
-router.delete('/:id', deleteFAQ);
+
+// Admin-only modification routes
+router.post('/reorder', verifyAdmin, reorderFAQs);
+router.post('/', verifyAdmin, createFAQ);
+router.patch('/:id', verifyAdmin, updateFAQ);
+router.delete('/:id', verifyAdmin, deleteFAQ);
 
 export default router;

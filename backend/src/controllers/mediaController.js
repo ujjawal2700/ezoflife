@@ -19,14 +19,24 @@ export const uploadMedia = async (req, res) => {
         const newMedia = new Media({
             fileName: req.file.originalname,
             fileUrl: fileUrl,
-            fileType: req.file.mimetype.includes('pdf') ? 'PDF' : 'IMAGE'
+            fileType: req.file.mimetype && req.file.mimetype.includes('pdf') ? 'PDF' : 'IMAGE'
         });
 
         await newMedia.save();
         console.log('Media Kit saved to DB successfully!');
-        res.status(201).json(newMedia);
+        
+        // Return BOTH fileUrl (backend model structure) and url (frontend expectations)
+        res.status(201).json({
+            ...newMedia.toObject(),
+            url: fileUrl,
+            fileUrl: fileUrl
+        });
     } catch (err) {
-        console.error('Upload Error:', err);
+        console.error('Upload Error in controller:', err);
+        const errStr = String(err.message || err.stack || err);
+        if (errStr.toLowerCase().includes('limit') || errStr.toLowerCase().includes('quota') || errStr.toLowerCase().includes('capacity') || errStr.toLowerCase().includes('storage') || errStr.toLowerCase().includes('full')) {
+            console.error('🚨 [CRITICAL] Cloudinary limit reached or account is out of storage capacity during database save/processing!');
+        }
         res.status(500).json({ message: err.message });
     }
 };

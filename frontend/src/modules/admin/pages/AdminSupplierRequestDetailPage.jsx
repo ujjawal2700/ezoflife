@@ -182,14 +182,6 @@ const AdminSupplierRequestDetailPage = () => {
                             </div>
                         </div>
                     </div>
-                    {/* Warehouse Photos */}
-                    <div className="grid grid-cols-3 gap-4">
-                        {[...request.warehousePhotos, request.dispatchPhoto].map((url, i) => url && (
-                            <a key={i} href={url} target="_blank" rel="noreferrer" className="aspect-square rounded-3xl overflow-hidden border-2 border-slate-100 shadow-sm hover:scale-105 transition-all">
-                                <img src={url} alt="Warehouse" className="w-full h-full object-cover" />
-                            </a>
-                        ))}
-                    </div>
                 </div>
             </div>
 

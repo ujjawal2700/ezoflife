@@ -41,7 +41,7 @@ const SearchResultsPage = () => {
   }, []);
 
   const results = useMemo(() => {
-    if (userLocation && !zone) return [];
+    // if (userLocation && !zone) return [];
     
     return services.filter(item => {
       const q = query.toLowerCase();

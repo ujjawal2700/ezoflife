@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { authApi } from '../../../lib/api';
 
 const AdminSettings = () => {
     const [activeTab, setActiveTab] = useState('profile');
@@ -27,6 +28,33 @@ const AdminSettings = () => {
         ];
     });
 
+    // Fetch Admin Profile from Database on Mount
+    useEffect(() => {
+        const fetchAdminProfile = async () => {
+            try {
+                const adminRaw = localStorage.getItem('adminData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+                const adminData = JSON.parse(adminRaw);
+                const adminId = adminData._id || adminData.id || adminData.user?._id || adminData.user?.id;
+                
+                if (adminId) {
+                    const data = await authApi.getProfile(adminId);
+                    if (data) {
+                        setProfileData(prev => ({
+                            ...prev,
+                            name: data.displayName || data.name || prev.name,
+                            email: data.email || prev.email,
+                            phone: data.phone || prev.phone,
+                            role: data.role || prev.role
+                        }));
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching admin profile:', error);
+            }
+        };
+        fetchAdminProfile();
+    }, []);
+
     useEffect(() => {
         localStorage.setItem('admin_profile', JSON.stringify(profileData));
     }, [profileData]);
@@ -37,14 +65,48 @@ const AdminSettings = () => {
 
     const [newAddress, setNewAddress] = useState({ type: 'Office', address: '' });
 
-    const handleProfileUpdate = (e) => {
+    const handleProfileUpdate = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setTimeout(() => {
+        try {
+            const adminRaw = localStorage.getItem('adminData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+            const adminData = JSON.parse(adminRaw);
+            const adminId = adminData._id || adminData.id || adminData.user?._id || adminData.user?.id;
+
+            if (adminId) {
+                const updatedUser = await authApi.updateProfile(adminId, {
+                    displayName: profileData.name,
+                    email: profileData.email,
+                    phone: profileData.phone
+                });
+                
+                if (updatedUser) {
+                    setProfileData(prev => ({
+                        ...prev,
+                        name: updatedUser.displayName || prev.name,
+                        email: updatedUser.email || prev.email,
+                        phone: updatedUser.phone || prev.phone
+                    }));
+                    
+                    const newAdminData = {
+                        ...adminData,
+                        displayName: updatedUser.displayName || adminData.displayName,
+                        phone: updatedUser.phone || adminData.phone,
+                        email: updatedUser.email || adminData.email
+                    };
+                    localStorage.setItem('adminData', JSON.stringify(newAdminData));
+                }
+                toast.success('Profile updated successfully in database!');
+            } else {
+                localStorage.setItem('admin_profile', JSON.stringify(profileData));
+                toast.success('Profile saved locally (offline mode).');
+            }
+        } catch (error) {
+            console.error('Error updating admin profile:', error);
+            toast.error(error.message || 'Failed to update profile in database');
+        } finally {
             setLoading(false);
-            localStorage.setItem('admin_profile', JSON.stringify(profileData));
-            toast.success('Profile updated successfully!');
-        }, 1000);
+        }
     };
 
     const handleAddAddress = (e) => {

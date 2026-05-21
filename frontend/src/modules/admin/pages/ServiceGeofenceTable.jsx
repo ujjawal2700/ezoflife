@@ -11,6 +11,10 @@ import DataGrid from '../components/tables/DataGrid';
 const ServiceGeofenceTable = () => {
     const [areas, setAreas] = useState([]);
     const [uniqueAreaNames, setUniqueAreaNames] = useState([]);
+    const [uniqueBaseMultipliers, setUniqueBaseMultipliers] = useState([]);
+    const [uniqueExpressMultipliers, setUniqueExpressMultipliers] = useState([]);
+    const [uniqueHeritageMultipliers, setUniqueHeritageMultipliers] = useState([]);
+    const [uniqueDiscountMultipliers, setUniqueDiscountMultipliers] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Filter states
@@ -118,18 +122,32 @@ const ServiceGeofenceTable = () => {
         toast.success('Geofence registry exported successfully!');
     };
 
-    // Load initial unique names for dropdown once on mount
+    // Load initial unique names and multipliers for dropdowns
+    const loadInitialNames = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/geofence/areas`);
+            const data = await res.json();
+            
+            const names = Array.from(new Set(data.map(a => a.areaName).filter(Boolean))).sort();
+            setUniqueAreaNames(names);
+
+            const baseMults = Array.from(new Set(data.map(a => a.basePriceMultiplier).filter(val => val !== undefined && val !== null))).sort((a, b) => a - b);
+            setUniqueBaseMultipliers(baseMults);
+
+            const expressMults = Array.from(new Set(data.map(a => a.dynamicSurgeMultiplier).filter(val => val !== undefined && val !== null))).sort((a, b) => a - b);
+            setUniqueExpressMultipliers(expressMults);
+
+            const heritageMults = Array.from(new Set(data.map(a => a.heritageMultiplier).filter(val => val !== undefined && val !== null))).sort((a, b) => a - b);
+            setUniqueHeritageMultipliers(heritageMults);
+
+            const discountMults = Array.from(new Set(data.map(a => a.discountPriceMultiplier).filter(val => val !== undefined && val !== null))).sort((a, b) => a - b);
+            setUniqueDiscountMultipliers(discountMults);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     useEffect(() => {
-        const loadInitialNames = async () => {
-            try {
-                const res = await fetch(`${BASE_URL}/geofence/areas`);
-                const data = await res.json();
-                const names = Array.from(new Set(data.map(a => a.areaName))).sort();
-                setUniqueAreaNames(names);
-            } catch (err) {
-                console.error(err);
-            }
-        };
         loadInitialNames();
     }, []);
 
@@ -145,6 +163,7 @@ const ServiceGeofenceTable = () => {
             if (res.ok) {
                 toast.success('Zone deleted');
                 fetchAreas();
+                loadInitialNames();
             }
         } catch (err) {
             toast.error('Delete failed');
@@ -172,6 +191,7 @@ const ServiceGeofenceTable = () => {
                 toast.success('Multipliers updated');
                 setEditingArea(null);
                 fetchAreas();
+                loadInitialNames();
             }
         } catch (err) {
             toast.error('Update failed');
@@ -337,7 +357,7 @@ const ServiceGeofenceTable = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto max-w-[280px] sm:max-w-[380px] md:max-w-[520px] lg:max-w-[650px] xl:max-w-[850px] 2xl:max-w-[1100px] py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                             {/* Area Name Dropdown */}
                             <select
                                 value={selectedAreaName}
@@ -347,7 +367,7 @@ const ServiceGeofenceTable = () => {
                                         setSearchAreaNameInput('');
                                     }
                                 }}
-                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900"
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 shrink-0 min-w-[120px]"
                             >
                                 <option value="">SELECT AREA NAME</option>
                                 {uniqueAreaNames.map(name => (
@@ -366,44 +386,56 @@ const ServiceGeofenceTable = () => {
                                     }
                                 }}
                                 placeholder="TYPE AREA NAME..."
-                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-28 placeholder:text-slate-300 shrink-0"
                             />
 
-                            {/* Base Multiplier Input */}
-                            <input
-                                type="text"
+                            {/* Base Multiplier Dropdown */}
+                            <select
                                 value={searchBaseMultiplier}
                                 onChange={(e) => setSearchBaseMultiplier(e.target.value)}
-                                placeholder="BASE MULTIPLIER..."
-                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-32 placeholder:text-slate-300"
-                            />
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-28 shrink-0"
+                            >
+                                <option value="">BASE MULTIPLIER</option>
+                                {uniqueBaseMultipliers.map(mult => (
+                                    <option key={mult} value={String(mult)}>{mult}x</option>
+                                ))}
+                            </select>
 
-                            {/* Express Multiplier Input */}
-                            <input
-                                type="text"
+                            {/* Express Multiplier Dropdown */}
+                            <select
                                 value={searchExpressMultiplier}
                                 onChange={(e) => setSearchExpressMultiplier(e.target.value)}
-                                placeholder="EXPRESS MULTIPLIER..."
-                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
-                            />
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-32 shrink-0"
+                            >
+                                <option value="">EXPRESS MULTIPLIER</option>
+                                {uniqueExpressMultipliers.map(mult => (
+                                    <option key={mult} value={String(mult)}>{mult}x</option>
+                                ))}
+                            </select>
 
-                            {/* Heritage Multiplier Input */}
-                            <input
-                                type="text"
+                            {/* Heritage Multiplier Dropdown */}
+                            <select
                                 value={searchHeritageMultiplier}
                                 onChange={(e) => setSearchHeritageMultiplier(e.target.value)}
-                                placeholder="HERITAGE MULTIPLIER..."
-                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
-                            />
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-32 shrink-0"
+                            >
+                                <option value="">HERITAGE MULTIPLIER</option>
+                                {uniqueHeritageMultipliers.map(mult => (
+                                    <option key={mult} value={String(mult)}>{mult}x</option>
+                                ))}
+                            </select>
 
-                            {/* Discount Multiplier Input */}
-                            <input
-                                type="text"
+                            {/* Discount Multiplier Dropdown */}
+                            <select
                                 value={searchDiscountMultiplier}
                                 onChange={(e) => setSearchDiscountMultiplier(e.target.value)}
-                                placeholder="DISCOUNT MULTIPLIER..."
-                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-36 placeholder:text-slate-300"
-                            />
+                                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-32 shrink-0"
+                            >
+                                <option value="">DISCOUNT MULTIPLIER</option>
+                                {uniqueDiscountMultipliers.map(mult => (
+                                    <option key={mult} value={String(mult)}>{mult}x</option>
+                                ))}
+                            </select>
                         </div>
                     }
                     columns={columns}

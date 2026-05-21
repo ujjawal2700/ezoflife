@@ -74,6 +74,7 @@ const CareersPage = () => {
             }
             formData.append('experience', applyForm.experience || 'Not Specified');
             formData.append('contactNumber', applyForm.applicantPhone);
+            formData.append('coverLetter', applyForm.coverLetter);
             
             if (applyForm.resume) {
                 formData.append('resume', applyForm.resume);

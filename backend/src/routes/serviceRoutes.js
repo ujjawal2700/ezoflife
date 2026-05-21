@@ -5,13 +5,16 @@ import {
     updateService, 
     deleteService 
 } from '../controllers/serviceController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Publicly available (or restrict to admin)
+// Publicly available
 router.get('/', getAllServices);
-router.post('/', createService);
-router.put('/:id', updateService);
-router.delete('/:id', deleteService);
+
+// Admin-only modification routes
+router.post('/', verifyAdmin, createService);
+router.put('/:id', verifyAdmin, updateService);
+router.delete('/:id', verifyAdmin, deleteService);
 
 export default router;

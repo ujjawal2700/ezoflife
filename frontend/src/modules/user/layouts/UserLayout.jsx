@@ -200,6 +200,8 @@ const UserLayout = () => {
   ];
   const hideNavPaths = [
     '/user/auth', 
+    '/user/otp',
+    '/user/profile/create',
     '/user/splash', 
     '/user/land',
     '/land'

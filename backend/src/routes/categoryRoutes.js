@@ -1,14 +1,17 @@
 import express from 'express';
 import { categoryController } from '../controllers/categoryController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', categoryController.create);
 router.get('/', categoryController.getAll);
-router.post('/bulk-upload', categoryController.bulkUpload);
-router.delete('/clear-all', categoryController.clearAll);
-router.put('/:id', categoryController.update);
-router.patch('/:id', categoryController.update); // Support patch for multipliers
-router.delete('/:id', categoryController.delete);
+
+// Admin-only modification routes
+router.post('/', verifyAdmin, categoryController.create);
+router.post('/bulk-upload', verifyAdmin, categoryController.bulkUpload);
+router.delete('/clear-all', verifyAdmin, categoryController.clearAll);
+router.put('/:id', verifyAdmin, categoryController.update);
+router.patch('/:id', verifyAdmin, categoryController.update);
+router.delete('/:id', verifyAdmin, categoryController.delete);
 
 export default router;

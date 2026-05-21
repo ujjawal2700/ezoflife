@@ -1,5 +1,7 @@
 import Job from '../models/Job.js';
 import JobApplication from '../models/JobApplication.js';
+import User from '../models/User.js';
+import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } from '../utils/emailHelper.js';
 
 // Vendor: Post a new job
 export const createJob = async (req, res) => {
@@ -56,7 +58,7 @@ export const applyToJob = async (req, res) => {
         const { jobId, applicantId, experience, contactNumber, applicantName, applicantEmail, coverLetter, coverNote } = req.body;
         
         // Find the job to get the correct vendor and creatorRole
-        const job = await Job.findById(jobId);
+        const job = await Job.findById(jobId).populate('vendor');
         if (!job) {
             return res.status(404).json({ message: 'Job not found' });
         }
@@ -72,7 +74,7 @@ export const applyToJob = async (req, res) => {
             applicant: applicantId, 
             applicantName,
             applicantEmail,
-            vendor: job.creatorRole === 'Admin' ? null : job.vendor, 
+            vendor: job.creatorRole === 'Admin' ? null : (job.vendor?._id || job.vendor), 
             creatorRole: job.creatorRole || 'Vendor',
             experience, 
             contactNumber,
@@ -83,6 +85,36 @@ export const applyToJob = async (req, res) => {
 
         // Increment applicant count in Job
         await Job.findByIdAndUpdate(jobId, { $inc: { applicantsCount: 1 } });
+
+        // Trigger email notifications asynchronously (non-blocking)
+        try {
+            if (application.applicantEmail) {
+                sendJobApplicationConfirmation(application, job.title).catch(err => {
+                    console.error('Error sending application confirmation to applicant:', err);
+                });
+            }
+            
+            // Find Admin user dynamically from database
+            const adminUser = await User.findOne({ role: 'Admin' });
+            const adminEmail = adminUser?.email || process.env.ADMIN_EMAIL || 'admin@ezoflife.com';
+
+            let recipientEmail = adminEmail;
+            let ccEmail = undefined;
+
+            if (job.creatorRole === 'Vendor') {
+                const vendorEmail = job.vendor?.email;
+                if (vendorEmail) {
+                    recipientEmail = vendorEmail;
+                    ccEmail = adminEmail;
+                }
+            }
+
+            sendAdminJobApplicationNotification(application, job.title, recipientEmail, ccEmail).catch(err => {
+                console.error('Error sending job application notification email:', err);
+            });
+        } catch (emailErr) {
+            console.error('Error triggering job application emails:', emailErr);
+        }
 
         console.log(`📩 [JOBS] Application submitted for job: ${job.title} by ${applicantName}. Route: ${job.creatorRole}`);
         res.status(201).json(application);

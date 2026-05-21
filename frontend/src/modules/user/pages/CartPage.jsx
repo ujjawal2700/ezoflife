@@ -5,6 +5,7 @@ import { MASTER_SERVICES } from '../../../shared/data/sharedData';
 import { orderApi, serviceApi, authApi, promotionApi, masterServiceApi, mediaApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
+import toast from 'react-hot-toast';
 
 import { Autocomplete } from '@react-google-maps/api';
 
@@ -202,10 +203,14 @@ const CartPage = () => {
   }, []);
 
   const [isExpress, setIsExpress] = useState(() => localStorage.getItem('is_express') === 'true');
-  const [itemPhotos] = useState(() => {
+  const [itemPhotos, setItemPhotos] = useState(() => {
     const saved = localStorage.getItem('item_photos');
     return saved ? JSON.parse(saved) : {};
   });
+  const [activePhotoService, setActivePhotoService] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const galleryInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const [garmentPhotos, setGarmentPhotos] = useState(() => {
     const saved = localStorage.getItem('order_photos');
     return saved ? JSON.parse(saved) : [];
@@ -358,13 +363,27 @@ const CartPage = () => {
   }, []);
 
   const updateQuantity = (id, delta) => {
+    const current = quantities[id] || 0;
+    const next = Math.max(0, current + delta);
+
+    if (delta > 0 && current === 0 && next === 1) {
+      const item = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
+      setActivePhotoService({ id, name: item?.name || item?.itemName });
+    }
+
+    if (next === 0) {
+      setItemPhotos(prev => {
+        const { [id]: _, ...rest } = prev;
+        localStorage.setItem('item_photos', JSON.stringify(rest));
+        return rest;
+      });
+    }
+
     setQuantities(prev => {
-      const current = prev[id] || 0;
-      const newVal = Math.max(0, current + delta);
-      const next = { ...prev };
-      if (newVal === 0) delete next[id];
-      else next[id] = newVal;
-      return next;
+      const nextQ = { ...prev };
+      if (next === 0) delete nextQ[id];
+      else nextQ[id] = next;
+      return nextQ;
     });
   };
 
@@ -489,6 +508,17 @@ const CartPage = () => {
       const userId = userData._id || userData.id; 
       if (!userId) return alert('Please login');
 
+      // Enforce photo presence validation
+      for (const item of cartItems) {
+        const itemId = item._id || item.id;
+        const photos = itemPhotos[itemId] || [];
+        if (photos.length === 0) {
+          toast.error(`Please upload at least one photo for "${item.name || 'selected service'}" before placing order.`);
+          setActivePhotoService({ id: itemId, name: item.name || item.itemName });
+          return;
+        }
+      }
+
       const advanceAmount = Math.round(finalTotal * (advanceConfigPerc / 100));
 
       if (paymentMethod === 'Online' && advanceAmount > 0) {
@@ -551,15 +581,29 @@ const CartPage = () => {
   const finalizeOrder = async (userId, paymentId, method) => {
     try {
       setLoading(true);
+
+      const allItemPhotos = [];
+      cartItems.forEach(item => {
+        const itemId = item._id || item.id;
+        const photos = itemPhotos[itemId] || [];
+        allItemPhotos.push(...photos);
+      });
+
+      const mergedPhotos = Array.from(new Set([...garmentPhotos, ...allItemPhotos]));
+
       const orderData = {
         customerId: userId,
-        items: cartItems.map(item => ({
-          serviceId: item._id || item.id,
-          name: item.name || item.itemName || 'Service Item',
-          quantity: quantities[item._id || item.id],
-          price: getItemPrice(item),
-          unit: billingUnits[item._id || item.id]
-        })),
+        items: cartItems.map(item => {
+          const itemId = item._id || item.id;
+          return {
+            serviceId: itemId,
+            name: item.name || item.itemName || 'Service Item',
+            quantity: quantities[itemId],
+            price: getItemPrice(item),
+            unit: billingUnits[itemId],
+            photos: itemPhotos[itemId] || []
+          };
+        }),
         pickupSlot: { date: selectedPickup, time: pickupTime },
         deliverySlot: { date: selectedDelivery, time: deliveryTime },
         pickupAddress: selectedPickupAddress?.address || '',
@@ -580,7 +624,7 @@ const CartPage = () => {
         promoApplied: isPromoApplied ? appliedPromoData?._id : null,
         discountAmount: discount,
         specialInstructions,
-        customerPhotos: garmentPhotos
+        customerPhotos: mergedPhotos
       };
 
       const response = await orderApi.createOrder(orderData);
@@ -588,6 +632,7 @@ const CartPage = () => {
         localStorage.removeItem('cart_quantities');
         localStorage.removeItem('order_photos');
         localStorage.removeItem('order_notes');
+        localStorage.removeItem('item_photos');
         
         if (method === 'Online') {
           // Go to Confirmation (Review) page first for Online success
@@ -602,6 +647,54 @@ const CartPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePhotoFileChange = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0 || !activePhotoService) return;
+    
+    setUploading(true);
+    try {
+      const uploadedUrls = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('media', file);
+        const res = await mediaApi.upload(formData);
+        if (res.url) {
+          uploadedUrls.push(res.url);
+        }
+      }
+
+      setItemPhotos(prev => {
+        const updated = { 
+          ...prev, 
+          [activePhotoService.id]: [...(prev[activePhotoService.id] || []), ...uploadedUrls] 
+        };
+        localStorage.setItem('item_photos', JSON.stringify(updated));
+        return updated;
+      });
+      
+      toast.success('Photos uploaded successfully!');
+    } catch (error) {
+      console.error('Upload Error:', error);
+      toast.error('Failed to upload photos');
+    } finally {
+      setUploading(false);
+      setActivePhotoService(null);
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const handleDeletePhoto = (serviceId, photoUrl) => {
+    setItemPhotos(prev => {
+      const updated = {
+        ...prev,
+        [serviceId]: (prev[serviceId] || []).filter(url => url !== photoUrl)
+      };
+      localStorage.setItem('item_photos', JSON.stringify(updated));
+      return updated;
+    });
+    toast.success('Photo removed');
   };
 
   return (
@@ -701,19 +794,13 @@ const CartPage = () => {
 
               <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 px-1">
                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
-                  <span>Base Items</span>
-                  <span className="text-white">₹{priceBreakdown.baseWithArea.toFixed(0)}</span>
+                  <span>Service Price</span>
+                  <span className="text-white">₹{(priceBreakdown.baseWithArea + priceBreakdown.expressSurcharge).toFixed(0)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span>Platform Fee</span>
                   <span className="text-white">₹{priceBreakdown.platformFee.toFixed(0)}</span>
                 </div>
-                {priceBreakdown.expressSurcharge > 0 && (
-                  <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-amber-400">
-                    <span>Express</span>
-                    <span>₹{priceBreakdown.expressSurcharge.toFixed(0)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                   <span>Logistic Fee</span>
                   <span className="text-white">₹{priceBreakdown.logisticsFee.toFixed(0)}</span>
@@ -877,28 +964,13 @@ const CartPage = () => {
                         <p className="text-[11px] font-black text-slate-900 tracking-tighter">
                           ₹{Math.round(totalPrice + (totalPrice * ((selectedTier === 'Heritage' ? (item.heritageGst !== undefined && item.heritageGst !== null ? item.heritageGst : 18) : (item.gst !== undefined && item.gst !== null ? item.gst : 5)) / 100)))}
                         </p>
-                        <p className="text-[6.5px] font-bold text-slate-400 tracking-tighter uppercase">
-                          ₹{totalPrice.toFixed(0)} + {selectedTier === 'Heritage' ? (item.heritageGst !== undefined && item.heritageGst !== null ? item.heritageGst : 18) : (item.gst !== undefined && item.gst !== null ? item.gst : 5)}% GST
-                        </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center bg-slate-100/50 rounded-xl p-0.5 border border-slate-200/20 shadow-inner">
-                      <button 
-                        onClick={() => updateQuantity(itemId, -1)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 active:scale-90 transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[14px] font-black">remove</span>
-                      </button>
-                      <span className="text-[10px] font-black text-slate-900 px-2.5 min-w-[28px] text-center">{qty}</span>
-                      <button 
-                        onClick={() => updateQuantity(itemId, 1)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 active:scale-90 transition-all"
-                      >
-                        <span className="material-symbols-outlined text-[14px] font-black">add</span>
-                      </button>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex items-center bg-slate-100/50 rounded-xl px-3 py-1.5 border border-slate-200/20 shadow-inner">
+                      <span className="text-[10px] font-black text-slate-900 text-center">Qty: {qty}</span>
                     </div>
                   </div>
                 </div>
@@ -931,6 +1003,114 @@ const CartPage = () => {
               </div>
             </div>
           )}
+          {/* Photo Upload & Management Modal */}
+          <AnimatePresence>
+            {activePhotoService && (
+              <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+                <motion.div 
+                  initial={{ opacity: 0 }} 
+                  animate={{ opacity: 1 }} 
+                  exit={{ opacity: 0 }} 
+                  onClick={() => setActivePhotoService(null)} 
+                  className="absolute inset-0 bg-black/70 backdrop-blur-sm" 
+                />
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }} 
+                  exit={{ scale: 0.9, opacity: 0 }} 
+                  className="relative w-full max-w-[340px] bg-slate-950/80 backdrop-blur-md border border-white/10 text-white rounded-[2rem] p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto hide-scrollbar"
+                >
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-white/90">
+                      Photos for {activePhotoService.name}
+                    </h3>
+                    <button 
+                      onClick={() => setActivePhotoService(null)} 
+                      className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white"
+                    >
+                      <span className="material-symbols-outlined text-base">close</span>
+                    </button>
+                  </div>
+
+                  {/* Existing Photos Grid */}
+                  {itemPhotos[activePhotoService.id]?.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        {itemPhotos[activePhotoService.id].map((photo, idx) => (
+                          <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-white/10 bg-slate-900">
+                            <img src={photo} alt="" className="w-full h-full object-cover" />
+                            <button
+                              onClick={() => handleDeletePhoto(activePhotoService.id, photo)}
+                              className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-500/80 backdrop-blur-sm text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                            >
+                              <span className="material-symbols-outlined text-[12px] font-bold">delete</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => galleryInputRef.current.click()}
+                          className="flex-1 bg-white text-black py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                        >
+                          <span className="material-symbols-outlined text-sm">add_a_photo</span> Add Photo
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (window.confirm("Delete all photos for this item?")) {
+                              setItemPhotos(prev => {
+                                const { [activePhotoService.id]: _, ...rest } = prev;
+                                localStorage.setItem('item_photos', JSON.stringify(rest));
+                                return rest;
+                              });
+                              toast.success("Photos deleted");
+                            }
+                          }}
+                          className="flex-1 bg-white/10 border border-white/10 text-white py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-white/20"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete_sweep</span> Delete All
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* No Photos State */
+                    <div className="flex flex-col items-center gap-4 py-4">
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => galleryInputRef.current.click()}
+                        className="w-full bg-white/5 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 border border-dashed border-white/10 hover:border-white/20 transition-all text-white/60 hover:text-white"
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white shadow-sm border border-white/10">
+                          <span className="material-symbols-outlined text-2xl">add_a_photo</span>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest">Upload Photo</span>
+                      </motion.button>
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Hidden inputs for file upload */}
+          <input 
+            ref={galleryInputRef} 
+            type="file" 
+            multiple 
+            accept="image/*" 
+            onChange={handlePhotoFileChange} 
+            className="hidden" 
+          />
+          <input 
+            ref={cameraInputRef} 
+            type="file" 
+            accept="image/*" 
+            capture="environment" 
+            onChange={handlePhotoFileChange} 
+            className="hidden" 
+          />
         </div>
       </motion.main>
     </motion.div>

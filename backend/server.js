@@ -18,6 +18,7 @@ const logToFile = (msg) => {
 
 // Route imports
 import authRoutes from './src/routes/authRoutes.js';
+import { verifyAdmin } from './src/middleware/authMiddleware.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import orderRoutes from './src/routes/orderRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
@@ -93,12 +94,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// Routes
+// ─── Public Routes (no auth required) ────────────────────────────────────────
 app.use('/api/auth', authRoutes);
+
+// Public read-only config (needed at app startup)
 app.get('/api/admin/config', getSystemConfig);
-app.post('/api/admin/config', updateSystemConfig);
-app.use('/api/admin', adminRoutes);
-app.post('/api/admin/force-clear-orders', async (req, res) => {
+
+// ─── Protected Admin Routes (JWT required) ────────────────────────────────────
+// All routes below require a valid Admin JWT in Authorization: Bearer <token>
+app.post('/api/admin/config', verifyAdmin, updateSystemConfig);
+app.use('/api/admin', verifyAdmin, adminRoutes);
+app.post('/api/admin/force-clear-orders', verifyAdmin, async (req, res) => {
     try {
         const Order = (await import('./src/models/Order.js')).default;
         await Order.deleteMany({});
@@ -107,7 +113,9 @@ app.post('/api/admin/force-clear-orders', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-app.get('/api/admin-test-direct', (req, res) => res.json({ message: 'Admin Direct Route Active' }));
+app.get('/api/admin-test-direct', verifyAdmin, (req, res) => res.json({ message: 'Admin Direct Route Active' }));
+
+// ─── General App Routes ───────────────────────────────────────────────────────
 app.use('/api/orders', orderRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/notifications', notificationRoutes);
@@ -131,17 +139,19 @@ app.use('/api/b2b-orders', b2bOrderRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
-app.use('/api/geofence', geofenceRoutes);
-app.use('/api/area-overrides', areaOverrideRoutes);
-app.use('/api/master-pricing', masterPricingRoutes);
+
+// ─── Admin-only Data Routes (JWT required) ───────────────────────────────────
+app.use('/api/geofence', verifyAdmin, geofenceRoutes);
+app.use('/api/area-overrides', verifyAdmin, areaOverrideRoutes);
+app.use('/api/master-pricing', verifyAdmin, masterPricingRoutes);
 
 // Labor Routes
-app.post('/api/labor/add', addSpecialist);
+app.post('/api/labor/add', verifyAdmin, addSpecialist);
 app.get('/api/labor/all', getAllSpecialists);
-app.delete('/api/labor/:id', deleteSpecialist);
+app.delete('/api/labor/:id', verifyAdmin, deleteSpecialist);
 app.post('/api/labor/place-request', createRequisition);
-app.get('/api/labor/active-requests', getAllRequisitions);
-app.patch('/api/labor/place-request/:id/assign', assignRequisition);
+app.get('/api/labor/active-requests', verifyAdmin, getAllRequisitions);
+app.patch('/api/labor/place-request/:id/assign', verifyAdmin, assignRequisition);
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ezoflife';
@@ -392,7 +402,7 @@ app.get('/', (req, res) => {
 });
 
 // Port
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5002;
 server.listen(PORT, () => {
     const msg = `🚀 SERVER RESTARTED AT ${new Date().toISOString()} ON PORT ${PORT}`;
     console.log(msg);
@@ -400,4 +410,4 @@ server.listen(PORT, () => {
     logToFile(msg);
 });
 
-// trigger restart
+// trigger restart 2

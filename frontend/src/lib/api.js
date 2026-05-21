@@ -1,5 +1,101 @@
+// Global fetch interceptor to catch unauthorized/expired admin requests and automatically attach Authorization headers
+const originalFetch = window.fetch;
+window.fetch = async (input, init) => {
+    let url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
+    let options = init || {};
+    
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+        const urlLower = url.toLowerCase();
+        const isAdminEndpoint = urlLower.includes('/admin') || 
+                                urlLower.includes('/geofence') || 
+                                urlLower.includes('/area-overrides') || 
+                                urlLower.includes('/master-pricing') ||
+                                urlLower.includes('/supplier/requests') ||
+                                urlLower.includes('/labor/add') ||
+                                urlLower.includes('/labor/active-requests') ||
+                                urlLower.includes('/labor/place-request/') ||
+                                (urlLower.includes('/jobs/') && !urlLower.includes('/jobs/active') && !urlLower.includes('/jobs/apply') && !urlLower.includes('/jobs/vendor')) ||
+                                (urlLower.includes('/services') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) ||
+                                (urlLower.includes('/materials') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) ||
+                                (urlLower.includes('/categories') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) ||
+                                (urlLower.includes('/faqs') && (options.method === 'POST' || options.method === 'PATCH' || options.method === 'DELETE')) ||
+                                (urlLower.includes('/feedback') && options.method === 'DELETE') ||
+                                (urlLower.includes('/tickets/admin')) ||
+                                (urlLower.includes('/partnerships/all')) ||
+                                (urlLower.includes('/media/inquiries'));
+                                
+        if (isAdminEndpoint) {
+            if (typeof input === 'string') {
+                options.headers = options.headers || {};
+                if (options.headers instanceof Headers) {
+                    if (!options.headers.has('Authorization')) {
+                        options.headers.set('Authorization', `Bearer ${token}`);
+                    }
+                } else if (Array.isArray(options.headers)) {
+                    if (!options.headers.some(([k]) => k.toLowerCase() === 'authorization')) {
+                        options.headers.push(['Authorization', `Bearer ${token}`]);
+                    }
+                } else {
+                    if (!options.headers['Authorization'] && !options.headers['authorization']) {
+                        options.headers['Authorization'] = `Bearer ${token}`;
+                    }
+                }
+            } else if (input instanceof Request) {
+                if (!input.headers.has('Authorization')) {
+                    try {
+                        input.headers.set('Authorization', `Bearer ${token}`);
+                    } catch (e) {
+                        const newHeaders = new Headers(input.headers);
+                        newHeaders.set('Authorization', `Bearer ${token}`);
+                        input = new Request(input, { headers: newHeaders });
+                    }
+                }
+            }
+        }
+    }
+
+    const res = await originalFetch(input, options);
+    
+    if (res.status === 401 || res.status === 403) {
+        const urlLower = url.toLowerCase();
+        const isAdminEndpoint = urlLower.includes('/admin') || 
+                                urlLower.includes('/geofence') || 
+                                urlLower.includes('/area-overrides') || 
+                                urlLower.includes('/master-pricing') ||
+                                urlLower.includes('/supplier/requests') ||
+                                urlLower.includes('/labor/active-requests') ||
+                                urlLower.includes('/labor/add');
+        if (isAdminEndpoint) {
+            console.warn('🔑 Admin Session expired or unauthorized. Redirecting to login...');
+            localStorage.removeItem('adminAuth');
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminData');
+            if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+                window.location.href = '/admin/login';
+            }
+        }
+    }
+    return res;
+};
+
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 export const UPLOADS_URL = BASE_URL.replace('/api', '') + '/uploads/';
+
+// ─── Admin Auth Helpers ───────────────────────────────────────────────────────
+// These are used by every admin API call to attach the JWT token.
+export const getAdminToken = () => localStorage.getItem('adminToken');
+
+export const adminAuthHeaders = (extra = {}) => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${getAdminToken()}`,
+    ...extra
+});
+
+// For FormData calls (no Content-Type, browser sets it with boundary)
+export const adminAuthHeadersFormData = () => ({
+    'Authorization': `Bearer ${getAdminToken()}`
+});
 
 export const categoryApi = {
     getAll: async () => {
@@ -31,7 +127,7 @@ export const categoryApi = {
     create: async (data) => {
         const res = await fetch(`${BASE_URL}/categories`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
         return res.json();
@@ -39,28 +135,34 @@ export const categoryApi = {
     update: async (id, data) => {
         const res = await fetch(`${BASE_URL}/categories/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
         return res.json();
     },
     delete: async (id) => {
         const res = await fetch(`${BASE_URL}/categories/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: adminAuthHeaders()
         });
         return res.json();
     },
     bulkUpload: async (categories) => {
         const res = await fetch(`${BASE_URL}/categories/bulk-upload`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ categories })
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(categories)
         });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Bulk upload failed');
+        }
         return res.json();
     },
     clearAll: async () => {
         const res = await fetch(`${BASE_URL}/categories/clear-all`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: adminAuthHeaders()
         });
         return res.json();
     }
@@ -291,6 +393,7 @@ export const adApi = {
         try {
             const response = await fetch(`${BASE_URL}/ads`, {
                 method: 'POST',
+                headers: adminAuthHeadersFormData(),
                 body: formData
             });
             return await response.json();
@@ -310,7 +413,9 @@ export const adApi = {
     },
     getAll: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/ads/all`);
+            const response = await fetch(`${BASE_URL}/ads/all`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get All Ads Error:', error);
@@ -320,7 +425,8 @@ export const adApi = {
     toggleStatus: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/ads/${id}/toggle`, {
-                method: 'PATCH'
+                method: 'PATCH',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -331,7 +437,8 @@ export const adApi = {
     delete: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/ads/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -428,7 +535,9 @@ export const b2bOrderApi = {
     },
     getAdminEscrowOrders: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/b2b-orders/admin/escrow`);
+            const response = await fetch(`${BASE_URL}/b2b-orders/admin/escrow`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Admin Escrow Error:', error);
@@ -438,7 +547,8 @@ export const b2bOrderApi = {
     releasePayment: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/${id}/release`, {
-                method: 'PATCH'
+                method: 'PATCH',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -457,10 +567,13 @@ export const b2bOrderApi = {
     }
 };
 
+
 export const adminApi = {
     getStats: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/stats`);
+            const response = await fetch(`${BASE_URL}/admin/stats`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Admin Stats Error:', error);
@@ -469,7 +582,9 @@ export const adminApi = {
     },
     getPendingApprovals: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/pending-approvals`);
+            const response = await fetch(`${BASE_URL}/admin/pending-approvals`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Admin Approvals Error:', error);
@@ -478,7 +593,9 @@ export const adminApi = {
     },
     getCustomers: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/customers`);
+            const response = await fetch(`${BASE_URL}/admin/customers`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Admin Customers Error:', error);
@@ -487,7 +604,9 @@ export const adminApi = {
     },
     getAllUsers: async (role) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/users${role ? `?role=${role}` : ''}`);
+            const response = await fetch(`${BASE_URL}/admin/users${role ? `?role=${role}` : ''}`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Admin All Users Error:', error);
@@ -498,7 +617,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/users/${id}/toggle-status`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' }
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -509,7 +628,8 @@ export const adminApi = {
     deleteUser: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/admin/users/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -521,7 +641,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/approve-vendor/${id}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -533,7 +653,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/reject-vendor/${id}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -544,7 +664,9 @@ export const adminApi = {
     },
     getVendorRequestById: async (id) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}`);
+            const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Vendor Request Error:', error);
@@ -555,7 +677,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}/approve-initial`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify({ tier })
             });
             return await response.json();
@@ -568,7 +690,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/vendor-request/${id}/approve-final`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' }
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -578,7 +700,9 @@ export const adminApi = {
     },
     getAllVendors: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/vendors`);
+            const response = await fetch(`${BASE_URL}/admin/vendors`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('All Vendors Error:', error);
@@ -588,7 +712,8 @@ export const adminApi = {
     deleteVendor: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/admin/vendors/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -600,7 +725,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/register-customer`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -611,7 +736,9 @@ export const adminApi = {
     },
     getVendorById: async (id) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/vendors/${id}`);
+            const response = await fetch(`${BASE_URL}/admin/vendors/${id}`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Vendor By ID Error:', error);
@@ -622,7 +749,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/vendors/${vendorId}/services/${serviceId}/status`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -635,6 +762,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/vendors/${vendorId}/documents`, {
                 method: 'POST',
+                headers: adminAuthHeadersFormData(),
                 body: formData
             });
             return await response.json();
@@ -645,7 +773,9 @@ export const adminApi = {
     },
     getAllSuppliers: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/suppliers`);
+            const response = await fetch(`${BASE_URL}/admin/suppliers`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('All Suppliers Error:', error);
@@ -655,7 +785,8 @@ export const adminApi = {
     approveSupplier: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/admin/suppliers/${id}/approve`, {
-                method: 'PATCH'
+                method: 'PATCH',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -666,7 +797,8 @@ export const adminApi = {
     rejectSupplier: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/admin/suppliers/${id}/reject`, {
-                method: 'PATCH'
+                method: 'PATCH',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -678,7 +810,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/suppliers/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -690,7 +822,8 @@ export const adminApi = {
     deleteSupplier: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/admin/suppliers/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -701,7 +834,8 @@ export const adminApi = {
     clearAllOrders: async () => {
         try {
             const response = await fetch(`${BASE_URL}/admin/force-clear-orders`, {
-                method: 'POST'
+                method: 'POST',
+                headers: adminAuthHeaders()
             });
             if (!response.ok) {
                 const errorData = await response.json();
@@ -715,6 +849,7 @@ export const adminApi = {
     },
     getConfig: async () => {
         try {
+            // Config GET is public (needed for app boot), no auth required
             const response = await fetch(`${BASE_URL}/admin/config`);
             return await response.json();
         } catch (error) {
@@ -724,12 +859,10 @@ export const adminApi = {
     },
     updateConfig: async (keyOrData, value) => {
         try {
-            // Support both updateConfig({ key, value }) and updateConfig(key, value)
             const body = value !== undefined ? { key: keyOrData, value } : keyOrData;
-            
             const response = await fetch(`${BASE_URL}/admin/config`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(body)
             });
             return await response.json();
@@ -740,7 +873,9 @@ export const adminApi = {
     },
     getCustomerPayments: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/customer-payments`);
+            const response = await fetch(`${BASE_URL}/admin/customer-payments`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Customer Payments Error:', error);
@@ -749,7 +884,9 @@ export const adminApi = {
     },
     getVendorPayments: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/vendor-payments`);
+            const response = await fetch(`${BASE_URL}/admin/vendor-payments`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Vendor Payments Error:', error);
@@ -760,7 +897,7 @@ export const adminApi = {
         try {
             const response = await fetch(`${BASE_URL}/admin/record-vendor-payout`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -1052,7 +1189,7 @@ export const serviceApi = {
         try {
             const response = await fetch(`${BASE_URL}/services`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -1065,7 +1202,7 @@ export const serviceApi = {
         try {
             const response = await fetch(`${BASE_URL}/services/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -1077,7 +1214,8 @@ export const serviceApi = {
     delete: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/services/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -1101,7 +1239,7 @@ export const materialApi = {
         try {
             const response = await fetch(`${BASE_URL}/materials`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -1114,7 +1252,7 @@ export const materialApi = {
         try {
             const response = await fetch(`${BASE_URL}/materials/${id}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -1126,7 +1264,8 @@ export const materialApi = {
     delete: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/materials/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -1192,7 +1331,9 @@ export const ticketApi = {
     },
     getAllTickets: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/tickets/admin/all`);
+            const response = await fetch(`${BASE_URL}/tickets/admin/all`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get All Tickets Error:', error);
@@ -1203,7 +1344,7 @@ export const ticketApi = {
         try {
             const response = await fetch(`${BASE_URL}/tickets/admin/${ticketId}/status`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify({ status })
             });
             return await response.json();
@@ -1252,7 +1393,7 @@ export const faqApi = {
         try {
             const response = await fetch(`${BASE_URL}/faqs`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(faqData)
             });
             return await response.json();
@@ -1264,7 +1405,8 @@ export const faqApi = {
     delete: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/faqs/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -1276,7 +1418,7 @@ export const faqApi = {
         try {
             const response = await fetch(`${BASE_URL}/faqs/${id}`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(faqData)
             });
             return await response.json();
@@ -1289,7 +1431,7 @@ export const faqApi = {
         try {
             const response = await fetch(`${BASE_URL}/faqs/reorder`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify({ orders })
             });
             return await response.json();
@@ -1316,7 +1458,9 @@ export const feedbackApi = {
     },
     getAll: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/feedback/all`);
+            const response = await fetch(`${BASE_URL}/feedback/all`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Feedbacks Error:', error);
@@ -1335,7 +1479,8 @@ export const feedbackApi = {
     delete: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/feedback/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -1408,7 +1553,9 @@ export const mediaApi = {
     },
     getAllInquiries: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/media/inquiries`);
+            const response = await fetch(`${BASE_URL}/media/inquiries`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get All Inquiries Error:', error);
@@ -1433,7 +1580,9 @@ export const partnershipApi = {
     },
     getAll: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/partnerships/all`);
+            const response = await fetch(`${BASE_URL}/partnerships/all`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Partnerships Error:', error);
@@ -1447,7 +1596,7 @@ export const laborApi = {
         try {
             const response = await fetch(`${BASE_URL}/labor/add`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminAuthHeaders(),
                 body: JSON.stringify(data)
             });
             return await response.json();
@@ -1468,7 +1617,8 @@ export const laborApi = {
     delete: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/labor/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -1491,7 +1641,9 @@ export const laborApi = {
     },
     getAllRequisitions: async () => {
         try {
-            const response = await fetch(`${BASE_URL}/labor/active-requests`);
+            const response = await fetch(`${BASE_URL}/labor/active-requests`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Requests Error:', error);
@@ -1501,7 +1653,8 @@ export const laborApi = {
     assignRequisition: async (id) => {
         try {
             const response = await fetch(`${BASE_URL}/labor/place-request/${id}/assign`, {
-                method: 'PATCH'
+                method: 'PATCH',
+                headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
@@ -1613,15 +1766,22 @@ export const jobApi = {
         return await response.json();
     },
     getAdminAll: async () => {
-        const response = await fetch(`${BASE_URL}/jobs/admin/all`);
+        const response = await fetch(`${BASE_URL}/jobs/admin/all`, {
+            headers: adminAuthHeaders()
+        });
         return await response.json();
     },
     getAdminApplications: async () => {
-        const response = await fetch(`${BASE_URL}/jobs/admin/applications`);
+        const response = await fetch(`${BASE_URL}/jobs/admin/applications`, {
+            headers: adminAuthHeaders()
+        });
         return await response.json();
     },
     delete: async (id) => {
-        const response = await fetch(`${BASE_URL}/jobs/${id}`, { method: 'DELETE' });
+        const response = await fetch(`${BASE_URL}/jobs/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
         return await response.json();
     }
 };
@@ -1643,7 +1803,7 @@ export const masterServiceApi = {
     create: async (data) => {
         const res = await fetch(`${BASE_URL}/master-services`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
         return res.json();
@@ -1651,14 +1811,15 @@ export const masterServiceApi = {
     update: async (id, data) => {
         const res = await fetch(`${BASE_URL}/master-services/${id}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
         return res.json();
     },
     delete: async (id) => {
         const res = await fetch(`${BASE_URL}/master-services/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: adminAuthHeaders()
         });
         return res.json();
     }
@@ -1705,7 +1866,7 @@ export const legalApi = {
     update: async (type, data) => {
         const response = await fetch(`${BASE_URL}/legal/${type}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
         return await response.json();
@@ -1728,7 +1889,7 @@ export const areaOverrideApi = {
     save: async (data) => {
         const res = await fetch(`${BASE_URL}/area-overrides`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
         return res.json();
@@ -1751,7 +1912,9 @@ export const vendorPaymentApi = {
     },
     getPayoutHistory: async (vendorId) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/vendor-payouts/${vendorId}`);
+            const response = await fetch(`${BASE_URL}/admin/vendor-payouts/${vendorId}`, {
+                headers: adminAuthHeaders()
+            });
             return await response.json();
         } catch (error) {
             console.error('Get Payout History Error:', error);

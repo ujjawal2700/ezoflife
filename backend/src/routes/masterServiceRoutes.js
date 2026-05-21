@@ -8,8 +8,15 @@ import {
     getVendorPricingReport,
     getPricingPreview
 } from '../controllers/masterServiceController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
-router.delete('/clear-all', async (req, res) => {
+// Public endpoints
+router.get('/', getAllMasterServices);
+router.get('/:serviceId/vendors', getVendorPricingReport);
+router.get('/preview', getPricingPreview);
+
+// Admin-only endpoints
+router.delete('/clear-all', verifyAdmin, async (req, res) => {
     try {
         const MasterService = (await import('../models/MasterService.js')).default;
         await MasterService.deleteMany({});
@@ -19,12 +26,9 @@ router.delete('/clear-all', async (req, res) => {
     }
 });
 
-router.post('/', createMasterService);
-router.get('/', getAllMasterServices);
-router.get('/:serviceId/vendors', getVendorPricingReport);
-router.get('/preview', getPricingPreview);
-router.put('/:id', updateMasterService);
-router.patch('/:id', updateMasterService);
-router.delete('/:id', deleteMasterService);
+router.post('/', verifyAdmin, createMasterService);
+router.put('/:id', verifyAdmin, updateMasterService);
+router.patch('/:id', verifyAdmin, updateMasterService);
+router.delete('/:id', verifyAdmin, deleteMasterService);
 
 export default router;

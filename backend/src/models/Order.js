@@ -23,7 +23,8 @@ const orderSchema = new mongoose.Schema({
             quantity: { type: Number, required: true },
             price: { type: Number, required: true },
             unit: { type: String, default: 'pc' },
-            clothCount: { type: Number, default: 0 }
+            clothCount: { type: Number, default: 0 },
+            photos: [{ type: String }]
         }
     ],
     status: {

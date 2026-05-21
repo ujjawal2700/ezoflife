@@ -1,13 +1,17 @@
 import express from 'express';
 import { createAd, getActiveAd, getAllAds, toggleAdStatus, deleteAd } from '../controllers/adController.js';
 import adUpload from '../middleware/adUpload.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/', adUpload.single('media'), createAd);
+// Public endpoints
 router.get('/active', getActiveAd);
-router.get('/all', getAllAds);
-router.patch('/:id/toggle', toggleAdStatus);
-router.delete('/:id', deleteAd);
+
+// Admin-only endpoints
+router.post('/', verifyAdmin, adUpload.single('media'), createAd);
+router.get('/all', verifyAdmin, getAllAds);
+router.patch('/:id/toggle', verifyAdmin, toggleAdStatus);
+router.delete('/:id', verifyAdmin, deleteAd);
 
 export default router;

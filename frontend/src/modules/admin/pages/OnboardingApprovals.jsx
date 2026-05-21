@@ -41,6 +41,17 @@ export default function OnboardingApprovals() {
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [selectedVendor, setSelectedVendor] = useState('');
+  const [selectedBusiness, setSelectedBusiness] = useState('');
+  const [selectedPhone, setSelectedPhone] = useState('');
+
+  // Reset dropdown filters when tab changes
+  useEffect(() => {
+    setSelectedVendor('');
+    setSelectedBusiness('');
+    setSelectedPhone('');
+  }, [activeTab]);
+
   useEffect(() => {
     fetchPending();
   }, []);
@@ -88,7 +99,7 @@ export default function OnboardingApprovals() {
     }
   };
 
-  const filteredData = useMemo(() => {
+  const allTabItems = useMemo(() => {
     return rawUsers
       .filter(u => u.role === activeTab)
       .map(v => ({
@@ -99,10 +110,34 @@ export default function OnboardingApprovals() {
         address: (v.role === 'Supplier' ? v.supplierDetails?.address : v.shopDetails?.address) || 'No Address Provided',
         date: new Date(v.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
         docs: v.documents && v.documents.length > 0 ? v.documents : [],
-        phone: v.phone,
+        phone: v.phone || '',
         status: 'Pending'
       }));
   }, [rawUsers, activeTab]);
+
+  const uniqueVendors = useMemo(() => {
+    const names = allTabItems.map(item => item.vendorName).filter(Boolean);
+    return [...new Set(names)].sort();
+  }, [allTabItems]);
+
+  const uniqueBusinesses = useMemo(() => {
+    const names = allTabItems.map(item => item.shopName).filter(name => name && name !== 'N/A');
+    return [...new Set(names)].sort();
+  }, [allTabItems]);
+
+  const uniquePhones = useMemo(() => {
+    const phones = allTabItems.map(item => item.phone).filter(Boolean);
+    return [...new Set(phones)].sort();
+  }, [allTabItems]);
+
+  const filteredData = useMemo(() => {
+    return allTabItems.filter(item => {
+      const matchVendor = !selectedVendor || item.vendorName === selectedVendor;
+      const matchBusiness = !selectedBusiness || item.shopName === selectedBusiness;
+      const matchPhone = !selectedPhone || item.phone === selectedPhone;
+      return matchVendor && matchBusiness && matchPhone;
+    });
+  }, [allTabItems, selectedVendor, selectedBusiness, selectedPhone]);
 
   const paginatedData = useMemo(() => {
     return filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -113,39 +148,95 @@ export default function OnboardingApprovals() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50/50 pb-20">
       <PageHeader 
-        title="Network Onboarding" 
-        actions={[{ label: 'Refresh Queue', icon: RotateCw, variant: 'secondary', onClick: fetchPending }]}
+        title="Vendor Onboarding" 
       />
 
-      {/* Status Matrix */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-[1600px] mx-auto w-full px-8 py-2 flex items-center justify-between">
-           <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Active Verification Engine</span>
-              </div>
-              <div className="h-4 w-px bg-slate-200" />
-              <div className="flex gap-4">
-                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total Pending: <span className="text-slate-900">{rawUsers.length}</span></span>
-                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Priority: <span className="text-amber-500">High</span></span>
-              </div>
-           </div>
-           <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Phase 3: Secure Onboarding</p>
-        </div>
-      </div>
-
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-        
-        {/* Header Information */}
-        <div className="flex flex-col">
-            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                Verification Queue
-                <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-black not-italic tracking-widest rounded-sm">
-                    {filteredData.length} REQUESTS
-                </span>
-            </h2>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Audit and verify {activeTab.toLowerCase()} documentation</p>
+
+        {/* Filters Panel */}
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-wrap items-end gap-6">
+          <div className="flex-1 min-w-[200px] flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor Name</span>
+            <select
+              value={selectedVendor}
+              onChange={(e) => {
+                setSelectedVendor(e.target.value);
+                setPage(1);
+              }}
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold appearance-none cursor-pointer"
+              style={{
+                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                backgroundSize: '16px'
+              }}
+            >
+              <option value="">All Vendors</option>
+              {uniqueVendors.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex-1 min-w-[200px] flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Business Name</span>
+            <select
+              value={selectedBusiness}
+              onChange={(e) => {
+                setSelectedBusiness(e.target.value);
+                setPage(1);
+              }}
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold appearance-none cursor-pointer"
+              style={{
+                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                backgroundSize: '16px'
+              }}
+            >
+              <option value="">All Businesses</option>
+              {uniqueBusinesses.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex-1 min-w-[200px] flex flex-col gap-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Number</span>
+            <select
+              value={selectedPhone}
+              onChange={(e) => {
+                setSelectedPhone(e.target.value);
+                setPage(1);
+              }}
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 transition-all font-bold appearance-none cursor-pointer"
+              style={{
+                backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 16px center',
+                backgroundSize: '16px'
+              }}
+            >
+              <option value="">All Numbers</option>
+              {uniquePhones.map(phone => (
+                <option key={phone} value={phone}>{phone}</option>
+              ))}
+            </select>
+          </div>
+
+          {(selectedVendor || selectedBusiness || selectedPhone) && (
+            <button
+              onClick={() => {
+                setSelectedVendor('');
+                setSelectedBusiness('');
+                setSelectedPhone('');
+                setPage(1);
+              }}
+              className="h-11 px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer font-bold"
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         {/* Table Container */}
@@ -155,6 +246,8 @@ export default function OnboardingApprovals() {
                     <tr className="bg-slate-50/50 border-b border-slate-100">
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Vendor Info</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Business/Shop</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Number</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Location</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Application Date</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Verification</th>
                         <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
@@ -163,14 +256,14 @@ export default function OnboardingApprovals() {
                 <tbody className="divide-y divide-slate-100">
                     {loading ? (
                         <tr>
-                            <td colSpan={5} className="py-20 text-center">
+                            <td colSpan={7} className="py-20 text-center">
                                 <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synchronizing Application Data...</p>
                             </td>
                         </tr>
                     ) : filteredData.length === 0 ? (
                         <tr>
-                            <td colSpan={5} className="py-32 text-center">
+                            <td colSpan={7} className="py-32 text-center">
                                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-4">
                                     <ShieldCheck size={32} />
                                 </div>
@@ -181,22 +274,18 @@ export default function OnboardingApprovals() {
                     ) : paginatedData.map((req) => (
                         <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
                             <td className="px-8 py-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                        <UserPlus size={18} />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-black text-slate-900 tracking-tight">{req.vendorName}</span>
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{req.phone}</span>
-                                    </div>
-                                </div>
+                                <span className="text-sm font-black text-slate-900 tracking-tight">{req.vendorName}</span>
                             </td>
                             <td className="px-8 py-6">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-black text-slate-700 tracking-tight">{req.shopName}</span>
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 flex items-center gap-1.5">
-                                        <MapPin size={10} className="text-slate-300" /> {req.address.split(',')[0]}
-                                    </span>
+                                <span className="text-xs font-black text-slate-700 tracking-tight">{req.shopName}</span>
+                            </td>
+                            <td className="px-8 py-6">
+                                <span className="text-xs font-bold text-slate-600 tabular-nums">{req.phone || 'No Phone'}</span>
+                            </td>
+                            <td className="px-8 py-6">
+                                <div className="flex items-center gap-1.5 text-xs text-slate-600 font-bold">
+                                    <MapPin size={12} className="text-slate-400 shrink-0" />
+                                    <span>{req.address}</span>
                                 </div>
                             </td>
                             <td className="px-8 py-6">

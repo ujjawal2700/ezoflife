@@ -7,7 +7,7 @@ export const useLocationStore = create(
       location: null, // { lat, lng, city, area, fullAddress }
       zone: null,
       pricingFactor: 1, // Default multiplier
-      allowDiscount: true, // Defaults to true
+      allowDiscount: false, // Defaults to false
       platformMultiplier: 0, // Default platform fee multiplier
       expressMultiplier: 1, // Default express multiplier
       heritageMultiplier: 1, // Default heritage multiplier
@@ -28,7 +28,7 @@ export const useLocationStore = create(
       setPromptOpen: (isOpen) => set({ isPromptOpen: isOpen }),
       setPickerOpen: (isOpen) => set({ isPickerOpen: isOpen }),
 
-      clearLocation: () => set({ location: null, zone: null, pricingFactor: 1, allowDiscount: true, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1, permissionStatus: 'prompt' }),
+      clearLocation: () => set({ location: null, zone: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1, permissionStatus: 'prompt' }),
     }),
     {
       name: 'ez-location-storage',

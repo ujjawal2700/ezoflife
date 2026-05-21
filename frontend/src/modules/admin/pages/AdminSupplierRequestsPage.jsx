@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-    RotateCw, 
     ShieldCheck, 
     UserPlus, 
     MapPin, 
@@ -68,44 +67,18 @@ const AdminSupplierRequestsPage = () => {
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader 
                 title="Supplier Onboarding" 
-                actions={[{ label: 'Refresh Queue', icon: RotateCw, variant: 'secondary', onClick: fetchRequests }]}
             />
 
-            {/* Status Matrix */}
-            <div className="bg-white border-b border-slate-200">
-                <div className="max-w-[1600px] mx-auto w-full px-8 py-2 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                            <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Supplier Onboarding Engine</span>
-                        </div>
-                        <div className="h-4 w-px bg-slate-200" />
-                        <div className="flex gap-4">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Active Requests: <span className="text-slate-900">{requests.length}</span></span>
-                        </div>
-                    </div>
-                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Multi-Stage Application Management</p>
-                </div>
-            </div>
-
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-                {/* Header Information */}
-                <div className="flex flex-col">
-                    <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                        Supplier Pipeline
-                        <span className="px-2 py-0.5 bg-slate-900 text-white text-[9px] font-black tracking-widest rounded-sm">
-                            {requests.length} ACTIVE
-                        </span>
-                    </h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">Audit and process multi-phase supplier applications</p>
-                </div>
 
                 {/* Table Container */}
                 <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Supplier Identity</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Supplier Name</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Business Name</th>
+                                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Number</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Application Date</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Onboarding Status</th>
                                 <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Phase</th>
@@ -115,14 +88,14 @@ const AdminSupplierRequestsPage = () => {
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={5} className="py-20 text-center">
+                                    <td colSpan={7} className="py-20 text-center">
                                         <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Supplier Data...</p>
                                     </td>
                                 </tr>
                             ) : requests.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="py-32 text-center">
+                                    <td colSpan={7} className="py-32 text-center">
                                         <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-4">
                                             <Factory size={32} />
                                         </div>
@@ -134,15 +107,13 @@ const AdminSupplierRequestsPage = () => {
                                 paginatedRequests.map((req) => (
                                     <tr key={req._id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-8 py-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                                    <Factory size={18} />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-black text-slate-900 tracking-tight uppercase">{req.registeredBusinessName}</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{req.contactPersonName} • {req.user?.phone || 'No Phone'}</span>
-                                                </div>
-                                            </div>
+                                            <span className="text-sm font-black text-slate-900 tracking-tight">{req.contactPersonName}</span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="text-xs font-bold text-slate-600 whitespace-nowrap">{req.registeredBusinessName}</span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="text-xs font-bold text-slate-600 tabular-nums">{req.user?.phone || 'No Phone'}</span>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-2">
@@ -160,7 +131,7 @@ const AdminSupplierRequestsPage = () => {
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex flex-col">
-                                                <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border w-fit ${getStageColor(req.onboardingStage)}`}>
+                                                <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border w-fit whitespace-nowrap ${getStageColor(req.onboardingStage)}`}>
                                                     {formatStageName(req.onboardingStage)}
                                                 </span>
                                             </div>

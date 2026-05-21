@@ -97,7 +97,9 @@ const UserHeader = () => {
           {/* 2. Current Address (Home/Office) */}
           <div className="flex flex-col max-w-[150px] md:max-w-[200px] cursor-pointer group" onClick={() => setPickerOpen(true)}>
             <div className="flex items-center gap-1">
-              <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors group-hover:bg-primary group-hover:text-white">{addressType}</span>
+              <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded-md transition-colors group-hover:bg-primary group-hover:text-white">
+                {location ? 'LIVE LOCATION' : 'NONE'}
+              </span>
               <span className="material-symbols-outlined text-slate-400 text-[14px] group-hover:text-primary transition-colors">expand_more</span>
             </div>
             <p className="text-[11px] font-black text-slate-950 truncate leading-tight mt-0.5 group-hover:text-primary transition-colors italic">

@@ -5,14 +5,43 @@ import { uploadMedia, uploadMultipleMedia, getMediaHistory, getLatestMedia, subm
 
 const router = express.Router();
 
-router.post('/upload', upload.single('media'), uploadMedia);
-router.post('/upload-pdf', localUpload.single('media'), uploadMedia);
-router.post('/bulk-upload', upload.array('photos', 5), uploadMultipleMedia);
+const makeUploadHandler = (multerMiddleware) => (req, res, next) => {
+    multerMiddleware(req, res, (err) => {
+        if (err) {
+            console.error('❌ [UPLOAD_ERROR] Multer / Cloudinary upload failed:', err);
+            
+            const errStr = String(err.message || err.stack || err);
+            const isCloudinaryQuota = errStr.toLowerCase().includes('limit') || 
+                                      errStr.toLowerCase().includes('quota') || 
+                                      errStr.toLowerCase().includes('capacity') ||
+                                      errStr.toLowerCase().includes('storage') || 
+                                      errStr.toLowerCase().includes('full');
+                                      
+            if (isCloudinaryQuota) {
+                console.error('🚨 [CRITICAL] Cloudinary limit reached or account is out of storage capacity!');
+            }
+            
+            return res.status(500).json({
+                success: false,
+                message: 'Media upload failed: ' + err.message,
+                error: err.message,
+                isCloudinaryQuota
+            });
+        }
+        next();
+    });
+};
+
+router.post('/upload', makeUploadHandler(upload.single('media')), uploadMedia);
+router.post('/upload-pdf', makeUploadHandler(localUpload.single('media')), uploadMedia);
+router.post('/bulk-upload', makeUploadHandler(upload.array('photos', 5)), uploadMultipleMedia);
 router.get('/history', getMediaHistory);
 router.get('/latest', getLatestMedia);
 
+import { verifyAdmin } from '../middleware/authMiddleware.js';
+
 // Ad Inquiries
 router.post('/inquiry', submitInquiry);
-router.get('/inquiries', getAllInquiries);
+router.get('/inquiries', verifyAdmin, getAllInquiries);
 
 export default router;

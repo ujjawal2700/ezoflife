@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { mediaApi } from '../../../lib/api';
 
 const ServiceImageUploadPage = () => {
   const navigate = useNavigate();
@@ -42,16 +43,26 @@ const ServiceImageUploadPage = () => {
 
     setUploading(true);
     try {
-      // For now, we'll store local previews/data in the item_photos localStorage
-      const photoUrls = images.map(img => img.preview);
+      const uploadedUrls = [];
+      for (const img of images) {
+        if (img.file) {
+          const formData = new FormData();
+          formData.append('media', img.file);
+          const res = await mediaApi.upload(formData);
+          if (res.url) {
+            uploadedUrls.push(res.url);
+          }
+        }
+      }
       
       const currentPhotos = JSON.parse(localStorage.getItem('item_photos') || '{}');
-      currentPhotos[serviceId] = photoUrls;
+      currentPhotos[serviceId] = [...(currentPhotos[serviceId] || []), ...uploadedUrls];
       localStorage.setItem('item_photos', JSON.stringify(currentPhotos));
       
       toast.success('Photos added successfully!');
       navigate(-1);
     } catch (err) {
+      console.error('Failed to upload photos in page:', err);
       toast.error('Failed to save photos');
     } finally {
       setUploading(false);

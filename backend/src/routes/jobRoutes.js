@@ -21,13 +21,15 @@ const upload = multer({ storage });
 
 const router = express.Router();
 
+import { verifyAdmin } from '../middleware/authMiddleware.js';
+
 router.post('/', createJob);
-router.get('/admin/all', getAdminAllJobs);
-router.get('/admin/applications', getAdminApplications);
+router.get('/admin/all', verifyAdmin, getAdminAllJobs);
+router.get('/admin/applications', verifyAdmin, getAdminApplications);
 router.get('/vendor', getVendorJobs); // Expected ?vendorId=
 router.get('/active', getAllActiveJobs);
 router.post('/apply', upload.single('resume'), applyToJob);
 router.get('/vendor/:vendorId/applications', getVendorApplications);
-router.delete('/:id', deleteJob);
+router.delete('/:id', verifyAdmin, deleteJob);
 
 export default router;

@@ -29,8 +29,10 @@ router.put('/:ticketId', updateTicket);
 router.delete('/:ticketId', deleteTicket);
 router.post('/:ticketId/message', addMessage);
 
+import { verifyAdmin } from '../middleware/authMiddleware.js';
+
 // Admin Routes
-router.get('/admin/all', getAllTickets);
-router.patch('/admin/:ticketId/status', updateTicketStatus);
+router.get('/admin/all', verifyAdmin, getAllTickets);
+router.patch('/admin/:ticketId/status', verifyAdmin, updateTicketStatus);
 
 export default router;

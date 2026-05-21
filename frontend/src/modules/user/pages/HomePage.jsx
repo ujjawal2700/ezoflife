@@ -11,7 +11,7 @@ import { requestForToken } from '../../../lib/firebase';
 const HomePage = () => {
   console.log('HomePage Rendering');
   const navigate = useNavigate();
-  const { location, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData, allowDiscount, expressMultiplier, heritageMultiplier } = useLocationStore();
+  const { location, setLocation, setPromptOpen, setPickerOpen, pricingFactor, zone, setZoneData, allowDiscount, expressMultiplier, heritageMultiplier } = useLocationStore();
 
   const updateGeofenceForAddress = async (addressStr) => {
     if (!addressStr) return;
@@ -32,7 +32,7 @@ const HomePage = () => {
           });
           console.log(`[Geofence] Zone matches: ${zoneInfo.name} (Multiplier: ${zoneInfo.pricingFactor}x, Discount Allowed: ${zoneInfo.allowDiscount}, Express Multiplier: ${zoneInfo.expressMultiplier}x, Heritage Multiplier: ${zoneInfo.heritageMultiplier}x)`);
         } else {
-          setZoneData({ name: null, pricingFactor: 1, allowDiscount: true, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+          setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
           console.log('[Geofence] Address not in any service zone, using default pricing.');
         }
       }
@@ -61,16 +61,6 @@ const HomePage = () => {
 
     registerToken();
   }, []);
-
-  useEffect(() => {
-    let timeoutId;
-    if (!location) {
-      timeoutId = setTimeout(() => setPromptOpen(true), 1500);
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [location, setPromptOpen]);
 
   // Removed misplaced useEffect hook to avoid accessing pickupAddress before initialization.
 
@@ -179,6 +169,16 @@ const HomePage = () => {
   const cameraInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
 
+  useEffect(() => {
+    let timeoutId;
+    if (!location && !pickupAddress) {
+      timeoutId = setTimeout(() => setPromptOpen(true), 1500);
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [location, pickupAddress, setPromptOpen]);
+
   // --- 24H/72H GAP VALIDATION ---
   useEffect(() => {
     if (selectedPickup && pickupTime && selectedDelivery && deliveryTime) {
@@ -232,13 +232,15 @@ const HomePage = () => {
               heritageMultiplier: zoneInfo.heritageMultiplier
             });
           } else {
-            setZoneData({ name: null, pricingFactor: 1, allowDiscount: true, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+            setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
           }
         } catch (err) {
           console.error('Silent zone check failed:', err);
         }
       };
       recheckZone();
+    } else {
+      setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
     }
   }, [location, pickupAddress, setZoneData]);
 
@@ -429,7 +431,8 @@ const HomePage = () => {
                 id: a._id || `addr_${idx}`, 
                 type: aType || 'HOME', 
                 address: aAddr, 
-                location: a.location 
+                location: a.location,
+                isDefault: !!a.isDefault
               });
             }
           });
@@ -440,14 +443,49 @@ const HomePage = () => {
         // Synchronize selected addresses
         if (addrList.length > 0) {
           const isPickupStillValid = pickupAddress && addrList.some(a => a.id === pickupAddress.id);
-          const finalPickupAddr = isPickupStillValid ? pickupAddress : addrList[0];
+          const defaultAddr = addrList.find(a => a.isDefault);
+          const finalPickupAddr = defaultAddr || (isPickupStillValid ? pickupAddress : addrList[0]);
           setPickupAddress(finalPickupAddr);
           if (finalPickupAddr) {
             updateGeofenceForAddress(finalPickupAddr.address);
+
+            // Sync default address to useLocationStore
+            let finalLat = finalPickupAddr.location?.lat || 0;
+            let finalLng = finalPickupAddr.location?.lng || 0;
+            
+            if (!finalLat && !finalLng && finalPickupAddr.address) {
+              try {
+                const coords = await locationService.geocodeAddress(finalPickupAddr.address);
+                if (coords) {
+                  finalLat = coords.lat;
+                  finalLng = coords.lng;
+                }
+              } catch (e) {
+                console.error('[Geocoding] Error during default address load:', e);
+              }
+            }
+
+            setLocation({
+              fullAddress: finalPickupAddr.address,
+              city: finalPickupAddr.city || '',
+              area: finalPickupAddr.type || 'HOME',
+              lat: finalLat,
+              lng: finalLng
+            });
+
+            // Make sure the localStorage variable 'pickup_address' is also in sync
+            const pickupAddressObj = {
+              id: finalPickupAddr.id || finalPickupAddr._id,
+              type: (finalPickupAddr.type || 'HOME').toUpperCase(),
+              address: finalPickupAddr.address,
+              location: { lat: finalLat, lng: finalLng },
+              isDefault: !!finalPickupAddr.isDefault
+            };
+            localStorage.setItem('pickup_address', JSON.stringify(pickupAddressObj));
           }
           
           const isDropStillValid = dropAddress && addrList.some(a => a.id === dropAddress.id);
-          if (!isDropStillValid && isSameAsPickup) setDropAddress(addrList[0]);
+          if (!isDropStillValid && isSameAsPickup) setDropAddress(finalPickupAddr || addrList[0]);
         } else {
           setPickupAddress(null);
           setDropAddress(null);
@@ -545,8 +583,8 @@ const HomePage = () => {
   const [showMoreServices, setShowMoreServices] = useState(false);
 
   const filteredServices = useMemo(() => {
-    // If user has a location but no valid active zone, show nothing in this area
-    if (location && !zone) return [];
+    // If user has a location but no valid active zone, show services using global prices (fall back pricingFactor = 1)
+    // if (location && !zone) return [];
 
     let result = services.filter(s => {
       if (s.tier === 'Heritage' && selectedTier !== 'Heritage') return false;
@@ -565,14 +603,32 @@ const HomePage = () => {
       setShowSlotPicker(true);
       return;
     }
-    setSelectedQuantities(prev => {
-      const current = prev[id] || 0;
-      const next = Math.max(0, current + delta);
-      if (delta > 0) {
-        const service = services.find(s => (s._id || s.id) === id);
-        if (service?.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
+    const current = selectedQuantities[id] || 0;
+    const next = Math.max(0, current + delta);
+    
+    if (delta > 0) {
+      const service = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
+      if (service?.vendorId) localStorage.setItem('last_visited_vendor_id', service.vendorId);
+      
+      // Auto-open photo modal on quantity 0 -> 1 transition
+      if (current === 0 && next === 1) {
+        setActivePhotoService({ id, name: service?.name || service?.itemName });
       }
-      if (next === 0) { const { [id]: _, ...rest } = prev; return rest; }
+    }
+    
+    if (next === 0) {
+      setItemPhotos(prev => {
+        const { [id]: _, ...rest } = prev;
+        localStorage.setItem('item_photos', JSON.stringify(rest));
+        return rest;
+      });
+    }
+
+    setSelectedQuantities(prev => {
+      if (next === 0) {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      }
       return { ...prev, [id]: next };
     });
   };
@@ -611,9 +667,26 @@ const HomePage = () => {
 
 
   const handleCartClick = () => {
-    if (Object.keys(selectedQuantities).length === 0) return alert('Please select at least one service');
+    if (Object.keys(selectedQuantities).length === 0) {
+      toast.error('Please select at least one service');
+      return;
+    }
     const token = localStorage.getItem('token');
     if (!token) { navigate('/user/auth'); return; }
+
+    // Enforce mandatory image uploads for any selected service
+    for (const [id, qty] of Object.entries(selectedQuantities)) {
+      if (qty > 0) {
+        const photos = itemPhotos[id] || [];
+        if (photos.length === 0) {
+          const service = services.find(s => (s._id?.toString() === id || s.id?.toString() === id));
+          toast.error(`Please upload at least one photo for "${service?.name || 'selected service'}" before going to cart.`);
+          setActivePhotoService({ id, name: service?.name || service?.itemName });
+          return;
+        }
+      }
+    }
+
     navigate('/user/cart');
   };
 
@@ -988,7 +1061,13 @@ const HomePage = () => {
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }} 
-                onClick={() => setShowSlotPicker(false)} 
+                onClick={() => {
+                  if (isLogisticsValid) {
+                    setShowSlotPicker(false);
+                  } else {
+                    toast.error('Please complete and confirm your pickup and drop-off logistics first');
+                  }
+                }} 
                 className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
               />
               <motion.div 
@@ -999,7 +1078,10 @@ const HomePage = () => {
               >
                 <div className="flex justify-between items-center">
                   <div /> {/* Spacer for alignment */}
-                  <button onClick={() => setShowSlotPicker(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                  <button 
+                    onClick={() => setShowSlotPicker(false)} 
+                    className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"
+                  >
                     <span className="material-symbols-outlined text-base">close</span>
                   </button>
                 </div>
@@ -1349,7 +1431,7 @@ const HomePage = () => {
                 <button 
                   onClick={() => {
                     if (!isLogisticsValid) {
-                      alert("Please ensure all fields are selected.");
+                      toast.error("Please ensure all fields are selected.");
                       return;
                     }
                     setShowSlotPicker(false);
@@ -1435,7 +1517,7 @@ const HomePage = () => {
                     <div className="flex gap-2">
                       {['Home', 'Office', 'Other'].map(t => {
                         const isAlreadyPresent = savedAddresses.some(addr => addr.type?.toLowerCase() === t.toLowerCase());
-                        const isDisabled = t !== 'Other' && isAlreadyPresent;
+                        const isDisabled = isAlreadyPresent;
                         
                         return (
                           <button

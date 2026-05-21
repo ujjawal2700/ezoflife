@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { authApi } from '../../../lib/api';
+import { authApi, geofenceApi } from '../../../lib/api';
+import { useLocationStore } from '../../../shared/stores/locationStore';
+import { locationService } from '../../../lib/locationService';
 
 const UserProfilePage = () => {
   const navigate = useNavigate();
@@ -44,6 +46,98 @@ const UserProfilePage = () => {
       toast.success('Profile updated successfully');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetDefault = async (addrId) => {
+    try {
+      setLoading(true);
+      const userId = user._id || user.id;
+      if (!userId) throw new Error('User not found');
+
+      const targetAddress = user.addresses?.find(a => (a._id || a.id) === addrId);
+      if (!targetAddress) {
+        toast.error('Address not found');
+        return;
+      }
+
+      const updatedList = (user.addresses || []).map(a => ({
+        ...a,
+        isDefault: (a._id || a.id) === addrId
+      }));
+
+      const updatedUser = await authApi.updateProfile(userId, {
+        addresses: updatedList,
+        address: targetAddress.address,
+        city: targetAddress.city || '',
+        pincode: targetAddress.pincode || '',
+        location: targetAddress.location || { lat: 0, lng: 0 }
+      });
+
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+
+      // Sync default address to useLocationStore and check geofence
+      let finalLat = targetAddress.location?.lat || 0;
+      let finalLng = targetAddress.location?.lng || 0;
+      
+      if (!finalLat && !finalLng && targetAddress.address) {
+        try {
+          const coords = await locationService.geocodeAddress(targetAddress.address);
+          if (coords) {
+            finalLat = coords.lat;
+            finalLng = coords.lng;
+          }
+        } catch (e) {
+          console.error('[Geocoding] Error during default address change:', e);
+        }
+      }
+
+      useLocationStore.getState().setLocation({
+        fullAddress: targetAddress.address,
+        city: targetAddress.city || '',
+        area: targetAddress.type || 'HOME',
+        lat: finalLat,
+        lng: finalLng
+      });
+
+      // Update pickup_address in localStorage for order/checkout flow consistency
+      const pickupAddressObj = {
+        id: targetAddress._id || targetAddress.id,
+        type: (targetAddress.type || 'HOME').toUpperCase(),
+        address: targetAddress.address,
+        location: { lat: finalLat, lng: finalLng },
+        isDefault: true
+      };
+      localStorage.setItem('pickup_address', JSON.stringify(pickupAddressObj));
+
+      if (finalLat && finalLng) {
+        try {
+          const zoneInfo = await geofenceApi.checkAvailability(finalLat, finalLng);
+          if (zoneInfo.available) {
+            useLocationStore.getState().setZoneData({
+              name: zoneInfo.name,
+              pricingFactor: zoneInfo.pricingFactor,
+              allowDiscount: zoneInfo.allowDiscount,
+              platformMultiplier: zoneInfo.platformMultiplier,
+              expressMultiplier: zoneInfo.expressMultiplier,
+              heritageMultiplier: zoneInfo.heritageMultiplier
+            });
+          } else {
+            useLocationStore.getState().setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+          }
+        } catch (zoneErr) {
+          console.error('[Geofence] Error checking availability during default set:', zoneErr);
+        }
+      } else {
+        useLocationStore.getState().setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+      }
+
+      toast.success('Default address updated!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to set default address');
     } finally {
       setLoading(false);
     }
@@ -147,15 +241,31 @@ const UserProfilePage = () => {
             </div>
             <div className="space-y-2.5">
               {(user.addresses && user.addresses.length > 0) ? (
-                user.addresses.slice(0, 2).map((addr, i) => (
-                  <div key={i} className="flex items-start gap-3 bg-slate-50/50 p-2.5 rounded-2xl border border-slate-100/50">
-                    <span className="material-symbols-outlined text-slate-400 text-base mt-0.5">
-                      {addr.type === 'Home' ? 'home' : addr.type === 'Office' ? 'work' : 'push_pin'}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{addr.type}</p>
-                      <p className="text-[11px] font-bold text-slate-900 truncate leading-tight">{addr.address}</p>
+                user.addresses.map((addr, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <span className="material-symbols-outlined text-slate-400 text-base mt-0.5 shrink-0">
+                        {addr.type === 'Home' ? 'home' : addr.type === 'Office' ? 'work' : 'push_pin'}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">{addr.type}</p>
+                          {addr.isDefault && (
+                            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded">Default</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-bold text-slate-900 truncate leading-tight mt-1">{addr.address}</p>
+                      </div>
                     </div>
+                    {!addr.isDefault && (
+                      <button
+                        onClick={() => handleSetDefault(addr._id || addr.id)}
+                        disabled={loading}
+                        className="text-[8px] font-black text-slate-950 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg active:scale-95 transition-all uppercase tracking-wider shrink-0 hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        Set Default
+                      </button>
+                    )}
                   </div>
                 ))
               ) : (

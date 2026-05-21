@@ -55,11 +55,44 @@ import MasterPricingRegistry from '../pages/MasterPricingRegistry';
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
   const isAuth = localStorage.getItem('adminAuth') === 'true';
+  const token = localStorage.getItem('adminToken');
+  const adminDataStr = localStorage.getItem('adminData');
   const location = useLocation();
   
-  console.log(`🔐 AdminGuard Path Check: ${location.pathname} | isAuth: ${isAuth}`);
+  let isValid = false;
+  if (isAuth && token && adminDataStr) {
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        // Decode base64 payload
+        const payloadStr = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(payloadStr);
+        const now = Math.floor(Date.now() / 1000);
+        
+        // Parse adminData
+        const adminData = JSON.parse(adminDataStr);
+        
+        // Check that role is Admin and token is not expired
+        if (
+          payload.role === 'Admin' && 
+          adminData.role === 'Admin' && 
+          (!payload.exp || payload.exp > now)
+        ) {
+          isValid = true;
+        }
+      }
+    } catch (e) {
+      console.error('Error validating admin credentials', e);
+    }
+  }
 
-  if (!isAuth) {
+  console.log(`🔐 AdminGuard Path Check: ${location.pathname} | isValid: ${isValid}`);
+
+  if (!isValid) {
+    // Clear storage on invalid validation
+    localStorage.removeItem('adminAuth');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminData');
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 

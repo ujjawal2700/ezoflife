@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authApi } from '../../../lib/api';
+import { authApi, geofenceApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import { Autocomplete } from '@react-google-maps/api';
+import { useLocationStore } from '../../../shared/stores/locationStore';
+import { locationService } from '../../../lib/locationService';
 
 const AddressesPage = () => {
   const navigate = useNavigate();
@@ -65,6 +67,62 @@ const AddressesPage = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const syncAddressToStoreAndGeofence = async (targetAddress) => {
+    let finalLat = targetAddress.location?.lat || 0;
+    let finalLng = targetAddress.location?.lng || 0;
+    
+    if (!finalLat && !finalLng && targetAddress.address) {
+      try {
+        const coords = await locationService.geocodeAddress(targetAddress.address);
+        if (coords) {
+          finalLat = coords.lat;
+          finalLng = coords.lng;
+        }
+      } catch (e) {
+        console.error('[Geocoding] Error during default address sync:', e);
+      }
+    }
+
+    useLocationStore.getState().setLocation({
+      fullAddress: targetAddress.address,
+      city: targetAddress.city || '',
+      area: targetAddress.type || 'HOME',
+      lat: finalLat,
+      lng: finalLng
+    });
+
+    const pickupAddressObj = {
+      id: targetAddress._id || targetAddress.id,
+      type: (targetAddress.type || 'HOME').toUpperCase(),
+      address: targetAddress.address,
+      location: { lat: finalLat, lng: finalLng },
+      isDefault: true
+    };
+    localStorage.setItem('pickup_address', JSON.stringify(pickupAddressObj));
+
+    if (finalLat && finalLng) {
+      try {
+        const zoneInfo = await geofenceApi.checkAvailability(finalLat, finalLng);
+        if (zoneInfo.available) {
+          useLocationStore.getState().setZoneData({
+            name: zoneInfo.name,
+            pricingFactor: zoneInfo.pricingFactor,
+            allowDiscount: zoneInfo.allowDiscount,
+            platformMultiplier: zoneInfo.platformMultiplier,
+            expressMultiplier: zoneInfo.expressMultiplier,
+            heritageMultiplier: zoneInfo.heritageMultiplier
+          });
+        } else {
+          useLocationStore.getState().setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+        }
+      } catch (zoneErr) {
+        console.error('[Geofence] Error checking availability during sync:', zoneErr);
+      }
+    } else {
+      useLocationStore.getState().setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+    }
+  };
+
   const handleSaveAddress = async () => {
     if (!formData.line1.trim() || !formData.pincode.trim()) return;
 
@@ -99,7 +157,7 @@ const AddressesPage = () => {
         city: formData.city || '',
         pincode: formData.pincode || '',
         location: formData.location || { lat: 0, lng: 0 },
-        isDefault: updatedList.length === 0
+        isDefault: editingAddress ? editingAddress.isDefault : updatedList.length === 0
       };
 
       if (editingAddress) {
@@ -126,6 +184,10 @@ const AddressesPage = () => {
       
       // Update UI list
       setAddresses(mergedUser.addresses || []);
+
+      if (newAddrObj.isDefault) {
+        await syncAddressToStoreAndGeofence(newAddrObj);
+      }
 
       toast.success(`${newType} address updated!`);
       closeModal();
@@ -154,6 +216,51 @@ const AddressesPage = () => {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingAddress(null);
+  };
+
+  const handleSetDefault = async (addrId) => {
+    try {
+      setIsLoading(true);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const userId = user.id || user._id;
+
+      if (!userId) {
+        toast.error('Session expired. Please login again.');
+        return;
+      }
+
+      const targetAddress = user.addresses?.find(a => (a._id || a.id) === addrId);
+      if (!targetAddress) {
+        toast.error('Address not found');
+        return;
+      }
+
+      const updatedList = (user.addresses || []).map(a => ({
+        ...a,
+        isDefault: (a._id || a.id) === addrId
+      }));
+
+      const updatedUser = await authApi.updateProfile(userId, {
+        addresses: updatedList,
+        address: targetAddress.address,
+        city: targetAddress.city || '',
+        pincode: targetAddress.pincode || '',
+        location: targetAddress.location || { lat: 0, lng: 0 }
+      });
+
+      const mergedUser = { ...user, ...updatedUser };
+      localStorage.setItem('user', JSON.stringify(mergedUser));
+      setAddresses(mergedUser.addresses || []);
+
+      await syncAddressToStoreAndGeofence(targetAddress);
+
+      toast.success('Default address updated!');
+    } catch (err) {
+      console.error('Set Default Address Error:', err);
+      toast.error('Failed to set default address');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const deleteAddress = async (addrId) => {
@@ -278,10 +385,25 @@ const AddressesPage = () => {
                   </div>
                 </div>
 
-                <div className="mt-4 relative z-10">
-                  <p className="text-sm font-bold text-on-surface-variant opacity-60 leading-tight max-w-[90%] line-clamp-2">
+                <div className="mt-4 relative z-10 flex justify-between items-end gap-4">
+                  <p className="text-sm font-bold text-on-surface-variant opacity-60 leading-tight max-w-[70%] line-clamp-2">
                     {addr.address}
                   </p>
+                  {!addr.isDefault ? (
+                    <motion.button 
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleSetDefault(addr._id || addr.id)}
+                      className="px-4 py-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all rounded-full bg-primary/5 shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-xs">star</span>
+                      Set Default
+                    </motion.button>
+                  ) : (
+                    <span className="px-4 py-2 flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-600 border border-emerald-500/20 rounded-full bg-emerald-50 shrink-0">
+                      <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                      Default
+                    </span>
+                  )}
                 </div>
 
                 <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-primary/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity"></div>

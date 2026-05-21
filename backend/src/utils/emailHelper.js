@@ -405,3 +405,132 @@ export const sendAdminSupplierApplicationNotification = async (data) => {
 
     return transporter.sendMail(mailOptions);
 };
+
+/**
+ * Helper to construct the absolute resume download URL
+ */
+const getResumeUrl = (resumeLink) => {
+    if (!resumeLink) return null;
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:5001';
+    
+    // Normalize path to avoid double slashes
+    let cleanLink = resumeLink;
+    if (cleanLink.startsWith('/uploads/')) {
+        cleanLink = cleanLink.substring(9);
+    } else if (cleanLink.startsWith('uploads/')) {
+        cleanLink = cleanLink.substring(8);
+    }
+    
+    return `${backendUrl}/uploads/${cleanLink}`;
+};
+
+/**
+ * Sends a confirmation email to the applicant for a job application
+ */
+export const sendJobApplicationConfirmation = async (application, jobTitle) => {
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_PORT == 465,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+    });
+
+    const resumeUrl = getResumeUrl(application.resumeLink);
+    const coverNote = application.coverLetter || 'None Provided';
+
+    const mailOptions = {
+        from: `"EzOfLife Team" <${process.env.EMAIL_USER}>`,
+        to: application.applicantEmail,
+        subject: `Application Received: ${jobTitle} – EzOfLife`,
+        text: `Hi ${application.applicantName},\n\nThank you for applying for the position of "${jobTitle}" at EzOfLife.\n\nWe have received your application successfully. Our team is currently reviewing your details and we will reach out to you if your profile matches our requirements.\n\nApplication Details:\nPosition: ${jobTitle}\nName: ${application.applicantName}\nEmail: ${application.applicantEmail}\nPhone: ${application.contactNumber}\nCover Note:\n${coverNote}\nResume Link: ${resumeUrl || 'Not Uploaded'}\n\nBest regards,\nThe EzOfLife Team`,
+        html: `
+            <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 30px;">
+                <p>Hi <strong>${application.applicantName}</strong>,</p>
+                <p>Thank you for applying for the position of <strong>"${jobTitle}"</strong> at EzOfLife.</p>
+                <p>We have successfully received your application. Our recruiting team is currently reviewing your profile and will contact you directly with the next steps.</p>
+                
+                <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 25px 0; border: 1px solid #f1f5f9;">
+                    <h3 style="margin-top: 0; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">Application Summary</h3>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Position:</strong> ${jobTitle}</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Name:</strong> ${application.applicantName}</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Email:</strong> ${application.applicantEmail}</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Phone:</strong> ${application.contactNumber}</p>
+                    <p style="margin: 12px 0 5px 0; font-size: 14px;"><strong>Cover Note:</strong></p>
+                    <p style="margin: 0; font-size: 14px; background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; white-space: pre-wrap;">${coverNote}</p>
+                    
+                    ${resumeUrl ? `
+                    <p style="margin: 15px 0 5px 0; font-size: 14px;">
+                        <strong>Resume:</strong> 
+                        <a href="${resumeUrl}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: bold;">Download/View Resume</a>
+                    </p>
+                    ` : ''}
+                </div>
+
+                <p style="margin-top: 25px;">Best regards,<br /><strong style="color: #0f172a;">The EzOfLife Team</strong></p>
+            </div>
+        `
+    };
+
+    return transporter.sendMail(mailOptions);
+};
+
+/**
+ * Sends a notification email for a new job application
+ */
+export const sendAdminJobApplicationNotification = async (application, jobTitle, recipientEmail, ccEmail) => {
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_PORT == 465,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+    });
+
+    const resumeUrl = getResumeUrl(application.resumeLink);
+    const coverNote = application.coverLetter || 'None Provided';
+
+    const mailOptions = {
+        from: `"EzOfLife System" <${process.env.EMAIL_USER}>`,
+        to: recipientEmail || process.env.ADMIN_EMAIL,
+        subject: `New Job Application: ${jobTitle} by ${application.applicantName}`,
+        text: `New Job Application Received!\n\nPosition: ${jobTitle}\nApplicant Name: ${application.applicantName}\nEmail: ${application.applicantEmail}\nPhone: ${application.contactNumber}\nCover Note:\n${coverNote}\nResume Link: ${resumeUrl || 'Not Uploaded'}\n\nPlease review this in the portal.`,
+        html: `
+            <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+                <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">New Job Application Received</h2>
+                <p>A candidate has applied for the job: <strong>${jobTitle}</strong>.</p>
+                
+                <div style="background-color: #f8fafc; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #f1f5f9;">
+                    <p style="margin: 5px 0;"><strong>Position:</strong> ${jobTitle}</p>
+                    <p style="margin: 5px 0;"><strong>Name:</strong> ${application.applicantName}</p>
+                    <p style="margin: 5px 0;"><strong>Email:</strong> ${application.applicantEmail}</p>
+                    <p style="margin: 5px 0;"><strong>Phone:</strong> ${application.contactNumber}</p>
+                    <p style="margin: 12px 0 5px 0; font-size: 14px;"><strong>Cover Note:</strong></p>
+                    <p style="margin: 0; font-size: 14px; background: #fff; padding: 10px; border: 1px solid #e2e8f0; border-radius: 4px; white-space: pre-wrap;">${coverNote}</p>
+                    
+                    ${resumeUrl ? `
+                    <p style="margin: 15px 0 5px 0; font-size: 14px;">
+                        <strong>Resume:</strong> 
+                        <a href="${resumeUrl}" target="_blank" style="color: #2563eb; text-decoration: underline; font-weight: bold;">Download/View Resume</a>
+                    </p>
+                    ` : ''}
+                </div>
+
+                <p style="font-size: 13px; color: #64748b;">You can review the applicant's resume and manage their status in the portal.</p>
+                <br />
+                <p>Best Regards,<br /><strong>EzOfLife System</strong></p>
+            </div>
+        `
+    };
+
+    if (ccEmail) {
+        mailOptions.cc = ccEmail;
+    }
+
+    return transporter.sendMail(mailOptions);
+};
+

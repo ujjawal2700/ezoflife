@@ -38,6 +38,18 @@ const LocationPicker = ({ isLoaded }) => {
     type: 'HOME'
   });
 
+  const savedAddressTypes = React.useMemo(() => {
+    try {
+      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      if (userData && Array.isArray(userData.addresses)) {
+        return userData.addresses.map(a => (a.type || '').toUpperCase());
+      }
+    } catch (e) {
+      console.error('Error reading addresses:', e);
+    }
+    return [];
+  }, [isPickerOpen]);
+
   const autocompleteService = useRef(null);
 
   const handleSearch = useCallback((query) => {
@@ -144,7 +156,7 @@ const LocationPicker = ({ isLoaded }) => {
   return (
     <AnimatePresence>
       {isPickerOpen && (
-        <div className="fixed inset-0 z-[110] flex items-end sm:items-center justify-center">
+        <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -284,15 +296,22 @@ const LocationPicker = ({ isLoaded }) => {
 
                     <div className="space-y-4">
                       <div className="flex gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-100">
-                        {['HOME', 'OFFICE', 'OTHER'].map(type => (
-                          <button
-                            key={type}
-                            onClick={() => setManualAddress({...manualAddress, type})}
-                            className={`flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${manualAddress.type === type ? 'bg-black text-white shadow-lg' : 'text-slate-400'}`}
-                          >
-                            {type}
-                          </button>
-                        ))}
+                        {['HOME', 'OFFICE', 'OTHER'].map(type => {
+                          const isDisabled = savedAddressTypes.includes(type);
+                          return (
+                            <button
+                              key={type}
+                              disabled={isDisabled}
+                              onClick={() => setManualAddress({...manualAddress, type})}
+                              className={`flex-1 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex flex-col items-center justify-center gap-0.5
+                                ${isDisabled ? 'opacity-30 grayscale cursor-not-allowed bg-slate-100 text-slate-300 border-slate-50' : 
+                                  manualAddress.type === type ? 'bg-black text-white shadow-lg' : 'text-slate-400'}`}
+                            >
+                              <span>{type}</span>
+                              {isDisabled && <span className="text-[6px] opacity-60 tracking-tight font-bold">(SAVED)</span>}
+                            </button>
+                          );
+                        })}
                       </div>
 
                       <div className="space-y-4">

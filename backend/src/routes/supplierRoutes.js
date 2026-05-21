@@ -11,6 +11,7 @@ import {
     initiateBankVerification,
     completeBankVerification
 } from '../controllers/supplierController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -28,14 +29,15 @@ router.get('/my-status/:userId', (req, res) => {
     });
 });
 
-router.get('/requests', getAllApplications);
-router.get('/requests/:id', getApplicationById);
+// Admin-only endpoints
+router.get('/requests', verifyAdmin, getAllApplications);
+router.get('/requests/:id', verifyAdmin, getApplicationById);
 
 // Two-Stage Approval Workflow
-router.patch('/requests/:id/approve-initial', initialApproveApplication);
+router.patch('/requests/:id/approve-initial', verifyAdmin, initialApproveApplication);
 router.post('/select-products', selectProducts);
-router.patch('/requests/:id/approve-final', finalApproveApplication);
+router.patch('/requests/:id/approve-final', verifyAdmin, finalApproveApplication);
 
-router.patch('/requests/:id/reject', rejectApplication);
+router.patch('/requests/:id/reject', verifyAdmin, rejectApplication);
 
 export default router;

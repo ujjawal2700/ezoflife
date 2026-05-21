@@ -3,6 +3,7 @@ import Notification from '../models/Notification.js';
 import Job from '../models/Job.js';
 import User from '../models/User.js';
 import { getIO } from '../socket.js';
+import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } from '../utils/emailHelper.js';
 
 export const submitApplication = async (req, res) => {
     try {
@@ -67,6 +68,37 @@ export const submitApplication = async (req, res) => {
                     } catch (err) { console.error('Socket Emit Error (Admin):', err); }
                 }
             }
+        }
+
+        // Trigger email notifications asynchronously (non-blocking)
+        try {
+            if (application.applicantEmail) {
+                sendJobApplicationConfirmation(application, job ? job.title : 'Job Position').catch(err => {
+                    console.error('Error sending application confirmation to applicant:', err);
+                });
+            }
+            if (job) {
+                const jobWithVendor = await Job.findById(job._id).populate('vendor');
+                const adminUser = await User.findOne({ role: 'Admin' });
+                const adminEmail = adminUser?.email || process.env.ADMIN_EMAIL || 'admin@ezoflife.com';
+
+                let recipientEmail = adminEmail;
+                let ccEmail = undefined;
+
+                if (jobWithVendor && jobWithVendor.creatorRole === 'Vendor') {
+                    const vendorEmail = jobWithVendor.vendor?.email;
+                    if (vendorEmail) {
+                        recipientEmail = vendorEmail;
+                        ccEmail = adminEmail;
+                    }
+                }
+
+                sendAdminJobApplicationNotification(application, job.title, recipientEmail, ccEmail).catch(err => {
+                    console.error('Error sending job application notification email:', err);
+                });
+            }
+        } catch (emailErr) {
+            console.error('Error triggering job application emails:', emailErr);
         }
         
         res.status(201).json(application);

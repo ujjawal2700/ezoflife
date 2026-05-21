@@ -26110,3 +26110,1137 @@
 2026-05-20T11:30:10.714Z - 📡 [TRAFFIC] 5:00:10 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
 2026-05-20T12:05:10.291Z - 📡 [TRAFFIC] 5:35:10 pm | GET /api/jobs/active
 2026-05-20T12:05:10.391Z - 📡 [TRAFFIC] 5:35:10 pm | GET /api/jobs/active
+2026-05-20T12:05:55.437Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:05:55.441Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/admin/config
+2026-05-20T12:05:55.444Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/categories
+2026-05-20T12:05:55.447Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/categories?isActive=true
+2026-05-20T12:05:55.452Z - 📡 [TRAFFIC] 5:35:55 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:05:55.461Z - 📡 [TRAFFIC] 5:35:55 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:05:55.502Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:05:55.507Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/admin/config
+2026-05-20T12:05:55.515Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/categories?isActive=true
+2026-05-20T12:05:55.521Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/categories
+2026-05-20T12:05:55.523Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:05:55.532Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:05:55.538Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:05:55.565Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:05:55.597Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:05:55.607Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:05:55.621Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:55.765Z - 📡 [TRAFFIC] 5:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:56.033Z - 📡 [TRAFFIC] 5:35:56 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:56.171Z - 📡 [TRAFFIC] 5:35:56 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:56.445Z - 📡 [TRAFFIC] 5:35:56 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:56.605Z - 📡 [TRAFFIC] 5:35:56 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:56.717Z - 📡 [TRAFFIC] 5:35:56 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:05:57.587Z - 📡 [TRAFFIC] 5:35:57 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:11.078Z - 🚀 SERVER RESTARTED AT 2026-05-20T12:10:11.077Z ON PORT 5001
+2026-05-20T12:10:11.245Z - SOCKET_JOIN - Client CFsOWzJU6T1yLyk1AAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.179Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.192Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/admin/config
+2026-05-20T12:10:18.197Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/categories
+2026-05-20T12:10:18.208Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/categories?isActive=true
+2026-05-20T12:10:18.214Z - SOCKET_JOIN - Client Y61-yVElZSanqg2zAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.247Z - SOCKET_JOIN - Client Y61-yVElZSanqg2zAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.269Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.278Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/admin/config
+2026-05-20T12:10:18.303Z - 📡 [TRAFFIC] 5:40:18 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:10:18.312Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/categories
+2026-05-20T12:10:18.318Z - 📡 [TRAFFIC] 5:40:18 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:10:18.334Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/categories?isActive=true
+2026-05-20T12:10:18.343Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.350Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:10:18.385Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:10:18.397Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:18.414Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:10:18.449Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:10:18.477Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:10:18.527Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:18.599Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:18.703Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:18.818Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:18.940Z - 📡 [TRAFFIC] 5:40:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:19.041Z - 📡 [TRAFFIC] 5:40:19 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:10:20.420Z - 📡 [TRAFFIC] 5:40:20 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:12:21.106Z - 📡 [TRAFFIC] 5:42:21 pm | POST /api/auth/request-otp
+2026-05-20T12:12:22.956Z - 📡 [TRAFFIC] 5:42:22 pm | POST /api/auth/verify-otp
+2026-05-20T12:12:23.749Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:12:23.754Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/admin/config
+2026-05-20T12:12:23.759Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/categories
+2026-05-20T12:12:23.764Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/categories?isActive=true
+2026-05-20T12:12:23.771Z - SOCKET_JOIN - Client qwyR820yN_0BzB6YAAAF -> user_6a0da510d806c3c3bba35820
+2026-05-20T12:12:23.787Z - SOCKET_JOIN - Client qwyR820yN_0BzB6YAAAF -> user_6a0da510d806c3c3bba35820
+2026-05-20T12:12:23.802Z - 📡 [TRAFFIC] 5:42:23 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:12:23.851Z - 📡 [TRAFFIC] 5:42:23 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:12:23.857Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:12:23.869Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/categories?isActive=true
+2026-05-20T12:12:23.874Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/admin/config
+2026-05-20T12:12:23.887Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/categories
+2026-05-20T12:12:23.923Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:12:23.935Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:12:23.940Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:12:23.964Z - 📡 [TRAFFIC] 5:42:23 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:12:24.002Z - 📡 [TRAFFIC] 5:42:24 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:12:24.019Z - 📡 [TRAFFIC] 5:42:24 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:12:25.944Z - 📡 [TRAFFIC] 5:42:25 pm | POST /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:13:56.517Z - 📡 [TRAFFIC] 5:43:56 pm | POST /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:01.400Z - 📡 [TRAFFIC] 5:44:01 pm | POST /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:47.080Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:47.084Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/admin/config
+2026-05-20T12:14:47.086Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/categories
+2026-05-20T12:14:47.099Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/categories?isActive=true
+2026-05-20T12:14:47.113Z - 📡 [TRAFFIC] 5:44:47 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:14:47.117Z - 📡 [TRAFFIC] 5:44:47 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:14:47.127Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:47.130Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/admin/config
+2026-05-20T12:14:47.136Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/categories
+2026-05-20T12:14:47.143Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:14:47.163Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:14:47.178Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:14:47.181Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/categories?isActive=true
+2026-05-20T12:14:47.186Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:14:47.237Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:14:47.242Z - 📡 [TRAFFIC] 5:44:47 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:14:49.178Z - 📡 [TRAFFIC] 5:44:49 pm | POST /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:55.630Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:55.632Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/admin/config
+2026-05-20T12:14:55.634Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/categories
+2026-05-20T12:14:55.637Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/categories?isActive=true
+2026-05-20T12:14:55.641Z - 📡 [TRAFFIC] 5:44:55 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:14:55.645Z - 📡 [TRAFFIC] 5:44:55 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:14:55.666Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:14:55.669Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/categories
+2026-05-20T12:14:55.675Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:14:55.680Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:14:55.689Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/admin/config
+2026-05-20T12:14:55.692Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/categories?isActive=true
+2026-05-20T12:14:55.700Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:14:55.733Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:14:55.739Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:14:55.751Z - 📡 [TRAFFIC] 5:44:55 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:14:57.866Z - 📡 [TRAFFIC] 5:44:57 pm | POST /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:18:34.014Z - SOCKET_JOIN - Client GjOW7w55mlVfVjdCAAAH -> user_6a0da510d806c3c3bba35820
+2026-05-20T12:18:34.043Z - SOCKET_JOIN - Client GjOW7w55mlVfVjdCAAAH -> user_6a0da510d806c3c3bba35820
+2026-05-20T12:18:43.378Z - 📡 [TRAFFIC] 5:48:43 pm | GET /api/ads/active
+2026-05-20T12:18:43.417Z - 📡 [TRAFFIC] 5:48:43 pm | GET /api/ads/active
+2026-05-20T12:18:47.044Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:18:47.046Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/admin/config
+2026-05-20T12:18:47.050Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/categories
+2026-05-20T12:18:47.053Z - SOCKET_JOIN - Client RSF5u5MM9P0gpZVYAAAJ -> user_6a0da510d806c3c3bba35820
+2026-05-20T12:18:47.054Z - SOCKET_JOIN - Client RSF5u5MM9P0gpZVYAAAJ -> user_6a0da510d806c3c3bba35820
+2026-05-20T12:18:47.055Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/categories?isActive=true
+2026-05-20T12:18:47.067Z - 📡 [TRAFFIC] 5:48:47 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:18:47.070Z - 📡 [TRAFFIC] 5:48:47 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:18:47.089Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:18:47.152Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/categories?isActive=true
+2026-05-20T12:18:47.161Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/categories
+2026-05-20T12:18:47.164Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:18:47.170Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:18:47.231Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/admin/config
+2026-05-20T12:18:47.236Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:18:47.291Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:18:47.294Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:18:47.297Z - 📡 [TRAFFIC] 5:48:47 pm | GET /api/auth/profile/6a0da510d806c3c3bba35820
+2026-05-20T12:18:49.168Z - 📡 [TRAFFIC] 5:48:49 pm | POST /api/auth/cart/6a0da510d806c3c3bba35820
+2026-05-20T12:19:10.330Z - 📡 [TRAFFIC] 5:49:10 pm | GET /api/ads/active
+2026-05-20T12:19:10.371Z - 📡 [TRAFFIC] 5:49:10 pm | GET /api/ads/active
+2026-05-20T12:19:11.614Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/admin/config
+2026-05-20T12:19:11.618Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/categories
+2026-05-20T12:19:11.620Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/categories?isActive=true
+2026-05-20T12:19:11.655Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/admin/config
+2026-05-20T12:19:11.658Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/categories
+2026-05-20T12:19:11.666Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/categories?isActive=true
+2026-05-20T12:19:11.671Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:19:11.677Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:19:11.769Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:19:11.778Z - 📡 [TRAFFIC] 5:49:11 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:19:19.119Z - 📡 [TRAFFIC] 5:49:19 pm | GET /api/geofence/check-availability?lat=22.717593375&lng=75.8719765
+2026-05-20T12:19:19.169Z - 📡 [TRAFFIC] 5:49:19 pm | GET /api/geofence/check-availability?lat=22.717593375&lng=75.8719765
+2026-05-20T12:25:20.962Z - 📡 [TRAFFIC] 5:55:20 pm | POST /api/auth/request-otp
+2026-05-20T12:25:22.885Z - 📡 [TRAFFIC] 5:55:22 pm | POST /api/auth/verify-otp
+2026-05-20T12:25:23.918Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/geofence/check-availability?lat=22.717593375&lng=75.8719765
+2026-05-20T12:25:23.923Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:23.927Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/admin/config
+2026-05-20T12:25:23.930Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/categories
+2026-05-20T12:25:23.934Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/categories?isActive=true
+2026-05-20T12:25:23.959Z - SOCKET_JOIN - Client 5bvSOdkHuan3STXZAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:23.962Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/geofence/check-availability?lat=22.717593375&lng=75.8719765
+2026-05-20T12:25:23.968Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:23.975Z - 📡 [TRAFFIC] 5:55:23 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:25:23.978Z - 📡 [TRAFFIC] 5:55:23 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:25:23.990Z - 📡 [TRAFFIC] 5:55:23 pm | GET /api/categories?isActive=true
+2026-05-20T12:25:24.005Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/categories
+2026-05-20T12:25:24.009Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/admin/config
+2026-05-20T12:25:24.022Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:25:24.051Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:25:24.056Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:24.064Z - SOCKET_JOIN - Client 5bvSOdkHuan3STXZAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:24.177Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:24.179Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:25:24.254Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:25:24.279Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:24.445Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:24.696Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:24.875Z - 📡 [TRAFFIC] 5:55:24 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:25.023Z - 📡 [TRAFFIC] 5:55:25 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:25.165Z - 📡 [TRAFFIC] 5:55:25 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:26.251Z - 📡 [TRAFFIC] 5:55:26 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:34.149Z - 📡 [TRAFFIC] 5:55:34 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:37.619Z - 📡 [TRAFFIC] 5:55:37 pm | POST /api/media/upload
+2026-05-20T12:25:44.284Z - 📡 [TRAFFIC] 5:55:44 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:46.725Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/master-services?activeOnly=true
+2026-05-20T12:25:46.729Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/services?approvedOnly=true
+2026-05-20T12:25:46.732Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-20T12:25:46.736Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/admin/config
+2026-05-20T12:25:46.739Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:46.793Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:46.796Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-20T12:25:46.798Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/admin/config
+2026-05-20T12:25:46.808Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/master-services?activeOnly=true
+2026-05-20T12:25:46.827Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/services?approvedOnly=true
+2026-05-20T12:25:46.891Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-20T12:25:46.895Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-20T12:25:46.939Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-20T12:25:46.944Z - 📡 [TRAFFIC] 5:55:46 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-20T12:25:47.039Z - 📡 [TRAFFIC] 5:55:47 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-20T12:25:47.057Z - 📡 [TRAFFIC] 5:55:47 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-20T12:25:47.089Z - 📡 [TRAFFIC] 5:55:47 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-20T12:25:47.125Z - 📡 [TRAFFIC] 5:55:47 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-20T12:25:51.281Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:51.284Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/admin/config
+2026-05-20T12:25:51.287Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/categories
+2026-05-20T12:25:51.289Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/categories?isActive=true
+2026-05-20T12:25:51.312Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:51.318Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/categories
+2026-05-20T12:25:51.323Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/admin/config
+2026-05-20T12:25:51.335Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/categories?isActive=true
+2026-05-20T12:25:51.410Z - 📡 [TRAFFIC] 5:55:51 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:25:51.417Z - 📡 [TRAFFIC] 5:55:51 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:25:51.433Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:25:51.437Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:25:51.441Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:51.445Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:51.479Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:25:51.500Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:25:51.506Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:25:51.726Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:51.962Z - 📡 [TRAFFIC] 5:55:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:52.063Z - 📡 [TRAFFIC] 5:55:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:52.104Z - 📡 [TRAFFIC] 5:55:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:52.161Z - 📡 [TRAFFIC] 5:55:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:25:53.729Z - 📡 [TRAFFIC] 5:55:53 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:11.914Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:11.919Z - SOCKET_JOIN - Client qwyR820yN_0BzB6YAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:11.920Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/admin/config
+2026-05-20T12:47:11.924Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/categories
+2026-05-20T12:47:11.927Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/categories?isActive=true
+2026-05-20T12:47:11.937Z - SOCKET_JOIN - Client qwyR820yN_0BzB6YAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:11.955Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:11.967Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/categories?isActive=true
+2026-05-20T12:47:11.971Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/categories
+2026-05-20T12:47:11.977Z - 📡 [TRAFFIC] 6:17:11 pm | GET /api/admin/config
+2026-05-20T12:47:11.998Z - 📡 [TRAFFIC] 6:17:11 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:47:12.001Z - 📡 [TRAFFIC] 6:17:12 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:47:12.005Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:47:12.013Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:47:12.017Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.065Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.092Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:47:12.103Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:47:12.131Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.134Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/admin/config
+2026-05-20T12:47:12.137Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-20T12:47:12.141Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/categories
+2026-05-20T12:47:12.148Z - SOCKET_JOIN - Client 5bvSOdkHuan3STXZAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.169Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/categories?isActive=true
+2026-05-20T12:47:12.198Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.202Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/admin/config
+2026-05-20T12:47:12.205Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/categories
+2026-05-20T12:47:12.212Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/categories?isActive=true
+2026-05-20T12:47:12.215Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:12.218Z - SOCKET_JOIN - Client 5bvSOdkHuan3STXZAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.273Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-20T12:47:12.475Z - 📡 [TRAFFIC] 6:17:12 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:47:12.486Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.491Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:47:12.493Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:47:12.498Z - 📡 [TRAFFIC] 6:17:12 pm | POST /api/auth/update-fcm-token
+2026-05-20T12:47:12.504Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:12.525Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:12.561Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T12:47:12.567Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T12:47:12.687Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:12.726Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-20T12:47:12.825Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:12.827Z - 📡 [TRAFFIC] 6:17:12 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-20T12:47:13.011Z - 📡 [TRAFFIC] 6:17:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:13.174Z - 📡 [TRAFFIC] 6:17:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:13.336Z - 📡 [TRAFFIC] 6:17:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:13.636Z - 📡 [TRAFFIC] 6:17:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:13.888Z - 📡 [TRAFFIC] 6:17:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:14.084Z - 📡 [TRAFFIC] 6:17:14 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T12:47:14.848Z - 📡 [TRAFFIC] 6:17:14 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T12:47:14.851Z - 📡 [TRAFFIC] 6:17:14 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:34.761Z - SOCKET_JOIN - Client PNFuZI1s6Ngw5AlhAAAP -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:34.769Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:34.781Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/admin/config
+2026-05-20T13:00:34.787Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/categories
+2026-05-20T13:00:34.794Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/categories?isActive=true
+2026-05-20T13:00:34.812Z - SOCKET_JOIN - Client PNFuZI1s6Ngw5AlhAAAP -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:34.843Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:34.859Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/admin/config
+2026-05-20T13:00:34.869Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/categories
+2026-05-20T13:00:34.873Z - 📡 [TRAFFIC] 6:30:34 pm | GET /api/categories?isActive=true
+2026-05-20T13:00:35.000Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:35.010Z - 📡 [TRAFFIC] 6:30:35 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:00:35.019Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:00:35.023Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:00:35.034Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:00:35.079Z - 📡 [TRAFFIC] 6:30:35 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:00:35.088Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:00:35.092Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:00:35.339Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:00:35.378Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:00:35.691Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:00:35.810Z - 📡 [TRAFFIC] 6:30:35 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:00:36.121Z - 📡 [TRAFFIC] 6:30:36 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:00:36.240Z - 📡 [TRAFFIC] 6:30:36 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:00:37.312Z - 📡 [TRAFFIC] 6:30:37 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:05:54.588Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:05:54.592Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/admin/config
+2026-05-20T13:05:54.596Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/categories
+2026-05-20T13:05:54.599Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/categories?isActive=true
+2026-05-20T13:05:54.627Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/admin/config
+2026-05-20T13:05:54.632Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:05:54.659Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/categories?isActive=true
+2026-05-20T13:05:54.663Z - 📡 [TRAFFIC] 6:35:54 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:05:54.670Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/categories
+2026-05-20T13:05:54.676Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:05:54.680Z - 📡 [TRAFFIC] 6:35:54 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:05:54.700Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:05:54.703Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:05:54.729Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:05:54.770Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:05:54.773Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:05:54.855Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:54.995Z - 📡 [TRAFFIC] 6:35:54 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:55.104Z - 📡 [TRAFFIC] 6:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:55.234Z - 📡 [TRAFFIC] 6:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:55.360Z - 📡 [TRAFFIC] 6:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:55.532Z - 📡 [TRAFFIC] 6:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:55.665Z - 📡 [TRAFFIC] 6:35:55 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:05:56.828Z - 📡 [TRAFFIC] 6:35:56 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.455Z - SOCKET_JOIN - Client KeMK82aRE5E9JfhPAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.463Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.474Z - SOCKET_JOIN - Client KeMK82aRE5E9JfhPAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.479Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/admin/config
+2026-05-20T13:17:44.492Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/categories
+2026-05-20T13:17:44.497Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/categories?isActive=true
+2026-05-20T13:17:44.509Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.646Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/admin/config
+2026-05-20T13:17:44.650Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/categories?isActive=true
+2026-05-20T13:17:44.736Z - 📡 [TRAFFIC] 6:47:44 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:17:44.739Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.742Z - 📡 [TRAFFIC] 6:47:44 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:17:44.787Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/categories
+2026-05-20T13:17:44.795Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:44.919Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:17:44.922Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:17:44.973Z - 📡 [TRAFFIC] 6:47:44 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:45.001Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:17:45.006Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:17:45.139Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:45.396Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:45.436Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:45.678Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:45.954Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:45.995Z - 📡 [TRAFFIC] 6:47:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:47.074Z - 📡 [TRAFFIC] 6:47:47 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:57.902Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:57.908Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/admin/config
+2026-05-20T13:17:57.911Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/categories
+2026-05-20T13:17:57.915Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/categories?isActive=true
+2026-05-20T13:17:57.947Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/categories
+2026-05-20T13:17:57.950Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:57.970Z - 📡 [TRAFFIC] 6:47:57 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:17:57.982Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:17:57.990Z - 📡 [TRAFFIC] 6:47:57 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:17:57.994Z - 📡 [TRAFFIC] 6:47:57 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:17:58.016Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/admin/config
+2026-05-20T13:17:58.018Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/categories?isActive=true
+2026-05-20T13:17:58.098Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:58.105Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:58.140Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:17:58.182Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:17:58.185Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:17:58.192Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:58.281Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:58.373Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:58.502Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:58.647Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:17:58.804Z - 📡 [TRAFFIC] 6:47:58 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:00.293Z - 📡 [TRAFFIC] 6:48:00 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:10.436Z - 🚀 SERVER RESTARTED AT 2026-05-20T13:18:10.435Z ON PORT 5001
+2026-05-20T13:18:11.884Z - SOCKET_JOIN - Client iG27Carr8UGSRxjdAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:12.856Z - SOCKET_JOIN - Client F_M31O7MLwx4Dl2FAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.106Z - SOCKET_JOIN - Client W5WL-EwTEEYRdkZlAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.147Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.162Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/admin/config
+2026-05-20T13:18:18.168Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/categories
+2026-05-20T13:18:18.180Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/categories?isActive=true
+2026-05-20T13:18:18.186Z - SOCKET_JOIN - Client W5WL-EwTEEYRdkZlAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.210Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.219Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/admin/config
+2026-05-20T13:18:18.229Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/categories
+2026-05-20T13:18:18.237Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/categories?isActive=true
+2026-05-20T13:18:18.370Z - 📡 [TRAFFIC] 6:48:18 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:18:18.376Z - 📡 [TRAFFIC] 6:48:18 pm | POST /api/auth/update-fcm-token
+2026-05-20T13:18:18.380Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.384Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:18:18.390Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:18:18.394Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:18.416Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-20T13:18:18.457Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:18.470Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-20T13:18:18.473Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-20T13:18:18.652Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:18.681Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:18.815Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:18.926Z - 📡 [TRAFFIC] 6:48:18 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-20T13:18:20.549Z - 📡 [TRAFFIC] 6:48:20 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:09:08.808Z - SOCKET_JOIN - Client Q8flgHvi3bmZr_xzAAAI -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:09:09.575Z - SOCKET_JOIN - Client cUSi1Kq8zM2BY5opAAAJ -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:23.649Z - SOCKET_JOIN - Client HGefFvvb8-sRE49RAAAL -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:23.663Z - 📡 [TRAFFIC] 10:40:23 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:23.688Z - 📡 [TRAFFIC] 10:40:23 am | GET /api/admin/config
+2026-05-21T05:10:23.710Z - 📡 [TRAFFIC] 10:40:23 am | GET /api/categories?isActive=true
+2026-05-21T05:10:23.720Z - 📡 [TRAFFIC] 10:40:23 am | GET /api/categories
+2026-05-21T05:10:23.771Z - SOCKET_JOIN - Client HGefFvvb8-sRE49RAAAL -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:24.115Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/admin/config
+2026-05-21T05:10:24.135Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:24.257Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:10:24.346Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/categories?isActive=true
+2026-05-21T05:10:24.355Z - 📡 [TRAFFIC] 10:40:24 am | POST /api/auth/update-fcm-token
+2026-05-21T05:10:24.381Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/categories
+2026-05-21T05:10:24.394Z - 📡 [TRAFFIC] 10:40:24 am | POST /api/auth/update-fcm-token
+2026-05-21T05:10:24.477Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:10:24.534Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:24.571Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:10:24.666Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:10:24.715Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:10:24.783Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:10:24.816Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:10:24.978Z - 📡 [TRAFFIC] 10:40:24 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:10:25.030Z - 📡 [TRAFFIC] 10:40:25 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:10:25.209Z - 📡 [TRAFFIC] 10:40:25 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:10:25.478Z - 📡 [TRAFFIC] 10:40:25 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:10:26.845Z - 📡 [TRAFFIC] 10:40:26 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:11:18.453Z - 📡 [TRAFFIC] 10:41:18 am | POST /api/media/upload
+2026-05-21T05:11:24.618Z - 📡 [TRAFFIC] 10:41:24 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:11:25.067Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/master-services?activeOnly=true
+2026-05-21T05:11:25.072Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/services?approvedOnly=true
+2026-05-21T05:11:25.080Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T05:11:25.089Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/admin/config
+2026-05-21T05:11:25.116Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:11:25.201Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/admin/config
+2026-05-21T05:11:25.245Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T05:11:25.275Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/master-services?activeOnly=true
+2026-05-21T05:11:25.307Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/services?approvedOnly=true
+2026-05-21T05:11:25.320Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T05:11:25.371Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T05:11:25.472Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T05:11:25.516Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T05:11:25.522Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T05:11:25.625Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:11:25.632Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T05:11:25.820Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T05:11:25.868Z - 📡 [TRAFFIC] 10:41:25 am | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T05:23:21.090Z - 📡 [TRAFFIC] 10:53:21 am | POST /api/auth/request-otp
+2026-05-21T05:23:23.436Z - 📡 [TRAFFIC] 10:53:23 am | POST /api/auth/verify-otp
+2026-05-21T05:23:25.789Z - SOCKET_JOIN - Client -BfN4YMFC8iRIzseAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:25.805Z - 📡 [TRAFFIC] 10:53:25 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:25.836Z - SOCKET_JOIN - Client -BfN4YMFC8iRIzseAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:25.917Z - 📡 [TRAFFIC] 10:53:25 am | GET /api/geofence/check-availability?lat=22.717593375&lng=75.8719765
+2026-05-21T05:23:25.933Z - 📡 [TRAFFIC] 10:53:25 am | GET /api/admin/config
+2026-05-21T05:23:25.968Z - 📡 [TRAFFIC] 10:53:25 am | GET /api/categories
+2026-05-21T05:23:26.003Z - 📡 [TRAFFIC] 10:53:25 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:26.037Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/categories?isActive=true
+2026-05-21T05:23:26.043Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/admin/config
+2026-05-21T05:23:26.068Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/geofence/check-availability?lat=22.717593375&lng=75.8719765
+2026-05-21T05:23:26.085Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/categories
+2026-05-21T05:23:26.112Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/categories?isActive=true
+2026-05-21T05:23:26.206Z - 📡 [TRAFFIC] 10:53:26 am | POST /api/auth/update-fcm-token
+2026-05-21T05:23:26.215Z - 📡 [TRAFFIC] 10:53:26 am | POST /api/auth/update-fcm-token
+2026-05-21T05:23:26.224Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:26.277Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:23:26.283Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:23:26.319Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:26.360Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:23:26.380Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:23:26.638Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:26.967Z - 📡 [TRAFFIC] 10:53:26 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:27.003Z - 📡 [TRAFFIC] 10:53:27 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:27.118Z - 📡 [TRAFFIC] 10:53:27 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:27.354Z - 📡 [TRAFFIC] 10:53:27 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:27.514Z - 📡 [TRAFFIC] 10:53:27 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:28.610Z - 📡 [TRAFFIC] 10:53:28 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.076Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.083Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/admin/config
+2026-05-21T05:23:46.095Z - SOCKET_JOIN - Client VnwKqnKCKF2otzqoAAAP -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.106Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/categories
+2026-05-21T05:23:46.114Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/categories?isActive=true
+2026-05-21T05:23:46.137Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/admin/config
+2026-05-21T05:23:46.150Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.159Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/categories
+2026-05-21T05:23:46.214Z - SOCKET_JOIN - Client VnwKqnKCKF2otzqoAAAP -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.235Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/categories?isActive=true
+2026-05-21T05:23:46.488Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.494Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:23:46.500Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:23:46.576Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:46.582Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:23:46.587Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:23:46.596Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:46.604Z - 📡 [TRAFFIC] 10:53:46 am | POST /api/auth/update-fcm-token
+2026-05-21T05:23:46.614Z - 📡 [TRAFFIC] 10:53:46 am | POST /api/auth/update-fcm-token
+2026-05-21T05:23:46.645Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:46.944Z - 📡 [TRAFFIC] 10:53:46 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:47.087Z - 📡 [TRAFFIC] 10:53:47 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:47.246Z - 📡 [TRAFFIC] 10:53:47 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:47.430Z - 📡 [TRAFFIC] 10:53:47 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:23:48.876Z - 📡 [TRAFFIC] 10:53:48 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:52.902Z - 📡 [TRAFFIC] 10:53:52 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:23:56.764Z - 📡 [TRAFFIC] 10:53:56 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:24:00.382Z - 📡 [TRAFFIC] 10:54:00 am | GET /api/categories?isActive=true
+2026-05-21T05:35:52.221Z - SOCKET_JOIN - Client djOnuw-yvOmzvi6NAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:35:52.260Z - SOCKET_JOIN - Client djOnuw-yvOmzvi6NAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:36:15.346Z - SOCKET_JOIN - Client 2aTOEKuECve4F1VUAAAT -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:36:15.429Z - SOCKET_JOIN - Client 2aTOEKuECve4F1VUAAAT -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:48:44.424Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:48:44.446Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/admin/config
+2026-05-21T05:48:44.460Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/categories
+2026-05-21T05:48:44.467Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/categories?isActive=true
+2026-05-21T05:48:44.493Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:48:44.521Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/admin/config
+2026-05-21T05:48:44.526Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/categories
+2026-05-21T05:48:44.535Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/categories?isActive=true
+2026-05-21T05:48:44.607Z - 📡 [TRAFFIC] 11:18:44 am | POST /api/auth/update-fcm-token
+2026-05-21T05:48:44.628Z - 📡 [TRAFFIC] 11:18:44 am | POST /api/auth/update-fcm-token
+2026-05-21T05:48:44.791Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:48:44.803Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:48:44.823Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:48:44.842Z - 📡 [TRAFFIC] 11:18:44 am | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:48:45.023Z - 📡 [TRAFFIC] 11:18:45 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:45.313Z - 📡 [TRAFFIC] 11:18:45 am | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T05:48:45.320Z - 📡 [TRAFFIC] 11:18:45 am | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T05:48:45.502Z - 📡 [TRAFFIC] 11:18:45 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:46.063Z - 📡 [TRAFFIC] 11:18:46 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:46.310Z - 📡 [TRAFFIC] 11:18:46 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:46.483Z - 📡 [TRAFFIC] 11:18:46 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:47.071Z - 📡 [TRAFFIC] 11:18:47 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:47.223Z - 📡 [TRAFFIC] 11:18:47 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:47.272Z - 📡 [TRAFFIC] 11:18:47 am | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T05:48:47.559Z - 📡 [TRAFFIC] 11:18:47 am | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T05:57:18.855Z - 📡 [TRAFFIC] 11:27:18 am | GET /api/jobs/active
+2026-05-21T05:57:19.056Z - 📡 [TRAFFIC] 11:27:19 am | GET /api/jobs/active
+2026-05-21T05:57:25.341Z - 📡 [TRAFFIC] 11:27:25 am | GET /api/jobs/active
+2026-05-21T05:57:25.496Z - 📡 [TRAFFIC] 11:27:25 am | GET /api/jobs/active
+2026-05-21T06:23:19.801Z - 🚀 SERVER RESTARTED AT 2026-05-21T06:23:19.797Z ON PORT 5001
+2026-05-21T06:23:20.203Z - SOCKET_JOIN - Client hOEodwsXarVCsJBzAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:23:21.205Z - SOCKET_JOIN - Client gAMB7ajohZ3m-3SAAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:23:29.842Z - 📡 [TRAFFIC] 11:53:29 am | GET /api/jobs/active
+2026-05-21T06:23:29.871Z - SOCKET_JOIN - Client eopOX-x6X1yApNwOAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:23:29.945Z - SOCKET_JOIN - Client eopOX-x6X1yApNwOAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:23:29.999Z - 📡 [TRAFFIC] 11:53:29 am | GET /api/jobs/active
+2026-05-21T06:24:17.748Z - 📡 [TRAFFIC] 11:54:17 am | POST /api/jobs/apply
+2026-05-21T06:24:19.219Z - 📡 [TRAFFIC] 11:54:19 am | GET /api/jobs/active
+2026-05-21T06:49:52.619Z - 🚀 SERVER RESTARTED AT 2026-05-21T06:49:52.616Z ON PORT 5001
+2026-05-21T06:49:55.190Z - SOCKET_JOIN - Client RKNAer0-At8XsJZjAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:49:57.166Z - SOCKET_JOIN - Client 1LicoBaNbgrSnNbDAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:17.522Z - 📡 [TRAFFIC] 12:20:17 pm | GET /api/jobs/active
+2026-05-21T06:50:17.539Z - SOCKET_JOIN - Client n4Y114ghYO4RVWuWAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:17.613Z - SOCKET_JOIN - Client n4Y114ghYO4RVWuWAAAF -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:17.734Z - 📡 [TRAFFIC] 12:20:17 pm | GET /api/jobs/active
+2026-05-21T06:50:41.894Z - 📡 [TRAFFIC] 12:20:41 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:41.907Z - 📡 [TRAFFIC] 12:20:41 pm | GET /api/categories
+2026-05-21T06:50:41.921Z - 📡 [TRAFFIC] 12:20:41 pm | GET /api/admin/config
+2026-05-21T06:50:41.958Z - 📡 [TRAFFIC] 12:20:41 pm | GET /api/categories?isActive=true
+2026-05-21T06:50:42.010Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/categories
+2026-05-21T06:50:42.065Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:42.086Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T06:50:42.130Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T06:50:42.153Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/admin/config
+2026-05-21T06:50:42.197Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/categories?isActive=true
+2026-05-21T06:50:42.433Z - 📡 [TRAFFIC] 12:20:42 pm | POST /api/auth/update-fcm-token
+2026-05-21T06:50:42.485Z - 📡 [TRAFFIC] 12:20:42 pm | POST /api/auth/update-fcm-token
+2026-05-21T06:50:42.607Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:42.617Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:42.626Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T06:50:42.659Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T06:50:42.688Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T06:50:42.693Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:42.867Z - 📡 [TRAFFIC] 12:20:42 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:43.093Z - 📡 [TRAFFIC] 12:20:43 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:43.185Z - 📡 [TRAFFIC] 12:20:43 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:43.285Z - 📡 [TRAFFIC] 12:20:43 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:43.429Z - 📡 [TRAFFIC] 12:20:43 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:43.688Z - 📡 [TRAFFIC] 12:20:43 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T06:50:45.211Z - 📡 [TRAFFIC] 12:20:45 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T07:38:37.995Z - 📡 [TRAFFIC] 1:08:37 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T07:38:44.346Z - 📡 [TRAFFIC] 1:08:44 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T07:43:38.205Z - 📡 [TRAFFIC] 1:13:38 pm | POST /api/auth/request-otp
+2026-05-21T07:43:41.979Z - 📡 [TRAFFIC] 1:13:41 pm | POST /api/auth/verify-otp
+2026-05-21T07:43:42.153Z - SOCKET_JOIN - Client mocSPWcMaiqL7SMyAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T07:43:42.155Z - 📡 [TRAFFIC] 1:13:42 pm | GET /api/admin/stats
+2026-05-21T07:43:42.172Z - 📡 [TRAFFIC] 1:13:42 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T07:43:42.178Z - SOCKET_JOIN - Client mocSPWcMaiqL7SMyAAAH -> admins_pool
+2026-05-21T07:43:42.181Z - SOCKET_JOIN - Client mocSPWcMaiqL7SMyAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T07:43:42.183Z - SOCKET_JOIN - Client mocSPWcMaiqL7SMyAAAH -> admins_pool
+2026-05-21T07:43:42.227Z - 📡 [TRAFFIC] 1:13:42 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T07:43:42.636Z - 📡 [TRAFFIC] 1:13:42 pm | GET /api/admin/stats
+2026-05-21T07:44:17.129Z - 📡 [TRAFFIC] 1:14:17 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:44:17.204Z - 📡 [TRAFFIC] 1:14:17 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:44:17.207Z - 📡 [TRAFFIC] 1:14:17 pm | GET /api/categories
+2026-05-21T07:44:17.283Z - 📡 [TRAFFIC] 1:14:17 pm | GET /api/categories
+2026-05-21T07:53:01.758Z - 📡 [TRAFFIC] 1:23:01 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T07:53:01.765Z - SOCKET_JOIN - Client UlPcRdxN7itT2nexAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T07:53:01.767Z - 📡 [TRAFFIC] 1:23:01 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:53:01.790Z - SOCKET_JOIN - Client UlPcRdxN7itT2nexAAAJ -> admins_pool
+2026-05-21T07:53:01.790Z - SOCKET_JOIN - Client UlPcRdxN7itT2nexAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T07:53:01.791Z - SOCKET_JOIN - Client UlPcRdxN7itT2nexAAAJ -> admins_pool
+2026-05-21T07:53:01.795Z - 📡 [TRAFFIC] 1:23:01 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T07:53:01.832Z - 📡 [TRAFFIC] 1:23:01 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:53:01.840Z - 📡 [TRAFFIC] 1:23:01 pm | GET /api/categories
+2026-05-21T07:53:01.906Z - 📡 [TRAFFIC] 1:23:01 pm | GET /api/categories
+2026-05-21T07:55:03.153Z - 📡 [TRAFFIC] 1:25:03 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:55:05.601Z - 📡 [TRAFFIC] 1:25:05 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T07:55:05.605Z - SOCKET_JOIN - Client ciiS3k2U2LNyz6LlAAAL -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T07:55:05.608Z - 📡 [TRAFFIC] 1:25:05 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:55:05.632Z - SOCKET_JOIN - Client ciiS3k2U2LNyz6LlAAAL -> admins_pool
+2026-05-21T07:55:05.632Z - SOCKET_JOIN - Client ciiS3k2U2LNyz6LlAAAL -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T07:55:05.633Z - SOCKET_JOIN - Client ciiS3k2U2LNyz6LlAAAL -> admins_pool
+2026-05-21T07:55:05.641Z - 📡 [TRAFFIC] 1:25:05 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T07:55:05.679Z - 📡 [TRAFFIC] 1:25:05 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T07:55:05.685Z - 📡 [TRAFFIC] 1:25:05 pm | GET /api/categories
+2026-05-21T07:55:05.864Z - 📡 [TRAFFIC] 1:25:05 pm | GET /api/categories
+2026-05-21T07:57:54.175Z - 📡 [TRAFFIC] 1:27:54 pm | GET /api/geofence/areas
+2026-05-21T07:57:54.176Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T07:57:54.176Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T07:57:54.213Z - [DEBUG_GEOFENCE] Fetched 1 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T07:57:54.217Z - 📡 [TRAFFIC] 1:27:54 pm | GET /api/geofence/areas
+2026-05-21T07:57:54.218Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T07:57:54.218Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T07:57:54.255Z - [DEBUG_GEOFENCE] Fetched 1 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T07:57:56.293Z - 📡 [TRAFFIC] 1:27:56 pm | GET /api/categories
+2026-05-21T07:57:56.296Z - 📡 [TRAFFIC] 1:27:56 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T07:57:56.333Z - 📡 [TRAFFIC] 1:27:56 pm | GET /api/categories
+2026-05-21T07:57:56.405Z - 📡 [TRAFFIC] 1:27:56 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T07:57:57.280Z - 📡 [TRAFFIC] 1:27:57 pm | GET /api/geofence/areas
+2026-05-21T07:57:57.281Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T07:57:57.281Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T07:57:57.318Z - [DEBUG_GEOFENCE] Fetched 1 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T07:57:57.324Z - 📡 [TRAFFIC] 1:27:57 pm | GET /api/geofence/areas
+2026-05-21T07:57:57.326Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T07:57:57.327Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T07:57:57.358Z - [DEBUG_GEOFENCE] Fetched 1 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T08:03:13.151Z - 📡 [TRAFFIC] 1:33:13 pm | GET /api/geofence/areas
+2026-05-21T08:03:13.152Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T08:03:13.152Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T08:03:13.187Z - [DEBUG_GEOFENCE] Fetched 1 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T08:40:08.168Z - 📡 [TRAFFIC] 2:10:08 pm | GET /api/geofence/areas
+2026-05-21T08:40:08.169Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T08:40:08.169Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T08:40:08.208Z - [DEBUG_GEOFENCE] Fetched 1 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T08:51:15.637Z - 🚀 SERVER RESTARTED AT 2026-05-21T08:51:15.635Z ON PORT 5001
+2026-05-21T08:51:15.695Z - SOCKET_JOIN - Client N-Os0Z_iAGfzgEhyAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T10:31:37.621Z - 🚀 SERVER RESTARTED AT 2026-05-21T10:31:37.617Z ON PORT 5001
+2026-05-21T10:31:39.244Z - SOCKET_JOIN - Client v-stOMk2lEbEJqVUAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T10:53:54.006Z - 📡 [TRAFFIC] 4:23:54 pm | GET /api/admin/config
+2026-05-21T10:53:54.087Z - 📡 [TRAFFIC] 4:23:54 pm | GET /api/admin-test-direct
+2026-05-21T10:53:54.199Z - 📡 [TRAFFIC] 4:23:54 pm | POST /api/categories
+2026-05-21T10:53:54.280Z - 📡 [TRAFFIC] 4:23:54 pm | GET /api/supplier/requests
+2026-05-21T10:55:22.840Z - 📡 [TRAFFIC] 4:25:22 pm | POST /api/auth/request-otp
+2026-05-21T10:55:26.527Z - 📡 [TRAFFIC] 4:25:26 pm | POST /api/auth/verify-otp
+2026-05-21T10:55:26.795Z - SOCKET_JOIN - Client Nfn1MEDuYEahruPQAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T10:55:26.803Z - 📡 [TRAFFIC] 4:25:26 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T10:55:26.812Z - SOCKET_JOIN - Client Nfn1MEDuYEahruPQAAAF -> admins_pool
+2026-05-21T10:55:26.813Z - SOCKET_JOIN - Client Nfn1MEDuYEahruPQAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T10:55:26.814Z - SOCKET_JOIN - Client Nfn1MEDuYEahruPQAAAF -> admins_pool
+2026-05-21T10:55:26.821Z - 📡 [TRAFFIC] 4:25:26 pm | GET /api/admin/stats
+2026-05-21T10:55:26.856Z - 📡 [TRAFFIC] 4:25:26 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T10:55:26.990Z - 📡 [TRAFFIC] 4:25:26 pm | GET /api/admin/stats
+2026-05-21T10:55:30.122Z - 📡 [TRAFFIC] 4:25:30 pm | GET /api/geofence/areas
+2026-05-21T10:55:30.127Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T10:55:30.127Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T10:55:30.175Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T10:55:30.182Z - 📡 [TRAFFIC] 4:25:30 pm | GET /api/geofence/areas
+2026-05-21T10:55:30.188Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T10:55:30.188Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T10:55:30.232Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T10:55:35.402Z - 📡 [TRAFFIC] 4:25:35 pm | GET /api/categories
+2026-05-21T10:55:35.410Z - 📡 [TRAFFIC] 4:25:35 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T10:55:35.448Z - 📡 [TRAFFIC] 4:25:35 pm | GET /api/categories
+2026-05-21T10:55:35.522Z - 📡 [TRAFFIC] 4:25:35 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:07:56.419Z - 📡 [TRAFFIC] 4:37:56 pm | POST /api/master-services
+2026-05-21T11:07:56.594Z - 📡 [TRAFFIC] 4:37:56 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:13:49.770Z - 🚀 SERVER RESTARTED AT 2026-05-21T11:13:49.768Z ON PORT 5001
+2026-05-21T11:13:50.264Z - SOCKET_JOIN - Client z7F1HR7_uYza4iPSAAAC -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:13:57.447Z - 📡 [TRAFFIC] 4:43:57 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:13:57.475Z - SOCKET_JOIN - Client oB4SWk2zJqld3KsdAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:13:57.489Z - 📡 [TRAFFIC] 4:43:57 pm | GET /api/categories
+2026-05-21T11:13:57.549Z - 📡 [TRAFFIC] 4:43:57 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:13:57.684Z - SOCKET_JOIN - Client oB4SWk2zJqld3KsdAAAF -> admins_pool
+2026-05-21T11:13:57.687Z - SOCKET_JOIN - Client oB4SWk2zJqld3KsdAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:13:57.689Z - SOCKET_JOIN - Client oB4SWk2zJqld3KsdAAAF -> admins_pool
+2026-05-21T11:13:57.739Z - 📡 [TRAFFIC] 4:43:57 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:13:57.774Z - 📡 [TRAFFIC] 4:43:57 pm | GET /api/categories
+2026-05-21T11:13:57.903Z - 📡 [TRAFFIC] 4:43:57 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:14:21.670Z - 📡 [TRAFFIC] 4:44:21 pm | POST /api/master-services
+2026-05-21T11:14:21.909Z - 📡 [TRAFFIC] 4:44:21 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:14:45.224Z - 🚀 SERVER RESTARTED AT 2026-05-21T11:14:45.221Z ON PORT 5001
+2026-05-21T11:14:45.312Z - SOCKET_JOIN - Client tnzkXNtltU3XTaf5AAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:15:49.996Z - 📡 [TRAFFIC] 4:45:49 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:15:50.022Z - SOCKET_JOIN - Client N56PpXOKHS5IKFDzAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:15:50.095Z - 📡 [TRAFFIC] 4:45:50 pm | GET /api/categories
+2026-05-21T11:15:50.118Z - 📡 [TRAFFIC] 4:45:50 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:15:50.186Z - 📡 [TRAFFIC] 4:45:50 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:15:50.202Z - 📡 [TRAFFIC] 4:45:50 pm | GET /api/categories
+2026-05-21T11:15:50.325Z - 📡 [TRAFFIC] 4:45:50 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:15:50.387Z - SOCKET_JOIN - Client N56PpXOKHS5IKFDzAAAF -> admins_pool
+2026-05-21T11:15:50.392Z - SOCKET_JOIN - Client N56PpXOKHS5IKFDzAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:15:50.395Z - SOCKET_JOIN - Client N56PpXOKHS5IKFDzAAAF -> admins_pool
+2026-05-21T11:16:09.710Z - 📡 [TRAFFIC] 4:46:09 pm | POST /api/master-services
+2026-05-21T11:16:09.951Z - 📡 [TRAFFIC] 4:46:09 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:17:33.157Z - 📡 [TRAFFIC] 4:47:33 pm | GET /api/categories
+2026-05-21T11:17:33.180Z - 📡 [TRAFFIC] 4:47:33 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:20:16.777Z - 📡 [TRAFFIC] 4:50:16 pm | GET /api/master-test
+2026-05-21T11:20:28.677Z - 📡 [TRAFFIC] 4:50:28 pm | GET /api/master-services/debug-db
+2026-05-21T11:22:43.061Z - 🚀 SERVER RESTARTED AT 2026-05-21T11:22:43.059Z ON PORT 5001
+2026-05-21T11:22:46.154Z - SOCKET_JOIN - Client UPVASnuua6XF2PfHAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:23:26.035Z - 📡 [TRAFFIC] 4:53:26 pm | GET /api/master-services/debug-db
+2026-05-21T11:23:52.683Z - 🚀 SERVER RESTARTED AT 2026-05-21T11:23:52.681Z ON PORT 5001
+2026-05-21T11:23:55.215Z - SOCKET_JOIN - Client 9sScluni6xr-pLPAAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:24:07.301Z - 🚀 SERVER RESTARTED AT 2026-05-21T11:24:07.298Z ON PORT 5001
+2026-05-21T11:24:08.217Z - SOCKET_JOIN - Client Myt_ET0KVer3hV8OAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:24:25.217Z - SOCKET_JOIN - Client fbmy0pOpVy7mAGqOAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:24:25.240Z - 📡 [TRAFFIC] 4:54:25 pm | GET /api/categories
+2026-05-21T11:24:25.306Z - 📡 [TRAFFIC] 4:54:25 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:24:25.322Z - 📡 [TRAFFIC] 4:54:25 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:24:25.339Z - SOCKET_JOIN - Client fbmy0pOpVy7mAGqOAAAF -> admins_pool
+2026-05-21T11:24:25.340Z - SOCKET_JOIN - Client fbmy0pOpVy7mAGqOAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:24:25.341Z - SOCKET_JOIN - Client fbmy0pOpVy7mAGqOAAAF -> admins_pool
+2026-05-21T11:24:25.429Z - 📡 [TRAFFIC] 4:54:25 pm | GET /api/categories
+2026-05-21T11:24:25.437Z - 📡 [TRAFFIC] 4:54:25 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:24:25.526Z - 📡 [TRAFFIC] 4:54:25 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:35:38.444Z - 📡 [TRAFFIC] 5:05:38 pm | POST /api/master-services
+2026-05-21T11:35:38.664Z - 📡 [TRAFFIC] 5:05:38 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:35:53.442Z - 📡 [TRAFFIC] 5:05:53 pm | GET /api/geofence/areas
+2026-05-21T11:35:53.448Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:35:53.448Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:35:53.493Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:35:53.504Z - 📡 [TRAFFIC] 5:05:53 pm | GET /api/geofence/areas
+2026-05-21T11:35:53.509Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:35:53.510Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:35:53.550Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:40:06.203Z - 📡 [TRAFFIC] 5:10:06 pm | GET /api/geofence/areas
+2026-05-21T11:40:06.212Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:40:06.213Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:40:06.270Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:42:13.551Z - 📡 [TRAFFIC] 5:12:13 pm | GET /api/categories
+2026-05-21T11:42:13.558Z - 📡 [TRAFFIC] 5:12:13 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:42:13.599Z - 📡 [TRAFFIC] 5:12:13 pm | GET /api/categories
+2026-05-21T11:42:13.665Z - 📡 [TRAFFIC] 5:12:13 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:42:15.197Z - 📡 [TRAFFIC] 5:12:15 pm | GET /api/geofence/areas?
+2026-05-21T11:42:15.203Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:42:15.204Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:42:15.211Z - 📡 [TRAFFIC] 5:12:15 pm | GET /api/geofence/areas
+2026-05-21T11:42:15.217Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:42:15.218Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:42:15.247Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:42:15.255Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:42:15.264Z - 📡 [TRAFFIC] 5:12:15 pm | GET /api/geofence/areas?
+2026-05-21T11:42:15.269Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:42:15.269Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:42:15.276Z - 📡 [TRAFFIC] 5:12:15 pm | GET /api/geofence/areas
+2026-05-21T11:42:15.285Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:42:15.286Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:42:15.306Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:42:15.321Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:45:14.157Z - 📡 [TRAFFIC] 5:15:14 pm | GET /api/geofence/areas
+2026-05-21T11:45:14.166Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:45:14.167Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:45:14.173Z - 📡 [TRAFFIC] 5:15:14 pm | GET /api/geofence/areas?
+2026-05-21T11:45:14.181Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:45:14.182Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:45:14.205Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:45:14.220Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:45:58.641Z - 📡 [TRAFFIC] 5:15:58 pm | GET /api/geofence/areas
+2026-05-21T11:45:58.647Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:45:58.648Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:45:58.688Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:45:58.695Z - 📡 [TRAFFIC] 5:15:58 pm | GET /api/geofence/areas
+2026-05-21T11:45:58.701Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:45:58.702Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:45:58.740Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:45:59.051Z - 📡 [TRAFFIC] 5:15:59 pm | GET /api/master-pricing?page=1&limit=10
+2026-05-21T11:46:13.045Z - 📡 [TRAFFIC] 5:16:13 pm | GET /api/geofence/areas
+2026-05-21T11:46:13.049Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:13.050Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:13.053Z - 📡 [TRAFFIC] 5:16:13 pm | GET /api/geofence/areas?
+2026-05-21T11:46:13.057Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:13.058Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:13.092Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:13.103Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:13.111Z - 📡 [TRAFFIC] 5:16:13 pm | GET /api/geofence/areas
+2026-05-21T11:46:13.118Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:13.119Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:13.127Z - 📡 [TRAFFIC] 5:16:13 pm | GET /api/geofence/areas?
+2026-05-21T11:46:13.135Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:13.137Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:13.161Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:13.185Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:19.364Z - 📡 [TRAFFIC] 5:16:19 pm | GET /api/geofence/areas
+2026-05-21T11:46:19.369Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:19.369Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:19.409Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:19.416Z - 📡 [TRAFFIC] 5:16:19 pm | GET /api/geofence/areas
+2026-05-21T11:46:19.420Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:19.420Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:19.472Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:19.766Z - 📡 [TRAFFIC] 5:16:19 pm | GET /api/master-pricing?page=1&limit=10
+2026-05-21T11:46:27.418Z - 📡 [TRAFFIC] 5:16:27 pm | GET /api/categories
+2026-05-21T11:46:27.424Z - 📡 [TRAFFIC] 5:16:27 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:46:27.466Z - 📡 [TRAFFIC] 5:16:27 pm | GET /api/categories
+2026-05-21T11:46:27.531Z - 📡 [TRAFFIC] 5:16:27 pm | GET /api/master-services?page=1&limit=10
+2026-05-21T11:46:31.198Z - 📡 [TRAFFIC] 5:16:31 pm | GET /api/geofence/areas
+2026-05-21T11:46:31.203Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:31.204Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:31.242Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:31.251Z - 📡 [TRAFFIC] 5:16:31 pm | GET /api/geofence/areas
+2026-05-21T11:46:31.258Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:31.259Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:31.296Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:31.609Z - 📡 [TRAFFIC] 5:16:31 pm | GET /api/master-pricing?page=1&limit=10
+2026-05-21T11:46:32.470Z - 📡 [TRAFFIC] 5:16:32 pm | POST /api/master-pricing/sync
+2026-05-21T11:46:32.790Z - 📡 [TRAFFIC] 5:16:32 pm | GET /api/master-pricing?page=1&limit=10
+2026-05-21T11:46:56.042Z - 📡 [TRAFFIC] 5:16:56 pm | GET /api/geofence/areas
+2026-05-21T11:46:56.047Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:56.047Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:56.053Z - 📡 [TRAFFIC] 5:16:56 pm | GET /api/geofence/areas?
+2026-05-21T11:46:56.059Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:56.061Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:56.090Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:56.103Z - 📡 [TRAFFIC] 5:16:56 pm | GET /api/geofence/areas
+2026-05-21T11:46:56.107Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:56.108Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:56.117Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:56.131Z - 📡 [TRAFFIC] 5:16:56 pm | GET /api/geofence/areas?
+2026-05-21T11:46:56.137Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:46:56.138Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:46:56.152Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:46:56.201Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:47:07.550Z - 📡 [TRAFFIC] 5:17:07 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:47:07.563Z - SOCKET_JOIN - Client i7U--NeiZAbwiGMRAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T11:47:07.577Z - 📡 [TRAFFIC] 5:17:07 pm | GET /api/geofence/areas
+2026-05-21T11:47:07.586Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:47:07.587Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:47:07.635Z - 📡 [TRAFFIC] 5:17:07 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T11:47:07.649Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:47:07.690Z - 📡 [TRAFFIC] 5:17:07 pm | GET /api/geofence/areas
+2026-05-21T11:47:07.697Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T11:47:07.698Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T11:47:07.735Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T11:47:45.785Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/categories
+2026-05-21T11:47:45.791Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/categories?isActive=true
+2026-05-21T11:47:45.801Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/admin/config
+2026-05-21T11:47:45.823Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/categories
+2026-05-21T11:47:45.863Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/categories?isActive=true
+2026-05-21T11:47:45.948Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/admin/config
+2026-05-21T11:47:46.001Z - 📡 [TRAFFIC] 5:17:45 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T11:47:46.052Z - 📡 [TRAFFIC] 5:17:46 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T11:47:46.208Z - 📡 [TRAFFIC] 5:17:46 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T11:47:46.221Z - 📡 [TRAFFIC] 5:17:46 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T11:57:45.613Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/categories
+2026-05-21T11:57:45.619Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/categories?isActive=true
+2026-05-21T11:57:45.623Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/admin/config
+2026-05-21T11:57:45.835Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/categories?isActive=true
+2026-05-21T11:57:45.844Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/categories
+2026-05-21T11:57:45.855Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/admin/config
+2026-05-21T11:57:45.874Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T11:57:45.884Z - 📡 [TRAFFIC] 5:27:45 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T11:57:46.016Z - 📡 [TRAFFIC] 5:27:46 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T11:57:46.029Z - 📡 [TRAFFIC] 5:27:46 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T11:58:06.807Z - 📡 [TRAFFIC] 5:28:06 pm | POST /api/auth/request-otp
+2026-05-21T11:58:08.632Z - 📡 [TRAFFIC] 5:28:08 pm | POST /api/auth/verify-otp
+2026-05-21T11:58:09.875Z - 📡 [TRAFFIC] 5:28:09 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:09.894Z - SOCKET_JOIN - Client LO2L0H7QCX0KFz_KAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:09.896Z - 📡 [TRAFFIC] 5:28:09 pm | GET /api/categories
+2026-05-21T11:58:09.904Z - 📡 [TRAFFIC] 5:28:09 pm | GET /api/categories?isActive=true
+2026-05-21T11:58:09.914Z - 📡 [TRAFFIC] 5:28:09 pm | GET /api/admin/config
+2026-05-21T11:58:10.010Z - SOCKET_JOIN - Client LO2L0H7QCX0KFz_KAAAN -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:10.028Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/categories?isActive=true
+2026-05-21T11:58:10.055Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/admin/config
+2026-05-21T11:58:10.093Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:10.114Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/categories
+2026-05-21T11:58:10.146Z - 📡 [TRAFFIC] 5:28:10 pm | POST /api/auth/update-fcm-token
+2026-05-21T11:58:10.168Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T11:58:10.213Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T11:58:10.247Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:10.318Z - 📡 [TRAFFIC] 5:28:10 pm | POST /api/auth/update-fcm-token
+2026-05-21T11:58:10.411Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T11:58:10.435Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:10.447Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T11:58:10.492Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T11:58:10.500Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T11:58:10.594Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T11:58:10.728Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T11:58:10.854Z - 📡 [TRAFFIC] 5:28:10 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T11:58:11.075Z - 📡 [TRAFFIC] 5:28:11 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T11:58:12.557Z - 📡 [TRAFFIC] 5:28:12 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:18.111Z - 📡 [TRAFFIC] 5:28:18 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:22.366Z - 📡 [TRAFFIC] 5:28:22 pm | POST /api/media/upload
+2026-05-21T11:58:27.211Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/master-services?activeOnly=true
+2026-05-21T11:58:27.221Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/services?approvedOnly=true
+2026-05-21T11:58:27.237Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T11:58:27.250Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/admin/config
+2026-05-21T11:58:27.257Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:27.320Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T11:58:27.339Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T11:58:27.364Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/admin/config
+2026-05-21T11:58:27.394Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T11:58:27.419Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/services?approvedOnly=true
+2026-05-21T11:58:27.473Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T11:58:27.525Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/master-services?activeOnly=true
+2026-05-21T11:58:27.550Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T11:58:27.595Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T11:58:27.611Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T11:58:27.641Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T11:58:27.666Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T11:58:27.681Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T11:58:27.705Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T11:58:27.740Z - 📡 [TRAFFIC] 5:28:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:01:27.186Z - 📡 [TRAFFIC] 5:31:27 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T12:01:27.241Z - 📡 [TRAFFIC] 5:31:27 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:02:50.950Z - 📡 [TRAFFIC] 5:32:50 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:02:50.960Z - 📡 [TRAFFIC] 5:32:50 pm | GET /api/categories
+2026-05-21T12:02:50.968Z - 📡 [TRAFFIC] 5:32:50 pm | GET /api/categories?isActive=true
+2026-05-21T12:02:50.974Z - 📡 [TRAFFIC] 5:32:50 pm | GET /api/admin/config
+2026-05-21T12:02:51.002Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:02:51.013Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/categories
+2026-05-21T12:02:51.029Z - 📡 [TRAFFIC] 5:32:51 pm | POST /api/auth/update-fcm-token
+2026-05-21T12:02:51.063Z - 📡 [TRAFFIC] 5:32:51 pm | POST /api/auth/update-fcm-token
+2026-05-21T12:02:51.100Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T12:02:51.119Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T12:02:51.191Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/categories?isActive=true
+2026-05-21T12:02:51.224Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/admin/config
+2026-05-21T12:02:51.263Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:02:51.345Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T12:02:51.364Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T12:02:51.376Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:02:51.472Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:51.556Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:51.833Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:51.954Z - 📡 [TRAFFIC] 5:32:51 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:52.229Z - 📡 [TRAFFIC] 5:32:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:52.332Z - 📡 [TRAFFIC] 5:32:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:52.431Z - 📡 [TRAFFIC] 5:32:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:52.537Z - 📡 [TRAFFIC] 5:32:52 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:02:53.472Z - 📡 [TRAFFIC] 5:32:53 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:02:55.679Z - 📡 [TRAFFIC] 5:32:55 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:03:03.456Z - 📡 [TRAFFIC] 5:33:03 pm | POST /api/media/upload
+2026-05-21T12:03:09.760Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/master-services?activeOnly=true
+2026-05-21T12:03:09.769Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/services?approvedOnly=true
+2026-05-21T12:03:09.779Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T12:03:09.791Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:03:09.801Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/admin/config
+2026-05-21T12:03:09.855Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/orders/nearby-vendors?lat=22.7196&lng=75.8577&radius=15
+2026-05-21T12:03:09.911Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:03:09.937Z - 📡 [TRAFFIC] 5:33:09 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:03:10.012Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T12:03:10.027Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/admin/config
+2026-05-21T12:03:10.066Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/services?approvedOnly=true
+2026-05-21T12:03:10.090Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/master-services?activeOnly=true
+2026-05-21T12:03:10.101Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:03:10.163Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T12:03:10.192Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:03:10.223Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T12:03:10.268Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:03:10.275Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T12:03:10.310Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:03:10.362Z - 📡 [TRAFFIC] 5:33:10 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:06:05.180Z - 📡 [TRAFFIC] 5:36:05 pm | GET /api/orders/nearby-vendors?lat=22.724355&lng=75.8838944&radius=15
+2026-05-21T12:06:05.227Z - 📡 [TRAFFIC] 5:36:05 pm | GET /api/promotions/applicable?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-21T12:07:01.344Z - 📡 [TRAFFIC] 5:37:01 pm | GET /api/jobs/active
+2026-05-21T12:07:01.426Z - 📡 [TRAFFIC] 5:37:01 pm | GET /api/jobs/active
+2026-05-21T12:07:18.115Z - 📡 [TRAFFIC] 5:37:18 pm | GET /api/supplier/my-status/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:07:18.156Z - 📡 [TRAFFIC] 5:37:18 pm | GET /api/supplier/my-status/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:07:37.796Z - 📡 [TRAFFIC] 5:37:37 pm | GET /api/master-services
+2026-05-21T12:07:37.806Z - 📡 [TRAFFIC] 5:37:37 pm | GET /api/admin/users
+2026-05-21T12:07:37.861Z - 📡 [TRAFFIC] 5:37:37 pm | GET /api/master-services
+2026-05-21T12:07:37.902Z - 📡 [TRAFFIC] 5:37:37 pm | GET /api/admin/users
+2026-05-21T12:07:41.442Z - 📡 [TRAFFIC] 5:37:41 pm | GET /api/supplier/requests
+2026-05-21T12:07:41.522Z - 📡 [TRAFFIC] 5:37:41 pm | GET /api/supplier/requests
+2026-05-21T12:12:59.812Z - 📡 [TRAFFIC] 5:42:59 pm | GET /api/admin/pending-approvals
+2026-05-21T12:12:59.907Z - 📡 [TRAFFIC] 5:42:59 pm | GET /api/admin/pending-approvals
+2026-05-21T12:13:03.263Z - 📡 [TRAFFIC] 5:43:03 pm | GET /api/supplier/requests
+2026-05-21T12:13:03.348Z - 📡 [TRAFFIC] 5:43:03 pm | GET /api/supplier/requests
+2026-05-21T12:13:38.359Z - 📡 [TRAFFIC] 5:43:38 pm | GET /api/admin/pending-approvals
+2026-05-21T12:13:38.433Z - 📡 [TRAFFIC] 5:43:38 pm | GET /api/admin/pending-approvals
+2026-05-21T12:16:05.869Z - 📡 [TRAFFIC] 5:46:05 pm | GET /api/supplier/requests
+2026-05-21T12:16:06.045Z - 📡 [TRAFFIC] 5:46:06 pm | GET /api/supplier/requests
+2026-05-21T12:16:07.750Z - 📡 [TRAFFIC] 5:46:07 pm | GET /api/admin/pending-approvals
+2026-05-21T12:16:07.816Z - 📡 [TRAFFIC] 5:46:07 pm | GET /api/admin/pending-approvals
+2026-05-21T12:16:55.970Z - 📡 [TRAFFIC] 5:46:55 pm | GET /api/supplier/requests
+2026-05-21T12:16:56.046Z - 📡 [TRAFFIC] 5:46:56 pm | GET /api/supplier/requests
+2026-05-21T12:16:57.104Z - 📡 [TRAFFIC] 5:46:57 pm | GET /api/admin/pending-approvals
+2026-05-21T12:16:57.172Z - 📡 [TRAFFIC] 5:46:57 pm | GET /api/admin/pending-approvals
+2026-05-21T12:21:41.466Z - 📡 [TRAFFIC] 5:51:41 pm | GET /api/supplier/requests
+2026-05-21T12:21:41.544Z - 📡 [TRAFFIC] 5:51:41 pm | GET /api/supplier/requests
+2026-05-21T12:21:53.714Z - 📡 [TRAFFIC] 5:51:53 pm | GET /api/admin/pending-approvals
+2026-05-21T12:21:53.787Z - 📡 [TRAFFIC] 5:51:53 pm | GET /api/admin/pending-approvals
+2026-05-21T12:21:58.383Z - 📡 [TRAFFIC] 5:51:58 pm | GET /api/supplier/requests
+2026-05-21T12:21:58.449Z - 📡 [TRAFFIC] 5:51:58 pm | GET /api/supplier/requests
+2026-05-21T12:22:03.460Z - 📡 [TRAFFIC] 5:52:03 pm | GET /api/admin/pending-approvals
+2026-05-21T12:22:03.537Z - 📡 [TRAFFIC] 5:52:03 pm | GET /api/admin/pending-approvals
+2026-05-21T12:22:04.596Z - 📡 [TRAFFIC] 5:52:04 pm | GET /api/supplier/requests
+2026-05-21T12:22:04.676Z - 📡 [TRAFFIC] 5:52:04 pm | GET /api/supplier/requests
+2026-05-21T12:28:04.333Z - 📡 [TRAFFIC] 5:58:04 pm | GET /api/geofence/areas
+2026-05-21T12:28:04.338Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T12:28:04.339Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T12:28:04.346Z - 📡 [TRAFFIC] 5:58:04 pm | GET /api/geofence/areas?
+2026-05-21T12:28:04.354Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T12:28:04.355Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T12:28:04.378Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T12:28:04.389Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T12:28:04.398Z - 📡 [TRAFFIC] 5:58:04 pm | GET /api/geofence/areas
+2026-05-21T12:28:04.404Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T12:28:04.405Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T12:28:04.410Z - 📡 [TRAFFIC] 5:58:04 pm | GET /api/geofence/areas?
+2026-05-21T12:28:04.418Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-21T12:28:04.418Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-21T12:28:04.439Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T12:28:04.449Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-21T12:28:08.636Z - 📡 [TRAFFIC] 5:58:08 pm | GET /api/admin/pending-approvals
+2026-05-21T12:28:08.713Z - 📡 [TRAFFIC] 5:58:08 pm | GET /api/admin/pending-approvals
+2026-05-21T12:29:24.159Z - 📡 [TRAFFIC] 5:59:24 pm | GET /api/admin/pending-approvals
+2026-05-21T12:29:59.560Z - 📡 [TRAFFIC] 5:59:59 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T12:29:59.627Z - 📡 [TRAFFIC] 5:59:59 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T12:29:59.634Z - 📡 [TRAFFIC] 5:59:59 pm | GET /api/categories
+2026-05-21T12:29:59.701Z - 📡 [TRAFFIC] 5:59:59 pm | GET /api/categories
+2026-05-21T12:30:05.398Z - 📡 [TRAFFIC] 6:00:05 pm | GET /api/admin/pending-approvals
+2026-05-21T12:30:05.466Z - 📡 [TRAFFIC] 6:00:05 pm | GET /api/admin/pending-approvals
+2026-05-21T12:38:22.249Z - 📡 [TRAFFIC] 6:08:22 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T12:38:22.305Z - 📡 [TRAFFIC] 6:08:22 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T12:38:22.308Z - 📡 [TRAFFIC] 6:08:22 pm | GET /api/categories
+2026-05-21T12:38:22.391Z - 📡 [TRAFFIC] 6:08:22 pm | GET /api/categories
+2026-05-21T12:40:31.184Z - SOCKET_JOIN - Client pkobrEOWO32s1mS4AAAP -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:31.214Z - SOCKET_JOIN - Client pkobrEOWO32s1mS4AAAP -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:33.579Z - 📡 [TRAFFIC] 6:10:33 pm | GET /api/ads/active
+2026-05-21T12:40:33.610Z - 📡 [TRAFFIC] 6:10:33 pm | GET /api/ads/active
+2026-05-21T12:40:35.836Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:35.840Z - SOCKET_JOIN - Client SQf0o0KHIiBothPQAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:35.842Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/categories
+2026-05-21T12:40:35.845Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/categories?isActive=true
+2026-05-21T12:40:35.848Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/admin/config
+2026-05-21T12:40:35.851Z - SOCKET_JOIN - Client SQf0o0KHIiBothPQAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:35.874Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:35.883Z - 📡 [TRAFFIC] 6:10:35 pm | POST /api/auth/update-fcm-token
+2026-05-21T12:40:35.888Z - 📡 [TRAFFIC] 6:10:35 pm | POST /api/auth/update-fcm-token
+2026-05-21T12:40:35.899Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/categories
+2026-05-21T12:40:35.911Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T12:40:35.918Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T12:40:35.920Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/categories?isActive=true
+2026-05-21T12:40:35.958Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/admin/config
+2026-05-21T12:40:35.961Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:35.970Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:35.980Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T12:40:35.987Z - 📡 [TRAFFIC] 6:10:35 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T12:40:36.020Z - 📡 [TRAFFIC] 6:10:36 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:36.117Z - 📡 [TRAFFIC] 6:10:36 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:36.421Z - 📡 [TRAFFIC] 6:10:36 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:36.579Z - 📡 [TRAFFIC] 6:10:36 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:36.829Z - 📡 [TRAFFIC] 6:10:36 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:37.002Z - 📡 [TRAFFIC] 6:10:37 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:37.130Z - 📡 [TRAFFIC] 6:10:37 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:37.305Z - 📡 [TRAFFIC] 6:10:37 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:38.087Z - 📡 [TRAFFIC] 6:10:38 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:44.309Z - 📡 [TRAFFIC] 6:10:44 pm | PATCH /api/auth/profile/update/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:44.398Z - 📡 [TRAFFIC] 6:10:44 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:45.730Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:45.733Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/categories
+2026-05-21T12:40:45.736Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/categories?isActive=true
+2026-05-21T12:40:45.739Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/admin/config
+2026-05-21T12:40:45.765Z - 📡 [TRAFFIC] 6:10:45 pm | POST /api/auth/update-fcm-token
+2026-05-21T12:40:45.769Z - 📡 [TRAFFIC] 6:10:45 pm | POST /api/auth/update-fcm-token
+2026-05-21T12:40:45.781Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/categories
+2026-05-21T12:40:45.783Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:45.791Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/categories?isActive=true
+2026-05-21T12:40:45.795Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T12:40:45.802Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T12:40:45.811Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/admin/config
+2026-05-21T12:40:45.821Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:45.863Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T12:40:45.866Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T12:40:45.872Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T12:40:45.898Z - 📡 [TRAFFIC] 6:10:45 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:46.010Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T12:40:46.014Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:46.112Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:46.207Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:46.299Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:46.400Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:46.513Z - 📡 [TRAFFIC] 6:10:46 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T12:40:47.936Z - 📡 [TRAFFIC] 6:10:47 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:26.294Z - SOCKET_JOIN - Client lY7dWGcTAeCWUs5fAAAV -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:28.977Z - SOCKET_JOIN - Client FBY2S2f8BkbJkwpPAAAX -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:33.612Z - 📡 [TRAFFIC] 8:56:33 pm | GET /api/supplier/my-status/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:33.626Z - SOCKET_JOIN - Client BG-7q5MeZduHQSx9AAAZ -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:33.664Z - SOCKET_JOIN - Client BG-7q5MeZduHQSx9AAAZ -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:36.140Z - 📡 [TRAFFIC] 8:56:36 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:36.146Z - 📡 [TRAFFIC] 8:56:36 pm | GET /api/categories?isActive=true
+2026-05-21T15:26:36.149Z - 📡 [TRAFFIC] 8:56:36 pm | GET /api/categories
+2026-05-21T15:26:36.152Z - SOCKET_JOIN - Client XzIvwZuRxPONURbcAAAd -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:36.155Z - 📡 [TRAFFIC] 8:56:36 pm | GET /api/admin/config
+2026-05-21T15:26:36.184Z - 📡 [TRAFFIC] 8:56:36 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T15:26:36.191Z - SOCKET_JOIN - Client qk6UWuJaAk2uTcIDAAAc -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T15:26:36.195Z - 📡 [TRAFFIC] 8:56:36 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T15:26:36.221Z - SOCKET_JOIN - Client qk6UWuJaAk2uTcIDAAAc -> admins_pool
+2026-05-21T15:26:36.222Z - SOCKET_JOIN - Client qk6UWuJaAk2uTcIDAAAc -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-21T15:26:36.223Z - SOCKET_JOIN - Client qk6UWuJaAk2uTcIDAAAc -> admins_pool
+2026-05-21T15:26:36.313Z - SOCKET_JOIN - Client XzIvwZuRxPONURbcAAAd -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:26:36.344Z - 📡 [TRAFFIC] 8:56:36 pm | POST /api/auth/update-fcm-token
+2026-05-21T15:26:56.231Z - 📡 [TRAFFIC] 8:56:56 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-21T15:26:56.234Z - 📡 [TRAFFIC] 8:56:56 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-21T15:47:28.943Z - 🚀 SERVER RESTARTED AT 2026-05-21T15:47:28.943Z ON PORT 5001
+2026-05-21T15:48:01.887Z - SOCKET_JOIN - Client RB91zQEvdGsReyxoAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:01.910Z - SOCKET_JOIN - Client RB91zQEvdGsReyxoAAAB -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:09.425Z - 📡 [TRAFFIC] 9:18:09 pm | POST /api/auth/request-otp
+2026-05-21T15:48:12.219Z - 📡 [TRAFFIC] 9:18:12 pm | POST /api/auth/verify-otp
+2026-05-21T15:48:12.860Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:12.868Z - SOCKET_JOIN - Client fMEoNKgxSiustnJTAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:12.872Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/categories?isActive=true
+2026-05-21T15:48:12.877Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/categories
+2026-05-21T15:48:12.881Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/admin/config
+2026-05-21T15:48:12.885Z - SOCKET_JOIN - Client fMEoNKgxSiustnJTAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:12.898Z - 📡 [TRAFFIC] 9:18:12 pm | POST /api/auth/update-fcm-token
+2026-05-21T15:48:12.951Z - 📡 [TRAFFIC] 9:18:12 pm | POST /api/auth/update-fcm-token
+2026-05-21T15:48:12.966Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:12.969Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/admin/config
+2026-05-21T15:48:12.975Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:12.995Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/categories?isActive=true
+2026-05-21T15:48:12.997Z - 📡 [TRAFFIC] 9:18:12 pm | GET /api/categories
+2026-05-21T15:48:13.054Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T15:48:13.077Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T15:48:13.087Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:13.226Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-21T15:48:13.359Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T15:48:13.383Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-21T15:48:13.433Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T15:48:13.530Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/geofence/check-availability?lat=22.724355&lng=75.8838944
+2026-05-21T15:48:13.814Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T15:48:13.985Z - 📡 [TRAFFIC] 9:18:13 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T15:48:14.198Z - 📡 [TRAFFIC] 9:18:14 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T15:48:14.386Z - 📡 [TRAFFIC] 9:18:14 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T15:48:14.521Z - 📡 [TRAFFIC] 9:18:14 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-21T15:48:15.199Z - 📡 [TRAFFIC] 9:18:15 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-21T15:48:20.188Z - 📡 [TRAFFIC] 9:18:20 pm | POST /api/auth/cart/69f1d2bc2c76f5ab4ec82160

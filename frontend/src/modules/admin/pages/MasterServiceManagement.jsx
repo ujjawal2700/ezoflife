@@ -4,7 +4,7 @@ import { masterServiceApi, categoryApi } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { 
     Plus, Edit2, Trash2, X, Download, Filter, Search, Settings, 
-    MoreHorizontal, Layers, Tag, Clock, Weight, Percent, Zap
+    MoreHorizontal, Layers, Tag, Clock, Weight, Percent, Zap, ChevronDown
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
@@ -38,7 +38,10 @@ const MasterServiceManagement = () => {
         isActive: true,
         serviceType: 'normal',
         excelCategoryId: '',
-        sacCode: '9994'
+        sacCode: '9994',
+        tier: 'Essential',
+        allowDiscount: true,
+        description: ''
     });
 
     useEffect(() => {
@@ -158,7 +161,10 @@ const MasterServiceManagement = () => {
                 isActive: service.isActive !== undefined ? service.isActive : true,
                 serviceType: service.serviceType || 'normal',
                 excelCategoryId: service.excelCategoryId || '',
-                sacCode: service.sacCode || '9994'
+                sacCode: service.sacCode || '9994',
+                tier: service.tier || 'Essential',
+                allowDiscount: service.allowDiscount !== undefined ? service.allowDiscount : true,
+                description: service.description || ''
             });
         } else {
             setCurrentService(null);
@@ -181,7 +187,10 @@ const MasterServiceManagement = () => {
                 isActive: true,
                 serviceType: 'normal',
                 excelCategoryId: '',
-                sacCode: '9994'
+                sacCode: '9994',
+                tier: 'Essential',
+                allowDiscount: true,
+                description: ''
             });
         }
         setIsModalOpen(true);
@@ -401,15 +410,16 @@ const MasterServiceManagement = () => {
 
             <AnimatePresence>
                 {isModalOpen && (
-                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6 bg-slate-900/40 backdrop-blur-sm">
                         <motion.form 
                             onSubmit={handleSubmit}
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-white w-full max-w-2xl rounded-sm p-10 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar border border-slate-200"
+                            className="bg-white w-full max-w-2xl rounded-sm shadow-2xl relative border border-slate-200 max-h-[92vh] flex flex-col"
                         >
-                            <div className="flex justify-between items-center mb-10">
+                            {/* Sticky Header */}
+                            <div className="flex justify-between items-center p-5 sm:p-6 border-b border-slate-100 bg-white sticky top-0 z-10">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center rounded-sm">
                                         <Settings size={18} />
@@ -423,170 +433,273 @@ const MasterServiceManagement = () => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                {/* SAC Code */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
-                                    <input 
-                                        required
-                                        value={formData.sacCode}
-                                        onChange={e => setFormData({...formData, sacCode: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                    />
-                                </div>
+                            {/* Scrollable Content */}
+                            <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6 scrollbar-thin scrollbar-thumb-slate-200">
+                                
+                                {/* Section 1: General Information */}
+                                <div className="space-y-4">
+                                    <div className="border-b border-slate-100 pb-2">
+                                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                            <Layers size={12} className="text-slate-400" />
+                                            General Information
+                                        </h4>
+                                    </div>
+                                    
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
+                                        {/* Item Name */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Item Name</label>
+                                            <input 
+                                                required
+                                                value={formData.itemName}
+                                                onChange={e => setFormData({...formData, itemName: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                                placeholder="e.g. Cotton Saree"
+                                            />
+                                        </div>
+                                        
+                                        {/* SAC Code */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">SAC Code</label>
+                                            <input 
+                                                required
+                                                value={formData.sacCode}
+                                                onChange={e => setFormData({...formData, sacCode: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                            />
+                                        </div>
+                                    </div>
 
-                                {/* Item Name */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Item Name</label>
-                                    <input 
-                                        required
-                                        value={formData.itemName}
-                                        onChange={e => setFormData({...formData, itemName: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. Cotton Saree"
-                                    />
-                                </div>
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
+                                        {/* Main Category */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Main Category</label>
+                                            <div className="relative">
+                                                <select 
+                                                    required
+                                                    className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
+                                                    value={selectedMain}
+                                                    onChange={e => {
+                                                        setSelectedMain(e.target.value);
+                                                        setFormData({...formData, categoryId: ''});
+                                                    }}
+                                                >
+                                                    <option value="">Select Category</option>
+                                                    {mainCategoryList.map(m => <option key={m} value={m}>{m}</option>)}
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronDown size={14} />
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                {/* Main Category */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Main Category</label>
-                                    <select 
-                                        required
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
-                                        value={selectedMain}
-                                        onChange={e => {
-                                            setSelectedMain(e.target.value);
-                                            setFormData({...formData, categoryId: ''});
-                                        }}
-                                    >
-                                        <option value="">Select Category</option>
-                                        {mainCategoryList.map(m => <option key={m} value={m}>{m}</option>)}
-                                    </select>
-                                </div>
-
-                                {/* Sub Category */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Sub Category</label>
-                                    <select 
-                                        required
-                                        disabled={!selectedMain}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer"
-                                        value={formData.categoryId}
-                                        onChange={e => {
-                                            const catId = e.target.value;
-                                            const selectedCat = categories.find(c => c._id === catId);
-                                            setFormData({
-                                                ...formData, 
-                                                categoryId: catId,
-                                                excelCategoryId: selectedCat?.excelCategoryId || undefined
-                                            });
-                                        }}
-                                    >
-                                        <option value="">Select Sub Category</option>
-                                        {subCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}
-                                    </select>
-                                </div>
-
-                                {/* Avg Weight */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Avg Weight (KG)</label>
-                                    <input 
-                                        required
-                                        value={formData.avgWeight}
-                                        onChange={e => setFormData({...formData, avgWeight: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                    />
-                                </div>
-
-                                {/* Estimate TAT */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Estimate TAT</label>
-                                    <input 
-                                        required
-                                        value={formData.estimateTAT}
-                                        onChange={e => setFormData({...formData, estimateTAT: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                    />
-                                </div>
-
-                                {/* Seasonality */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Seasonality</label>
-                                    <input 
-                                        required
-                                        value={formData.seasonality}
-                                        onChange={e => setFormData({...formData, seasonality: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                    />
-                                </div>
-
-                                {/* GST (%) */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST (%)</label>
-                                    <select 
-                                        required
-                                        value={formData.gst}
-                                        onChange={e => setFormData({...formData, gst: parseFloat(e.target.value)})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none appearance-none cursor-pointer"
-                                    >
-                                        {[0, 5, 12, 18, 28].map(rate => (
-                                            <option key={rate} value={rate}>{rate}%</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {/* Status (Y/N) */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Status (Y/N)</label>
-                                    <div className="flex gap-2">
-                                        {['y', 'n'].map(opt => (
-                                            <button 
-                                                key={opt}
-                                                type="button"
-                                                onClick={() => setFormData({...formData, curr_ind: opt})}
-                                                className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.curr_ind === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
-                                            >
-                                                {opt.toUpperCase()}
-                                            </button>
-                                        ))}
+                                        {/* Sub Category */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Sub Category</label>
+                                            <div className="relative">
+                                                <select 
+                                                    required
+                                                    disabled={!selectedMain}
+                                                    className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
+                                                    value={formData.categoryId}
+                                                    onChange={e => {
+                                                        const catId = e.target.value;
+                                                        const selectedCat = categories.find(c => c._id === catId);
+                                                        setFormData({
+                                                            ...formData, 
+                                                            categoryId: catId,
+                                                            excelCategoryId: selectedCat?.excelCategoryId || undefined
+                                                        });
+                                                    }}
+                                                >
+                                                    <option value="">Select Sub Category</option>
+                                                    {subCategoryList.map(s => <option key={s._id} value={s._id}>{s.subCategory}</option>)}
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronDown size={14} />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Global Base Price */}
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Base Price</label>
-                                    <input 
-                                        type="number"
-                                        required
-                                        value={formData.basePrice}
-                                        onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:border-slate-900 focus:bg-white transition-all"
-                                    />
+                                {/* Section 2: Service Specifications */}
+                                <div className="space-y-4 pt-2">
+                                    <div className="border-b border-slate-100 pb-2">
+                                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                            <Settings size={12} className="text-slate-400" />
+                                            Service Specifications
+                                        </h4>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
+                                        {/* Avg Weight */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Avg Weight (KG)</label>
+                                            <input 
+                                                required
+                                                value={formData.avgWeight}
+                                                onChange={e => setFormData({...formData, avgWeight: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                            />
+                                        </div>
+
+                                        {/* Estimate TAT */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Estimate TAT</label>
+                                            <input 
+                                                required
+                                                value={formData.estimateTAT}
+                                                onChange={e => setFormData({...formData, estimateTAT: e.target.value})}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 w-full">
+                                        {/* Seasonality */}
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Seasonality</label>
+                                        <input 
+                                            required
+                                            value={formData.seasonality}
+                                            onChange={e => setFormData({...formData, seasonality: e.target.value})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
+                                        {/* Pricing Unit */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Pricing Unit</label>
+                                            <div className="flex gap-2">
+                                                {[
+                                                    { label: 'Per Item', value: 'per_item' },
+                                                    { label: 'Per KG', value: 'per_kg' }
+                                                ].map(u => (
+                                                    <button 
+                                                        key={u.value}
+                                                        type="button"
+                                                        onClick={() => setFormData({...formData, unit: u.value})}
+                                                        className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.unit === u.value ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                                    >
+                                                        {u.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Status (Y/N) */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Status (Y/N)</label>
+                                            <div className="flex gap-2">
+                                                {['y', 'n'].map(opt => (
+                                                    <button 
+                                                        key={opt}
+                                                        type="button"
+                                                        onClick={() => setFormData({...formData, curr_ind: opt})}
+                                                        className={`flex-1 py-3 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all border ${formData.curr_ind === opt ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-400 border-slate-200'}`}
+                                                    >
+                                                        {opt.toUpperCase()}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Discounted Price - ONLY visible if curr_ind === 'y' */}
-                                {formData.curr_ind === 'y' && (
-                                    <div className="space-y-1.5 col-span-2">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Discount Price</label>
+                                {/* Section 3: Pricing & Tax Rules */}
+                                <div className="space-y-4 pt-2">
+                                    <div className="border-b border-slate-100 pb-2">
+                                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                                            <Percent size={12} className="text-slate-400" />
+                                            Pricing & Tax Rules
+                                        </h4>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
+                                        {/* GST (%) */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST (%)</label>
+                                            <div className="relative">
+                                                <select 
+                                                    required
+                                                    value={formData.gst}
+                                                    onChange={e => setFormData({...formData, gst: parseFloat(e.target.value)})}
+                                                    className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
+                                                >
+                                                    {[0, 5, 12, 18, 28].map(rate => (
+                                                        <option key={rate} value={rate}>{rate}%</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronDown size={14} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Heritage GST (%) */}
+                                        <div className="space-y-1.5 flex-1">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Heritage GST (%)</label>
+                                            <div className="relative">
+                                                <select 
+                                                    required
+                                                    value={formData.heritageGst}
+                                                    onChange={e => setFormData({...formData, heritageGst: parseFloat(e.target.value)})}
+                                                    className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
+                                                >
+                                                    {[0, 5, 12, 18, 28].map(rate => (
+                                                        <option key={rate} value={rate}>{rate}%</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                    <ChevronDown size={14} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5 w-full">
+                                        {/* Global Base Price */}
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Base Price</label>
                                         <input 
                                             type="number"
                                             required
-                                            value={formData.discountedPrice}
-                                            onChange={e => setFormData({...formData, discountedPrice: parseFloat(e.target.value) || 0})}
-                                            className="w-full px-4 py-3 bg-slate-900 text-white rounded-sm text-[11px] font-black outline-none"
+                                            value={formData.basePrice}
+                                            onChange={e => setFormData({...formData, basePrice: parseFloat(e.target.value)})}
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none focus:border-slate-900 focus:bg-white transition-all"
                                         />
                                     </div>
-                                )}
 
-
+                                    {/* Discounted Price - ONLY visible if curr_ind === 'y' */}
+                                    {formData.curr_ind === 'y' && (
+                                        <div className="space-y-1.5 w-full">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Global Discount Price</label>
+                                            <input 
+                                                type="number"
+                                                required
+                                                value={formData.discountedPrice}
+                                                onChange={e => setFormData({...formData, discountedPrice: parseFloat(e.target.value) || 0})}
+                                                className="w-full px-4 py-3 bg-slate-900 text-white rounded-sm text-sm sm:text-xs font-black outline-none focus:bg-slate-900/90 focus:border-slate-900 transition-all"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="flex gap-4 mt-12 pt-8 border-t border-slate-100">
+                            {/* Sticky Footer */}
+                            <div className="flex gap-4 p-5 sm:p-6 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="w-1/3 bg-slate-50 hover:bg-slate-100 text-slate-500 py-3.5 rounded-sm font-bold text-[10px] uppercase tracking-wider transition-all border border-slate-200"
+                                >
+                                    Cancel
+                                </button>
                                 <button 
                                     type="submit"
-                                    className="w-full bg-slate-950 hover:bg-black text-white py-4 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 transition-all border border-slate-900"
+                                    className="w-2/3 bg-slate-950 hover:bg-black text-white py-3.5 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 transition-all border border-slate-900"
                                 >
-                                    Save
+                                    Save Changes
                                 </button>
                             </div>
                         </motion.form>
