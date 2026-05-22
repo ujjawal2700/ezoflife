@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { faqApi } from '../../../lib/api';
 
+// Helper: get current logged-in role from user object (works for customer, vendor, supplier)
+const getCurrentRole = () => {
+    const userData = JSON.parse(
+        localStorage.getItem('user') ||
+        localStorage.getItem('userData') ||
+        '{}'
+    );
+    const raw = userData.role || '';
+    if (!raw) return null;
+    // Normalize: 'vendor' -> 'Vendor', 'customer' -> 'Customer', etc.
+    return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+};
+
 const FAQPage = () => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
@@ -26,25 +39,19 @@ const FAQPage = () => {
 
     const filteredFaqs = useMemo(() => {
         const token = localStorage.getItem('token');
-        const userRole = localStorage.getItem('userRole');
-        
-        const roleMapping = {
-            'customer': 'Customer',
-            'vendor': 'Vendor',
-            'supplier': 'Supplier'
-        };
-        const currentRole = userRole ? (roleMapping[userRole.toLowerCase()] || 'Customer') : null;
+        // Read role from the user object (stored on login) — NOT from 'userRole' key which is never set
+        const currentRole = getCurrentRole(); // e.g. 'Customer', 'Vendor', 'Supplier' or null
 
         return faqs
             .filter(f => f.isActive !== false)
             .filter(f => {
                 // If not logged in, only show 'All'
-                if (!token) return f.targetRole === 'All';
+                if (!token || !currentRole) return f.targetRole === 'All';
                 // If logged in, show 'All' AND their specific role
                 return f.targetRole === 'All' || f.targetRole === currentRole;
             })
-            .filter(f => 
-                f.question.toLowerCase().includes(searchQuery.toLowerCase()) || 
+            .filter(f =>
+                f.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 f.answer.toLowerCase().includes(searchQuery.toLowerCase())
             );
     }, [faqs, searchQuery]);

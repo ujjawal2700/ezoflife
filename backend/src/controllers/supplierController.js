@@ -96,10 +96,23 @@ export const completeBankVerification = async (req, res) => {
 export const submitApplication = async (req, res) => {
     try {
         const userId = req.params.userId;
+        const existingApplication = await SupplierApplication.findOne({ user: userId });
+
+        if (existingApplication) {
+            Object.assign(existingApplication, req.body);
+            existingApplication.status = 'Pending';
+            existingApplication.rejectionReason = undefined;
+            existingApplication.rejectionFlags = [];
+            existingApplication.onboardingStage = 'Initial_Approval_Pending';
+            await existingApplication.save();
+            return res.status(200).json({ message: 'Application updated successfully', application: existingApplication });
+        }
+
         const applicationData = {
             ...req.body,
             user: userId,
-            status: 'Pending'
+            status: 'Pending',
+            onboardingStage: 'Initial_Approval_Pending'
         };
 
         const newApplication = new SupplierApplication(applicationData);
@@ -114,7 +127,22 @@ export const submitApplication = async (req, res) => {
 
 export const getAllApplications = async (req, res) => {
     try {
-        const applications = await SupplierApplication.find().populate('user', 'name phone email');
+        const { supplierName, businessName, phone } = req.query;
+        const query = {};
+
+        if (supplierName) {
+            query.contactPersonName = supplierName;
+        }
+        if (businessName) {
+            query.registeredBusinessName = businessName;
+        }
+        if (phone) {
+            const matchingUsers = await User.find({ phone }).select('_id');
+            const userIds = matchingUsers.map(u => u._id);
+            query.user = { $in: userIds };
+        }
+
+        const applications = await SupplierApplication.find(query).populate('user', 'name phone email');
         res.status(200).json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -229,16 +257,21 @@ export const finalApproveApplication = async (req, res) => {
 
 export const rejectApplication = async (req, res) => {
     try {
-        const { reason } = req.body;
+        const { reason, status, rejectionFlags } = req.body;
         const application = await SupplierApplication.findById(req.params.id);
         if (!application) return res.status(404).json({ message: 'Application not found' });
 
-        application.status = 'Rejected';
-        application.rejectionReason = reason;
+        const targetStatus = status || 'Rejected';
+
+        application.status = targetStatus;
+        application.rejectionReason = reason || 'Criteria not met';
+        application.rejectionFlags = rejectionFlags || [];
         application.reviewedAt = new Date();
         await application.save();
 
-        res.status(200).json({ message: 'Application rejected' });
+        res.status(200).json({ 
+            message: `Application ${targetStatus === 'Revision_Required' ? 'sent for revision' : 'rejected'}` 
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -46,13 +46,47 @@ const LandingAdPage = () => {
         <div className="min-h-screen bg-white flex flex-col overflow-hidden relative">
             {/* Countdown Overlay */}
             <div className="absolute top-6 right-6 z-50">
-                <div className="bg-black/20 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl flex items-center gap-2">
+                <div className="bg-black/60 backdrop-blur-md border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#89ECDA] animate-pulse"></span>
                     <span className="text-white text-[10px] font-black uppercase tracking-widest">Entering in {timeLeft}s</span>
                 </div>
             </div>
 
-            {/* Top 50%: Advertisement Screen */}
+            {/* Top 50%: Spinzyt Branding & Redirect */}
+            <div className="h-[50vh] bg-gradient-to-br from-[#F8FAFC] to-[#a1f0e2] flex flex-col items-center justify-between py-12 px-8 relative overflow-hidden">
+                {/* Decorative Blobs */}
+                <div className="absolute top-10 right-[-10%] w-60 h-60 bg-white/30 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute bottom-10 left-[-10%] w-60 h-60 bg-[#73e0c9]/10 rounded-full blur-3xl pointer-events-none" />
+
+                <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="text-center relative z-10"
+                >
+                    <div className="w-16 h-16 bg-black rounded-3xl flex items-center justify-center text-white mx-auto mb-6 shadow-2xl">
+                        <span className="material-symbols-outlined text-3xl">local_laundry_service</span>
+                    </div>
+                    <h1 className="text-5xl font-black text-black tracking-tighter leading-none mb-2">SPINZYT</h1>
+                    <p className="text-[10px] font-black text-black/40 uppercase tracking-[0.4em] mb-4">India's Choice</p>
+                </motion.div>
+
+                <div className="w-full max-w-xs relative z-10 space-y-4">
+                    <button 
+                        onClick={handleStartBrowsing}
+                        className="w-full py-5 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-black/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                        Browse Services
+                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                    </button>
+                    <p className="text-center text-[10px] font-bold text-black/30 uppercase tracking-widest">No Login Required to browse</p>
+                </div>
+
+                <div className="relative z-10 opacity-30">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-black">Precision Flow Technology</p>
+                </div>
+            </div>
+
+            {/* Bottom 50%: Advertisement Screen */}
             <div className="h-[50vh] relative group overflow-hidden bg-slate-900">
                 <motion.div 
                     initial={{ scale: 1.1 }}
@@ -98,40 +132,6 @@ const LandingAdPage = () => {
                             Premium <br /> Care For Your <br /> <span className="text-[#89ECDA]">Finest Fabrics.</span>
                         </h2>
                     </motion.div>
-                </div>
-            </div>
-
-            {/* Bottom 50%: Spinzyt Branding & Redirect */}
-            <div className="h-[50vh] bg-gradient-to-br from-[#F8FAFC] to-[#a1f0e2] flex flex-col items-center justify-between py-12 px-8 relative overflow-hidden">
-                {/* Decorative Blobs */}
-                <div className="absolute top-10 right-[-10%] w-60 h-60 bg-white/30 rounded-full blur-3xl pointer-events-none" />
-                <div className="absolute bottom-10 left-[-10%] w-60 h-60 bg-[#73e0c9]/10 rounded-full blur-3xl pointer-events-none" />
-
-                <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="text-center relative z-10"
-                >
-                    <div className="w-16 h-16 bg-black rounded-3xl flex items-center justify-center text-white mx-auto mb-6 shadow-2xl">
-                        <span className="material-symbols-outlined text-3xl">local_laundry_service</span>
-                    </div>
-                    <h1 className="text-5xl font-black text-black tracking-tighter leading-none mb-2">SPINZYT</h1>
-                    <p className="text-[10px] font-black text-black/40 uppercase tracking-[0.4em] mb-4">India's Choice</p>
-                </motion.div>
-
-                <div className="w-full max-w-xs relative z-10 space-y-4">
-                    <button 
-                        onClick={handleStartBrowsing}
-                        className="w-full py-5 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-black/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                    >
-                        Browse Services
-                        <span className="material-symbols-outlined text-lg">arrow_forward</span>
-                    </button>
-                    <p className="text-center text-[10px] font-bold text-black/30 uppercase tracking-widest">No Login Required to browse</p>
-                </div>
-
-                <div className="relative z-10 opacity-30">
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-black">Precision Flow Technology</p>
                 </div>
             </div>
         </div>

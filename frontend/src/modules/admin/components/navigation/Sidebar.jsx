@@ -92,8 +92,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     subItems: [
                         { label: 'Customer Issues', path: '/admin/help-desk?activeTab=Customer' },
                         { label: 'Vendor Issues', path: '/admin/help-desk?activeTab=Vendor' },
-                        { label: 'Missing Item Dispute', path: '/admin/dispute-center' },
                         { label: 'Supplier Issue', path: '/admin/help-desk?activeTab=Supplier' },
+                        { label: 'Missing Item Dispute', path: '/admin/dispute-center' },
                     ]
                 },
                 { 

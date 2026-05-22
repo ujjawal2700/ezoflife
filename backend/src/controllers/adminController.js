@@ -9,14 +9,40 @@ import Payout from '../models/Payout.js';
 // Get all roles pending approval
 export const getPendingApprovals = async (req, res) => {
     try {
+        const { vendorName, businessName, phone } = req.query;
+
+        const userQuery = {
+            $or: [
+                { status: 'pending', role: 'Vendor' },
+                { onboardingStage: { $in: ['INITIAL_REVIEW', 'SERVICE_SELECTION', 'FINAL_REVIEW'] } }
+            ]
+        };
+
+        if (vendorName && vendorName.trim() !== '') {
+            userQuery.displayName = vendorName.trim();
+        }
+        if (businessName && businessName.trim() !== '') {
+            userQuery['shopDetails.name'] = businessName.trim();
+        }
+        if (phone && phone.trim() !== '') {
+            userQuery.phone = phone.trim();
+        }
+
+        const supplierQuery = { status: 'Pending' };
+
+        if (vendorName && vendorName.trim() !== '') {
+            supplierQuery.fullName = vendorName.trim();
+        }
+        if (businessName && businessName.trim() !== '') {
+            supplierQuery.businessName = businessName.trim();
+        }
+        if (phone && phone.trim() !== '') {
+            supplierQuery.phone = phone.trim();
+        }
+
         const [pendingVendors, supplierApps] = await Promise.all([
-            User.find({ 
-                $or: [
-                    { status: 'pending', role: 'Vendor' },
-                    { onboardingStage: { $in: ['INITIAL_REVIEW', 'SERVICE_SELECTION', 'FINAL_REVIEW'] } }
-                ]
-            }).select('-otp -otpExpiry').lean(),
-            SupplierApplication.find({ status: 'Pending' }).populate('user', 'displayName phone email').lean()
+            User.find(userQuery).select('-otp -otpExpiry').lean(),
+            SupplierApplication.find(supplierQuery).populate('user', 'displayName phone email').lean()
         ]);
         
         // Transform SupplierApplications to match User-like structure for the frontend table

@@ -1,16 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { BASE_URL } from '../../../lib/api';
+
+const REVISION_FLAGS = [
+  { id: 'registeredBusinessName', label: 'Business Name' },
+  { id: 'contactPersonName', label: 'Contact Person Name' },
+  { id: 'designation', label: 'Designation' },
+  { id: 'entityType', label: 'Entity Type' },
+  { id: 'supplyCategories', label: 'Supply Categories' },
+  { id: 'panNumber', label: 'PAN Number' },
+  { id: 'panDoc', label: 'PAN Document' },
+  { id: 'gstNumber', label: 'GST Number' },
+  { id: 'gstDoc', label: 'GST Document' },
+  { id: 'msmeDoc', label: 'MSME Document' },
+  { id: 'manufacturerAuthDoc', label: 'Auth Letter' },
+  { id: 'warehouseAddress', label: 'Warehouse Address' },
+  { id: 'serviceableAreas', label: 'Serviceable Areas' },
+  { id: 'vehicles', label: 'Vehicle Infrastructure' },
+  { id: 'deliveryFrequency', label: 'Delivery Frequency' },
+  { id: 'warehousePhotos', label: 'Warehouse Photos' },
+  { id: 'dispatchPhoto', label: 'Dispatch Photo' },
+  { id: 'ownerAadhaar', label: 'Owner Aadhaar' },
+  { id: 'bankName', label: 'Account Holder Name' },
+  { id: 'accountNumber', label: 'Account Number' },
+  { id: 'ifscCode', label: 'IFSC Code' },
+  { id: 'cancelledChequeDoc', label: 'Cancelled Cheque' },
+  { id: 'priceListDoc', label: 'Product Catalog / Price List' }
+];
 
 const AdminSupplierRequestDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [rejectionReason, setRejectionReason] = useState('');
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionForm, setRejectionForm] = useState({
+      status: 'Revision_Required',
+      reason: '',
+      rejectionFlags: []
+  });
+
+  const toggleFlag = (flagId) => {
+    setRejectionForm(prev => {
+        const flags = prev.rejectionFlags.includes(flagId)
+            ? prev.rejectionFlags.filter(f => f !== flagId)
+            : [...prev.rejectionFlags, flagId];
+        return { ...prev, rejectionFlags: flags };
+    });
+  };
 
   useEffect(() => {
     fetchRequest();
@@ -62,7 +101,7 @@ const AdminSupplierRequestDetailPage = () => {
   };
 
   const handleReject = async () => {
-    if (!rejectionReason) {
+    if (!rejectionForm.reason.trim()) {
         toast.error('Please provide a reason');
         return;
     }
@@ -70,11 +109,13 @@ const AdminSupplierRequestDetailPage = () => {
         const response = await fetch(`${BASE_URL}/supplier/requests/${id}/reject`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason: rejectionReason })
+            body: JSON.stringify(rejectionForm)
         });
         if (response.ok) {
-            toast.success('Application rejected');
+            toast.success(rejectionForm.status === 'Revision_Required' ? 'Clarification request sent to supplier' : 'Supplier application rejected');
             navigate('/admin/supplier-requests');
+        } else {
+            toast.error('Operation failed');
         }
     } catch (error) {
         toast.error('Rejection failed');
@@ -243,24 +284,97 @@ const AdminSupplierRequestDetailPage = () => {
       </div>
 
       {/* Reject Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" onClick={() => setShowRejectModal(false)} />
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white rounded-[3rem] p-10 w-full max-w-md shadow-2xl">
-            <h3 className="text-2xl font-black tracking-tighter uppercase mb-6">Reason for Rejection</h3>
-            <textarea 
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              placeholder="Explain why the application is being rejected..."
-              className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[1.5rem] font-bold text-sm outline-none focus:bg-white transition-all h-32 mb-6"
-            />
-            <div className="flex gap-4">
-              <button onClick={() => setShowRejectModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest">Cancel</button>
-              <button onClick={handleReject} className="flex-1 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20">Confirm Reject</button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      <AnimatePresence>
+          {showRejectModal && (
+              <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+                  <motion.div 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }} 
+                    exit={{ opacity: 0 }} 
+                    onClick={() => setShowRejectModal(false)}
+                    className="absolute inset-0 bg-slate-950/60 backdrop-blur-md" 
+                  />
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
+                  >
+                      <div className="p-8 bg-slate-900 text-white">
+                          <h3 className="text-xl font-black uppercase tracking-tighter">Action Required</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Request revision or reject application</p>
+                      </div>
+                      
+                      <div className="p-8 space-y-6">
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Status</label>
+                              <div className="grid grid-cols-2 gap-3">
+                                  {[
+                                      { id: 'Revision_Required', label: 'Revision Required', icon: 'history' },
+                                      { id: 'Rejected', label: 'Permanent Reject', icon: 'cancel' }
+                                  ].map(opt => (
+                                      <button 
+                                        key={opt.id}
+                                        onClick={() => setRejectionForm({...rejectionForm, status: opt.id})}
+                                        className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${rejectionForm.status === opt.id ? 'border-primary bg-primary/5' : 'border-slate-100 hover:border-slate-200'}`}
+                                      >
+                                          <span className="material-symbols-outlined text-primary">{opt.icon}</span>
+                                          <span className={`text-[9px] font-black uppercase tracking-tight ${rejectionForm.status === opt.id ? 'text-primary' : 'text-slate-400'}`}>{opt.label}</span>
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reason / Admin Notes</label>
+                              <textarea 
+                                value={rejectionForm.reason}
+                                onChange={(e) => setRejectionForm({...rejectionForm, reason: e.target.value})}
+                                placeholder="E.g. PAN document is blurry, please re-upload or business name mismatch..."
+                                className="w-full h-24 bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all resize-none"
+                              />
+                          </div>
+
+                          {rejectionForm.status === 'Revision_Required' && (
+                              <div className="space-y-3">
+                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Items for Revision</label>
+                                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-slate-100 rounded-2xl custom-scrollbar">
+                                      {REVISION_FLAGS.map(flag => (
+                                          <button 
+                                              key={flag.id}
+                                              type="button"
+                                              onClick={() => toggleFlag(flag.id)}
+                                              className={`flex items-center gap-2 p-2 rounded-xl border transition-all text-left ${rejectionForm.rejectionFlags.includes(flag.id) ? 'border-primary bg-primary/5 text-primary' : 'border-slate-50 bg-slate-50 text-slate-400'}`}
+                                          >
+                                              <span className="material-symbols-outlined text-xs">
+                                                  {rejectionForm.rejectionFlags.includes(flag.id) ? 'check_box' : 'check_box_outline_blank'}
+                                              </span>
+                                              <span className="text-[8px] font-black uppercase tracking-tight">{flag.label}</span>
+                                          </button>
+                                      ))}
+                                  </div>
+                              </div>
+                          )}
+
+                          <div className="flex gap-3 pt-4">
+                              <button 
+                                onClick={() => setShowRejectModal(false)}
+                                className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all"
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                onClick={handleReject}
+                                className="flex-1 py-4 bg-slate-950 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
+                              >
+                                Submit Action
+                              </button>
+                          </div>
+                      </div>
+                  </motion.div>
+              </div>
+          )}
+      </AnimatePresence>
     </div>
   );
 };

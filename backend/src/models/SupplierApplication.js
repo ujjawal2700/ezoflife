@@ -64,10 +64,11 @@ const supplierApplicationSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ['Pending', 'Approved', 'Rejected'],
+        enum: ['Pending', 'Approved', 'Rejected', 'Revision_Required'],
         default: 'Pending'
     },
     rejectionReason: { type: String },
+    rejectionFlags: [String],
     appliedAt: { type: Date, default: Date.now },
     reviewedAt: { type: Date }
 }, { timestamps: true });

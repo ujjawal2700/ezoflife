@@ -365,6 +365,7 @@ const MasterServiceManagement = () => {
                 <DataGrid 
                     title=""
                     showFilter={false}
+                    showSearch={false}
                     actions={
                         <div className="flex items-center gap-2">
                             <select 

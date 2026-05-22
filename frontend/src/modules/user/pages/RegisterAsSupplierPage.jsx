@@ -9,6 +9,28 @@ import { useLoadScript } from '@react-google-maps/api';
 
 const GOOGLE_MAPS_LIBRARIES = ['places'];
 
+const getFieldStatus = (fieldName, isRevisionRequired, applicationStatus) => {
+    if (!isRevisionRequired || !applicationStatus?.rejectionFlags) return 'normal';
+    return applicationStatus.rejectionFlags.includes(fieldName) ? 'rejected' : 'approved';
+};
+
+const FieldHighlight = ({ name, children, isRevisionRequired, applicationStatus }) => {
+    const status = getFieldStatus(name, isRevisionRequired, applicationStatus);
+    if (status === 'rejected') {
+        return (
+            <div className="relative">
+                <div className="absolute -left-3 top-0 bottom-0 w-1 bg-rose-500 rounded-full animate-pulse" />
+                {children}
+                <div className="mt-2 flex items-center gap-1.5 text-rose-600">
+                    <span className="material-symbols-outlined text-xs">error</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest">Correction Required</span>
+                </div>
+            </div>
+        );
+    }
+    return children;
+};
+
 const RegisterAsSupplierPage = () => {
   const navigate = useNavigate();
   const [showLanding, setShowLanding] = useState(true);
@@ -21,10 +43,15 @@ const RegisterAsSupplierPage = () => {
   const [isVerifyingGst, setIsVerifyingGst] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
+  const isRevisionRequired = applicationStatus?.status === 'Revision_Required';
+  const isPendingSupplier = applicationStatus && 
+                           (applicationStatus.status === 'Pending' || applicationStatus.onboardingStage === 'Final_Approval_Pending' || applicationStatus.onboardingStage === 'Onboarded');
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user._id) {
-        fetchStatus(user._id);
+    const userId = user._id || user.id;
+    if (userId) {
+        fetchStatus(userId);
     }
   }, []);
 
@@ -32,7 +59,44 @@ const RegisterAsSupplierPage = () => {
     try {
         const response = await fetch(`${BASE_URL}/supplier/my-status/${userId}`);
         const data = await response.json();
-        if (data) setApplicationStatus(data);
+        if (data) {
+            setApplicationStatus(data);
+            if (data.status === 'Revision_Required') {
+                setFormData(prev => ({
+                    ...prev,
+                    registeredBusinessName: data.registeredBusinessName || '',
+                    contactPersonName: data.contactPersonName || '',
+                    designation: data.designation || '',
+                    entityType: data.entityType || 'Supplier',
+                    supplyCategories: data.supplyCategories || [],
+                    panNumber: data.panNumber || '',
+                    panDoc: data.panDoc || '',
+                    gstNumber: data.gstNumber || '',
+                    gstDoc: data.gstDoc || '',
+                    msmeDoc: data.msmeDoc || '',
+                    manufacturerAuthDoc: data.manufacturerAuthDoc || '',
+                    warehouseAddress: data.warehouseAddress || '',
+                    warehouseLocation: data.warehouseLocation || null,
+                    serviceableAreas: data.serviceableAreas || [],
+                    vehicles: data.vehicles || [],
+                    deliveryFrequency: data.deliveryFrequency || [],
+                    warehousePhotos: data.warehousePhotos || [],
+                    dispatchPhoto: data.dispatchPhoto || '',
+                    ownerAadhaar: data.ownerAadhaar || '',
+                    bankName: data.bankName || '',
+                    accountNumber: data.accountNumber || '',
+                    ifscCode: data.ifscCode || '',
+                    cancelledChequeDoc: data.cancelledChequeDoc || '',
+                    priceListDoc: data.priceListDoc || '',
+                }));
+                if (data.gstNumber && !data.rejectionFlags?.includes('gstNumber')) {
+                    setIsGstVerified(true);
+                }
+                if (data.accountNumber && !data.rejectionFlags?.includes('accountNumber')) {
+                    setIsBankVerified(true);
+                }
+            }
+        }
     } catch (e) {
         console.error('Fetch Status Error:', e);
     }
@@ -220,11 +284,12 @@ const RegisterAsSupplierPage = () => {
     
     try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = user._id || user.id;
         const response = await fetch(`${BASE_URL}/supplier/initiate-bank-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                userId: user._id, 
+                userId, 
                 accountNumber: formData.accountNumber,
                 ifscCode: formData.ifscCode
             })
@@ -254,11 +319,12 @@ const RegisterAsSupplierPage = () => {
     setIsBankVerifying(true);
     try {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const userId = user._id || user.id;
         const response = await fetch(`${BASE_URL}/supplier/complete-bank-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                userId: user._id, 
+                userId, 
                 amountEntered: amountEntered 
             })
         });
@@ -380,13 +446,15 @@ const RegisterAsSupplierPage = () => {
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Active Application</span>
                         </div>
                         <h3 className="text-2xl font-black tracking-tighter uppercase mb-2 leading-none">
-                            {applicationStatus.onboardingStage === 'Initial_Approval_Pending' && 'Review in Progress'}
+                            {applicationStatus.status === 'Revision_Required' && 'Revision Required'}
+                            {applicationStatus.status !== 'Revision_Required' && applicationStatus.onboardingStage === 'Initial_Approval_Pending' && 'Review in Progress'}
                             {applicationStatus.onboardingStage === 'Product_Selection_Phase' && 'Select Your Products'}
                             {applicationStatus.onboardingStage === 'Final_Approval_Pending' && 'Final Review'}
                             {applicationStatus.onboardingStage === 'Onboarded' && 'You are Official! 🎉'}
                         </h3>
                         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest leading-relaxed mb-8">
-                            {applicationStatus.onboardingStage === 'Initial_Approval_Pending' && 'Our team is checking your documents. You will be notified soon.'}
+                            {applicationStatus.status === 'Revision_Required' && 'Your application requires revision. Please click below to correct and resubmit.'}
+                            {applicationStatus.status !== 'Revision_Required' && applicationStatus.onboardingStage === 'Initial_Approval_Pending' && 'Our team is checking your documents. You will be notified soon.'}
                             {applicationStatus.onboardingStage === 'Product_Selection_Phase' && 'Docs approved! Now select the products you can supply.'}
                             {applicationStatus.onboardingStage === 'Final_Approval_Pending' && 'Catalog received. We are doing the final verification.'}
                             {applicationStatus.onboardingStage === 'Onboarded' && 'Welcome to the Spinzyt B2B Marketplace.'}
@@ -398,6 +466,15 @@ const RegisterAsSupplierPage = () => {
                                 className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                             >
                                 Select Products Now
+                            </button>
+                        )}
+
+                        {applicationStatus.status === 'Revision_Required' && (
+                            <button 
+                                onClick={() => setShowLanding(false)}
+                                className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                            >
+                                Edit Application
                             </button>
                         )}
                     </div>
@@ -416,9 +493,11 @@ const RegisterAsSupplierPage = () => {
                 ))}
               </div>
             </motion.div>
-            <motion.button onClick={() => setShowLanding(false)} whileTap={{ scale: 0.95 }} className="w-full max-w-sm bg-primary text-on-primary py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3">
-              Start Application <span className="material-symbols-outlined text-lg">arrow_forward</span>
-            </motion.button>
+            {!applicationStatus && (
+                <motion.button onClick={() => setShowLanding(false)} whileTap={{ scale: 0.95 }} className="w-full max-w-sm bg-primary text-on-primary py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl flex items-center justify-center gap-3">
+                  Start Application <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                </motion.button>
+            )}
           </main>
         </motion.div>
     );
@@ -445,6 +524,28 @@ const RegisterAsSupplierPage = () => {
       </header>
 
       <main className="pt-36 px-6 max-w-2xl mx-auto w-full">
+        {isRevisionRequired && (
+            <motion.div 
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="mb-10 bg-rose-50 border border-rose-100 rounded-[2rem] p-6 shadow-xl shadow-rose-500/5 relative overflow-hidden"
+            >
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                    <span className="material-symbols-outlined text-4xl text-rose-500">warning</span>
+                </div>
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center">
+                        <span className="material-symbols-outlined text-sm font-black">feedback</span>
+                    </div>
+                    <h3 className="text-[10px] font-black text-rose-900 uppercase tracking-widest">Correction Required</h3>
+                </div>
+                <p className="text-xs font-bold text-rose-700 leading-relaxed bg-white/50 p-4 rounded-xl border border-rose-100">
+                    <span className="opacity-60 block text-[8px] font-black uppercase mb-1">Admin Notes:</span>
+                    "{applicationStatus.rejectionReason || 'Please review your documents and re-submit.'}"
+                </p>
+                <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mt-4 ml-1">Update the necessary fields and re-submit for review.</p>
+            </motion.div>
+        )}
         <div className="mb-10">
             <h2 className="text-2xl font-black tracking-tighter leading-none mb-2">
                 {step === 1 && "Identity & Category"}
@@ -464,100 +565,110 @@ const RegisterAsSupplierPage = () => {
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                 <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6">
                     <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Registered Business Name</label>
-                            <input 
-                                type="text"
-                                value={formData.registeredBusinessName}
-                                onChange={(e) => setFormData({ ...formData, registeredBusinessName: e.target.value })}
-                                placeholder="Enter legal business name"
-                                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
-                            />
-                        </div>
+                        <FieldHighlight name="registeredBusinessName" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Registered Business Name</label>
+                                <input 
+                                    type="text"
+                                    value={formData.registeredBusinessName}
+                                    onChange={(e) => setFormData({ ...formData, registeredBusinessName: e.target.value })}
+                                    placeholder="Enter legal business name"
+                                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
+                                />
+                            </div>
+                        </FieldHighlight>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Person Name</label>
-                                <input 
-                                    type="text"
-                                    value={formData.contactPersonName}
-                                    onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
-                                    placeholder="Full Name"
-                                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Designation</label>
-                                <input 
-                                    type="text"
-                                    value={formData.designation}
-                                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                                    placeholder="e.g. Director, Sales Head"
-                                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
-                                />
-                            </div>
+                            <FieldHighlight name="contactPersonName" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Contact Person Name</label>
+                                    <input 
+                                        type="text"
+                                        value={formData.contactPersonName}
+                                        onChange={(e) => setFormData({ ...formData, contactPersonName: e.target.value })}
+                                        placeholder="Full Name"
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
+                                    />
+                                </div>
+                            </FieldHighlight>
+                            <FieldHighlight name="designation" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Designation</label>
+                                    <input 
+                                        type="text"
+                                        value={formData.designation}
+                                        onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                                        placeholder="e.g. Director, Sales Head"
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none"
+                                    />
+                                </div>
+                            </FieldHighlight>
                         </div>
 
-                        <div className="space-y-2 relative">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Entity Type</label>
-                            <button 
-                                type="button"
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-5 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none flex items-center justify-between"
-                            >
-                                <span>{formData.entityType}</span>
-                                <span className={`material-symbols-outlined transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
-                            </button>
+                        <FieldHighlight name="entityType" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
+                            <div className="space-y-2 relative">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Entity Type</label>
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                                    className="w-full bg-slate-50 border-none rounded-2xl px-5 py-5 text-sm font-bold focus:ring-2 focus:ring-primary/10 outline-none flex items-center justify-between"
+                                >
+                                    <span>{formData.entityType}</span>
+                                    <span className={`material-symbols-outlined transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                                </button>
 
-                            <AnimatePresence>
-                                {isDropdownOpen && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -10 }}
-                                        className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden"
-                                    >
-                                        {['Supplier', 'Distributor/Wholesaler'].map((option) => (
-                                            <button
-                                                key={option}
-                                                type="button"
-                                                onClick={() => {
-                                                    setFormData({ ...formData, entityType: option });
-                                                    setIsDropdownOpen(false);
-                                                }}
-                                                className={`w-full text-left px-6 py-4 text-sm font-bold transition-colors ${
-                                                    formData.entityType === option ? 'bg-primary text-white' : 'hover:bg-slate-50 text-slate-600'
-                                                }`}
-                                            >
-                                                {option}
-                                            </button>
-                                        ))}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                                <AnimatePresence>
+                                    {isDropdownOpen && (
+                                        <motion.div 
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -10 }}
+                                            className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden"
+                                        >
+                                            {['Supplier', 'Distributor/Wholesaler'].map((option) => (
+                                                <button
+                                                    key={option}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setFormData({ ...formData, entityType: option });
+                                                        setIsDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full text-left px-6 py-4 text-sm font-bold transition-colors ${
+                                                        formData.entityType === option ? 'bg-primary text-white' : 'hover:bg-slate-50 text-slate-600'
+                                                    }`}
+                                                >
+                                                    {option}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </FieldHighlight>
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Supply Categories (Select Multiple)</label>
-                    <div className="flex flex-wrap gap-2">
-                        {categories.map((cat) => (
-                            <button
-                                key={cat}
-                                type="button"
-                                onClick={() => toggleSelection('supplyCategories', cat)}
-                                className={`px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    formData.supplyCategories.includes(cat)
-                                        ? 'bg-primary text-on-primary shadow-lg shadow-primary/20 scale-105'
-                                        : 'bg-white text-slate-400 border border-slate-200'
-                                }`}
-                            >
-                                {cat}
-                            </button>
-                        ))}
+                <FieldHighlight name="supplyCategories" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Supply Categories (Select Multiple)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {categories.map((cat) => (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => toggleSelection('supplyCategories', cat)}
+                                    className={`px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                        formData.supplyCategories.includes(cat)
+                                            ? 'bg-primary text-on-primary shadow-lg shadow-primary/20 scale-105'
+                                            : 'bg-white text-slate-400 border border-slate-200'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                </div>
+                </FieldHighlight>
 
                 <button 
                     onClick={handleNext}
@@ -572,6 +683,7 @@ const RegisterAsSupplierPage = () => {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                 {/* GST Verification Section */}
                 <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6">
+                    <FieldHighlight name="gstNumber" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                     <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">GST Registration Number</label>
                         <div className="flex gap-2">
@@ -604,12 +716,14 @@ const RegisterAsSupplierPage = () => {
                             </p>
                         )}
                     </div>
+                    </FieldHighlight>
                 </div>
 
                 {/* Documents Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* PAN Input */}
                     <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
+                        <FieldHighlight name="panNumber" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Business PAN</label>
                             <input 
@@ -621,6 +735,8 @@ const RegisterAsSupplierPage = () => {
                                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none"
                             />
                         </div>
+                        </FieldHighlight>
+                        <FieldHighlight name="panDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <div className="relative group">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'panDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                             <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.panDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
@@ -628,10 +744,12 @@ const RegisterAsSupplierPage = () => {
                                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload PAN Copy</p>
                             </div>
                         </div>
+                        </FieldHighlight>
                     </div>
 
                     {/* GST Certificate */}
                     <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
+                        <FieldHighlight name="gstDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">GST Certificate</label>
                             <p className="text-[10px] font-bold text-slate-500 mb-2 italic">Mandatory for all suppliers</p>
@@ -643,10 +761,12 @@ const RegisterAsSupplierPage = () => {
                                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload GST Form</p>
                             </div>
                         </div>
+                        </FieldHighlight>
                     </div>
 
                     {/* Trade License / MSME */}
                     <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
+                        <FieldHighlight name="msmeDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">MSME / Trade License</label>
                             <p className="text-[10px] font-bold text-slate-500 mb-2 italic">Optional but recommended</p>
@@ -658,11 +778,13 @@ const RegisterAsSupplierPage = () => {
                                 <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload MSME Copy</p>
                             </div>
                         </div>
+                        </FieldHighlight>
                     </div>
 
                     {/* Conditional: Manufacturer Authorization */}
                     {formData.entityType === 'Distributor/Wholesaler' && (
                         <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4 ring-2 ring-primary/5">
+                            <FieldHighlight name="manufacturerAuthDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black uppercase tracking-widest text-primary ml-1">Manufacturer Authorization</label>
                                 <p className="text-[10px] font-bold text-slate-500 mb-2 italic">Mandatory for Wholesalers</p>
@@ -674,6 +796,7 @@ const RegisterAsSupplierPage = () => {
                                     <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload Auth Letter</p>
                                 </div>
                             </div>
+                            </FieldHighlight>
                         </div>
                     )}
                 </div>
@@ -691,6 +814,7 @@ const RegisterAsSupplierPage = () => {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
                 {/* Physical Presence Section */}
                 <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6">
+                    <FieldHighlight name="warehouseAddress" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Warehouse / Godown Address</label>
@@ -711,9 +835,11 @@ const RegisterAsSupplierPage = () => {
                             <span className="text-[10px] font-black uppercase tracking-widest">Pin exact location on Map</span>
                         </button>
                     </div>
+                    </FieldHighlight>
                 </div>
 
                 {/* Serviceable Areas */}
+                <FieldHighlight name="serviceableAreas" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                 <div className="space-y-4">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Serviceable Areas</label>
                     <div className="flex flex-wrap gap-2">
@@ -733,9 +859,11 @@ const RegisterAsSupplierPage = () => {
                         ))}
                     </div>
                 </div>
+                </FieldHighlight>
 
                 {/* Delivery Infrastructure */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FieldHighlight name="vehicles" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Vehicle Infrastructure</label>
                         <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-2">
@@ -754,7 +882,9 @@ const RegisterAsSupplierPage = () => {
                             ))}
                         </div>
                     </div>
+                    </FieldHighlight>
 
+                    <FieldHighlight name="deliveryFrequency" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                     <div className="space-y-4">
                         <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Delivery Frequency</label>
                         <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-2">
@@ -773,6 +903,7 @@ const RegisterAsSupplierPage = () => {
                             ))}
                         </div>
                     </div>
+                    </FieldHighlight>
                 </div>
 
                 {/* Warehouse Media Uploads */}
@@ -781,19 +912,23 @@ const RegisterAsSupplierPage = () => {
                     <div className="grid grid-cols-3 gap-4">
                         {[0, 1].map((idx) => (
                             <div key={`stock-${idx}`} className="relative aspect-square">
+                                <FieldHighlight name="warehousePhotos" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                                 <input type="file" onChange={(e) => handleFileUpload(e, 'warehousePhotos', idx)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                                 <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.warehousePhotos[idx] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
                                     <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.warehousePhotos[idx] ? 'inventory_2' : 'add_photo_alternate'}</span>
                                     <p className="text-[7px] font-black uppercase tracking-widest text-slate-400">Stock Photo {idx + 1}</p>
                                 </div>
+                                </FieldHighlight>
                             </div>
                         ))}
                         <div className="relative aspect-square">
+                            <FieldHighlight name="dispatchPhoto" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                             <input type="file" onChange={(e) => handleFileUpload(e, 'dispatchPhoto')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                             <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.dispatchPhoto ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
                                 <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.dispatchPhoto ? 'local_shipping' : 'add_photo_alternate'}</span>
                                 <p className="text-[7px] font-black uppercase tracking-widest text-slate-400">Dispatch Area</p>
                             </div>
+                            </FieldHighlight>
                         </div>
                     </div>
                 </div>
@@ -804,6 +939,7 @@ const RegisterAsSupplierPage = () => {
                         <span className="material-symbols-outlined text-primary">shield</span>
                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em]">Identity Compliance</h4>
                     </div>
+                    <FieldHighlight name="ownerAadhaar" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                     <div className="space-y-2">
                         <label className="text-[8px] font-bold uppercase tracking-widest text-white/40 ml-1">Owner Aadhaar Number (Internal Record Only)</label>
                         <input 
@@ -814,6 +950,7 @@ const RegisterAsSupplierPage = () => {
                             className="w-full bg-white/10 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none placeholder:text-white/20"
                         />
                     </div>
+                    </FieldHighlight>
                 </div>
 
                 <button 
@@ -839,6 +976,7 @@ const RegisterAsSupplierPage = () => {
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
+                                <FieldHighlight name="bankName" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Account Holder Name</label>
                                 <input 
                                     type="text"
@@ -847,8 +985,10 @@ const RegisterAsSupplierPage = () => {
                                     placeholder="Name as per Bank Record"
                                     className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none"
                                 />
+                                </FieldHighlight>
                             </div>
                             <div className="space-y-2">
+                                <FieldHighlight name="ifscCode" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">IFSC Code</label>
                                 <input 
                                     type="text"
@@ -857,10 +997,12 @@ const RegisterAsSupplierPage = () => {
                                     placeholder="SBIN0001234"
                                     className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none"
                                 />
+                                </FieldHighlight>
                             </div>
                         </div>
 
                         <div className="space-y-2">
+                            <FieldHighlight name="accountNumber" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                             <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Account Number</label>
                             <div className="flex flex-col sm:flex-row gap-3">
                                 <input 
@@ -921,6 +1063,7 @@ const RegisterAsSupplierPage = () => {
                                     : "* RazorpayX Penny Drop verification will trigger a small random transfer."
                                 }
                             </p>
+                            </FieldHighlight>
                         </div>
                     </div>
                 </div>
@@ -928,6 +1071,7 @@ const RegisterAsSupplierPage = () => {
                 {/* Final Documents */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
+                        <FieldHighlight name="cancelledChequeDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Cancelled Cheque</label>
                         <div className="relative group aspect-video">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'cancelledChequeDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
@@ -936,9 +1080,11 @@ const RegisterAsSupplierPage = () => {
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Upload Image/PDF</p>
                             </div>
                         </div>
+                        </FieldHighlight>
                     </div>
 
                     <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
+                        <FieldHighlight name="priceListDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Product Catalog / Price List</label>
                         <div className="relative group aspect-video">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'priceListDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
@@ -947,6 +1093,7 @@ const RegisterAsSupplierPage = () => {
                                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Upload PDF Catalog</p>
                             </div>
                         </div>
+                        </FieldHighlight>
                     </div>
                 </div>
 
@@ -978,7 +1125,8 @@ const RegisterAsSupplierPage = () => {
                         
                         try {
                             const user = JSON.parse(localStorage.getItem('user') || '{}');
-                            const response = await fetch(`${BASE_URL}/supplier/apply/${user._id || 'guest'}`, {
+                            const userId = user._id || user.id || 'guest';
+                            const response = await fetch(`${BASE_URL}/supplier/apply/${userId}`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(formData)

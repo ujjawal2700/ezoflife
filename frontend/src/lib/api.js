@@ -580,9 +580,11 @@ export const adminApi = {
             throw error;
         }
     },
-    getPendingApprovals: async () => {
+    getPendingApprovals: async (filters = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/pending-approvals`, {
+            const queryParams = new URLSearchParams(filters).toString();
+            const url = `${BASE_URL}/admin/pending-approvals${queryParams ? `?${queryParams}` : ''}`;
+            const response = await fetch(url, {
                 headers: adminAuthHeaders()
             });
             return await response.json();
@@ -1912,9 +1914,7 @@ export const vendorPaymentApi = {
     },
     getPayoutHistory: async (vendorId) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/vendor-payouts/${vendorId}`, {
-                headers: adminAuthHeaders()
-            });
+            const response = await fetch(`${BASE_URL}/auth/vendor-payouts/${vendorId}`);
             return await response.json();
         } catch (error) {
             console.error('Get Payout History Error:', error);

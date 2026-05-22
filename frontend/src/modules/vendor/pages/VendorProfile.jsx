@@ -185,152 +185,149 @@ const VendorProfile = () => {
 
     return (
         <div className="text-slate-900 min-h-screen pb-40 font-sans">
-            <main className="max-w-md mx-auto px-6 pt-2 space-y-8">
+            <main className="max-w-md mx-auto px-6 pt-2 space-y-6">
 
-                {/* PROFILE HEADER - REDESIGNED FOR LEFT ALIGNMENT */}
-                {/* PROFILE HEADER */}
-                <header className="flex items-center gap-6">
-                    <div className="relative group flex-shrink-0">
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImageChange}
-                            accept="image/*"
-                            className="hidden"
-                        />
-                        <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-24 h-24 rounded-3xl bg-white border-4 border-white shadow-xl overflow-hidden relative z-10 cursor-pointer group-hover:opacity-90 transition-opacity"
-                        >
-                            <img
-                                src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=200"}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
-                            </div>
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg z-20">
-                            <span className="material-symbols-outlined text-[14px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
-                        </div>
-                    </div>
+                {/* UNIFIED PROFILE BOX - everything in one card */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden relative">
 
-                    <div className="space-y-1">
-                        <h2 className="text-2xl font-black tracking-tighter text-slate-950 leading-tight">
-                            {user.shopDetails?.name || user.displayName}
-                        </h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{user.role || 'Service Partner'}</p>
-                        <div className="pt-1">
-                            <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.2em] border shadow-sm ${user.status === 'approved' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
-                                {user.status}
-                            </span>
-                        </div>
-                    </div>
-                </header>
-
-                {/* UNIFIED PROFILE BOX */}
-                <section className="space-y-4">
-                    <div className="flex justify-end px-1">
+                    {/* Manage button top-right */}
+                    <div className="absolute top-5 right-5 z-10 flex gap-2">
                         <button
                             onClick={() => handleEditClick('shop')}
-                            className="text-[9px] font-black text-primary uppercase tracking-widest bg-primary/5 px-4 py-2 rounded-full border border-primary/10 hover:bg-primary hover:text-white transition-all flex items-center gap-2"
+                            className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl hover:bg-slate-900 hover:text-white transition-all flex items-center gap-1"
                         >
-                            <span className="material-symbols-outlined text-[14px]">settings</span>
+                            <span className="material-symbols-outlined text-[12px]">settings</span>
                             Manage
                         </button>
                     </div>
 
-                    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-                        {/* 0. CONTACT INFO */}
-                        <div className="p-7 space-y-4">
-                            <div className="grid grid-cols-1 gap-4 pl-1">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                                        <span className="material-symbols-outlined text-lg">call</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Mobile Number</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-widest">{user.phone}</p>
-                                    </div>
+                    {/* TOP SECTION: Image + Name + Email + Phone */}
+                    <section className="p-7 border-b border-slate-50">
+                        {/* Profile Image */}
+                        <div className="relative group w-fit mb-5">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImageChange}
+                                accept="image/*"
+                                className="hidden"
+                            />
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="w-20 h-20 rounded-[1.8rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden cursor-pointer relative"
+                            >
+                                <img
+                                    src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=200"}
+                                    alt="Profile"
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                                        <span className="material-symbols-outlined text-lg">mail</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Email Address</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight lowercase">{user.email || 'partner@ezoflife.in'}</p>
-                                    </div>
-                                </div>
+                            </div>
+                            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg z-20">
+                                <span className="material-symbols-outlined text-[12px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
                             </div>
                         </div>
 
-                        {/* 1. BUSINESS INFO */}
-                        <div className="p-7 space-y-5">
-                            <div className="grid grid-cols-1 gap-5 pl-1">
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
-                                    <p className="text-sm font-black text-slate-900 tracking-tight">{user.shopDetails?.name || 'N/A'}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Address</p>
-                                    <p className="text-xs font-bold text-slate-600 leading-relaxed">{user.shopDetails?.address || 'N/A'}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GST Number</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight">{user.shopDetails?.gst || 'Individual'}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MSME Status</p>
-                                        <p className="text-xs font-black text-emerald-600 tracking-tight flex items-center gap-1 uppercase">
-                                            <span className="material-symbols-outlined text-[14px]">check_circle</span> {user.shopDetails?.msmeStatus || 'N/A'}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
+                        {/* Name */}
+                        <div className="space-y-1 mb-4">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop / Partner Name</p>
+                            <h2 className="text-xl font-black tracking-tight text-slate-950 leading-tight">
+                                {user.shopDetails?.name || user.displayName || 'Partner'}
+                            </h2>
+                            <span className={`inline-block mt-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${user.status === 'approved' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
+                                {user.status}
+                            </span>
                         </div>
 
-                        {/* 2. BANK INFO */}
-                        <div className="p-7 bg-slate-50/50 space-y-5">
-                            <div className="flex justify-end mb-2">
-                                <button 
-                                    onClick={() => handleEditClick('bank')}
-                                    className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1"
-                                >
-                                    <span className="material-symbols-outlined text-[12px]">edit</span>
-                                    Update Bank
-                                </button>
-                            </div>
+                        {/* Email */}
+                        <div className="space-y-1 mb-4">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
+                            <p className="text-[11px] font-black text-slate-950 lowercase">{user.email || 'partner@ezoflife.in'}</p>
+                        </div>
 
-                            <div className="grid grid-cols-1 gap-5 pl-1">
+                        {/* Phone */}
+                        <div className="space-y-1">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Mobile Number</p>
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[14px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                                <p className="text-[11px] font-black text-slate-950">{user.phone}</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* BUSINESS DETAILS */}
+                    <section className="p-7 border-b border-slate-50 space-y-5">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[14px]">store</span>
+                            Business Details
+                        </p>
+                        <div className="grid grid-cols-1 gap-4 pl-1">
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
+                                <p className="text-sm font-black text-slate-900 tracking-tight">{user.shopDetails?.name || 'N/A'}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Address</p>
+                                <p className="text-xs font-bold text-slate-600 leading-relaxed">{user.shopDetails?.address || 'N/A'}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
-                                    <p className="text-sm font-black text-slate-900 tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
-                                    </div>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GST Number</p>
+                                    <p className="text-xs font-black text-slate-900 tracking-tight">{user.shopDetails?.gst || 'Individual'}</p>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
-                                    <p className="text-xs font-black text-slate-900 tracking-[0.15em]">
-                                        {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MSME Status</p>
+                                    <p className="text-xs font-black text-emerald-600 tracking-tight flex items-center gap-1 uppercase">
+                                        <span className="material-symbols-outlined text-[14px]">check_circle</span> {user.shopDetails?.msmeStatus || 'N/A'}
                                     </p>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </section>
+                    </section>
 
-                {/* 4. DOCUMENTS SECTION */}
+                    {/* BANK DETAILS */}
+                    <section className="p-7 bg-slate-50/40 space-y-5">
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[14px]">account_balance</span>
+                                Bank Details
+                            </p>
+                            <button
+                                onClick={() => handleEditClick('bank')}
+                                className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1"
+                            >
+                                <span className="material-symbols-outlined text-[12px]">edit</span>
+                                Update
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 pl-1">
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
+                                <p className="text-sm font-black text-slate-900 tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
+                                    <p className="text-xs font-black text-slate-900 tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
+                                    <p className="text-xs font-black text-slate-900 tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
+                                <p className="text-xs font-black text-slate-900 tracking-[0.15em]">
+                                    {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
+                                </p>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                {/* DOCUMENTS SECTION */}
                 <section className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Verification Documents</h3>
@@ -366,7 +363,6 @@ const VendorProfile = () => {
                             </div>
                         )}
 
-                        {/* Option to add missing ones if needed or standard set */}
                         {(!user.documents || user.documents.length < 2) && (
                             <div className="pt-2 border-t border-slate-50 mt-2">
                                 <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-3 text-center">Add Missing Documents</p>
@@ -385,7 +381,7 @@ const VendorProfile = () => {
                     </div>
                 </section>
 
-                {/* 5. LEGAL & POLICIES SECTION */}
+                {/* LEGAL & POLICIES SECTION */}
                 <section className="space-y-3">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>

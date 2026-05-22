@@ -176,6 +176,76 @@ const PoolOrderCard = ({ order, onAccept, acceptingId, onReject }) => {
     );
 };
 
+const isToday = (dateInput) => {
+    if (!dateInput) return false;
+    const d = new Date(dateInput);
+    const today = new Date();
+    return d.getDate() === today.getDate() &&
+           d.getMonth() === today.getMonth() &&
+           d.getFullYear() === today.getFullYear();
+};
+
+const isYesterday = (dateInput) => {
+    if (!dateInput) return false;
+    const d = new Date(dateInput);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return d.getDate() === yesterday.getDate() &&
+           d.getMonth() === yesterday.getMonth() &&
+           d.getFullYear() === yesterday.getFullYear();
+};
+
+const parsePickupSlotToDate = (dateStr, timeStr) => {
+    try {
+        if (!dateStr) return null;
+        let dateObj = new Date();
+        const upperDateStr = dateStr.toUpperCase();
+        if (upperDateStr.includes('TODAY')) {
+            // Already today
+        } else if (upperDateStr.includes('TOMORROW')) {
+            dateObj.setDate(dateObj.getDate() + 1);
+        } else {
+            const parts = dateStr.split(',');
+            const datePart = parts[1] || parts[0];
+            const parsed = new Date(datePart);
+            if (!isNaN(parsed.getTime())) {
+                dateObj = parsed;
+                dateObj.setFullYear(new Date().getFullYear());
+            }
+        }
+
+        if (timeStr) {
+            const startTimeStr = timeStr.split('-')[0].trim();
+            const match = startTimeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+            if (match) {
+                let hours = parseInt(match[1]);
+                const minutes = parseInt(match[2]);
+                const ampm = match[3].toUpperCase();
+                if (ampm === 'PM' && hours < 12) hours += 12;
+                if (ampm === 'AM' && hours === 12) hours = 0;
+                dateObj.setHours(hours, minutes, 0, 0);
+            } else {
+                dateObj.setHours(12, 0, 0, 0);
+            }
+        } else {
+            dateObj.setHours(12, 0, 0, 0);
+        }
+        return dateObj;
+    } catch (e) {
+        console.error('Error parsing pickup slot:', dateStr, timeStr, e);
+        return null;
+    }
+};
+
+const isUpcomingPickup = (dateStr, timeStr) => {
+    const pickupDate = parsePickupSlotToDate(dateStr, timeStr);
+    if (!pickupDate) return false;
+    const now = new Date();
+    const diffMs = pickupDate.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    return diffHours >= -1 && diffHours <= 8;
+};
+
 const Dashboard = () => {
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('Available');
@@ -190,6 +260,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [acceptingId, setAcceptingId] = useState(null);
     const [summary, setSummary] = useState(null);
+    const [payoutHistory, setPayoutHistory] = useState([]);
     const { fetchNotifications } = useNotificationStore();
 
     const [startDate, setStartDate] = useState('');
@@ -236,12 +307,17 @@ const Dashboard = () => {
 
     const fetchAllData = async () => {
         try {
-            const [ordersRes, summaryRes] = await Promise.all([
+            const [ordersRes, summaryRes, payoutsRes] = await Promise.all([
                 orderApi.getVendorOrders(vendorId),
-                vendorPaymentApi.getEarningsSummary(vendorId)
+                vendorPaymentApi.getEarningsSummary(vendorId),
+                vendorPaymentApi.getPayoutHistory(vendorId).catch(err => {
+                    console.error('Fetch payouts error:', err);
+                    return [];
+                })
             ]);
             setAllOrders(ordersRes);
             setSummary(summaryRes);
+            setPayoutHistory(Array.isArray(payoutsRes) ? payoutsRes : []);
             await Promise.all([
                 fetchPoolOrders(),
                 fetchNotifications(vendorId, 'vendor')
@@ -325,23 +401,37 @@ const Dashboard = () => {
         return list;
     }, [categorizedOrders, startDate, endDate]);
 
-    const dailyEarnings = useMemo(() => {
-        const today = new Date().setHours(0, 0, 0, 0);
+    const newRequestsCount = useMemo(() => {
+        return poolOrders.filter(o => isToday(o.createdAt)).length;
+    }, [poolOrders]);
+
+    const upcomingPickupsCount = useMemo(() => {
+        return allOrders.filter(o => o.status === 'Assigned' && isUpcomingPickup(o.pickupSlot?.date, o.pickupSlot?.time)).length;
+    }, [allOrders]);
+
+    const activeOrdersCount = useMemo(() => {
+        return allOrders.filter(o => 
+            ['Assigned', 'Picked Up', 'In Progress'].includes(o.status) && 
+            (isToday(o.updatedAt) || isToday(o.createdAt))
+        ).length;
+    }, [allOrders]);
+
+    const businessBookedToday = useMemo(() => {
         return allOrders
-            .filter(o => new Date(o.createdAt).getTime() >= today && o.status === 'Delivered')
+            .filter(o => (isToday(o.updatedAt) || isToday(o.createdAt)) && o.status !== 'Cancelled')
             .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     }, [allOrders]);
 
-    const dashboardStats = useMemo(() => [
-        { 
-            label: 'Earnings Today', 
-            value: `₹${dailyEarnings.toLocaleString()}`, 
-            change: dailyEarnings > 0 ? 'Trending Up' : 'No sales yet', 
-            trend: 'up', 
-            variant: 'surface' 
-        },
-        { label: 'Process Queue', value: categorizedOrders['In Progress'].length.toString().padStart(2, '0'), variant: 'primary' }
-    ], [categorizedOrders, dailyEarnings]);
+    const totalPayoutsReceivedYesterday = useMemo(() => {
+        const history = Array.isArray(payoutHistory) ? payoutHistory : [];
+        return history
+            .filter(p => p && p.status === 'Completed' && isYesterday(p.paidAt || p.createdAt))
+            .reduce((sum, p) => sum + (p.amount || 0), 0);
+    }, [payoutHistory]);
+
+    const readyForDeliveryCount = useMemo(() => {
+        return allOrders.filter(o => o.status === 'Ready').length;
+    }, [allOrders]);
 
     const [selectedOrderForReady, setSelectedOrderForReady] = useState(null);
 
@@ -658,12 +748,12 @@ const Dashboard = () => {
                                 
                                 <div className="grid grid-cols-1 gap-0.5">
                                     {[
-                                        { label: 'New Request', value: poolOrders.length, icon: 'notifications_active', color: 'text-rose-500', bg: 'bg-rose-50' },
-                                        { label: 'Upcoming Pickup', value: allOrders.filter(o => o.status === 'Assigned').length, icon: 'schedule', color: 'text-amber-500', bg: 'bg-amber-50' },
-                                        { label: 'Active Order', value: categorizedOrders['In Progress'].length, icon: 'motion_photos_on', color: 'text-blue-500', bg: 'bg-blue-50' },
-                                        { label: 'Business Booked Today', value: `₹${dailyEarnings.toLocaleString()}`, icon: 'payments', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                                        { label: 'Total Payout Received', value: `₹${(summary?.totalPaid || 0).toLocaleString()}`, icon: 'account_balance_wallet', color: 'text-slate-900', bg: 'bg-slate-50' },
-                                        { label: 'Ready For Delivery', value: (categorizedOrders['Ready'] || []).length, icon: 'local_shipping', color: 'text-indigo-500', bg: 'bg-indigo-50' },
+                                        { label: 'New Request', value: newRequestsCount, icon: 'notifications_active', color: 'text-rose-500', bg: 'bg-rose-50' },
+                                        { label: 'Upcoming Pickups (Next 6-8 hrs.)', value: upcomingPickupsCount, icon: 'schedule', color: 'text-amber-500', bg: 'bg-amber-50' },
+                                        { label: 'Active orders', value: activeOrdersCount, icon: 'motion_photos_on', color: 'text-blue-500', bg: 'bg-blue-50' },
+                                        { label: 'Business booked today', value: `₹${businessBookedToday.toLocaleString()}`, icon: 'payments', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+                                        { label: 'Total Payouts received', value: `₹${totalPayoutsReceivedYesterday.toLocaleString()}`, icon: 'account_balance_wallet', color: 'text-slate-900', bg: 'bg-slate-50' },
+                                        { label: 'Ready for delivery', value: readyForDeliveryCount, icon: 'local_shipping', color: 'text-indigo-500', bg: 'bg-indigo-50' },
                                     ].map((stat, idx) => (
                                         <div key={idx} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group/item">
                                             <div className="flex items-center gap-3">

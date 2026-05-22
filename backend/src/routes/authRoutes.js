@@ -20,6 +20,7 @@ import {
     getDraftCart,
     updateDraftCart
 } from '../controllers/authController.js';
+import { getVendorPayoutHistory } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
 
 const router = express.Router();
@@ -69,6 +70,7 @@ router.post('/become-supplier/:id', (req, res, next) => {
 }, becomeSupplier);
 
 router.get('/vendor-earnings', getVendorEarnings);
+router.get('/vendor-payouts/:vendorId', getVendorPayoutHistory);
 router.get('/cart/:id', getDraftCart);
 router.post('/cart/:id', updateDraftCart);
 

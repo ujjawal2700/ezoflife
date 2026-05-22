@@ -29,7 +29,7 @@ const Earnings = () => {
             ]);
             setOrders(ordersData);
             setSummary(summaryData);
-            setPayouts(historyData);
+            setPayouts(Array.isArray(historyData) ? historyData : []);
         } catch (err) {
             console.error('Error fetching earnings data:', err);
         } finally {

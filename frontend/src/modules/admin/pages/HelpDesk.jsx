@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MessageSquare, Clock, CheckCircle2, AlertCircle, Search, Filter, ArrowRight, User, Send, Loader2, Info } from 'lucide-react';
+import { MessageSquare, Search, User, Send, Loader2 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import { ticketApi, adminApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
@@ -13,26 +12,22 @@ export default function HelpDesk() {
   const [adminMessage, setAdminMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   
-  const [searchParams, setSearchParams] = useSearchParams();
-  
-  // Chat Settings States
-  const [showSettings, setShowSettings] = useState(false);
-  const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
-  const [activeTab, setActiveTab] = useState(searchParams.get('activeTab') || 'Customer'); // Customer, Vendor, Supplier
-  
-  useEffect(() => {
-    const tab = searchParams.get('activeTab');
-    if (tab) setActiveTab(tab);
-  }, [searchParams]);
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('activeTab') || 'Customer';
   
   // Filtering States
-  const [showFilterPanel, setShowFilterPanel] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [nameFilter, setNameFilter] = useState('All');
+  const [chatIdFilter, setChatIdFilter] = useState('All');
+  const [timeFilter, setTimeFilter] = useState('All');
   
   const chatEndRef = useRef(null);
+
+  // Reset filters on tab change
+  useEffect(() => {
+    setNameFilter('All');
+    setChatIdFilter('All');
+    setTimeFilter('All');
+  }, [activeTab]);
 
   const fetchAllTickets = async () => {
     try {
@@ -40,12 +35,15 @@ export default function HelpDesk() {
       const data = await ticketApi.getAllTickets();
       setTickets(data);
       
-      // Auto-select first ticket of the active category
-      const filtered = data.filter(t => (t.customer?.role || 'Customer') === activeTab);
-      if (filtered.length > 0 && (!selectedTicket || (selectedTicket.customer?.role || 'Customer') !== activeTab)) {
+      // Auto-select first ticket of the active tab (excluding disputes)
+      const filtered = data.filter(t => 
+        (t.customer?.role || 'Customer') === activeTab &&
+        !['Missing Items', 'Damaged Items', 'Wrong Items'].includes(t.category)
+      );
+      if (filtered.length > 0) {
         const detailedTicket = await ticketApi.getTicketDetails(filtered[0]._id);
         setSelectedTicket(detailedTicket);
-      } else if (filtered.length === 0) {
+      } else {
         setSelectedTicket(null);
       }
     } catch (err) {
@@ -55,19 +53,8 @@ export default function HelpDesk() {
     }
   };
 
-  const fetchConfigs = async () => {
-    try {
-      const configs = await adminApi.getConfigs();
-      const chatConfig = configs.find(c => c.key === 'chat_welcome_message');
-      if (chatConfig) setWelcomeMessage(chatConfig.value);
-    } catch (err) {
-      console.error('Error fetching chat config:', err);
-    }
-  };
-
   useEffect(() => {
     fetchAllTickets();
-    fetchConfigs();
   }, [activeTab]);
 
   useEffect(() => {
@@ -122,22 +109,46 @@ export default function HelpDesk() {
       alert('Failed to resolve ticket');
     }
   };
-
-  const handleSaveConfig = async () => {
-    try {
-      setIsSavingConfig(true);
-      await adminApi.updateConfig({
-        key: 'chat_welcome_message',
-        value: welcomeMessage
-      });
-      toast.success('Chat welcome message updated');
-      setShowSettings(false);
-    } catch (err) {
-      toast.error('Failed to update chat settings');
-    } finally {
-      setIsSavingConfig(false);
-    }
+  // Time checking helpers
+  const isToday = (dateString) => {
+    const today = new Date();
+    const date = new Date(dateString);
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
   };
+
+  const isYesterday = (dateString) => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const date = new Date(dateString);
+    return date.getDate() === yesterday.getDate() &&
+      date.getMonth() === yesterday.getMonth() &&
+      date.getFullYear() === yesterday.getFullYear();
+  };
+
+  const isWithinLast7Days = (dateString) => {
+    const date = new Date(dateString);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return date >= sevenDaysAgo;
+  };
+
+  const uniqueNames = useMemo(() => {
+    const names = tickets
+      .filter(t => (t.customer?.role || 'Customer') === activeTab)
+      .filter(t => !['Missing Items', 'Damaged Items', 'Wrong Items'].includes(t.category))
+      .map(t => t.customer?.displayName || t.customer?.ownerName || t.customer?.phone || 'Unknown User');
+    return ['All', ...new Set(names)].sort();
+  }, [tickets, activeTab]);
+
+  const uniqueChatIds = useMemo(() => {
+    const ids = tickets
+      .filter(t => (t.customer?.role || 'Customer') === activeTab)
+      .filter(t => !['Missing Items', 'Damaged Items', 'Wrong Items'].includes(t.category))
+      .map(t => t._id);
+    return ['All', ...new Set(ids)];
+  }, [tickets, activeTab]);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter(t => {
@@ -145,125 +156,85 @@ export default function HelpDesk() {
       const isDispute = ['Missing Items', 'Damaged Items', 'Wrong Items'].includes(t.category);
       if (isDispute) return false;
       
-      const matchesStatus = statusFilter === 'All' || t.status === statusFilter;
-      const matchesCategory = categoryFilter === 'All' || t.category === categoryFilter;
-      const matchesSearch = searchQuery === '' || 
-        t._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.customer?.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.customer?.phone?.includes(searchQuery);
+      const ticketName = t.customer?.displayName || t.customer?.ownerName || t.customer?.phone || 'Unknown User';
+      const matchesName = nameFilter === 'All' || ticketName === nameFilter;
+      
+      const matchesChatId = chatIdFilter === 'All' || t._id === chatIdFilter;
+      
+      let matchesTime = true;
+      const ticketDate = t.updatedAt || t.createdAt;
+      if (timeFilter === 'Today') {
+        matchesTime = isToday(ticketDate);
+      } else if (timeFilter === 'Yesterday') {
+        matchesTime = isYesterday(ticketDate);
+      } else if (timeFilter === 'Last 7 Days') {
+        matchesTime = isWithinLast7Days(ticketDate);
+      }
 
-      return matchesRole && matchesStatus && matchesCategory && matchesSearch;
+      return matchesRole && matchesName && matchesChatId && matchesTime;
     });
-  }, [tickets, activeTab, statusFilter, categoryFilter, searchQuery]);
-
-  const categories = useMemo(() => {
-    const allCats = tickets
-      .filter(t => (t.customer?.role || 'Customer') === activeTab)
-      .filter(t => !['Missing Items', 'Damaged Items', 'Wrong Items'].includes(t.category))
-      .map(t => t.category);
-    return ['All', ...new Set(allCats)];
-  }, [tickets, activeTab]);
-
+  }, [tickets, activeTab, nameFilter, chatIdFilter, timeFilter]);
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] bg-slate-50/50 overflow-hidden">
       <div className="flex-shrink-0">
         <PageHeader 
           title="Help Desk" 
-          actions={[
-            { label: 'Chat Automation', icon: MessageSquare, variant: 'secondary', onClick: () => setShowSettings(true) },
-            { label: 'Refresh Feed', icon: Clock, variant: 'secondary', onClick: fetchAllTickets }
-          ]}
         />
-
-        <div className="bg-white px-8 border-b border-slate-200">
-          <div className="flex gap-10">
-            {['Customer', 'Vendor', 'Supplier'].map(tab => (
-              <button 
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setSearchParams({ activeTab: tab });
-                }}
-                className={`py-4 text-[10px] font-black uppercase tracking-[0.2em] relative transition-all ${activeTab === tab ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}
-              >
-                {tab} Issues
-                {activeTab === tab && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-1 bg-slate-900" />}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden divide-x divide-slate-200 bg-white border-t border-slate-200">
         
         {/* Ticket List Sidebar */}
         <div className="w-full lg:w-[450px] flex flex-col bg-white overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-             <div className="relative flex-1">
-                <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="SEARCH TICKETS..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-widest outline-none focus:bg-white focus:border-slate-900 transition-all"
-                />
-             </div>
-             <button 
-                onClick={() => setShowFilterPanel(!showFilterPanel)}
-                className={`p-3 border rounded-sm transition-all ${showFilterPanel ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-950 hover:text-white'}`}
-              >
-                <Filter size={14} />
-             </button>
+          <div className="p-6 border-b border-slate-100">
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Name</label>
+                <select
+                  value={nameFilter}
+                  onChange={(e) => setNameFilter(e.target.value)}
+                  className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer text-slate-800"
+                >
+                  {uniqueNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Chat ID</label>
+                <select
+                  value={chatIdFilter}
+                  onChange={(e) => setChatIdFilter(e.target.value)}
+                  className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer text-slate-800"
+                >
+                  {uniqueChatIds.map((id) => (
+                    <option key={id} value={id}>
+                      {id === 'All' ? 'ALL' : `#${id.slice(-6).toUpperCase()}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Time</label>
+                <select
+                  value={timeFilter}
+                  onChange={(e) => setTimeFilter(e.target.value)}
+                  className="w-full px-2 py-2 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer text-slate-800"
+                >
+                  <option value="All">ALL</option>
+                  <option value="Today">TODAY</option>
+                  <option value="Yesterday">YESTERDAY</option>
+                  <option value="Last 7 Days">LAST 7 DAYS</option>
+                </select>
+              </div>
+            </div>
           </div>
 
-          {/* Filter Panel */}
-          {showFilterPanel && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="px-6 pb-6 border-b border-slate-100 bg-slate-50/30 space-y-4"
-            >
-               <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Status</label>
-                     <select 
-                       value={statusFilter}
-                       onChange={(e) => setStatusFilter(e.target.value)}
-                       className="w-full bg-white border border-slate-200 rounded-sm p-2 text-[9px] font-black uppercase outline-none focus:border-slate-900"
-                     >
-                        <option value="All">All Status</option>
-                        <option value="Open">Open</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Resolved">Resolved</option>
-                     </select>
-                  </div>
-                  <div className="space-y-1.5">
-                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Category</label>
-                     <select 
-                       value={categoryFilter}
-                       onChange={(e) => setCategoryFilter(e.target.value)}
-                       className="w-full bg-white border border-slate-200 rounded-sm p-2 text-[9px] font-black uppercase outline-none focus:border-slate-900"
-                     >
-                        {categories.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                     </select>
-                  </div>
-               </div>
-               <button 
-                 onClick={() => {
-                   setStatusFilter('All');
-                   setCategoryFilter('All');
-                   setSearchQuery('');
-                 }}
-                 className="w-full py-2 bg-slate-200 text-slate-600 text-[8px] font-black uppercase tracking-widest hover:bg-slate-300 transition-all rounded-sm"
-               >
-                 Clear All Filters
-               </button>
-            </motion.div>
-          )}
+
 
           <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
             {loading ? (
@@ -299,7 +270,7 @@ export default function HelpDesk() {
                      <div className="flex items-center gap-1.5 opacity-60">
                       <User size={10} className="text-slate-400" />
                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                        {ticket.customer?.displayName || ticket.customer?.name || `Unknown ${activeTab}`} 
+                        {ticket.customer?.displayName || ticket.customer?.ownerName || ticket.customer?.phone || `Unknown User`} 
                         <span className="ml-2 px-1 bg-slate-100 text-[7px] text-slate-400 rounded-sm">
                           {ticket.customer?.role || 'Customer'}
                         </span>
@@ -327,20 +298,16 @@ export default function HelpDesk() {
               {/* Context Header */}
               <div className="p-8 bg-white border-b border-slate-100 flex justify-between items-start">
                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-slate-900 text-white rounded-sm flex items-center justify-center">
-                       <User size={24} />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase">{selectedTicket.customer?.displayName || selectedTicket.customer?.name}</h2>
-                      <div className="flex items-center gap-3 mt-1.5">
-                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedTicket.customer?.phone} · ROLE: {activeTab.toUpperCase()} · STATUS: {selectedTicket.status}</span>
-                      </div>
-                    </div>
+                     <div>
+                       <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase">{selectedTicket.customer?.displayName || selectedTicket.customer?.ownerName || selectedTicket.customer?.phone || 'Unknown User'}</h2>
+                        {selectedTicket.customer?.phone && (
+                          <div className="flex items-center gap-3 mt-1.5">
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedTicket.customer?.phone}</span>
+                          </div>
+                        )}
+                     </div>
                  </div>
                  <div className="flex gap-2.5">
-                    <button className="px-4 py-2 bg-white border border-slate-200 text-slate-900 text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all rounded-sm flex items-center gap-2">
-                       Contact User
-                    </button>
                     {selectedTicket.status !== 'Resolved' && (
                       <button 
                         onClick={handleResolveTicket}
@@ -360,9 +327,9 @@ export default function HelpDesk() {
                  
                  {selectedTicket.messages.map((chat, idx) => (
                     <div key={idx} className={`flex gap-4 max-w-[80%] ${chat.senderRole === 'Admin' ? 'ml-auto flex-row-reverse' : ''}`}>
-                       <div className={`w-8 h-8 rounded-sm flex-shrink-0 ${chat.senderRole === 'Admin' ? 'bg-slate-950' : 'bg-slate-200'} flex items-center justify-center text-[8px] text-white font-bold`}>
-                         {chat.senderRole === 'Admin' ? 'AD' : (selectedTicket.customer?.role?.slice(0, 2).toUpperCase() || 'CU')}
-                       </div>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest self-center flex-shrink-0">
+                          {chat.senderRole === 'Admin' ? 'Admin' : (selectedTicket.customer?.displayName || selectedTicket.customer?.ownerName || selectedTicket.customer?.phone || 'User')}
+                        </span>
                        <div className={`space-y-2 ${chat.senderRole === 'Admin' ? 'items-end flex flex-col' : ''}`}>
                           <div className={`p-5 rounded-sm shadow-sm ${chat.senderRole === 'Admin' ? 'bg-slate-900 text-white shadow-xl' : 'bg-white border border-slate-100 text-slate-800'}`}>
                              <p className="text-[11px] font-bold leading-relaxed uppercase tracking-tight">
@@ -382,7 +349,7 @@ export default function HelpDesk() {
               <div className="p-6 bg-white border-t border-slate-100">
                  <div className="relative">
                     <textarea 
-                      placeholder="ENTER PROTOCOL RESPONSE..." 
+                      placeholder="ENTER MESSAGE..." 
                       className="w-full h-20 p-5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-widest outline-none focus:bg-white focus:border-slate-900 transition-all resize-none"
                       value={adminMessage}
                       onChange={(e) => setAdminMessage(e.target.value)}
@@ -394,7 +361,7 @@ export default function HelpDesk() {
                         disabled={isSending || !adminMessage.trim()}
                         className="px-5 py-1.5 bg-slate-900 text-white rounded-[1px] text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-slate-900/20 flex items-center gap-2 disabled:opacity-50 transition-all"
                        >
-                          {isSending ? 'Committing...' : 'Commit Msg'} <Send size={11} />
+                          {isSending ? 'Sending...' : 'Send'} <Send size={11} />
                        </button>
                     </div>
                  </div>
@@ -409,61 +376,7 @@ export default function HelpDesk() {
         </div>
       </div>
 
-      {/* Chat Settings Modal */}
-      {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-6">
-          <div className="bg-white w-full max-w-md rounded-sm border border-slate-200 shadow-2xl overflow-hidden">
-            <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MessageSquare size={18} className="text-emerald-400" />
-                <h3 className="text-[11px] font-black uppercase tracking-[0.2em]">Chat Automation</h3>
-              </div>
-              <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white">
-                <span className="material-symbols-outlined text-sm">close</span>
-              </button>
-            </div>
-            
-            <div className="p-8 space-y-6">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Initial Welcome Message</label>
-                <textarea 
-                  value={welcomeMessage}
-                  onChange={(e) => setWelcomeMessage(e.target.value)}
-                  className="w-full h-32 p-5 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all resize-none"
-                  placeholder="Enter the first message customers see..."
-                />
-                <div className="p-4 bg-slate-50 rounded-sm border border-slate-100">
-                  <div className="flex gap-2 mb-2">
-                    <Info size={12} className="text-slate-400" />
-                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Available Placeholders</span>
-                  </div>
-                  <code className="text-[9px] font-bold text-slate-900 bg-white px-1.5 py-0.5 rounded border border-slate-200">{'{orderId}'}</code>
-                  <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-2 leading-relaxed">
-                    This message is automatically sent to customers when they open a new support chat for an order.
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex gap-3 pt-2">
-                <button 
-                  onClick={() => setShowSettings(false)}
-                  className="flex-1 px-6 py-3 bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleSaveConfig}
-                  disabled={isSavingConfig}
-                  className="flex-1 px-6 py-3 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
-                >
-                  {isSavingConfig ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
