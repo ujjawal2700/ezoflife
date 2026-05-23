@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { MessageSquare, Search, User, Send, Loader2 } from 'lucide-react';
+import { MessageSquare, Search, User, Send, Loader2, ArrowLeft } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import { ticketApi, adminApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ export default function HelpDesk() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminMessage, setAdminMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
   
   const [searchParams] = useSearchParams();
   const activeTab = searchParams.get('activeTab') || 'Customer';
@@ -27,6 +28,7 @@ export default function HelpDesk() {
     setNameFilter('All');
     setChatIdFilter('All');
     setTimeFilter('All');
+    setIsMobileChatOpen(false);
   }, [activeTab]);
 
   const fetchAllTickets = async () => {
@@ -65,6 +67,7 @@ export default function HelpDesk() {
     try {
       const detailed = await ticketApi.getTicketDetails(ticket._id);
       setSelectedTicket(detailed);
+      setIsMobileChatOpen(true);
     } catch (err) {
       console.error('Error fetching ticket details:', err);
     }
@@ -185,7 +188,7 @@ export default function HelpDesk() {
       <div className="flex flex-1 overflow-hidden divide-x divide-slate-200 bg-white border-t border-slate-200">
         
         {/* Ticket List Sidebar */}
-        <div className="w-full lg:w-[450px] flex flex-col bg-white overflow-hidden">
+        <div className={`w-full lg:w-[450px] flex flex-col bg-white overflow-hidden ${isMobileChatOpen ? 'hidden lg:flex' : 'flex'}`}>
           <div className="p-6 border-b border-slate-100">
             <div className="grid grid-cols-3 gap-2">
               <div>
@@ -292,12 +295,18 @@ export default function HelpDesk() {
         </div>
 
         {/* Conversation View */}
-        <div className="hidden lg:flex flex-1 flex-col bg-slate-50 relative">
+        <div className={`flex-1 flex-col bg-slate-50 relative ${isMobileChatOpen ? 'flex' : 'hidden lg:flex'}`}>
           {selectedTicket ? (
             <>
               {/* Context Header */}
               <div className="p-8 bg-white border-b border-slate-100 flex justify-between items-start">
                  <div className="flex items-center gap-5">
+                     <button 
+                       onClick={() => setIsMobileChatOpen(false)}
+                       className="lg:hidden p-1 -ml-2 text-slate-500 hover:text-slate-900 rounded-full hover:bg-slate-100 transition-colors"
+                     >
+                       <ArrowLeft size={20} />
+                     </button>
                      <div>
                        <h2 className="text-xl font-black text-slate-900 tracking-tighter uppercase">{selectedTicket.customer?.displayName || selectedTicket.customer?.ownerName || selectedTicket.customer?.phone || 'Unknown User'}</h2>
                         {selectedTicket.customer?.phone && (

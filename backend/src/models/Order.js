@@ -174,7 +174,16 @@ const orderSchema = new mongoose.Schema({
         default: 'none'
     },
     serviceTime: { type: Number, default: 0 },
-    fallbackEnabled: { type: Boolean, default: false }
+    fallbackEnabled: { type: Boolean, default: false },
+    orderType: {
+        type: String,
+        enum: ['Normal', 'Walk-In'],
+        default: 'Normal'
+    },
+    riderDropOff: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true });
 
 // Pre-save hook to generate a unique readable order ID like #EZ-8291

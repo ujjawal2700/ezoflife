@@ -28066,3 +28066,312 @@
 2026-05-22T09:18:38.521Z - 📡 [TRAFFIC] 2:48:38 pm | GET /api/notifications?userId=6a10190ffe688d4a90d35800&role=vendor
 2026-05-22T09:18:38.689Z - 📡 [TRAFFIC] 2:48:38 pm | GET /api/orders/pool?vendorId=6a10190ffe688d4a90d35800
 2026-05-22T09:18:38.693Z - 📡 [TRAFFIC] 2:48:38 pm | GET /api/notifications?userId=6a10190ffe688d4a90d35800&role=vendor
+2026-05-22T10:52:36.248Z - 🚀 SERVER RESTARTED AT 2026-05-22T10:52:36.245Z ON PORT 5001
+2026-05-22T10:52:36.519Z - SOCKET_JOIN - Client qrP6Rx7B8J6LfmJ3AAAC -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-22T10:53:04.570Z - 📡 [TRAFFIC] 4:23:04 pm | POST /api/auth/request-otp
+2026-05-22T10:53:08.091Z - 📡 [TRAFFIC] 4:23:08 pm | POST /api/auth/verify-otp
+2026-05-22T10:53:09.183Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.202Z - SOCKET_JOIN - Client jyxPxc9-TBYMBKUvAAAH -> vendors_pool
+2026-05-22T10:53:09.205Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.217Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.266Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.380Z - SOCKET_JOIN - Client jyxPxc9-TBYMBKUvAAAH -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.383Z - SOCKET_JOIN - Client jyxPxc9-TBYMBKUvAAAH -> vendors_pool
+2026-05-22T10:53:09.386Z - SOCKET_JOIN - Client jyxPxc9-TBYMBKUvAAAH -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.440Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.456Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.467Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:09.483Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-22T10:53:09.645Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-22T10:53:09.650Z - 📡 [TRAFFIC] 4:23:09 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:11.396Z - 📡 [TRAFFIC] 4:23:11 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:11.469Z - 📡 [TRAFFIC] 4:23:11 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82161
+2026-05-22T10:53:16.543Z - 📡 [TRAFFIC] 4:23:16 pm | GET /api/faqs
+2026-05-22T10:53:16.624Z - 📡 [TRAFFIC] 4:23:16 pm | GET /api/faqs
+2026-05-22T10:53:22.602Z - 📡 [TRAFFIC] 4:23:22 pm | GET /api/faqs
+2026-05-22T10:53:22.670Z - 📡 [TRAFFIC] 4:23:22 pm | GET /api/faqs
+2026-05-22T10:53:32.848Z - SOCKET_JOIN - Client GNGsmBWwnR_QKgZiAAAJ -> user_6a10190ffe688d4a90d35800
+2026-05-22T10:53:32.896Z - SOCKET_JOIN - Client GNGsmBWwnR_QKgZiAAAJ -> vendors_pool
+2026-05-22T10:53:32.897Z - SOCKET_JOIN - Client GNGsmBWwnR_QKgZiAAAJ -> user_6a10190ffe688d4a90d35800
+2026-05-22T10:53:32.899Z - SOCKET_JOIN - Client GNGsmBWwnR_QKgZiAAAJ -> vendors_pool
+2026-05-22T10:53:47.262Z - 📡 [TRAFFIC] 4:23:47 pm | POST /api/auth/request-otp
+2026-05-22T10:53:51.367Z - 📡 [TRAFFIC] 4:23:51 pm | POST /api/auth/verify-otp
+2026-05-22T10:53:51.555Z - SOCKET_JOIN - Client k2b1mWrAOGcYw2jEAAAL -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T10:53:51.561Z - SOCKET_JOIN - Client k2b1mWrAOGcYw2jEAAAL -> admins_pool
+2026-05-22T10:53:51.562Z - SOCKET_JOIN - Client k2b1mWrAOGcYw2jEAAAL -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T10:53:51.564Z - SOCKET_JOIN - Client k2b1mWrAOGcYw2jEAAAL -> admins_pool
+2026-05-22T10:53:51.567Z - 📡 [TRAFFIC] 4:23:51 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T10:53:51.581Z - 📡 [TRAFFIC] 4:23:51 pm | GET /api/admin/stats
+2026-05-22T10:53:51.614Z - 📡 [TRAFFIC] 4:23:51 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T10:53:51.751Z - 📡 [TRAFFIC] 4:23:51 pm | GET /api/admin/stats
+2026-05-22T10:53:54.031Z - 📡 [TRAFFIC] 4:23:54 pm | GET /api/faqs
+2026-05-22T10:53:54.109Z - 📡 [TRAFFIC] 4:23:54 pm | GET /api/faqs
+2026-05-22T10:54:23.898Z - 📡 [TRAFFIC] 4:24:23 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T10:54:23.906Z - SOCKET_JOIN - Client T9xFUigjkIxn5XB3AAAN -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T10:54:23.911Z - 📡 [TRAFFIC] 4:24:23 pm | GET /api/faqs
+2026-05-22T10:54:23.941Z - SOCKET_JOIN - Client T9xFUigjkIxn5XB3AAAN -> admins_pool
+2026-05-22T10:54:23.951Z - SOCKET_JOIN - Client T9xFUigjkIxn5XB3AAAN -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T10:54:23.953Z - SOCKET_JOIN - Client T9xFUigjkIxn5XB3AAAN -> admins_pool
+2026-05-22T10:54:23.963Z - 📡 [TRAFFIC] 4:24:23 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T10:54:23.992Z - 📡 [TRAFFIC] 4:24:23 pm | GET /api/faqs
+2026-05-22T10:54:38.599Z - 🚀 SERVER RESTARTED AT 2026-05-22T10:54:38.596Z ON PORT 5001
+2026-05-22T11:15:49.747Z - 🚀 SERVER RESTARTED AT 2026-05-22T11:15:49.745Z ON PORT 5001
+2026-05-22T11:15:49.907Z - SOCKET_JOIN - Client 9hSRq0OVblo5Xrt7AAAC -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-22T11:15:52.227Z - SOCKET_JOIN - Client ETuM9R2Zg_DPnbZ5AAAF -> vendors_pool
+2026-05-22T11:15:52.331Z - SOCKET_JOIN - Client ETuM9R2Zg_DPnbZ5AAAF -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T11:15:52.333Z - SOCKET_JOIN - Client ETuM9R2Zg_DPnbZ5AAAF -> vendors_pool
+2026-05-22T11:15:52.334Z - SOCKET_JOIN - Client ETuM9R2Zg_DPnbZ5AAAF -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T11:16:28.597Z - 📡 [TRAFFIC] 4:46:28 pm | POST /api/auth/request-otp
+2026-05-22T11:16:33.333Z - 📡 [TRAFFIC] 4:46:33 pm | POST /api/auth/verify-otp
+2026-05-22T11:16:33.503Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T11:16:33.513Z - 📡 [TRAFFIC] 4:46:33 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T11:16:33.527Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> admins_pool
+2026-05-22T11:16:33.529Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T11:16:33.530Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> admins_pool
+2026-05-22T11:16:33.541Z - 📡 [TRAFFIC] 4:46:33 pm | GET /api/admin/stats
+2026-05-22T11:16:33.582Z - 📡 [TRAFFIC] 4:46:33 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T11:16:33.754Z - 📡 [TRAFFIC] 4:46:33 pm | GET /api/admin/stats
+2026-05-22T11:16:37.408Z - 📡 [TRAFFIC] 4:46:37 pm | GET /api/supplier/requests
+2026-05-22T11:16:37.545Z - 📡 [TRAFFIC] 4:46:37 pm | GET /api/supplier/requests
+2026-05-22T11:16:37.663Z - 📡 [TRAFFIC] 4:46:37 pm | GET /api/supplier/requests
+2026-05-22T11:16:37.777Z - 📡 [TRAFFIC] 4:46:37 pm | GET /api/supplier/requests
+2026-05-22T11:16:50.535Z - 📡 [TRAFFIC] 4:46:50 pm | GET /api/admin/pending-approvals
+2026-05-22T11:16:50.644Z - 📡 [TRAFFIC] 4:46:50 pm | GET /api/admin/pending-approvals
+2026-05-22T11:16:50.751Z - 📡 [TRAFFIC] 4:46:50 pm | GET /api/admin/pending-approvals
+2026-05-22T11:16:50.844Z - 📡 [TRAFFIC] 4:46:50 pm | GET /api/admin/pending-approvals
+2026-05-22T11:16:58.758Z - 📡 [TRAFFIC] 4:46:58 pm | GET /api/supplier/requests
+2026-05-22T11:16:58.853Z - 📡 [TRAFFIC] 4:46:58 pm | GET /api/supplier/requests
+2026-05-22T11:16:58.954Z - 📡 [TRAFFIC] 4:46:58 pm | GET /api/supplier/requests
+2026-05-22T11:16:59.060Z - 📡 [TRAFFIC] 4:46:59 pm | GET /api/supplier/requests
+2026-05-22T11:17:10.314Z - 📡 [TRAFFIC] 4:47:10 pm | GET /api/tickets/admin/all
+2026-05-22T11:17:10.431Z - 📡 [TRAFFIC] 4:47:10 pm | GET /api/tickets/admin/all
+2026-05-22T11:17:10.461Z - 📡 [TRAFFIC] 4:47:10 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:10.612Z - 📡 [TRAFFIC] 4:47:10 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:12.106Z - 📡 [TRAFFIC] 4:47:12 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:13.549Z - 📡 [TRAFFIC] 4:47:13 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:14.813Z - 📡 [TRAFFIC] 4:47:14 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:15.793Z - 📡 [TRAFFIC] 4:47:15 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:17.129Z - 📡 [TRAFFIC] 4:47:17 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:17.353Z - 📡 [TRAFFIC] 4:47:17 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:18.085Z - 📡 [TRAFFIC] 4:47:18 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:17:18.911Z - 📡 [TRAFFIC] 4:47:18 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:19:02.228Z - 📡 [TRAFFIC] 4:49:02 pm | GET /api/tickets/admin/all
+2026-05-22T11:19:02.502Z - 📡 [TRAFFIC] 4:49:02 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:19:48.293Z - 📡 [TRAFFIC] 4:49:48 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:19:54.002Z - 📡 [TRAFFIC] 4:49:54 pm | GET /api/tickets/admin/all
+2026-05-22T11:19:54.112Z - 📡 [TRAFFIC] 4:49:54 pm | GET /api/tickets/admin/all
+2026-05-22T11:21:14.831Z - 📡 [TRAFFIC] 4:51:14 pm | GET /api/supplier/requests
+2026-05-22T11:21:14.954Z - 📡 [TRAFFIC] 4:51:14 pm | GET /api/supplier/requests
+2026-05-22T11:21:15.051Z - 📡 [TRAFFIC] 4:51:15 pm | GET /api/supplier/requests
+2026-05-22T11:21:15.146Z - 📡 [TRAFFIC] 4:51:15 pm | GET /api/supplier/requests
+2026-05-22T11:21:18.155Z - 📡 [TRAFFIC] 4:51:18 pm | GET /api/supplier/requests/69f1bcd2146a0c727a0d265b
+2026-05-22T11:21:18.249Z - 📡 [TRAFFIC] 4:51:18 pm | GET /api/supplier/requests/69f1bcd2146a0c727a0d265b
+2026-05-22T11:21:28.175Z - 📡 [TRAFFIC] 4:51:28 pm | GET /api/admin/stats
+2026-05-22T11:21:28.357Z - 📡 [TRAFFIC] 4:51:28 pm | GET /api/admin/stats
+2026-05-22T11:21:32.128Z - 📡 [TRAFFIC] 4:51:32 pm | GET /api/supplier/requests
+2026-05-22T11:21:32.334Z - 📡 [TRAFFIC] 4:51:32 pm | GET /api/supplier/requests
+2026-05-22T11:21:32.448Z - 📡 [TRAFFIC] 4:51:32 pm | GET /api/supplier/requests
+2026-05-22T11:21:32.601Z - 📡 [TRAFFIC] 4:51:32 pm | GET /api/supplier/requests
+2026-05-22T11:21:35.291Z - 📡 [TRAFFIC] 4:51:35 pm | GET /api/supplier/requests/6a100ffd55403ffaca268ce5
+2026-05-22T11:21:35.411Z - 📡 [TRAFFIC] 4:51:35 pm | GET /api/supplier/requests/6a100ffd55403ffaca268ce5
+2026-05-22T11:23:16.434Z - 📡 [TRAFFIC] 4:53:16 pm | GET /api/supplier/requests
+2026-05-22T11:23:16.536Z - 📡 [TRAFFIC] 4:53:16 pm | GET /api/supplier/requests
+2026-05-22T11:23:16.633Z - 📡 [TRAFFIC] 4:53:16 pm | GET /api/supplier/requests
+2026-05-22T11:23:16.737Z - 📡 [TRAFFIC] 4:53:16 pm | GET /api/supplier/requests
+2026-05-22T11:23:19.945Z - 📡 [TRAFFIC] 4:53:19 pm | GET /api/supplier/requests/69f1bcd2146a0c727a0d265b
+2026-05-22T11:23:20.041Z - 📡 [TRAFFIC] 4:53:20 pm | GET /api/supplier/requests/69f1bcd2146a0c727a0d265b
+2026-05-22T11:23:21.856Z - 📡 [TRAFFIC] 4:53:21 pm | GET /api/supplier/requests
+2026-05-22T11:23:21.957Z - 📡 [TRAFFIC] 4:53:21 pm | GET /api/supplier/requests
+2026-05-22T11:23:22.123Z - 📡 [TRAFFIC] 4:53:22 pm | GET /api/supplier/requests
+2026-05-22T11:23:22.242Z - 📡 [TRAFFIC] 4:53:22 pm | GET /api/supplier/requests
+2026-05-22T11:23:26.545Z - 📡 [TRAFFIC] 4:53:26 pm | GET /api/supplier/requests/6a016f0f58a656fac7bf66bc
+2026-05-22T11:23:26.645Z - 📡 [TRAFFIC] 4:53:26 pm | GET /api/supplier/requests/6a016f0f58a656fac7bf66bc
+2026-05-22T11:23:29.653Z - 📡 [TRAFFIC] 4:53:29 pm | GET /api/supplier/requests
+2026-05-22T11:23:29.762Z - 📡 [TRAFFIC] 4:53:29 pm | GET /api/supplier/requests
+2026-05-22T11:23:29.861Z - 📡 [TRAFFIC] 4:53:29 pm | GET /api/supplier/requests
+2026-05-22T11:23:29.967Z - 📡 [TRAFFIC] 4:53:29 pm | GET /api/supplier/requests
+2026-05-22T11:23:32.812Z - 📡 [TRAFFIC] 4:53:32 pm | GET /api/supplier/requests/6a016f0f58a656fac7bf66bc
+2026-05-22T11:23:32.906Z - 📡 [TRAFFIC] 4:53:32 pm | GET /api/supplier/requests/6a016f0f58a656fac7bf66bc
+2026-05-22T11:25:19.619Z - 📡 [TRAFFIC] 4:55:19 pm | GET /api/supplier/requests
+2026-05-22T11:25:19.723Z - 📡 [TRAFFIC] 4:55:19 pm | GET /api/supplier/requests
+2026-05-22T11:25:19.819Z - 📡 [TRAFFIC] 4:55:19 pm | GET /api/supplier/requests
+2026-05-22T11:25:19.938Z - 📡 [TRAFFIC] 4:55:19 pm | GET /api/supplier/requests
+2026-05-22T11:25:34.429Z - 📡 [TRAFFIC] 4:55:34 pm | GET /api/media/inquiries
+2026-05-22T11:25:34.581Z - 📡 [TRAFFIC] 4:55:34 pm | GET /api/media/inquiries
+2026-05-22T11:29:43.203Z - 📡 [TRAFFIC] 4:59:43 pm | GET /api/media/inquiries
+2026-05-22T11:29:43.214Z - 📡 [TRAFFIC] 4:59:43 pm | GET /api/media/inquiries/filters
+2026-05-22T11:30:53.485Z - 📡 [TRAFFIC] 5:00:53 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-22T11:30:53.576Z - 📡 [TRAFFIC] 5:00:53 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-22T11:30:53.586Z - 📡 [TRAFFIC] 5:00:53 pm | GET /api/categories
+2026-05-22T11:30:53.662Z - 📡 [TRAFFIC] 5:00:53 pm | GET /api/categories
+2026-05-22T11:31:30.796Z - 📡 [TRAFFIC] 5:01:30 pm | GET /api/media/inquiries
+2026-05-22T11:31:30.806Z - 📡 [TRAFFIC] 5:01:30 pm | GET /api/media/inquiries/filters
+2026-05-22T11:31:30.820Z - 📡 [TRAFFIC] 5:01:30 pm | GET /api/media/inquiries/filters
+2026-05-22T11:31:30.845Z - 📡 [TRAFFIC] 5:01:30 pm | GET /api/media/inquiries
+2026-05-22T11:31:49.476Z - 📡 [TRAFFIC] 5:01:49 pm | GET /api/tickets/admin/all
+2026-05-22T11:31:49.581Z - 📡 [TRAFFIC] 5:01:49 pm | GET /api/tickets/admin/all
+2026-05-22T11:31:49.593Z - 📡 [TRAFFIC] 5:01:49 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:31:49.689Z - 📡 [TRAFFIC] 5:01:49 pm | GET /api/tickets/69f194513cda0e64f0ae3500
+2026-05-22T11:31:56.446Z - 📡 [TRAFFIC] 5:01:56 pm | GET /api/geofence/areas
+2026-05-22T11:31:56.451Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-22T11:31:56.452Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-22T11:31:56.509Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-22T11:31:56.530Z - 📡 [TRAFFIC] 5:01:56 pm | GET /api/geofence/areas
+2026-05-22T11:31:56.537Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-22T11:31:56.537Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-22T11:31:56.582Z - [DEBUG_GEOFENCE] Fetched 2 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-22T11:31:58.217Z - 📡 [TRAFFIC] 5:01:58 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-22T11:31:58.313Z - 📡 [TRAFFIC] 5:01:58 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-22T11:31:58.318Z - 📡 [TRAFFIC] 5:01:58 pm | GET /api/categories
+2026-05-22T11:31:58.414Z - 📡 [TRAFFIC] 5:01:58 pm | GET /api/categories
+2026-05-22T11:36:45.240Z - 📡 [TRAFFIC] 5:06:45 pm | GET /api/media/inquiries
+2026-05-22T11:36:45.252Z - 📡 [TRAFFIC] 5:06:45 pm | GET /api/media/inquiries/filters
+2026-05-22T11:36:45.265Z - 📡 [TRAFFIC] 5:06:45 pm | GET /api/media/inquiries/filters
+2026-05-22T11:36:45.290Z - 📡 [TRAFFIC] 5:06:45 pm | GET /api/media/inquiries
+2026-05-22T11:36:49.097Z - 📡 [TRAFFIC] 5:06:49 pm | GET /api/partnerships/all
+2026-05-22T11:36:49.155Z - 📡 [TRAFFIC] 5:06:49 pm | GET /api/partnerships/all
+2026-05-22T11:37:00.679Z - 📡 [TRAFFIC] 5:07:00 pm | GET /api/media/inquiries
+2026-05-22T11:37:00.689Z - 📡 [TRAFFIC] 5:07:00 pm | GET /api/media/inquiries/filters
+2026-05-22T11:37:00.702Z - 📡 [TRAFFIC] 5:07:00 pm | GET /api/media/inquiries/filters
+2026-05-22T11:37:00.729Z - 📡 [TRAFFIC] 5:07:00 pm | GET /api/media/inquiries
+2026-05-22T11:37:07.259Z - 📡 [TRAFFIC] 5:07:07 pm | GET /api/partnerships/all
+2026-05-22T11:37:07.309Z - 📡 [TRAFFIC] 5:07:07 pm | GET /api/partnerships/all
+2026-05-22T11:37:10.764Z - 📡 [TRAFFIC] 5:07:10 pm | GET /api/media/inquiries
+2026-05-22T11:37:10.777Z - 📡 [TRAFFIC] 5:07:10 pm | GET /api/media/inquiries/filters
+2026-05-22T11:37:10.784Z - 📡 [TRAFFIC] 5:07:10 pm | GET /api/media/inquiries/filters
+2026-05-22T11:37:10.819Z - 📡 [TRAFFIC] 5:07:10 pm | GET /api/media/inquiries
+2026-05-22T11:37:12.750Z - 📡 [TRAFFIC] 5:07:12 pm | GET /api/partnerships/all
+2026-05-22T11:37:12.805Z - 📡 [TRAFFIC] 5:07:12 pm | GET /api/partnerships/all
+2026-05-22T11:37:14.796Z - 📡 [TRAFFIC] 5:07:14 pm | GET /api/media/inquiries
+2026-05-22T11:37:14.802Z - 📡 [TRAFFIC] 5:07:14 pm | GET /api/media/inquiries/filters
+2026-05-22T11:37:14.808Z - 📡 [TRAFFIC] 5:07:14 pm | GET /api/media/inquiries/filters
+2026-05-22T11:37:14.846Z - 📡 [TRAFFIC] 5:07:14 pm | GET /api/media/inquiries
+2026-05-22T11:37:32.171Z - 📡 [TRAFFIC] 5:07:32 pm | GET /api/partnerships/all
+2026-05-22T11:37:32.224Z - 📡 [TRAFFIC] 5:07:32 pm | GET /api/partnerships/all
+2026-05-22T11:41:41.199Z - 📡 [TRAFFIC] 5:11:41 pm | GET /api/partnerships/all
+2026-05-22T11:44:23.197Z - 📡 [TRAFFIC] 5:14:23 pm | GET /api/partnerships/all?
+2026-05-22T11:44:23.204Z - 📡 [TRAFFIC] 5:14:23 pm | GET /api/partnerships/filters
+2026-05-22T11:47:55.905Z - 📡 [TRAFFIC] 5:17:55 pm | GET /api/media/inquiries
+2026-05-22T11:47:55.916Z - 📡 [TRAFFIC] 5:17:55 pm | GET /api/media/inquiries/filters
+2026-05-22T11:47:55.927Z - 📡 [TRAFFIC] 5:17:55 pm | GET /api/media/inquiries/filters
+2026-05-22T11:47:55.955Z - 📡 [TRAFFIC] 5:17:55 pm | GET /api/media/inquiries
+2026-05-22T11:48:07.047Z - 📡 [TRAFFIC] 5:18:07 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T11:48:07.104Z - 📡 [TRAFFIC] 5:18:07 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T11:48:23.890Z - 📡 [TRAFFIC] 5:18:23 pm | GET /api/feedback/all
+2026-05-22T11:48:23.987Z - 📡 [TRAFFIC] 5:18:23 pm | GET /api/feedback/all
+2026-05-22T11:51:18.210Z - 📡 [TRAFFIC] 5:21:18 pm | GET /api/feedback/all?
+2026-05-22T11:51:18.221Z - 📡 [TRAFFIC] 5:21:18 pm | GET /api/feedback/filters
+2026-05-22T11:51:49.064Z - 📡 [TRAFFIC] 5:21:49 pm | GET /api/faqs
+2026-05-22T11:51:49.154Z - 📡 [TRAFFIC] 5:21:49 pm | GET /api/faqs
+2026-05-22T11:52:22.271Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T11:52:22.274Z - 📡 [TRAFFIC] 5:22:22 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T11:52:22.281Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> admins_pool
+2026-05-22T11:52:22.282Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-22T11:52:22.283Z - SOCKET_JOIN - Client 0As2DDK2ol_dsirLAAAJ -> admins_pool
+2026-05-22T11:52:22.284Z - 📡 [TRAFFIC] 5:22:22 pm | GET /api/faqs
+2026-05-22T11:52:22.318Z - 📡 [TRAFFIC] 5:22:22 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-22T11:52:22.367Z - 📡 [TRAFFIC] 5:22:22 pm | GET /api/faqs
+2026-05-22T11:52:46.364Z - 📡 [TRAFFIC] 5:22:46 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T11:52:46.416Z - 📡 [TRAFFIC] 5:22:46 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T11:54:37.757Z - 📡 [TRAFFIC] 5:24:37 pm | GET /api/partnerships/all?
+2026-05-22T11:54:37.764Z - 📡 [TRAFFIC] 5:24:37 pm | GET /api/partnerships/filters
+2026-05-22T11:54:37.769Z - 📡 [TRAFFIC] 5:24:37 pm | GET /api/partnerships/filters
+2026-05-22T11:54:37.807Z - 📡 [TRAFFIC] 5:24:37 pm | GET /api/partnerships/all?
+2026-05-22T11:54:51.965Z - 📡 [TRAFFIC] 5:24:51 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T11:54:52.006Z - 📡 [TRAFFIC] 5:24:52 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T11:58:46.198Z - 📡 [TRAFFIC] 5:28:46 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T12:00:25.188Z - 📡 [TRAFFIC] 5:30:25 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T12:02:12.925Z - 📡 [TRAFFIC] 5:32:12 pm | GET /api/media/inquiries
+2026-05-22T12:02:12.935Z - 📡 [TRAFFIC] 5:32:12 pm | GET /api/media/inquiries/filters
+2026-05-22T12:02:12.944Z - 📡 [TRAFFIC] 5:32:12 pm | GET /api/media/inquiries/filters
+2026-05-22T12:02:12.978Z - 📡 [TRAFFIC] 5:32:12 pm | GET /api/media/inquiries
+2026-05-22T12:02:13.635Z - 📡 [TRAFFIC] 5:32:13 pm | GET /api/admin/config
+2026-05-22T12:02:13.683Z - 📡 [TRAFFIC] 5:32:13 pm | GET /api/admin/config
+2026-05-22T12:02:21.379Z - 📡 [TRAFFIC] 5:32:21 pm | GET /api/jobs/admin/all
+2026-05-22T12:02:21.387Z - 📡 [TRAFFIC] 5:32:21 pm | GET /api/jobs/admin/applications
+2026-05-22T12:02:21.474Z - 📡 [TRAFFIC] 5:32:21 pm | GET /api/jobs/admin/all
+2026-05-22T12:02:21.491Z - 📡 [TRAFFIC] 5:32:21 pm | GET /api/jobs/admin/applications
+2026-05-22T12:12:52.278Z - 📡 [TRAFFIC] 5:42:52 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T12:12:52.316Z - 📡 [TRAFFIC] 5:42:52 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T12:13:00.057Z - 📡 [TRAFFIC] 5:43:00 pm | GET /api/legal/privacy-policy-customer
+2026-05-22T12:13:12.813Z - 📡 [TRAFFIC] 5:43:12 pm | GET /api/faqs
+2026-05-22T12:13:12.895Z - 📡 [TRAFFIC] 5:43:12 pm | GET /api/faqs
+2026-05-22T12:13:15.694Z - 📡 [TRAFFIC] 5:43:15 pm | GET /api/admin/config
+2026-05-22T12:13:15.733Z - 📡 [TRAFFIC] 5:43:15 pm | GET /api/admin/config
+2026-05-22T12:13:17.230Z - 📡 [TRAFFIC] 5:43:17 pm | GET /api/feedback/all?
+2026-05-22T12:13:17.233Z - 📡 [TRAFFIC] 5:43:17 pm | GET /api/feedback/filters
+2026-05-22T12:13:17.236Z - 📡 [TRAFFIC] 5:43:17 pm | GET /api/feedback/filters
+2026-05-22T12:13:17.305Z - 📡 [TRAFFIC] 5:43:17 pm | GET /api/feedback/all?
+2026-05-22T12:13:19.109Z - 📡 [TRAFFIC] 5:43:19 pm | GET /api/jobs/admin/all
+2026-05-22T12:13:19.113Z - 📡 [TRAFFIC] 5:43:19 pm | GET /api/jobs/admin/applications
+2026-05-22T12:13:19.148Z - 📡 [TRAFFIC] 5:43:19 pm | GET /api/jobs/admin/all
+2026-05-22T12:13:19.175Z - 📡 [TRAFFIC] 5:43:19 pm | GET /api/jobs/admin/applications
+2026-05-22T12:13:33.609Z - 📡 [TRAFFIC] 5:43:33 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T12:13:33.661Z - 📡 [TRAFFIC] 5:43:33 pm | GET /api/legal/terms-conditions-customer
+2026-05-22T12:13:38.704Z - 📡 [TRAFFIC] 5:43:38 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-22T12:13:38.785Z - 📡 [TRAFFIC] 5:43:38 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-22T12:13:38.789Z - 📡 [TRAFFIC] 5:43:38 pm | GET /api/categories
+2026-05-22T12:13:38.870Z - 📡 [TRAFFIC] 5:43:38 pm | GET /api/categories
+2026-05-22T12:13:41.980Z - 📡 [TRAFFIC] 5:43:41 pm | GET /api/materials
+2026-05-22T12:13:42.022Z - 📡 [TRAFFIC] 5:43:42 pm | GET /api/materials
+2026-05-22T12:15:15.855Z - 📡 [TRAFFIC] 5:45:15 pm | GET /api/ads/active
+2026-05-22T12:15:15.899Z - 📡 [TRAFFIC] 5:45:15 pm | GET /api/ads/active
+2026-05-22T12:15:21.487Z - SOCKET_JOIN - Client H5jjGFlX60ckx9RQAAAO -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-22T12:15:21.504Z - SOCKET_JOIN - Client H5jjGFlX60ckx9RQAAAO -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-22T12:15:35.641Z - 📡 [TRAFFIC] 5:45:35 pm | POST /api/auth/request-otp
+2026-05-22T12:15:38.098Z - 📡 [TRAFFIC] 5:45:38 pm | POST /api/auth/verify-otp
+2026-05-22T12:15:38.669Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.673Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.680Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.685Z - SOCKET_JOIN - Client K536JjPvS2itBCRaAAAQ -> vendors_pool
+2026-05-22T12:15:38.701Z - SOCKET_JOIN - Client K536JjPvS2itBCRaAAAQ -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.702Z - SOCKET_JOIN - Client K536JjPvS2itBCRaAAAQ -> vendors_pool
+2026-05-22T12:15:38.702Z - SOCKET_JOIN - Client K536JjPvS2itBCRaAAAQ -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.709Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.799Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.809Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.813Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:38.817Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-22T12:15:38.903Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-22T12:15:38.909Z - 📡 [TRAFFIC] 5:45:38 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:15:42.065Z - 📡 [TRAFFIC] 5:45:42 pm | POST /api/auth/update-fcm-token
+2026-05-22T12:45:39.183Z - 📡 [TRAFFIC] 6:15:39 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:45:39.187Z - 📡 [TRAFFIC] 6:15:39 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:45:39.192Z - 📡 [TRAFFIC] 6:15:39 pm | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:45:39.329Z - 📡 [TRAFFIC] 6:15:39 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T12:45:39.333Z - 📡 [TRAFFIC] 6:15:39 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-22T13:04:00.541Z - 📡 [TRAFFIC] 6:34:00 pm | GET /api/faqs
+2026-05-22T13:04:00.545Z - SOCKET_JOIN - Client PjNR9kUBDr07cOUsAAAU -> vendors_pool
+2026-05-22T13:04:00.554Z - SOCKET_JOIN - Client PjNR9kUBDr07cOUsAAAU -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T13:04:00.555Z - SOCKET_JOIN - Client PjNR9kUBDr07cOUsAAAU -> vendors_pool
+2026-05-22T13:04:00.556Z - SOCKET_JOIN - Client PjNR9kUBDr07cOUsAAAU -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-22T13:04:00.618Z - 📡 [TRAFFIC] 6:34:00 pm | GET /api/faqs
+2026-05-22T13:15:39.202Z - 📡 [TRAFFIC] 6:45:39 pm | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T13:15:39.207Z - 📡 [TRAFFIC] 6:45:39 pm | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T13:15:39.213Z - 📡 [TRAFFIC] 6:45:39 pm | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-22T13:15:39.330Z - 📡 [TRAFFIC] 6:45:39 pm | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-22T13:15:39.335Z - 📡 [TRAFFIC] 6:45:39 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-23T04:24:10.757Z - 📡 [TRAFFIC] 9:54:10 am | GET /api/orders/vendor?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-23T04:24:10.777Z - 📡 [TRAFFIC] 9:54:10 am | GET /api/auth/vendor-earnings?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-23T04:24:10.781Z - 📡 [TRAFFIC] 9:54:10 am | GET /api/auth/vendor-payouts/69f1d2bc2c76f5ab4ec82161
+2026-05-23T04:24:11.414Z - SOCKET_JOIN - Client BdnUZR-o7HdntDpIAAAY -> vendors_pool
+2026-05-23T04:24:11.415Z - SOCKET_JOIN - Client BdnUZR-o7HdntDpIAAAY -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-23T04:24:11.416Z - SOCKET_JOIN - Client BdnUZR-o7HdntDpIAAAY -> vendors_pool
+2026-05-23T04:24:11.417Z - SOCKET_JOIN - Client BdnUZR-o7HdntDpIAAAY -> user_69f1d2bc2c76f5ab4ec82161
+2026-05-23T04:24:11.792Z - SOCKET_JOIN - Client pZDlbpMYWqRlyTZ1AAAe -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-23T04:24:40.833Z - 📡 [TRAFFIC] 9:54:40 am | GET /api/orders/pool?vendorId=69f1d2bc2c76f5ab4ec82161
+2026-05-23T04:24:40.839Z - 📡 [TRAFFIC] 9:54:40 am | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82161&role=vendor
+2026-05-23T04:49:31.738Z - 📡 [TRAFFIC] 10:19:31 am | POST /api/auth/request-otp
+2026-05-23T04:49:36.467Z - 📡 [TRAFFIC] 10:19:36 am | POST /api/auth/verify-otp
+2026-05-23T04:49:36.750Z - SOCKET_JOIN - Client lhwyC7GlAdyUysziAAAi -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-23T04:49:36.752Z - 📡 [TRAFFIC] 10:19:36 am | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-23T04:49:36.756Z - SOCKET_JOIN - Client lhwyC7GlAdyUysziAAAi -> admins_pool
+2026-05-23T04:49:36.758Z - SOCKET_JOIN - Client lhwyC7GlAdyUysziAAAi -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-23T04:49:36.761Z - SOCKET_JOIN - Client lhwyC7GlAdyUysziAAAi -> admins_pool
+2026-05-23T04:49:36.764Z - 📡 [TRAFFIC] 10:19:36 am | GET /api/admin/stats
+2026-05-23T04:49:36.804Z - 📡 [TRAFFIC] 10:19:36 am | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-23T04:49:37.218Z - 📡 [TRAFFIC] 10:19:37 am | GET /api/admin/stats
+2026-05-23T04:49:43.819Z - 📡 [TRAFFIC] 10:19:43 am | GET /api/master-services
+2026-05-23T04:49:43.830Z - 📡 [TRAFFIC] 10:19:43 am | GET /api/admin/users
+2026-05-23T04:49:43.898Z - 📡 [TRAFFIC] 10:19:43 am | GET /api/master-services
+2026-05-23T04:49:43.919Z - 📡 [TRAFFIC] 10:19:43 am | GET /api/admin/users

@@ -1458,14 +1458,29 @@ export const feedbackApi = {
             throw error;
         }
     },
-    getAll: async () => {
+    getAll: async (filters = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/feedback/all`, {
+            const params = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key]) params.append(key, filters[key]);
+            });
+            const response = await fetch(`${BASE_URL}/feedback/all?${params.toString()}`, {
                 headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
             console.error('Get Feedbacks Error:', error);
+            throw error;
+        }
+    },
+    getFilters: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/feedback/filters`, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Get Feedback Filters Error:', error);
             throw error;
         }
     },
@@ -1553,14 +1568,32 @@ export const mediaApi = {
             throw error;
         }
     },
-    getAllInquiries: async () => {
+    getAllInquiries: async (filters = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/media/inquiries`, {
+            const queryParams = new URLSearchParams();
+            Object.entries(filters).forEach(([key, val]) => {
+                if (val !== undefined && val !== null && val !== '') {
+                    queryParams.append(key, val);
+                }
+            });
+            const url = `${BASE_URL}/media/inquiries${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const response = await fetch(url, {
                 headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
             console.error('Get All Inquiries Error:', error);
+            throw error;
+        }
+    },
+    getInquiryFilters: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/media/inquiries/filters`, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Get Inquiry Filters Error:', error);
             throw error;
         }
     }
@@ -1580,14 +1613,29 @@ export const partnershipApi = {
             throw error;
         }
     },
-    getAll: async () => {
+    getAll: async (filters = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/partnerships/all`, {
+            const params = new URLSearchParams();
+            Object.keys(filters).forEach(key => {
+                if (filters[key]) params.append(key, filters[key]);
+            });
+            const response = await fetch(`${BASE_URL}/partnerships/all?${params.toString()}`, {
                 headers: adminAuthHeaders()
             });
             return await response.json();
         } catch (error) {
             console.error('Get Partnerships Error:', error);
+            throw error;
+        }
+    },
+    getFilters: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/partnerships/filters`, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Get Partnership Filters Error:', error);
             throw error;
         }
     }

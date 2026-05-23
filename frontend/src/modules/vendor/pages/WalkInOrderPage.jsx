@@ -15,6 +15,8 @@ const WalkInOrderPage = () => {
     const [createdOrder, setCreatedOrder] = useState(null);
     const [deliveryTime, setDeliveryTime] = useState('Tomorrow, 6:00 PM');
     const [quantity, setQuantity] = useState(1);
+    const [riderDropOff, setRiderDropOff] = useState(false);
+    const [dropAddress, setDropAddress] = useState('');
 
     const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
     const vendorId = vendorData?._id || vendorData?.id;
@@ -72,13 +74,19 @@ const WalkInOrderPage = () => {
 
     const handleCollectAndPrint = async () => {
         if (!customerPhone || items.length === 0) return;
+        if (riderDropOff && !dropAddress.trim()) {
+            toast.error('Please enter customer delivery address');
+            return;
+        }
         
         setIsProcessing(true);
         try {
             const orderData = {
                 customerPhone,
                 vendorId,
-                orderType: 'Walk-In', // Logistics Bypass
+                orderType: 'Walk-In',
+                riderDropOff,
+                dropAddress: riderDropOff ? dropAddress.trim() : 'Store Pickup',
                 deliveryTime,
                 items: items.map(i => ({
                     serviceId: i.serviceId,
@@ -87,15 +95,12 @@ const WalkInOrderPage = () => {
                     quantity: i.quantity
                 })),
                 totalAmount: total,
-                status: 'In Progress' // Directly to In Progress
+                status: 'In Progress'
             };
 
             const response = await orderApi.createWalkInOrder(orderData);
             setCreatedOrder(response);
             setShowInvoice(true);
-            
-            // Logic for customer notification (Mock)
-            console.log(`Sending SMS to ${customerPhone}: Order confirmed! Download app: https://spinzyt.com/app`);
             
             toast.success('Walk-In Order Created!');
         } catch (err) {
@@ -136,6 +141,41 @@ const WalkInOrderPage = () => {
                             maxLength={10}
                             className="w-full bg-white rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none"
                         />
+                    </div>
+
+                    {/* Rider Drop-off Toggle */}
+                    <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-black text-slate-900">Rider Drop-off for Delivery</p>
+                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">Check this to schedule a rider for home delivery</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    checked={riderDropOff} 
+                                    onChange={(e) => setRiderDropOff(e.target.checked)} 
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3D5AFE]"></div>
+                            </label>
+                        </div>
+                        {riderDropOff && (
+                            <motion.div 
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="relative group pt-2"
+                            >
+                                <span className="absolute left-6 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">location_on</span>
+                                <input 
+                                    type="text"
+                                    placeholder="Enter Customer Delivery Address"
+                                    value={dropAddress}
+                                    onChange={(e) => setDropAddress(e.target.value)}
+                                    className="w-full bg-slate-50 rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold border border-slate-200 focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none"
+                                />
+                            </motion.div>
+                        )}
                     </div>
                 </section>
 
@@ -328,6 +368,12 @@ const WalkInOrderPage = () => {
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Store Entity</p>
                                         <p className="text-sm font-bold text-slate-800 tracking-tight truncate">{vendorData.displayName || 'Official Hub'}</p>
                                     </div>
+                                    <div className="space-y-1 col-span-2 border-t border-slate-100 pt-3">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Delivery Mode</p>
+                                        <p className="text-sm font-bold text-slate-800 tracking-tight">
+                                            {createdOrder.riderDropOff ? `Rider Delivery (Address: ${createdOrder.dropAddress})` : 'Self Pickup'}
+                                        </p>
+                                    </div>
                                 </div>
 
                                 {/* Billing Table */}
@@ -410,6 +456,13 @@ const WalkInOrderPage = () => {
                                             <p>STATUS: PAID</p>
                                         </div>
                                     </div>
+
+                                    {createdOrder.riderDropOff && (
+                                        <div className="text-[10px] font-mono border-b border-slate-200 pb-4 space-y-0.5">
+                                            <p>DELIVERY MODE: RIDER DROP-OFF</p>
+                                            <p className="break-all whitespace-normal">DELIVERY ADDR: {createdOrder.dropAddress}</p>
+                                        </div>
+                                    )}
 
                                     <div className="space-y-3">
                                         <table className="w-full text-xs font-bold">

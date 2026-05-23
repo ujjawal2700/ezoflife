@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { faqApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
-import { PlusCircle, Trash2, HelpCircle, Save, Video, Edit2, GripVertical } from 'lucide-react';
+import { PlusCircle, HelpCircle, Save, Video, Edit2, GripVertical } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import StatusBadge from '../components/common/StatusBadge';
@@ -271,14 +271,14 @@ const FAQManagement = () => {
                                                 onClick={() => handleToggleStatus(faq._id, false)}
                                                 className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors border border-rose-100 cursor-pointer"
                                             >
-                                                Inactive
+                                                Deactivate
                                             </button>
                                         ) : (
                                             <button 
                                                 onClick={() => handleToggleStatus(faq._id, true)}
                                                 className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors border border-emerald-100 cursor-pointer"
                                             >
-                                                Active
+                                                Activate
                                             </button>
                                         )}
                                         <button 
@@ -287,13 +287,6 @@ const FAQManagement = () => {
                                             title="Edit FAQ"
                                         >
                                             <Edit2 size={16} />
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDelete(faq._id)}
-                                            className="text-slate-400 hover:text-red-500 transition-colors p-1.5 hover:bg-slate-50 rounded-lg cursor-pointer"
-                                            title="Delete FAQ"
-                                        >
-                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </div>

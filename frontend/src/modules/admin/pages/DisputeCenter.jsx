@@ -193,23 +193,23 @@ export default function DisputeCenter() {
            {selectedTicket ? (
              <div className="bg-white border border-slate-200 rounded-sm overflow-hidden shadow-sm flex flex-col flex-1">
                 {/* Chat Header */}
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-900 text-white flex items-center justify-center rounded-sm">
+                <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row gap-4 justify-between sm:items-center bg-slate-50/50">
+                   <div className="flex items-start sm:items-center gap-4 min-w-0">
+                      <div className="w-12 h-12 bg-slate-900 text-white flex items-center justify-center rounded-sm flex-shrink-0">
                          <ShieldAlert size={20} />
                       </div>
-                      <div>
-                         <h2 className="text-sm font-black text-slate-900 tracking-tighter uppercase leading-none mb-1">{selectedTicket.subject}</h2>
+                      <div className="min-w-0">
+                         <h2 className="text-sm font-black text-slate-900 tracking-tighter uppercase leading-tight mb-1 break-words whitespace-normal">{selectedTicket.subject}</h2>
                          <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{selectedTicket.customer?.displayName} · {selectedTicket.customer?.phone}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] break-all">{selectedTicket.customer?.displayName} · {selectedTicket.customer?.phone}</span>
                          </div>
                       </div>
                    </div>
-                   <div className="flex gap-2">
+                   <div className="flex gap-2 flex-shrink-0">
                       {selectedTicket.status !== 'Resolved' && (
                         <button 
                           onClick={handleResolveDispute}
-                          className="px-4 py-2 bg-slate-950 text-white text-[9px] font-black uppercase tracking-widest rounded-sm shadow-lg shadow-slate-950/20 hover:bg-black"
+                          className="w-full sm:w-auto px-4 py-2 bg-slate-950 text-white text-[9px] font-black uppercase tracking-widest rounded-sm shadow-lg shadow-slate-950/20 hover:bg-black whitespace-nowrap"
                         >
                           Resolve Dispute
                         </button>

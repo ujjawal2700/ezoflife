@@ -128,29 +128,29 @@ const AdminSupplierRequestDetailPage = () => {
   return (
     <div className="p-8 pb-32 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center gap-6">
-            <button onClick={() => navigate(-1)} className="w-14 h-14 rounded-3xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm transition-all hover:scale-105 active:scale-95">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10 gap-6">
+        <div className="flex items-center gap-6 w-full md:w-auto">
+            <button onClick={() => navigate(-1)} className="w-14 h-14 rounded-3xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 shadow-sm transition-all hover:scale-105 active:scale-95 flex-shrink-0">
                 <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <div>
-                <h1 className="text-4xl font-black tracking-tighter text-slate-900 uppercase">Supplier <span className="text-primary">Verification</span></h1>
-                <div className="flex items-center gap-3 mt-1">
+            <div className="min-w-0">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tighter text-slate-900 uppercase break-words">Supplier <span className="text-primary">Verification</span></h1>
+                <div className="flex flex-wrap items-center gap-3 mt-1">
                     <span className="px-3 py-1 bg-slate-900 text-white text-[9px] font-black uppercase tracking-widest rounded-lg">{request.onboardingStage?.replace(/_/g, ' ')}</span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{request.registeredBusinessName}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest break-all">{request.registeredBusinessName}</span>
                 </div>
             </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto">
             {request.onboardingStage === 'Initial_Approval_Pending' && (
-                <button onClick={handleInitialApprove} className="px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all">Approve Documents</button>
+                <button onClick={handleInitialApprove} className="flex-1 md:flex-initial px-6 sm:px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:scale-105 transition-all whitespace-nowrap">Approve Documents</button>
             )}
             {request.onboardingStage === 'Final_Approval_Pending' && (
-                <button onClick={handleFinalApprove} className="px-8 py-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all">Final Onboarding</button>
+                <button onClick={handleFinalApprove} className="flex-1 md:flex-initial px-6 sm:px-8 py-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all whitespace-nowrap">Final Onboarding</button>
             )}
             {request.status !== 'Rejected' && request.status !== 'Approved' && (
-                <button onClick={() => setShowRejectModal(true)} className="px-8 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 hover:scale-105 transition-all">Reject</button>
+                <button onClick={() => setShowRejectModal(true)} className="flex-1 md:flex-initial px-6 sm:px-8 py-4 bg-rose-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-500/20 hover:scale-105 transition-all whitespace-nowrap">Reject</button>
             )}
         </div>
       </div>
@@ -167,11 +167,11 @@ const AdminSupplierRequestDetailPage = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Registered Name</p>
-                        <p className="font-bold text-slate-900">{request.registeredBusinessName}</p>
+                        <p className="font-bold text-slate-900 break-words">{request.registeredBusinessName}</p>
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Type</p>
-                        <p className="font-bold text-slate-900">{request.entityType}</p>
+                        <p className="font-bold text-slate-900 break-words">{request.entityType}</p>
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">GST Verified</p>
@@ -179,15 +179,15 @@ const AdminSupplierRequestDetailPage = () => {
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact Person</p>
-                        <p className="font-bold text-slate-900">{request.contactPersonName}</p>
+                        <p className="font-bold text-slate-900 break-words">{request.contactPersonName}</p>
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Designation</p>
-                        <p className="font-bold text-slate-900">{request.designation}</p>
+                        <p className="font-bold text-slate-900 break-words">{request.designation}</p>
                     </div>
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">PAN Number</p>
-                        <p className="font-bold text-slate-900 uppercase">{request.panNumber}</p>
+                        <p className="font-bold text-slate-900 uppercase break-all">{request.panNumber}</p>
                     </div>
                 </div>
             </div>

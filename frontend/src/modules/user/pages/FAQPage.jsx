@@ -10,7 +10,15 @@ const getCurrentRole = () => {
         localStorage.getItem('userData') ||
         '{}'
     );
-    const raw = userData.role || '';
+    const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
+    const supplierData = JSON.parse(localStorage.getItem('supplierData') || '{}');
+
+    let raw = userData.role || '';
+    if (!raw && vendorData.role) raw = vendorData.role;
+    if (!raw && vendorData._id) raw = 'Vendor';
+    if (!raw && supplierData.role) raw = supplierData.role;
+    if (!raw && supplierData._id) raw = 'Supplier';
+
     if (!raw) return null;
     // Normalize: 'vendor' -> 'Vendor', 'customer' -> 'Customer', etc.
     return raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
@@ -38,7 +46,7 @@ const FAQPage = () => {
     }, []);
 
     const filteredFaqs = useMemo(() => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || localStorage.getItem('vendorToken') || localStorage.getItem('supplierToken');
         // Read role from the user object (stored on login) — NOT from 'userRole' key which is never set
         const currentRole = getCurrentRole(); // e.g. 'Customer', 'Vendor', 'Supplier' or null
 

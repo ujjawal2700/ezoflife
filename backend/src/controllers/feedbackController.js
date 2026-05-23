@@ -1,4 +1,5 @@
 import Feedback from '../models/Feedback.js';
+import User from '../models/User.js';
 
 // Submit new feedback
 export const submitFeedback = async (req, res) => {
@@ -41,16 +42,77 @@ export const getVendorFeedbacks = async (req, res) => {
     }
 };
 
-// Get all feedbacks for Admin
+// Get all feedbacks for Admin with query filters
 export const getAllFeedbacks = async (req, res) => {
     try {
-        const feedbacks = await Feedback.find()
+        const { userName, email, category, rating, submitted } = req.query;
+        const filter = {};
+
+        if (category) {
+            filter.category = category;
+        }
+        if (rating) {
+            filter.rating = Number(rating);
+        }
+        if (submitted) {
+            const start = new Date(submitted);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(submitted);
+            end.setHours(23, 59, 59, 999);
+            filter.createdAt = { $gte: start, $lte: end };
+        }
+
+        if (userName || email) {
+            const userFilter = {};
+            if (userName) userFilter.displayName = userName;
+            if (email) userFilter.email = email;
+            const users = await User.find(userFilter).select('_id');
+            filter.user = { $in: users.map(u => u._id) };
+        }
+
+        const feedbacks = await Feedback.find(filter)
             .populate('user', 'displayName email phoneNumber')
             .populate('order', 'orderId status')
             .sort({ createdAt: -1 });
         res.status(200).json(feedbacks);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching feedbacks', error: error.message });
+    }
+};
+
+// Get feedback filter options
+export const getFeedbackFilters = async (req, res) => {
+    try {
+        const feedbacks = await Feedback.find().populate('user', 'displayName email');
+        
+        const userNamesSet = new Set();
+        const emailsSet = new Set();
+        const categoriesSet = new Set();
+        const ratingsSet = new Set();
+        const datesSet = new Set();
+
+        feedbacks.forEach(fb => {
+            if (fb.user) {
+                if (fb.user.displayName) userNamesSet.add(fb.user.displayName);
+                if (fb.user.email) emailsSet.add(fb.user.email);
+            }
+            if (fb.category) categoriesSet.add(fb.category);
+            if (fb.rating) ratingsSet.add(fb.rating);
+            if (fb.createdAt) {
+                const dateStr = new Date(fb.createdAt).toISOString().split('T')[0];
+                datesSet.add(dateStr);
+            }
+        });
+
+        res.status(200).json({
+            userNames: Array.from(userNamesSet).filter(Boolean).sort(),
+            emails: Array.from(emailsSet).filter(Boolean).sort(),
+            categories: Array.from(categoriesSet).filter(Boolean).sort(),
+            ratings: Array.from(ratingsSet).filter(Boolean).sort((a, b) => b - a),
+            dates: Array.from(datesSet).filter(Boolean).sort().reverse()
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
 

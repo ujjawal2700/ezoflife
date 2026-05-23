@@ -16,10 +16,25 @@ const HelpCenterPage = () => {
     const userData = JSON.parse(
         localStorage.getItem('user') || 
         localStorage.getItem('userData') || 
+        localStorage.getItem('vendorData') ||
+        localStorage.getItem('supplierData') ||
         '{}'
     );
     const userId = userData._id || userData.id;
-    const userRole = userData.role || 'Customer';
+
+    const getRole = () => {
+        const u = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+        const v = JSON.parse(localStorage.getItem('vendorData') || '{}');
+        const s = JSON.parse(localStorage.getItem('supplierData') || '{}');
+        
+        let role = u.role || '';
+        if (!role && v.role) role = v.role;
+        if (!role && v._id) role = 'Vendor';
+        if (!role && s.role) role = s.role;
+        if (!role && s._id) role = 'Supplier';
+        return role || 'Customer';
+    };
+    const userRole = getRole();
 
     // Contact Form State
     const [ticketData, setTicketData] = useState({

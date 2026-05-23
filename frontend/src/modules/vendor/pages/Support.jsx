@@ -110,7 +110,7 @@ const VendorSupport = () => {
     };
 
     return (
-        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-sans relative">
+        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-body relative">
             {/* Header */}
             <header className="px-6 pt-6 flex items-center mb-8">
                 <div className="flex items-center gap-4">
@@ -130,7 +130,7 @@ const VendorSupport = () => {
 
             <main className="px-6 max-w-2xl mx-auto">
                 {/* Search */}
-                <div className="relative mb-8">
+                <div className="relative mb-10">
                     <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
                         <span className="material-symbols-outlined text-lg">search</span>
                     </div>
@@ -180,24 +180,22 @@ const VendorSupport = () => {
                                         setExpandedId(isOpen ? null : faq._id);
                                         setPlayingId(null);
                                     }}
-                                    className="w-full px-6 pt-5 pb-4 flex items-center justify-between text-left"
+                                    className="w-full px-6 pt-5 pb-2 flex items-center justify-between text-left"
                                 >
                                     <div className="flex-1 pr-4">
                                         <span className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase block mb-1">{faq.category}</span>
                                         <span className="text-sm font-black text-slate-900 leading-tight">{faq.question}</span>
                                     </div>
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isOpen ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-400'}`}>
-                                        <span className={`material-symbols-outlined text-base transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
-                                            expand_more
-                                        </span>
-                                    </div>
+                                    <span className={`material-symbols-outlined text-slate-300 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                                        expand_more
+                                    </span>
                                 </button>
 
                                 {isOpen && (
                                     <div className="overflow-hidden pointer-events-auto relative z-[100]">
-                                        <div className="px-6 pb-6 border-t border-slate-50 pt-3 space-y-4">
+                                        <div className="px-6 pb-6 border-t border-slate-50 pt-1 space-y-3">
                                             <div
-                                                className="text-xs font-medium text-slate-600 leading-relaxed vendor-faq-content"
+                                                className="text-xs font-medium text-slate-600 leading-relaxed rich-text-content break-words"
                                                 dangerouslySetInnerHTML={{ __html: faq.answer }}
                                             />
                                             {vId && (
@@ -216,15 +214,39 @@ const VendorSupport = () => {
                                                     {(() => {
                                                         if (isThisPlaying) {
                                                             return (
-                                                                <div key="playing" className="aspect-video rounded-2xl overflow-hidden bg-slate-900 shadow-inner relative z-[9999] pointer-events-auto">
+                                                                <div key="playing" className="aspect-video rounded-2xl overflow-hidden bg-slate-900 shadow-inner relative z-[9999] pointer-events-auto group/player">
                                                                     <iframe
                                                                         id={`player-${faq._id}`}
                                                                         src={`https://www.youtube.com/embed/${vId}?autoplay=1&enablejsapi=1&rel=0&modestbranding=1`}
-                                                                        className="w-full h-full"
+                                                                        className="w-full h-full pointer-events-none"
                                                                         frameBorder="0"
                                                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                                                         allowFullScreen
                                                                     />
+                                                                    {/* The Magic Overlay */}
+                                                                    <div 
+                                                                        className="absolute inset-0 z-[10000] cursor-pointer"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const iframe = document.getElementById(`player-${faq._id}`);
+                                                                            if (iframe) {
+                                                                                const isCurrentlyPaused = e.currentTarget.getAttribute('data-paused') === 'true';
+                                                                                if (isCurrentlyPaused) {
+                                                                                    iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                                                                                    e.currentTarget.setAttribute('data-paused', 'false');
+                                                                                } else {
+                                                                                    iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                                                                                    e.currentTarget.setAttribute('data-paused', 'true');
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    {/* Visual indicator for pause state on the overlay */}
+                                                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 group-active/player:opacity-100 transition-opacity">
+                                                                        <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                                                            <span className="material-symbols-outlined text-white text-4xl">touch_app</span>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         }
@@ -263,7 +285,7 @@ const VendorSupport = () => {
                                                         className="w-full py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-red-100 hover:bg-red-100 transition-all"
                                                     >
                                                         <span className="material-symbols-outlined text-sm">open_in_new</span>
-                                                        Watch on YouTube
+                                                        Watch on YouTube App
                                                     </button>
                                                 </div>
                                             )}
@@ -395,11 +417,11 @@ const VendorSupport = () => {
             </AnimatePresence>
 
             <style>{`
-                .vendor-faq-content ul { list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; }
-                .vendor-faq-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 0.5rem; }
-                .vendor-faq-content li { margin-bottom: 0.25rem; }
-                .vendor-faq-content b, .vendor-faq-content strong { font-weight: 900; color: #0f172a; }
-                .vendor-faq-content p { margin-bottom: 0.5rem; }
+                .rich-text-content ul { list-style-type: disc; margin-left: 1.5rem; margin-top: 0.5rem; }
+                .rich-text-content ol { list-style-type: decimal; margin-left: 1.5rem; margin-top: 0.5rem; }
+                .rich-text-content li { margin-bottom: 0.25rem; }
+                .rich-text-content b, .rich-text-content strong { font-weight: 900; color: #0f172a; }
+                .rich-text-content p { margin-bottom: 0.5rem; }
             `}</style>
         </div>
     );

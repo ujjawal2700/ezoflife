@@ -109,9 +109,43 @@ export const submitInquiry = async (req, res) => {
 
 export const getAllInquiries = async (req, res) => {
     try {
-        const inquiries = await AdInquiry.find().sort({ createdAt: -1 });
+        const { brandName, email, phone, budget } = req.query;
+        const filter = {};
+        if (brandName) {
+            filter.brandName = brandName;
+        }
+        if (email) {
+            filter.email = email;
+        }
+        if (phone) {
+            filter.phone = phone;
+        }
+        if (budget) {
+            filter.budget = Number(budget);
+        }
+
+        const inquiries = await AdInquiry.find(filter).sort({ createdAt: -1 });
         res.status(200).json(inquiries);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
+
+export const getInquiryFilters = async (req, res) => {
+    try {
+        const brands = await AdInquiry.distinct('brandName');
+        const emails = await AdInquiry.distinct('email');
+        const phones = await AdInquiry.distinct('phone');
+        const budgets = await AdInquiry.distinct('budget');
+
+        res.status(200).json({
+            brands: brands.filter(Boolean).sort(),
+            emails: emails.filter(Boolean).sort(),
+            phones: phones.filter(Boolean).sort(),
+            budgets: budgets.filter(v => v !== null && v !== undefined).sort((a, b) => a - b)
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+

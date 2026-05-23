@@ -33,11 +33,12 @@ const OrderDetails = () => {
     const orderStages = useMemo(() => {
         if (!order) return [];
         const status = order.status;
+        const isSelfPickup = order.orderType === 'Walk-In' && !order.riderDropOff;
         return [
             { id: 1, label: 'Pickup', icon: 'photo_camera', status: ['Assigned', 'Picked Up', 'In Progress', 'Ready', 'Out for Delivery', 'Delivered'].includes(status) ? 'completed' : 'pending' },
             { id: 2, label: 'Intake', icon: 'inventory_2', status: ['Picked Up', 'In Progress', 'Ready', 'Out for Delivery', 'Delivered'].includes(status) ? 'completed' : 'pending' },
             { id: 3, label: 'Processing', icon: 'local_laundry_service', status: status === 'In Progress' ? 'active' : ['Ready', 'Out for Delivery', 'Delivered'].includes(status) ? 'completed' : 'pending' },
-            { id: 4, label: 'Handover', icon: 'verified_user', status: status === 'Ready' || status === 'Out for Delivery' ? 'active' : ['Delivered'].includes(status) ? 'completed' : 'pending' },
+            { id: 4, label: isSelfPickup ? 'Customer Pickup' : 'Handover', icon: 'verified_user', status: status === 'Ready' || status === 'Out for Delivery' ? 'active' : ['Delivered'].includes(status) ? 'completed' : 'pending' },
         ];
     }, [order]);
 
@@ -58,7 +59,11 @@ const OrderDetails = () => {
         
         try {
             setVerifying(true);
-            await orderApi.verifyHandshake(order._id, 'Reverse', otpString);
+            if (order.orderType === 'Walk-In' && !order.riderDropOff) {
+                await orderApi.verifyDeliveryOtp(order._id, otpString);
+            } else {
+                await orderApi.verifyHandshake(order._id, 'Reverse', otpString);
+            }
             window.location.reload();
         } catch (err) {
             alert(err.message || 'Verification failed');
@@ -290,8 +295,10 @@ const OrderDetails = () => {
                             onClick={() => setIsHandshakeModalOpen(true)}
                             className="flex-1 h-16 rounded-[1.8rem] bg-slate-950 text-white font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-xl"
                         >
-                            Verify Rider & Handover
-                            <span className="material-symbols-outlined text-lg">verified_user</span>
+                            {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Handover to Customer' : 'Verify Rider & Handover'}
+                            <span className="material-symbols-outlined text-lg">
+                                {order.orderType === 'Walk-In' && !order.riderDropOff ? 'handshake' : 'verified_user'}
+                            </span>
                         </motion.button>
                     )}
                     {order.status === 'Out for Delivery' && (
@@ -324,10 +331,18 @@ const OrderDetails = () => {
                             
                             <div className="text-center space-y-3 mb-10">
                                 <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mx-auto text-white shadow-xl">
-                                    <span className="material-symbols-outlined text-4xl">vpn_key</span>
+                                    <span className="material-symbols-outlined text-4xl">
+                                        {order.orderType === 'Walk-In' && !order.riderDropOff ? 'handshake' : 'vpn_key'}
+                                    </span>
                                 </div>
-                                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Rider Verification</h2>
-                                <p className="text-slate-400 text-sm font-bold">Ask Rider for the 4-digit code to securely handover items</p>
+                                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight text-center leading-none">
+                                    {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Customer Handover' : 'Rider Verification'}
+                                </h2>
+                                <p className="text-slate-400 text-sm font-bold">
+                                    {order.orderType === 'Walk-In' && !order.riderDropOff 
+                                        ? 'Enter the 4-digit verification code from the customer to complete handover' 
+                                        : 'Ask Rider for the 4-digit code to securely handover items'}
+                                </p>
                             </div>
 
                             <div className="flex justify-center gap-4 mb-10">

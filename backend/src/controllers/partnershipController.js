@@ -25,9 +25,69 @@ export const submitPartnershipInquiry = async (req, res) => {
 
 export const getAllPartnershipInquiries = async (req, res) => {
     try {
-        const inquiries = await PartnershipInquiry.find().sort({ createdAt: -1 });
+        const { companyName, email, phone, partnershipType, submitted } = req.query;
+        const filter = {};
+
+        if (companyName) {
+            filter.companyName = companyName;
+        }
+        if (email) {
+            filter.email = email;
+        }
+        if (phone) {
+            filter.phone = phone;
+        }
+        if (partnershipType) {
+            filter.partnershipType = partnershipType;
+        }
+        if (submitted) {
+            const start = new Date(submitted);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(submitted);
+            end.setHours(23, 59, 59, 999);
+            filter.createdAt = { $gte: start, $lte: end };
+        }
+
+        const inquiries = await PartnershipInquiry.find(filter).sort({ createdAt: -1 });
         res.status(200).json(inquiries);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
 };
+
+export const getPartnershipFilters = async (req, res) => {
+    try {
+        const companyNames = await PartnershipInquiry.distinct('companyName');
+        const emails = await PartnershipInquiry.distinct('email');
+        const phones = await PartnershipInquiry.distinct('phone');
+        const partnershipTypes = await PartnershipInquiry.distinct('partnershipType');
+
+        const datesResult = await PartnershipInquiry.aggregate([
+            {
+                $project: {
+                    dateStr: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }
+                }
+            },
+            {
+                $group: {
+                    _id: "$dateStr"
+                }
+            },
+            {
+                $sort: { _id: -1 }
+            }
+        ]);
+        const dates = datesResult.map(d => d._id).filter(Boolean);
+
+        res.status(200).json({
+            companyNames: companyNames.filter(Boolean).sort(),
+            emails: emails.filter(Boolean).sort(),
+            phones: phones.filter(Boolean).sort(),
+            partnershipTypes: partnershipTypes.filter(Boolean).sort(),
+            dates
+        });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+

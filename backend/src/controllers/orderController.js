@@ -7,6 +7,7 @@ import { calculateTriggerTime } from '../utils/timeUtils.js';
 import fs from 'fs';
 import { getIO } from '../socket.js';
 import { sendWalkInWhatsApp } from '../utils/whatsappHelper.js';
+import { sendSMSMessage, sendWhatsAppMessage } from '../utils/communicationHelper.js';
 import ShiprocketService from '../services/ShiprocketService.js';
 import Razorpay from 'razorpay';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
@@ -524,61 +525,72 @@ export const updateOrderStatus = async (req, res) => {
         const updateData = { status };
 
         if (status === 'Ready') {
-            console.log(`[LOGISTICS] Order ${order.orderId} marked as READY. Scheduling delivery trigger...`);
-            
-            const deliveryTriggerTime = calculateTriggerTime(order.deliverySlot?.date, order.deliverySlot?.time);
-            updateData.deliveryTriggerTime = deliveryTriggerTime;
-            updateData.deliveryStatus = 'scheduled';
+            if (order.orderType === 'Walk-In' && !order.riderDropOff) {
+                console.log(`[LOGISTICS] Walk-In Order ${order.orderId} marked as READY (Direct Handover). Skipping rider assignment.`);
+                updateData.deliveryStatus = 'none';
+                updateData.deliveryTriggerTime = null;
+                updateData.nearbyRiders = [];
+                updateData.rider = null;
+                if (!order.deliveryOtp) {
+                    updateData.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                }
+            } else {
+                console.log(`[LOGISTICS] Order ${order.orderId} marked as READY. Scheduling delivery trigger...`);
+                
+                const deliveryTriggerTime = calculateTriggerTime(order.deliverySlot?.date, order.deliverySlot?.time);
+                updateData.deliveryTriggerTime = deliveryTriggerTime;
+                updateData.deliveryStatus = 'scheduled';
 
-            const vLat = order.vendor?.location?.lat || 22.7196; 
-            const vLng = order.vendor?.location?.lng || 75.8577;
-            const nearbyRiders = await getNearbyRiders(vLat, vLng, 4);
-            updateData.nearbyRiders = nearbyRiders;
-            updateData.rider = null; 
-            updateData.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                const vLat = order.vendor?.location?.lat || 22.7196; 
+                const vLng = order.vendor?.location?.lng || 75.8577;
+                const nearbyRiders = await getNearbyRiders(vLat, vLng, 4);
+                updateData.nearbyRiders = nearbyRiders;
+                updateData.rider = null; 
+                updateData.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
 
-            const io = getIO();
-            
-            if (nearbyRiders.length > 0) {
-                // Notifications and Broadcast
-                nearbyRiders.forEach(rider => {
-                    const riderRoom = `user_${rider.id.toString()}`;
-                    const earnings = 20 + (parseFloat(rider.distance) * 5);
-                    
-                    console.log(`[LOGISTICS] Sending delivery broadcast to Room: ${riderRoom}`);
-                    
-                    // Socket broadcast for real-time card
-                    io.to(riderRoom).emit('new_pickup_broadcast', {
-                        orderId: order.orderId,
-                        mongoOrderId: id,
-                        mongoId: id,
-                        customerName: order.customer?.displayName || 'Customer',
-                        pickupAddress: order.vendor?.shopDetails?.address || order.vendor?.address || 'Vendor Shop',
-                        dropAddress: order.customer?.address || order.pickupAddress, 
-                        distance: rider.distance,
-                        earnings: earnings.toFixed(2),
-                        type: 'pickup_available'
+                const io = getIO();
+                
+                if (nearbyRiders.length > 0) {
+                    // Notifications and Broadcast
+                    nearbyRiders.forEach(rider => {
+                        const riderRoom = `user_${rider.id.toString()}`;
+                        const earnings = 20 + (parseFloat(rider.distance) * 5);
+                        
+                        console.log(`[LOGISTICS] Sending delivery broadcast to Room: ${riderRoom}`);
+                        
+                        // Socket broadcast for real-time card
+                        io.to(riderRoom).emit('new_pickup_broadcast', {
+                            orderId: order.orderId,
+                            mongoOrderId: id,
+                            mongoId: id,
+                            customerName: order.customer?.displayName || 'Customer',
+                            pickupAddress: order.vendor?.shopDetails?.address || order.vendor?.address || 'Vendor Shop',
+                            dropAddress: order.customer?.address || order.pickupAddress, 
+                            distance: rider.distance,
+                            earnings: earnings.toFixed(2),
+                            type: 'pickup_available'
+                        });
                     });
-                });
 
-                // Persistent Notifications
-                const riderNotifs = nearbyRiders.map(rider => ({
-                    recipient: rider.id,
-                    role: 'rider',
-                    title: 'New Delivery Task',
-                    message: `Pickup: ${order.vendor?.shopDetails?.address || 'Vendor'} | Drop: ${order.customer?.displayName}`,
-                    type: 'pickup_available',
-                    orderId: id,
-                    payload: {
-                        customer: order.customer?.displayName || 'Customer',
-                        from: order.vendor?.shopDetails?.address || order.vendor?.address || 'Vendor Shop',
-                        to: order.customer?.address || order.pickupAddress,
-                        dist: rider.distance,
-                        pay: (20 + (parseFloat(rider.distance) * 5)).toFixed(2),
-                        displayId: order.orderId
-                    }
-                }));
-                await Notification.insertMany(riderNotifs);
+                    // Persistent Notifications
+                    const riderNotifs = nearbyRiders.map(rider => ({
+                        recipient: rider.id,
+                        role: 'rider',
+                        title: 'New Delivery Task',
+                        message: `Pickup: ${order.vendor?.shopDetails?.address || 'Vendor'} | Drop: ${order.customer?.displayName}`,
+                        type: 'pickup_available',
+                        orderId: id,
+                        payload: {
+                            customer: order.customer?.displayName || 'Customer',
+                            from: order.vendor?.shopDetails?.address || order.vendor?.address || 'Vendor Shop',
+                            to: order.customer?.address || order.pickupAddress,
+                            dist: rider.distance,
+                            pay: (20 + (parseFloat(rider.distance) * 5)).toFixed(2),
+                            displayId: order.orderId
+                        }
+                    }));
+                    await Notification.insertMany(riderNotifs);
+                }
             }
         }
 
@@ -1011,24 +1023,34 @@ export const markOrderReady = async (req, res) => {
 
         order.status = 'Ready';
         
-        // Generate Reverse Handshake OTP (Rider provides this to Vendor)
-        const handoverOtp = Math.floor(1000 + Math.random() * 9000).toString();
+        let message = 'Order marked as ready. Handover OTP generated for Rider.';
         
-        // Add to handshakes array
-        order.logisticsHandshakes.push({
-            phase: 'Reverse',
-            otp: handoverOtp,
-            initiator: 'Rider',
-            verifier: 'Vendor'
-        });
+        if (order.orderType === 'Walk-In' && !order.riderDropOff) {
+            console.log(`[LOGISTICS] Walk-In Order ${order.orderId} marked as READY. Skipping reverse logistics handshake.`);
+            if (!order.deliveryOtp) {
+                order.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            }
+            message = 'Order marked as ready for customer self-pickup.';
+        } else {
+            // Generate Reverse Handshake OTP (Rider provides this to Vendor)
+            const handoverOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            // Add to handshakes array
+            order.logisticsHandshakes.push({
+                phase: 'Reverse',
+                otp: handoverOtp,
+                initiator: 'Rider',
+                verifier: 'Vendor'
+            });
+
+            console.log('\n========================================');
+            console.log('🔄 [LOGISTICS] REVERSE HANDSHAKE INITIATED');
+            console.log(`📦 Order: ${order.orderId}`);
+            console.log(`🔑 RIDER OTP FOR VENDOR: ${handoverOtp}`);
+            console.log('========================================\n');
+        }
 
         await order.save();
-
-        console.log('\n========================================');
-        console.log('🔄 [LOGISTICS] REVERSE HANDSHAKE INITIATED');
-        console.log(`📦 Order: ${order.orderId}`);
-        console.log(`🔑 RIDER OTP FOR VENDOR: ${handoverOtp}`);
-        console.log('========================================\n');
 
         const populatedOrder = await Order.findById(id)
             .populate('customer', 'displayName phone address email')
@@ -1039,9 +1061,13 @@ export const markOrderReady = async (req, res) => {
         io.to(`order_${id}`).emit('order_status_update', populatedOrder);
         
         // Notify customer
+        const notificationBody = (order.orderType === 'Walk-In' && !order.riderDropOff)
+            ? `Your garments are ready for self-pickup! Please collect them from the store. Code: ${order.deliveryOtp}`
+            : `Vendor has packed your garments. A rider is arriving for delivery.`;
+
         io.to(`user_${order.customer}`).emit('push_notification', {
             title: 'Your items are ready! ✨',
-            body: `Vendor has packed your garments. A rider is arriving for delivery.`,
+            body: notificationBody,
             orderId: order.orderId
         });
 
@@ -1185,9 +1211,39 @@ export const deleteOrder = async (req, res) => {
         res.status(500).json({ message: 'Error deleting order', error: err.message });
     }
 };
+const parseWalkInDeliveryTime = (deliveryTime) => {
+    const now = new Date();
+    let targetDate = new Date();
+    let timeSlot = '06:00 PM - 08:00 PM';
+
+    if (deliveryTime) {
+        const timeStr = deliveryTime.toLowerCase();
+        if (timeStr.includes('today')) {
+            targetDate = now;
+            if (timeStr.includes('8 pm')) {
+                timeSlot = '08:00 PM - 10:00 PM';
+            }
+        } else if (timeStr.includes('tomorrow')) {
+            targetDate.setDate(now.getDate() + 1);
+            if (timeStr.includes('6 pm')) {
+                timeSlot = '06:00 PM - 08:00 PM';
+            }
+        } else if (timeStr.includes('2 days')) {
+            targetDate.setDate(now.getDate() + 2);
+        }
+    } else {
+        targetDate.setDate(now.getDate() + 1);
+    }
+
+    return {
+        date: targetDate.toISOString().split('T')[0],
+        time: timeSlot
+    };
+};
+
 export const createWalkInOrder = async (req, res) => {
     try {
-        const { customerPhone, items, totalAmount, vendorId } = req.body;
+        const { customerPhone, items, totalAmount, vendorId, riderDropOff, dropAddress, deliveryTime } = req.body;
 
         if (!customerPhone || !items || !vendorId) {
             return res.status(400).json({ message: 'Missing required fields for walk-in order' });
@@ -1206,7 +1262,10 @@ export const createWalkInOrder = async (req, res) => {
             await customer.save();
         }
 
-        // 2. Create the order
+        // 2. Parse delivery slots
+        const parsedDeliverySlot = parseWalkInDeliveryTime(deliveryTime);
+
+        // 3. Create the order
         const newOrder = new Order({
             customer: customer._id,
             vendor: vendorId,
@@ -1220,16 +1279,27 @@ export const createWalkInOrder = async (req, res) => {
             status: 'In Progress', // Direct to progress
             paymentStatus: 'Paid', // Assuming cash/direct payment for walk-in
             totalAmount,
+            orderType: 'Walk-In',
+            riderDropOff: riderDropOff || false,
+            pickupStatus: 'picked',
+            pickupExpectedDate: new Date(),
+            pickupSlot: {
+                date: new Date().toISOString().split('T')[0],
+                time: new Date().toLocaleTimeString()
+            },
+            deliverySlot: parsedDeliverySlot,
             pickupAddress: 'Store Walk-In',
-            dropAddress: 'Store Pickup',
+            dropAddress: riderDropOff ? dropAddress : 'Store Pickup',
             pickupLocation: { lat: 0, lng: 0 },
             dropLocation: { lat: 0, lng: 0 }
         });
 
         await newOrder.save();
         
-        // WhatsApp Notification (Simulated in terminal)
-        sendWalkInWhatsApp(customerPhone, newOrder.orderId);
+        // Send automated welcome SMS + WhatsApp message containing the Spinzyt app download link
+        const welcomeMsg = `Welcome to Spinzyt! Your walk-in order ${newOrder.orderId} has been successfully created. You can track your order status in real-time by downloading the Spinzyt app: https://spinzyt.com/app`;
+        await sendSMSMessage(customerPhone, welcomeMsg);
+        await sendWhatsAppMessage(customerPhone, welcomeMsg);
         
         // Notify the generated customer shadow account (optional)
         const io = getIO();
