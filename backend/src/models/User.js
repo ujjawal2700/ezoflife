@@ -68,6 +68,7 @@ const userSchema = new mongoose.Schema({
             normalTime: { type: String, default: '' },
             expressTime: { type: String, default: '' },
             icon: { type: String },
+            active: { type: Boolean, default: true },
             status: { 
                 type: String, 
                 enum: ['pending', 'approved', 'rejected'],

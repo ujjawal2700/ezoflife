@@ -50,3 +50,58 @@ export const verifyAdmin = (req, res, next) => {
         });
     }
 };
+
+/**
+ * Middleware: verifyAdminOrVendor
+ * Checks that the request carries a valid JWT signed for an Admin or Vendor role.
+ *
+ * Token must be sent as:
+ *   Authorization: Bearer <token>
+ */
+export const verifyAdminOrVendor = (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            return res.status(401).json({
+                success: false,
+                message: 'Access denied. No token provided.'
+            });
+        }
+
+        const token = authHeader.split(' ')[1];
+
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET || 'ezoflife_secret_key_2026'
+        );
+
+        // Must be Admin or Vendor role
+        if (decoded.role !== 'Admin' && decoded.role !== 'Vendor') {
+            return res.status(403).json({
+                success: false,
+                message: 'Forbidden. Access required.'
+            });
+        }
+
+        // Attach decoded payload to request for downstream use
+        req.user = decoded;
+        if (decoded.role === 'Admin') {
+            req.admin = decoded;
+        }
+
+        next();
+    } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+            return res.status(401).json({
+                success: false,
+                message: 'Session expired. Please log in again.'
+            });
+        }
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid token. Authentication failed.'
+        });
+    }
+};
+

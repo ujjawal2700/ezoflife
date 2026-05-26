@@ -5,7 +5,7 @@ import SystemConfig from '../models/SystemConfig.js';
 // Get all services
 export const getAllServices = async (req, res) => {
     try {
-        const { approvedOnly, vendorId, serviceType } = req.query;
+        const { approvedOnly, vendorId, serviceType, isMaster, approvalStatus } = req.query;
         let query = {};
         
         if (approvedOnly === 'true') {
@@ -14,6 +14,14 @@ export const getAllServices = async (req, res) => {
 
         if (serviceType) {
             query.serviceType = serviceType;
+        }
+
+        if (isMaster !== undefined) {
+            query.isMaster = isMaster === 'true';
+        }
+
+        if (approvalStatus) {
+            query.approvalStatus = approvalStatus;
         }
 
         if (vendorId) {
@@ -26,7 +34,10 @@ export const getAllServices = async (req, res) => {
             query.vendorId = vId;
         }
 
-        const services = await Service.find(query).sort({ createdAt: -1 }).lean();
+        const services = await Service.find(query)
+            .populate('vendorId', 'displayName shopDetails phone')
+            .sort({ createdAt: -1 })
+            .lean();
 
         // Fetch System Config for Pricing Calculation
         const config = await SystemConfig.find({ 
@@ -62,13 +73,19 @@ export const createService = async (req, res) => {
     try {
         const serviceData = { ...req.body };
         
-        // If created by a vendor, it needs approval
-        if (serviceData.vendorId) {
+        // If created by a vendor, enforce vendorId from token, make it custom/pending
+        if (req.user && req.user.role === 'Vendor') {
+            serviceData.vendorId = req.user.id;
+            serviceData.isMaster = false;
+            serviceData.approvalStatus = 'Pending';
+            serviceData.status = 'Inactive';
+        } else if (serviceData.vendorId) {
+            // Created by Admin on behalf of a vendor
             serviceData.isMaster = false;
             serviceData.approvalStatus = 'Pending';
             serviceData.status = 'Inactive';
         } else {
-            // Created by Admin
+            // Created by Admin as master service
             serviceData.isMaster = true;
             serviceData.approvalStatus = 'Approved';
             serviceData.status = 'Active';
@@ -87,14 +104,50 @@ export const createService = async (req, res) => {
 export const updateService = async (req, res) => {
     try {
         const { id } = req.params;
+        
+        const service = await Service.findById(id);
+        if (!service) {
+            return res.status(404).json({ message: 'Service not found' });
+        }
+
+        // Access checks
+        if (req.user && req.user.role === 'Vendor') {
+            if (!service.vendorId || service.vendorId.toString() !== req.user.id.toString()) {
+                return res.status(403).json({ message: 'Forbidden. You do not own this service.' });
+            }
+            // Strip fields vendor is not allowed to modify directly
+            delete req.body.approvalStatus;
+            delete req.body.isMaster;
+            delete req.body.vendorId;
+        }
+
         const updatedService = await Service.findByIdAndUpdate(
             id,
             req.body,
             { new: true, runValidators: true }
         );
-        
-        if (!updatedService) {
-            return res.status(404).json({ message: 'Service not found' });
+
+        // Sync custom service approval status to vendor's shopDetails.services
+        if (req.body.approvalStatus) {
+            const vendorId = updatedService.vendorId;
+            if (vendorId) {
+                const vendorUser = await User.findById(vendorId);
+                if (vendorUser && vendorUser.shopDetails?.services) {
+                    const mappedStatus = req.body.approvalStatus === 'Approved' ? 'approved' : 
+                                         req.body.approvalStatus === 'Rejected' ? 'rejected' : 'pending';
+                    
+                    const svcIndex = vendorUser.shopDetails.services.findIndex(s => s.id === id);
+                    if (svcIndex !== -1) {
+                        vendorUser.shopDetails.services[svcIndex].status = mappedStatus;
+                        if (mappedStatus === 'approved') {
+                            vendorUser.shopDetails.services[svcIndex].active = true;
+                        }
+                        vendorUser.markModified('shopDetails.services');
+                        await vendorUser.save();
+                        console.log(`Synced custom service approval status to vendor user ${vendorId}`);
+                    }
+                }
+            }
         }
         
         res.status(200).json(updatedService);
@@ -108,15 +161,24 @@ export const updateService = async (req, res) => {
 export const deleteService = async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await Service.findByIdAndDelete(id);
         
-        if (!result) {
+        const service = await Service.findById(id);
+        if (!service) {
             return res.status(404).json({ message: 'Service not found' });
         }
-        
+
+        // Access checks
+        if (req.user && req.user.role === 'Vendor') {
+            if (!service.vendorId || service.vendorId.toString() !== req.user.id.toString()) {
+                return res.status(403).json({ message: 'Forbidden. You do not own this service.' });
+            }
+        }
+
+        await Service.findByIdAndDelete(id);
         res.status(200).json({ message: 'Service deleted successfully' });
     } catch (err) {
         console.error('Delete Service Error:', err);
         res.status(500).json({ message: 'Error deleting service' });
     }
 };
+

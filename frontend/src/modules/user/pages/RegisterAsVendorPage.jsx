@@ -41,6 +41,8 @@ const RegisterAsVendorPage = () => {
   const [showAmountInput, setShowAmountInput] = useState(false);
   const [amountEntered, setAmountEntered] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
+  const [resolvedGpsAddress, setResolvedGpsAddress] = useState('');
+  const [isResolvingGpsAddress, setIsResolvingGpsAddress] = useState(false);
   
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
   const isPendingVendor = currentUser?.onboardingStage && 
@@ -170,6 +172,46 @@ const RegisterAsVendorPage = () => {
   }, [formData]);
 
   useEffect(() => {
+      const resolveInitialAddress = async () => {
+          if (formData.location && formData.location.lat && formData.location.lng && !resolvedGpsAddress && !isResolvingGpsAddress) {
+              const lat = formData.location.lat;
+              const lng = formData.location.lng;
+              setIsResolvingGpsAddress(true);
+              try {
+                  let address = '';
+                  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                      headers: { 'Accept-Language': 'en' }
+                  });
+                  if (res.ok) {
+                      const data = await res.json();
+                      if (data && data.display_name) {
+                          address = data.display_name;
+                      }
+                  }
+                  if (!address) {
+                      const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+                      if (API_KEY) {
+                          const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${API_KEY}`);
+                          const data = await response.json();
+                          if (data.status === 'OK' && data.results.length > 0) {
+                              address = data.results[0].formatted_address;
+                          }
+                      }
+                  }
+                  if (address) {
+                      setResolvedGpsAddress(address);
+                  }
+              } catch (e) {
+                  console.error('Error resolving initial GPS address:', e);
+              } finally {
+                  setIsResolvingGpsAddress(false);
+              }
+          }
+      };
+      resolveInitialAddress();
+  }, [formData.location]);
+
+  useEffect(() => {
     // Logic for steps will go here
   }, [step]);
 
@@ -219,12 +261,16 @@ const RegisterAsVendorPage = () => {
 
   const handleInitiateBankVerify = async () => {
     const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-    if (!panRegex.test(formData.panNumber)) {
+    const trimmedPan = (formData.panNumber || '').trim().toUpperCase();
+    if (!panRegex.test(trimmedPan)) {
         toast.error('Invalid PAN Number format (ABCDE1234F)');
         return;
     }
 
-    if (!formData.bankAccountNumber || !formData.ifscCode) {
+    const trimmedAcc = (formData.bankAccountNumber || '').trim();
+    const trimmedIfsc = (formData.ifscCode || '').trim().toUpperCase();
+
+    if (!trimmedAcc || !trimmedIfsc) {
         toast.error('Please enter Account Number and IFSC Code');
         return;
     }
@@ -232,13 +278,18 @@ const RegisterAsVendorPage = () => {
     try {
         setVerifyingBank(true);
         const userId = currentUser?._id || currentUser?.id;
+        if (!userId) {
+            toast.error('User session not found. Please log in again.');
+            return;
+        }
+
         const response = await fetch(`${BASE_URL}/supplier/initiate-bank-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 userId,
-                accountNumber: formData.bankAccountNumber,
-                ifscCode: formData.ifscCode
+                accountNumber: trimmedAcc,
+                ifscCode: trimmedIfsc
             })
         });
         const result = await response.json();
@@ -250,6 +301,7 @@ const RegisterAsVendorPage = () => {
             toast.error(result.message || 'Failed to initiate verification');
         }
     } catch (error) {
+        console.error('Bank verify error:', error);
         toast.error('Bank verification service unavailable');
     } finally {
         setVerifyingBank(false);
@@ -350,7 +402,7 @@ const RegisterAsVendorPage = () => {
             toast.success('Application submitted for Admin approval! 🎉');
             const updatedUser = { ...storedUser, role: 'Vendor', status: 'pending' };
             localStorage.setItem('user', JSON.stringify(updatedUser));
-            navigate('/user/profile');
+            navigate('/');
         } else {
             toast.error(result.message || 'Submission failed');
         }
@@ -974,6 +1026,11 @@ const RegisterAsVendorPage = () => {
                                     toast.error('PAN details are mandatory');
                                     return;
                                 }
+                                const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+                                if (!panRegex.test(formData.panNumber.trim().toUpperCase())) {
+                                    toast.error('Invalid PAN Number format (ABCDE1234F)');
+                                    return;
+                                }
                                 if ((formData.businessType === 'Pvt Ltd' || formData.businessType === 'Franchise') && (!formData.gstNumber || !formData.gstDoc || !isGstVerified)) {
                                     toast.error(isGstVerified ? 'GST Certificate is mandatory' : 'Please verify your GST number first');
                                     return;
@@ -1023,15 +1080,50 @@ const RegisterAsVendorPage = () => {
                                     type="button"
                                     onClick={() => {
                                         if ("geolocation" in navigator) {
-                                            navigator.geolocation.getCurrentPosition((position) => {
-                                                setFormData({ 
-                                                    ...formData, 
-                                                    location: {
-                                                        lat: position.coords.latitude,
-                                                        lng: position.coords.longitude
-                                                    }
-                                                });
+                                            navigator.geolocation.getCurrentPosition(async (position) => {
+                                                const lat = position.coords.latitude;
+                                                const lng = position.coords.longitude;
+                                                setFormData(prev => ({ 
+                                                    ...prev, 
+                                                    location: { lat, lng }
+                                                }));
                                                 toast.success('Location Captured!');
+                                                
+                                                setIsResolvingGpsAddress(true);
+                                                try {
+                                                    let address = '';
+                                                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                                                        headers: { 'Accept-Language': 'en' }
+                                                    });
+                                                    if (res.ok) {
+                                                        const data = await res.json();
+                                                        if (data && data.display_name) {
+                                                            address = data.display_name;
+                                                        }
+                                                    }
+                                                    if (!address) {
+                                                        const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+                                                        if (API_KEY) {
+                                                            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${API_KEY}`);
+                                                            const data = await response.json();
+                                                            if (data.status === 'OK' && data.results.length > 0) {
+                                                                address = data.results[0].formatted_address;
+                                                            }
+                                                        }
+                                                    }
+                                                    if (address) {
+                                                        setResolvedGpsAddress(address);
+                                                        // Auto-fill address field if currently empty
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            businessAddress: prev.businessAddress ? prev.businessAddress : address
+                                                        }));
+                                                    }
+                                                } catch (err) {
+                                                    console.error('Error geocoding location:', err);
+                                                } finally {
+                                                    setIsResolvingGpsAddress(false);
+                                                }
                                             }, (err) => {
                                                 toast.error('Failed to get location. Please enable GPS.');
                                             });
@@ -1044,6 +1136,23 @@ const RegisterAsVendorPage = () => {
                                         {formData.location ? `Captured: ${formData.location.lat.toFixed(4)}, ${formData.location.lng.toFixed(4)}` : 'Capture Current Location'}
                                     </span>
                                 </button>
+                                
+                                {isResolvingGpsAddress && (
+                                    <div className="mt-3 flex items-center justify-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                                        <span className="material-symbols-outlined text-xs animate-spin">sync</span>
+                                        Resolving Address...
+                                    </div>
+                                )}
+                                
+                                {resolvedGpsAddress && (
+                                    <div className="mt-3 p-4 bg-slate-50 border border-slate-200/60 rounded-[1.25rem] flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-primary text-base shrink-0 mt-0.5">location_on</span>
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] font-black text-primary uppercase tracking-widest">Resolved Address</p>
+                                            <p className="text-xs font-bold text-slate-600 leading-relaxed uppercase">{resolvedGpsAddress}</p>
+                                        </div>
+                                    </div>
+                                )}
                             </FieldHighlight>
                         </div>
 
@@ -1322,21 +1431,168 @@ const ServiceSelectionView = ({ userId, onComplete }) => {
     const [selected, setSelected] = useState({}); // { id: rate }
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [geoStatus, setGeoStatus] = useState('checking'); // checking, no_location, outside, error, ok
+    const [areaName, setAreaName] = useState('');
+    const [businessAddress, setBusinessAddress] = useState('');
+
+    // Category & Sub Category Filter States
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedSubCategory, setSelectedSubCategory] = useState('');
+    const [activeTierMode, setActiveTierMode] = useState('both'); // all, essential, heritage, both
+
+    const activeSelectedCount = Object.keys(selected).filter(id => selected[id] !== undefined && selected[id] !== '').length;
+    const allSelected = masterServices.length > 0 && activeSelectedCount === masterServices.length;
+
+    const essentialServices = masterServices.filter(s => s.tier === 'Essential');
+    const heritageServices = masterServices.filter(s => s.tier === 'Heritage');
+
+    const allEssentialSelected = essentialServices.length > 0 && essentialServices.every(s => selected[s._id] !== undefined && selected[s._id] !== '');
+    const allHeritageSelected = heritageServices.length > 0 && heritageServices.every(s => selected[s._id] !== undefined && selected[s._id] !== '');
+    const bothSelected = allSelected;
+
+    const categories = [...new Set(masterServices.map(s => s.category).filter(Boolean))];
+    const subCategories = [...new Set(masterServices.filter(s => s.category === selectedCategory).map(s => s.subCategory).filter(Boolean))];
+
+    const filteredServices = masterServices.filter(svc => {
+        const matchesCategory = svc.category === selectedCategory;
+        const matchesSubCategory = svc.subCategory === selectedSubCategory;
+        return matchesCategory && matchesSubCategory;
+    });
+
+    const handleCategoryChange = (cat) => {
+        setSelectedCategory(cat);
+        const relatedSubs = [...new Set(masterServices.filter(s => s.category === cat).map(s => s.subCategory).filter(Boolean))];
+        if (relatedSubs.length > 0) {
+            setSelectedSubCategory(relatedSubs[0]);
+        } else {
+            setSelectedSubCategory('');
+        }
+    };
+
+    const handleToggleAll = () => {
+        setActiveTierMode('all');
+        if (allSelected) {
+            setSelected({});
+        } else {
+            const newSelected = {};
+            masterServices.forEach(svc => {
+                newSelected[svc._id] = String(svc.baseNormal);
+            });
+            setSelected(newSelected);
+        }
+    };
+
+    const handleToggleTier = (tierType) => {
+        setActiveTierMode(tierType);
+        const targetServices = masterServices.filter(svc => {
+            if (tierType === 'both') return true;
+            return svc.tier.toLowerCase() === tierType.toLowerCase();
+        });
+
+        if (targetServices.length === 0) return;
+
+        const allTargetSelected = targetServices.every(svc => selected[svc._id] !== undefined && selected[svc._id] !== '');
+
+        const newSelected = { ...selected };
+        if (allTargetSelected) {
+            targetServices.forEach(svc => {
+                delete newSelected[svc._id];
+            });
+        } else {
+            targetServices.forEach(svc => {
+                newSelected[svc._id] = String(svc.baseNormal);
+            });
+        }
+        setSelected(newSelected);
+    };
 
     useEffect(() => {
-        const fetchMasters = async () => {
+        const resolveLocationAndCatalog = async () => {
             try {
-                const response = await fetch(`${BASE_URL}/master-services?activeOnly=true`);
-                const data = await response.json();
-                setMasterServices(data);
+                // 1. Fetch User Profile to get GPS coordinates and business address
+                const profileRes = await fetch(`${BASE_URL}/auth/profile/${userId}`);
+                if (!profileRes.ok) throw new Error('Failed to fetch user profile');
+                const user = await profileRes.json();
+                
+                const lat = user?.location?.lat;
+                const lng = user?.location?.lng;
+                setBusinessAddress(user?.businessAddress || user?.shopDetails?.address || '');
+                
+                if (!lat || !lng || lat === 0 || lng === 0) {
+                    setGeoStatus('no_location');
+                    setLoading(false);
+                    return;
+                }
+                
+                // 2. Verify coordinates with Geofence check availability
+                const geoRes = await fetch(`${BASE_URL}/geofence/check-availability?lat=${lat}&lng=${lng}`);
+                if (!geoRes.ok) throw new Error('Geofence check failed');
+                const geoData = await geoRes.json();
+                
+                if (!geoData.available || !geoData.areaId) {
+                    setGeoStatus('outside');
+                    setLoading(false);
+                    return;
+                }
+                
+                setAreaName(geoData.name);
+                setGeoStatus('ok');
+                
+                // 3. Fetch localized pricing catalog for the resolved fenceId
+                const pricingRes = await fetch(`${BASE_URL}/master-pricing?fenceId=${geoData.areaId}&limit=10000`);
+                if (!pricingRes.ok) throw new Error('Failed to fetch master pricing');
+                const pricingData = await pricingRes.json();
+                
+                // Map MasterPricing list and calculate the 4 pricing variants using multipliers
+                const mappedServices = (pricingData.data || [])
+                    .filter(item => item.serviceId && item.isActive !== false)
+                    .map(item => {
+                        const basePrice = item.basePrice || 0;
+                        const areaMultiplier = item.areaMultiplier !== undefined ? item.areaMultiplier : 1;
+                        const surgeMultiplier = item.surgeMultiplier !== undefined ? item.surgeMultiplier : 1;
+                        const heritageMultiplier = item.heritageMultiplier !== undefined ? item.heritageMultiplier : 1;
+
+                        const baseNormal = Math.round(basePrice * areaMultiplier);
+                        const baseExpress = Math.round(basePrice * areaMultiplier * surgeMultiplier);
+                        const heritageNormal = Math.round(basePrice * areaMultiplier * heritageMultiplier);
+                        const heritageExpress = Math.round(basePrice * areaMultiplier * heritageMultiplier * surgeMultiplier);
+
+                        return {
+                            _id: item.serviceId._id,
+                            itemName: item.serviceId.itemName,
+                            skuId: item.serviceId.skuId,
+                            icon: item.serviceId.icon || 'local_laundry_service',
+                            tier: item.serviceId.tier || 'Essential',
+                            category: item.categoryId?.mainCategory || '',
+                            subCategory: item.categoryId?.subCategory || '',
+                            basePrice: item.finalPrice || item.basePrice || 0,
+                            baseNormal,
+                            baseExpress,
+                            heritageNormal,
+                            heritageExpress
+                        };
+                    });
+                
+                setMasterServices(mappedServices);
+                if (mappedServices.length > 0) {
+                    const uniqueCats = [...new Set(mappedServices.map(s => s.category).filter(Boolean))];
+                    if (uniqueCats.length > 0) {
+                        setSelectedCategory(uniqueCats[0]);
+                        const firstCatSubs = [...new Set(mappedServices.filter(s => s.category === uniqueCats[0]).map(s => s.subCategory).filter(Boolean))];
+                        if (firstCatSubs.length > 0) {
+                            setSelectedSubCategory(firstCatSubs[0]);
+                        }
+                    }
+                }
             } catch (err) {
-                console.error('Fetch Masters Error:', err);
+                console.error('Resolve Catalog Error:', err);
+                setGeoStatus('error');
             } finally {
                 setLoading(false);
             }
         };
-        fetchMasters();
-    }, []);
+        resolveLocationAndCatalog();
+    }, [userId]);
 
     const handleSubmit = async () => {
         const payload = Object.keys(selected)
@@ -1367,50 +1623,217 @@ const ServiceSelectionView = ({ userId, onComplete }) => {
 
     if (loading) return <div className="min-h-screen flex items-center justify-center font-black uppercase tracking-widest text-slate-400">Loading Catalog...</div>;
 
+    if (geoStatus !== 'ok') {
+        const errorConfigs = {
+            'no_location': {
+                icon: 'location_off',
+                title: 'No GPS Coordinates Captured',
+                desc: 'Your profile is missing coordinate data. Please contact the administration to update your facility coordinates.',
+                color: 'text-amber-500',
+                bg: 'bg-amber-50'
+            },
+            'outside': {
+                icon: 'gpp_bad',
+                title: 'Outside Active Service Area',
+                desc: 'Your shop coordinates do not match any of our active geofenced service zones. Currently, we cannot accept catalog rates for this location.',
+                color: 'text-rose-500',
+                bg: 'bg-rose-50'
+            },
+            'error': {
+                icon: 'cloud_off',
+                title: 'Verification Failed',
+                desc: 'An error occurred while contacting our location-matching registry. Please reload the page to try again.',
+                color: 'text-slate-500',
+                bg: 'bg-slate-100'
+            }
+        };
+
+        const config = errorConfigs[geoStatus] || errorConfigs['error'];
+
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+                <div className={`w-20 h-20 ${config.bg} ${config.color} rounded-[2rem] flex items-center justify-center mb-6 shadow-xl shadow-black/5`}>
+                    <span className="material-symbols-outlined text-3xl leading-none">{config.icon}</span>
+                </div>
+                <h2 className="text-2xl font-black tracking-tighter text-slate-900 uppercase mb-2">{config.title}</h2>
+                <p className="text-xs font-bold text-slate-400 max-w-sm uppercase leading-relaxed mb-6">{config.desc}</p>
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-md"
+                >
+                    Retry Verification
+                </button>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-slate-50 p-6 pb-32">
+        <div className="min-h-screen bg-slate-50 p-6 pt-16 pb-32">
             <div className="max-w-2xl mx-auto space-y-8">
-                <header className="text-center space-y-2">
-                    <div className="w-16 h-16 bg-primary text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
-                        <span className="material-symbols-outlined text-3xl">category</span>
+                <header className="space-y-4 px-2">
+                    <h2 className="text-center text-base sm:text-lg font-black tracking-tight text-slate-700 whitespace-nowrap">
+                        select services that your facility can provide
+                    </h2>
+                    <div className="flex items-center justify-between gap-2">
+                        <button 
+                            type="button"
+                            onClick={handleToggleAll}
+                            className={`px-3 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
+                                activeTierMode === 'all'
+                                    ? 'bg-slate-900 border-slate-900 text-white shadow-md' 
+                                    : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'
+                            }`}
+                        >
+                            All
+                        </button>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                type="button"
+                                onClick={() => handleToggleTier('essential')}
+                                className={`px-3 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
+                                    activeTierMode === 'essential'
+                                        ? 'bg-slate-900 border-slate-900 text-white shadow-md' 
+                                        : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'
+                                }`}
+                            >
+                                Essential
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => handleToggleTier('heritage')}
+                                className={`px-3 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
+                                    activeTierMode === 'heritage'
+                                        ? 'bg-slate-900 border-slate-900 text-white shadow-md' 
+                                        : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'
+                                }`}
+                            >
+                                Heritage
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => handleToggleTier('both')}
+                                className={`px-3 py-1.5 border rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
+                                    activeTierMode === 'both'
+                                        ? 'bg-slate-900 border-slate-900 text-white shadow-md' 
+                                        : 'bg-white border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50'
+                                }`}
+                            >
+                                Both
+                            </button>
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-black tracking-tighter text-slate-900">Define Your <span className="text-primary italic">Catalog</span></h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Phase 2: Service & Rate Definition</p>
+
+                    {/* Category Selector */}
+                    {categories.length > 0 && (
+                        <div className="flex flex-wrap gap-2 justify-start items-center pt-3 border-t border-slate-100">
+                            {categories.map(cat => (
+                                <button
+                                    key={cat}
+                                    type="button"
+                                    onClick={() => handleCategoryChange(cat)}
+                                    className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
+                                        selectedCategory === cat
+                                            ? 'bg-primary text-white shadow-md shadow-primary/20'
+                                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Sub Category Selector */}
+                    {subCategories.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 justify-start items-center">
+                            {subCategories.map(sub => (
+                                <button
+                                    key={sub}
+                                    type="button"
+                                    onClick={() => setSelectedSubCategory(sub)}
+                                    className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer ${
+                                        selectedSubCategory === sub
+                                            ? 'bg-slate-900 border border-slate-900 text-white shadow-sm'
+                                            : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'
+                                    }`}
+                                >
+                                    {sub}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </header>
 
-                <div className="space-y-4">
-                    {masterServices.map(svc => (
-                        <div key={svc._id} className={`bg-white p-6 rounded-[2rem] border-2 transition-all flex items-center justify-between gap-4 ${selected[svc._id] ? 'border-primary shadow-lg shadow-primary/5' : 'border-slate-100 hover:border-slate-200'}`}>
-                            <div className="flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selected[svc._id] ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'}`}>
-                                    <span className="material-symbols-outlined text-2xl">{svc.icon || 'local_laundry_service'}</span>
-                                </div>
-                                <div>
-                                    <h4 className="font-black text-slate-900 tracking-tight leading-none">{svc.itemName}</h4>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Base: ₹{svc.basePrice}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                                <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">₹</span>
-                                    <input 
-                                        type="number"
-                                        placeholder="Rate"
-                                        value={selected[svc._id] || ''}
-                                        onChange={(e) => setSelected({ ...selected, [svc._id]: e.target.value })}
-                                        className="w-24 pl-8 pr-4 py-3 bg-slate-50 rounded-xl text-sm font-black text-slate-900 border-none focus:ring-2 focus:ring-primary/20"
-                                    />
-                                </div>
-                                <button 
-                                    onClick={() => setSelected({ ...selected, [svc._id]: selected[svc._id] ? undefined : '' })}
-                                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${selected[svc._id] ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}
-                                >
-                                    <span className="material-symbols-outlined text-lg">{selected[svc._id] ? 'check' : 'add'}</span>
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                <div className="overflow-x-auto bg-white border border-slate-100 rounded-[2rem] shadow-sm">
+                    <table className="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-12 text-center">Select</th>
+                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-44">SKU ID</th>
+                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Item Name</th>
+                                
+                                {(activeTierMode === 'essential' || activeTierMode === 'both' || activeTierMode === 'all') && (
+                                    <>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Base Normal</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Base Express</th>
+                                    </>
+                                )}
+                                {(activeTierMode === 'heritage' || activeTierMode === 'both' || activeTierMode === 'all') && (
+                                    <>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Normal</th>
+                                        <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Express</th>
+                                    </>
+                                )}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredServices.map(svc => {
+                                const isSelected = selected[svc._id] !== undefined;
+                                return (
+                                    <tr key={svc._id} className={`hover:bg-slate-50/30 transition-colors ${isSelected ? 'bg-primary/5' : ''}`}>
+                                        <td className="p-4 text-center">
+                                            <input 
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => {
+                                                    if (isSelected) {
+                                                        const newSel = { ...selected };
+                                                        delete newSel[svc._id];
+                                                        setSelected(newSel);
+                                                    } else {
+                                                        setSelected({ ...selected, [svc._id]: String(svc.baseNormal) });
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer"
+                                            />
+                                        </td>
+                                        <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                            {svc.skuId || 'N/A'}
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-3">
+                                                <span className="material-symbols-outlined text-slate-400 text-lg">{svc.icon}</span>
+                                                <span className="text-sm font-black text-slate-900 uppercase tracking-tight">{svc.itemName}</span>
+                                            </div>
+                                        </td>
+                                        
+                                        {(activeTierMode === 'essential' || activeTierMode === 'both' || activeTierMode === 'all') && (
+                                            <>
+                                                <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{svc.baseNormal}</td>
+                                                <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{svc.baseExpress}</td>
+                                            </>
+                                        )}
+                                        {(activeTierMode === 'heritage' || activeTierMode === 'both' || activeTierMode === 'all') && (
+                                            <>
+                                                <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{svc.heritageNormal}</td>
+                                                <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{svc.heritageExpress}</td>
+                                            </>
+                                        )}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
 
                 <div className="fixed bottom-20 left-0 right-0 p-6 bg-slate-50/80 backdrop-blur-md border-t border-slate-200 z-[60]">

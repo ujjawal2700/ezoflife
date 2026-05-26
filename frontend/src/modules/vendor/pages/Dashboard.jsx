@@ -728,53 +728,46 @@ const Dashboard = () => {
             <VendorHeader />
             
             {/* 🚀 MAIN CONTENT AREA */}
-            <main className="max-w-xl mx-auto px-6 pt-4 space-y-4 min-h-screen">
+            <main className="max-w-xl mx-auto px-6 pt-2 space-y-4 min-h-screen">
                 
-                {/* 0. DAYS SUMMARY (ULTRA COMPACT) */}
+                {/* 0. DAYS SUMMARY (ULTRA COMPACT BLACK & WHITE) */}
                 <section className="max-w-md mx-auto w-full">
                     <motion.div 
-                        initial={{ opacity: 0, y: -20 }}
+                        initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className="relative group cursor-default"
                     >
-                        <div className="relative bg-white text-slate-900 p-4 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.04)] overflow-hidden border border-slate-100">
+                        <div className="relative bg-black text-white p-3 rounded-2xl shadow-lg border border-neutral-900">
                             <div className="relative z-10">
-                                <div className="flex items-center justify-between mb-3 px-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none">Days Summary</p>
-                                    <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                                        <span className="material-symbols-outlined text-lg">analytics</span>
+                                <div className="flex items-center justify-between mb-2.5 px-1">
+                                    <p className="text-[9px] font-black text-neutral-400 uppercase tracking-[0.2em] leading-none">Days Summary</p>
+                                    <div className="w-5 h-5 rounded bg-neutral-900 flex items-center justify-center text-neutral-400">
+                                        <span className="material-symbols-outlined text-sm">analytics</span>
                                     </div>
                                 </div>
                                 
-                                <div className="grid grid-cols-1 gap-0.5">
+                                <div className="grid grid-cols-2 gap-1.5">
                                     {[
-                                        { label: 'New Request', value: newRequestsCount, icon: 'notifications_active', color: 'text-rose-500', bg: 'bg-rose-50' },
-                                        { label: 'Upcoming Pickups (Next 6-8 hrs.)', value: upcomingPickupsCount, icon: 'schedule', color: 'text-amber-500', bg: 'bg-amber-50' },
-                                        { label: 'Active orders', value: activeOrdersCount, icon: 'motion_photos_on', color: 'text-blue-500', bg: 'bg-blue-50' },
-                                        { label: 'Business booked today', value: `₹${businessBookedToday.toLocaleString()}`, icon: 'payments', color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                                        { label: 'Total Payouts received', value: `₹${totalPayoutsReceivedYesterday.toLocaleString()}`, icon: 'account_balance_wallet', color: 'text-slate-900', bg: 'bg-slate-50' },
-                                        { label: 'Ready for delivery', value: readyForDeliveryCount, icon: 'local_shipping', color: 'text-indigo-500', bg: 'bg-indigo-50' },
+                                        { label: 'New Request', value: newRequestsCount, icon: 'notifications_active' },
+                                        { label: 'Upcoming Pickups (Next 6-8 hrs.)', value: upcomingPickupsCount, icon: 'schedule' },
+                                        { label: 'Active orders', value: activeOrdersCount, icon: 'motion_photos_on' },
+                                        { label: 'Business booked today', value: `₹${businessBookedToday.toLocaleString()}`, icon: 'payments' },
+                                        { label: 'Total Payouts received', value: `₹${totalPayoutsReceivedYesterday.toLocaleString()}`, icon: 'account_balance_wallet' },
+                                        { label: 'Ready for delivery', value: readyForDeliveryCount, icon: 'local_shipping' },
                                     ].map((stat, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 transition-colors group/item">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-7 h-7 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center shadow-sm`}>
-                                                    <span className="material-symbols-outlined text-[15px]">{stat.icon}</span>
-                                                </div>
-                                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-tight">{stat.label}</span>
+                                        <div key={idx} className="flex items-center justify-between p-1.5 px-2 rounded-xl bg-neutral-900/60 border border-neutral-800/40 min-h-[36px] hover:bg-neutral-800/50 transition-colors">
+                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                <span className="material-symbols-outlined text-[13px] text-white/70 shrink-0">{stat.icon}</span>
+                                                <span className="text-[8px] font-black text-neutral-300 uppercase tracking-tight leading-tight line-clamp-2">
+                                                    {stat.label}
+                                                </span>
                                             </div>
-                                            <span className="text-xs font-black text-slate-900 tracking-tighter">
+                                            <span className="text-[10px] font-black text-white shrink-0 ml-1.5">
                                                 {stat.value}
                                             </span>
                                         </div>
                                     ))}
                                 </div>
-
-                                <button 
-                                    onClick={() => navigate('/vendor/earnings')}
-                                    className="mt-2 w-full py-2.5 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all flex items-center justify-center gap-2"
-                                >
-                                    Report <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                </button>
                             </div>
                         </div>
                     </motion.div>

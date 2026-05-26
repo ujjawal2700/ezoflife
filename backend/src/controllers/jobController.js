@@ -147,9 +147,9 @@ export const getVendorApplications = async (req, res) => {
 
 export const getAdminApplications = async (req, res) => {
     try {
-        const applications = await JobApplication.find({ 
-            creatorRole: 'Admin'
-        })
+        const { creatorRole } = req.query;
+        const query = creatorRole ? { creatorRole } : {};
+        const applications = await JobApplication.find(query)
             .populate('job', 'title')
             .populate('applicant', 'displayName profileImage email')
             .sort({ createdAt: -1 });
@@ -174,6 +174,42 @@ export const deleteJob = async (req, res) => {
         // Also delete associated applications
         await JobApplication.deleteMany({ job: req.params.id });
         res.json({ message: 'Job and associated applications deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const updateJob = async (req, res) => {
+    try {
+        const job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(job);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const updateJobStatus = async (req, res) => {
+    try {
+        const job = await Job.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+        res.json(job);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const updateApplicationStatus = async (req, res) => {
+    try {
+        const application = await JobApplication.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
+        res.json(application);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const deleteApplication = async (req, res) => {
+    try {
+        await JobApplication.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Application deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

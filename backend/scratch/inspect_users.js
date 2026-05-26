@@ -1,0 +1,25 @@
+import mongoose from 'mongoose';
+import User from '../src/models/User.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0';
+
+async function run() {
+    try {
+        await mongoose.connect(MONGO_URI);
+        console.log('Connected to MongoDB');
+        
+        const users = await User.find().limit(20).lean();
+        console.log(`Found ${users.length} users:`);
+        users.forEach(u => {
+            console.log(`ID: ${u._id}, Phone: ${u.phone}, Role: ${u.role}, Status: ${u.status}, Name: ${u.displayName || u.name}`);
+        });
+    } catch (err) {
+        console.error(err);
+    } finally {
+        await mongoose.disconnect();
+    }
+}
+
+run();

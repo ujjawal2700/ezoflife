@@ -18,7 +18,8 @@ import {
     submitVendorServices,
     updateProfileImage,
     getDraftCart,
-    updateDraftCart
+    updateDraftCart,
+    lookupCustomerByPhone
 } from '../controllers/authController.js';
 import { getVendorPayoutHistory } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
@@ -39,6 +40,7 @@ router.post('/complete-vendor-profile', upload.fields([
 
 router.get('/get-status', getStatus);
 router.get('/profile/:id', getUserProfile);
+router.get('/lookup-phone/:phone', lookupCustomerByPhone);
 router.patch('/profile/update/:id', updateUserProfile);
 router.patch('/update-documents/:id', upload.single('document'), updateVendorDocuments);
 router.patch('/update-profile-image/:id', upload.single('image'), updateProfileImage);

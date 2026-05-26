@@ -19,6 +19,8 @@ const MasterServiceManagement = () => {
 
     const [filterCatId, setFilterCatId] = useState('');
     const [filterCurrInd, setFilterCurrInd] = useState('');
+    const [filterItemName, setFilterItemName] = useState('');
+    const [filterSkuId, setFilterSkuId] = useState('');
 
     const [formData, setFormData] = useState({
         itemName: '',
@@ -131,13 +133,35 @@ const MasterServiceManagement = () => {
         ).sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
     }, [services]);
 
+    const itemNameList = useMemo(() => {
+        return Array.from(
+            new Set(
+                services
+                    .map(s => s.itemName)
+                    .filter(Boolean)
+            )
+        ).sort((a, b) => String(a).localeCompare(String(b)));
+    }, [services]);
+
+    const skuIdList = useMemo(() => {
+        return Array.from(
+            new Set(
+                services
+                    .map(s => s.skuId)
+                    .filter(Boolean)
+            )
+        ).sort((a, b) => String(a).localeCompare(String(b), undefined, {numeric: true}));
+    }, [services]);
+
     const filteredServices = useMemo(() => {
         return services.filter(service => {
             const matchesCatId = !filterCatId || String(service.excelCategoryId) === String(filterCatId) || String(service.categoryId?.excelCategoryId) === String(filterCatId);
             const matchesCurrInd = !filterCurrInd || String(service.curr_ind).toLowerCase() === String(filterCurrInd).toLowerCase();
-            return matchesCatId && matchesCurrInd;
+            const matchesItemName = !filterItemName || String(service.itemName).toLowerCase() === String(filterItemName).toLowerCase();
+            const matchesSkuId = !filterSkuId || String(service.skuId).toLowerCase() === String(filterSkuId).toLowerCase();
+            return matchesCatId && matchesCurrInd && matchesItemName && matchesSkuId;
         });
-    }, [services, filterCatId, filterCurrInd]);
+    }, [services, filterCatId, filterCurrInd, filterItemName, filterSkuId]);
 
     const handleOpenModal = (service = null) => {
         if (service) {
@@ -378,6 +402,24 @@ const MasterServiceManagement = () => {
                             </select>
 
                             <select 
+                                value={filterItemName}
+                                onChange={e => setFilterItemName(e.target.value)}
+                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
+                            >
+                                <option value="">All Items</option>
+                                {itemNameList.map(name => <option key={name} value={name}>{name}</option>)}
+                            </select>
+
+                            <select 
+                                value={filterSkuId}
+                                onChange={e => setFilterSkuId(e.target.value)}
+                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
+                            >
+                                <option value="">All SKU IDs</option>
+                                {skuIdList.map(sku => <option key={sku} value={sku}>{sku}</option>)}
+                            </select>
+
+                            <select 
                                 value={filterCurrInd}
                                 onChange={e => setFilterCurrInd(e.target.value)}
                                 className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
@@ -387,11 +429,13 @@ const MasterServiceManagement = () => {
                                 <option value="n">N</option>
                             </select>
 
-                            {(filterCatId || filterCurrInd) && (
+                            {(filterCatId || filterCurrInd || filterItemName || filterSkuId) && (
                                 <button 
                                     onClick={() => {
                                         setFilterCatId('');
                                         setFilterCurrInd('');
+                                        setFilterItemName('');
+                                        setFilterSkuId('');
                                     }}
                                     className="px-3 py-1.5 text-[9px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-50 rounded-sm transition-all flex items-center gap-1.5"
                                 >

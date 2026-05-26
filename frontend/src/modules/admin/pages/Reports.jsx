@@ -39,7 +39,6 @@ export default function Reports() {
   const orderStats = useMemo(() => mockAdminData.orderStats, []);
   
   const reportTitles = {
-    settlement: "Financial Settlement",
     tat: "Vendor TAT Report",
     heatmap: "Geospatial Heatmaps",
     leakage: "Revenue Leakage Analysis",
@@ -47,7 +46,6 @@ export default function Reports() {
   };
 
   const reportIcons = {
-    settlement: IndianRupee,
     tat: Clock,
     heatmap: Map,
     leakage: ShieldAlert,

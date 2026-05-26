@@ -31,6 +31,7 @@ import VendorReviews from '../pages/VendorReviews';
 import JobManagerPage from '../pages/JobManagerPage';
 import MaterialRequestPage from '../pages/MaterialRequestPage';
 import LaborRequestPage from '../pages/LaborRequestPage';
+import CreateJobRequisition from '../pages/CreateJobRequisition';
 import VendorMyServices from '../pages/VendorMyServices';
 import VendorReports from '../pages/VendorReports';
 
@@ -78,6 +79,7 @@ const VendorRoutes = () => {
         <Route path="/fulfillment" element={<B2BFulfillmentPage />} />
         <Route path="/material-request" element={<MaterialRequestPage />} />
         <Route path="/labor-request" element={<LaborRequestPage />} />
+        <Route path="/labor-request/create" element={<CreateJobRequisition />} />
         <Route path="/material-orders" element={<B2BOrderHistory />} />
         <Route path="/reviews" element={<VendorReviews />} />
         <Route path="/jobs" element={<JobManagerPage />} />

@@ -5,16 +5,17 @@ import {
     updateService, 
     deleteService 
 } from '../controllers/serviceController.js';
-import { verifyAdmin } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyAdminOrVendor } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Publicly available
 router.get('/', getAllServices);
 
-// Admin-only modification routes
-router.post('/', verifyAdmin, createService);
-router.put('/:id', verifyAdmin, updateService);
-router.delete('/:id', verifyAdmin, deleteService);
+// Service modification routes (accessible to admins, and vendors for their custom services)
+router.post('/', verifyAdminOrVendor, createService);
+router.put('/:id', verifyAdminOrVendor, updateService);
+router.delete('/:id', verifyAdminOrVendor, deleteService);
+
 
 export default router;

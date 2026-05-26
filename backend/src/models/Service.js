@@ -8,8 +8,11 @@ const serviceSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        required: true,
-        enum: ['Laundry', 'Dry Cleaning', 'Ironing', 'Premium']
+        required: true
+    },
+    subCategory: {
+        type: String,
+        default: ''
     },
     basePrice: {
         type: Number,

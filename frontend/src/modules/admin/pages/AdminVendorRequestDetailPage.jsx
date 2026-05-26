@@ -7,7 +7,10 @@ import {
     Award, Factory, Info, ExternalLink, PlayCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { adminApi } from '../../../lib/api';
+import { adminApi, geofenceApi, BASE_URL } from '../../../lib/api';
+import { GoogleMap, useJsApiLoader, Polygon, Marker } from '@react-google-maps/api';
+
+const mapLibraries = ['drawing', 'places', 'geometry'];
 
 const getYouTubeEmbedUrl = (url) => {
   if (!url || typeof url !== 'string') return null;
@@ -31,6 +34,50 @@ const AdminVendorRequestDetailPage = () => {
       reason: '',
       rejectionFlags: []
   });
+  const [matchedArea, setMatchedArea] = useState(null);
+  const [checkingArea, setCheckingArea] = useState(false);
+  const [areas, setAreas] = useState([]);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: mapLibraries
+  });
+
+  useEffect(() => {
+    const fetchAreas = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/geofence/areas`);
+        const data = await res.json();
+        setAreas(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load service areas', err);
+      }
+    };
+    fetchAreas();
+  }, []);
+
+  useEffect(() => {
+    if (vendor && vendor.location && vendor.location.lat && vendor.location.lng) {
+      const checkGeo = async () => {
+        setCheckingArea(true);
+        try {
+          const res = await geofenceApi.checkAvailability(vendor.location.lat, vendor.location.lng);
+          if (res.available) {
+            setMatchedArea(res.name);
+          } else {
+            setMatchedArea('OUTSIDE_SERVICE_AREA');
+          }
+        } catch (err) {
+          console.error('Error checking geofence availability:', err);
+          setMatchedArea('ERROR_CHECKING');
+        } finally {
+          setCheckingArea(false);
+        }
+      };
+      checkGeo();
+    }
+  }, [vendor]);
 
   const REVISION_FLAGS = [
     { id: 'ownerName', label: 'Owner Name' },
@@ -296,11 +343,88 @@ const AdminVendorRequestDetailPage = () => {
                                 <p className="text-xs font-bold text-slate-800 leading-relaxed uppercase">{vendor.businessAddress || 'No address provided'}</p>
                             </div>
                             {vendor.location && vendor.location.lat !== 0 && (
-                                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3">
-                                    <MapPin size={16} className="text-emerald-600" />
-                                    <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                                        GPS CAPTURED: {vendor.location.lat?.toFixed(6) || '0.00'}, {vendor.location.lng?.toFixed(6) || '0.00'}
-                                    </span>
+                                <div className="space-y-3">
+                                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                                        <MapPin size={16} className="text-emerald-600" />
+                                        <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                                            GPS CAPTURED: {vendor.location.lat?.toFixed(6) || '0.00'}, {vendor.location.lng?.toFixed(6) || '0.00'}
+                                        </span>
+                                    </div>
+                                    {checkingArea ? (
+                                        <div className="p-4 bg-slate-50 text-slate-500 border border-slate-100 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                                            <span className="animate-spin material-symbols-outlined text-sm">sync</span>
+                                            Checking Service Area Coverage...
+                                        </div>
+                                    ) : matchedArea === 'OUTSIDE_SERVICE_AREA' ? (
+                                        <div className="space-y-3">
+                                            <div className="p-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-sm">warning</span>
+                                                Outside Service Area Coverage
+                                            </div>
+                                            <button
+                                                onClick={() => navigate(`/admin/geofencing?lat=${vendor.location.lat}&lng=${vendor.location.lng}&name=${encodeURIComponent(vendor.displayName || vendor.name || 'Vendor')}`)}
+                                                className="w-full flex items-center justify-center gap-2 py-3 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-black transition-all shadow-sm"
+                                            >
+                                                <MapPin size={12} /> Draw Zone around Vendor
+                                            </button>
+                                        </div>
+                                    ) : matchedArea === 'ERROR_CHECKING' ? (
+                                        <div className="p-4 bg-amber-50 text-amber-600 border border-amber-100 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-sm">error</span>
+                                            Failed to verify service area geofence
+                                        </div>
+                                    ) : matchedArea ? (
+                                        <div className="p-4 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-sm">check_circle</span>
+                                            Service Area Matched: {matchedArea}
+                                        </div>
+                                    ) : null}
+
+                                    {/* Google Map showing vendor and geofences */}
+                                    <div className="border border-slate-100 rounded-3xl overflow-hidden shadow-sm h-60 w-full relative mt-4">
+                                        {isLoaded ? (
+                                            <GoogleMap
+                                                mapContainerStyle={{ width: '100%', height: '100%' }}
+                                                center={{ lat: vendor.location.lat, lng: vendor.location.lng }}
+                                                zoom={14}
+                                                options={{
+                                                    disableDefaultUI: false,
+                                                    zoomControl: true,
+                                                    mapTypeControl: false,
+                                                    streetViewControl: false,
+                                                    fullscreenControl: false
+                                                }}
+                                            >
+                                                <Marker
+                                                    position={{ lat: vendor.location.lat, lng: vendor.location.lng }}
+                                                    title={vendor.displayName || vendor.name || 'Vendor Location'}
+                                                />
+                                                {areas.map(area => {
+                                                    const getCoords = (a) => a?.boundary?.coordinates?.[0] || [];
+                                                    const toLatLng = (coords) => coords.map(c => ({ lat: c[1], lng: c[0] }));
+                                                    const paths = toLatLng(getCoords(area));
+                                                    const isMatched = matchedArea === area.areaName;
+                                                    return (
+                                                        <Polygon
+                                                            key={area._id}
+                                                            paths={paths}
+                                                            options={{
+                                                                fillColor: area.color || '#3b82f6',
+                                                                fillOpacity: isMatched ? 0.35 : 0.15,
+                                                                strokeColor: area.color || '#3b82f6',
+                                                                strokeWeight: isMatched ? 3 : 1.5,
+                                                                strokeOpacity: 0.8,
+                                                            }}
+                                                        />
+                                                    );
+                                                })}
+                                            </GoogleMap>
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                Loading Map...
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>

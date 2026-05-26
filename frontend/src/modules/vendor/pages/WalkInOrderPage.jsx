@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi, orderApi } from '../../../lib/api';
+import { serviceApi, orderApi, authApi, masterServiceApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
 const WalkInOrderPage = () => {
     const navigate = useNavigate();
     const [customerPhone, setCustomerPhone] = useState('');
+    const [customerName, setCustomerName] = useState('');
+    const [showNameModal, setShowNameModal] = useState(false);
+    const [tempName, setTempName] = useState('');
     const [selectedService, setSelectedService] = useState(null);
     const [items, setItems] = useState([]);
     const [isProcessing, setIsProcessing] = useState(false);
@@ -15,11 +18,26 @@ const WalkInOrderPage = () => {
     const [createdOrder, setCreatedOrder] = useState(null);
     const [deliveryTime, setDeliveryTime] = useState('Tomorrow, 6:00 PM');
     const [quantity, setQuantity] = useState(1);
-    const [riderDropOff, setRiderDropOff] = useState(false);
-    const [dropAddress, setDropAddress] = useState('');
+    const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+    const [deliveryMethod, setDeliveryMethod] = useState('self');
+    const [deliveryAddress, setDeliveryAddress] = useState('');
 
     const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
-    const vendorId = vendorData?._id || vendorData?.id;
+    const getVendorId = () => {
+        const keys = ['user', 'vendorData', 'userData', 'auth_user', 'vendor'];
+        for (const key of keys) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) continue;
+                const data = JSON.parse(raw);
+                const id = data?._id || data?.id || data?.user?._id || data?.user?.id || data?.uid;
+                if (id) return id;
+            } catch (e) { continue; }
+        }
+        return null;
+    };
+
+    const vendorId = getVendorId();
 
     const fetchServices = async () => {
         if (!vendorId) {
@@ -27,30 +45,117 @@ const WalkInOrderPage = () => {
             return;
         }
         try {
-            // Fetch only vendor's approved services
-            const data = await serviceApi.getAll({ vendorId });
-            setLiveServices(data);
+            // Fetch custom services, vendor profile, and master services list
+            const [masterRes, profileRes, masterServices] = await Promise.all([
+                serviceApi.getAll({ vendorId }),
+                authApi.getProfile(vendorId),
+                masterServiceApi.getAll({ limit: 10000 })
+            ]);
+            
+            const registrationServices = profileRes.shopDetails?.services || [];
+            
+            // Filter only approved registration services
+            const approvedRegistrationServices = registrationServices.filter(s => s.status === 'approved');
+            
+            // Build a lookup map for master services to resolve categories/subcategories
+            const masterMap = new Map();
+            if (Array.isArray(masterServices)) {
+                masterServices.forEach(ms => {
+                    masterMap.set(ms._id, ms);
+                });
+            }
+            
+            const mergedMap = new Map();
+
+            // Add approved registration services to map
+            approvedRegistrationServices.forEach(s => {
+                const id = s.id || s._id;
+                const master = masterMap.get(id);
+                mergedMap.set(id, {
+                    ...s,
+                    id: id,
+                    _id: id,
+                    name: s.name || master?.itemName || master?.name || 'Unnamed Service',
+                    isFromRegistration: true,
+                    approvalStatus: 'Approved',
+                    active: s.active ?? true,
+                    basePrice: s.basePrice || s.vendorRate || 0,
+                    mainCategory: master?.categoryId?.mainCategory || 'Dry Cleaning',
+                    subCategory: master?.categoryId?.subCategory || 'General'
+                });
+            });
+
+            // Add custom services to map (overwriting/merging duplicates)
+            masterRes.forEach(s => {
+                const id = s._id || s.id;
+                const master = masterMap.get(id);
+                mergedMap.set(id, {
+                    ...s,
+                    id: id,
+                    _id: id,
+                    name: s.name || master?.itemName || master?.name || 'Unnamed Service',
+                    isFromRegistration: false,
+                    approvalStatus: s.approvalStatus || 'Pending',
+                    active: s.status === 'Active',
+                    basePrice: s.basePrice || 0,
+                    mainCategory: s.category || master?.categoryId?.mainCategory || 'Custom',
+                    subCategory: master?.categoryId?.subCategory || 'General'
+                });
+            });
+
+            setLiveServices(Array.from(mergedMap.values()));
         } catch (error) {
             console.error('Fetch Services Error:', error);
         }
     };
 
     useEffect(() => {
-        fetchServices();
-    }, []);
+        if (vendorId) {
+            fetchServices();
+        }
+    }, [vendorId]);
 
-    const services = useMemo(() => liveServices.map(s => ({
-        serviceId: s._id,
-        title: s.name,
-        price: s.basePrice || 0,
-        icon: s.icon || 'local_laundry_service'
-    })), [liveServices]);
+    const services = useMemo(() => {
+        return liveServices
+            .filter(s => s.active && s.approvalStatus === 'Approved')
+            .map(s => ({
+                serviceId: s._id || s.id,
+                title: s.name,
+                price: s.basePrice || 0,
+                icon: s.icon || 'local_laundry_service',
+                category: s.mainCategory || 'Custom',
+                subCategory: s.subCategory || 'General'
+            }));
+    }, [liveServices]);
 
-    const handlePhoneChange = (val) => {
+    const handlePhoneChange = async (val) => {
         const cleanVal = val.replace(/\D/g, '');
         if (cleanVal.length <= 10) {
             setCustomerPhone(cleanVal);
+            if (cleanVal.length === 10) {
+                setTempName('');
+                setShowNameModal(true);
+                try {
+                    const lookupRes = await authApi.lookupPhone(cleanVal);
+                    if (lookupRes && lookupRes.displayName) {
+                        setTempName(lookupRes.displayName);
+                        toast.success(`Welcome back, ${lookupRes.displayName}!`);
+                    }
+                } catch (err) {
+                    console.log('Customer not previously registered under this phone.');
+                }
+            }
         }
+    };
+
+    const handleConfirmName = () => {
+        if (!tempName.trim()) {
+            toast.error('Please enter customer name');
+            return;
+        }
+        setCustomerName(tempName.trim());
+        setShowNameModal(false);
+        toast.success(`Customer name set: ${tempName.trim()}`);
     };
 
     const addItem = () => {
@@ -74,7 +179,9 @@ const WalkInOrderPage = () => {
 
     const handleCollectAndPrint = async () => {
         if (!customerPhone || items.length === 0) return;
-        if (riderDropOff && !dropAddress.trim()) {
+        
+        const isShiprocket = deliveryMethod === 'shiprocket';
+        if (isShiprocket && !deliveryAddress.trim()) {
             toast.error('Please enter customer delivery address');
             return;
         }
@@ -83,10 +190,11 @@ const WalkInOrderPage = () => {
         try {
             const orderData = {
                 customerPhone,
+                customerName,
                 vendorId,
                 orderType: 'Walk-In',
-                riderDropOff,
-                dropAddress: riderDropOff ? dropAddress.trim() : 'Store Pickup',
+                riderDropOff: isShiprocket,
+                dropAddress: isShiprocket ? deliveryAddress.trim() : 'Self Delivery / Customer',
                 deliveryTime,
                 items: items.map(i => ({
                     serviceId: i.serviceId,
@@ -100,9 +208,13 @@ const WalkInOrderPage = () => {
 
             const response = await orderApi.createWalkInOrder(orderData);
             setCreatedOrder(response);
+            setShowDeliveryModal(false);
             setShowInvoice(true);
             
             toast.success('Walk-In Order Created!');
+            setTimeout(() => {
+                window.print();
+            }, 600);
         } catch (err) {
             console.error('Walk-In Creation Failure:', err);
             toast.error('Failed to generate order');
@@ -112,7 +224,7 @@ const WalkInOrderPage = () => {
     };
 
     return (
-        <div className="text-slate-900 min-h-[100dvh] pb-44 flex flex-col overflow-x-hidden font-sans">
+        <div className="text-slate-900 min-h-[100dvh] pb-64 flex flex-col overflow-x-hidden font-sans">
             <header className="px-6 pt-4 flex items-center gap-4 mb-8">
                 <motion.button 
                     whileTap={{ scale: 0.9 }}
@@ -131,52 +243,34 @@ const WalkInOrderPage = () => {
                 {/* Customer Section */}
                 <section className="space-y-4">
                     <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3D5AFE] ml-2">Customer Identification</h2>
-                    <div className="relative group">
-                        <span className="absolute left-6 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">phone_iphone</span>
-                        <input 
-                            type="tel"
-                            placeholder="Enter Customer Mobile Number"
-                            value={customerPhone}
-                            onChange={(e) => handlePhoneChange(e.target.value)}
-                            maxLength={10}
-                            className="w-full bg-white rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none"
-                        />
-                    </div>
-
-                    {/* Rider Drop-off Toggle */}
-                    <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-black text-slate-900">Rider Drop-off for Delivery</p>
-                                <p className="text-[10px] font-bold text-slate-400 mt-0.5">Check this to schedule a rider for home delivery</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    checked={riderDropOff} 
-                                    onChange={(e) => setRiderDropOff(e.target.checked)} 
-                                    className="sr-only peer"
-                                />
-                                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#3D5AFE]"></div>
-                            </label>
+                    <div className="flex gap-3">
+                        <div className="relative flex-1 group">
+                            <span className="absolute left-6 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">phone_iphone</span>
+                            <input 
+                                type="tel"
+                                placeholder="Enter Customer Mobile Number"
+                                value={customerPhone}
+                                onChange={(e) => handlePhoneChange(e.target.value)}
+                                maxLength={10}
+                                className="w-full bg-white rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none"
+                            />
                         </div>
-                        {riderDropOff && (
-                            <motion.div 
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="relative group pt-2"
+                        {customerPhone.length === 10 && (
+                            <motion.button 
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                    setTempName(customerName);
+                                    setShowNameModal(true);
+                                }}
+                                className="px-6 bg-slate-900 text-white rounded-[2rem] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-sm"
                             >
-                                <span className="absolute left-6 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">location_on</span>
-                                <input 
-                                    type="text"
-                                    placeholder="Enter Customer Delivery Address"
-                                    value={dropAddress}
-                                    onChange={(e) => setDropAddress(e.target.value)}
-                                    className="w-full bg-slate-50 rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold border border-slate-200 focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none"
-                                />
-                            </motion.div>
+                                <span className="material-symbols-outlined text-sm">person</span>
+                                {customerName ? customerName : 'Add Name'}
+                            </motion.button>
                         )}
                     </div>
+
+                    {/* Delivery method toggle removed from main view */}
                 </section>
 
                 {/* Service Selection */}
@@ -184,72 +278,82 @@ const WalkInOrderPage = () => {
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3D5AFE]">Select Service</h2>
                     </div>
-                    <div className="flex gap-3 overflow-x-auto pb-4 hide-scrollbar px-1">
+                    
+                    {/* Vertical list of service rows */}
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
                         {services.length > 0 ? services.map(s => (
                             <motion.button
                                 key={s.serviceId}
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={() => setSelectedService(s)}
-                                className={`flex flex-col items-center justify-center p-4 min-w-[100px] h-[100px] rounded-[2rem] border transition-all ${selectedService?.serviceId === s.serviceId ? 'bg-slate-900 text-white border-slate-900 shadow-xl shadow-slate-900/10' : 'bg-white border-slate-100 text-slate-500 opacity-80 shadow-sm'}`}
+                                className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all text-left ${selectedService?.serviceId === s.serviceId ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : 'bg-white border-slate-100 text-slate-700 hover:border-slate-300 shadow-sm'}`}
                             >
-                                <span className={`material-symbols-outlined mb-1.5 text-xl ${selectedService?.serviceId === s.serviceId ? 'text-[#73e0c9]' : ''}`}>{s.icon}</span>
-                                <span className="text-[9px] font-black uppercase tracking-tight text-center leading-tight">{s.title}</span>
-                                <span className="text-[8px] font-bold opacity-60 mt-1">₹{s.price}</span>
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedService?.serviceId === s.serviceId ? 'bg-[#73e0c9]/20 text-[#73e0c9]' : 'bg-slate-50 text-slate-400'}`}>
+                                        <span className="material-symbols-outlined text-xl">{s.icon}</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-black tracking-tight uppercase leading-tight mb-1">{s.title}</h4>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                            {s.category} <span className="opacity-45">•</span> {s.subCategory}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-xs font-black">₹{s.price}</span>
+                                </div>
                             </motion.button>
                         )) : (
-                            <div className="w-full py-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Loading Services...</div>
+                            <div className="w-full py-10 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">Loading Services...</div>
                         )}
                     </div>
+
                     {selectedService && (
                         <motion.div 
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
-                            className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-6"
+                            className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm space-y-4"
                         >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Quantity</p>
-                                    <p className="text-sm font-black text-slate-900 mt-1">{selectedService.title}</p>
-                                </div>
-                                <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl">
+                            {/* Row 1: Item Name and Quantity Select */}
+                            <div className="flex items-center justify-between gap-4">
+                                <h3 className="text-xs font-black uppercase tracking-tight text-slate-900 truncate leading-none">{selectedService.title}</h3>
+                                <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl">
                                     <button 
                                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                        className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-900 font-bold"
+                                        className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-900 font-bold text-sm"
                                     >
                                         -
                                     </button>
-                                    <span className="text-lg font-black w-8 text-center">{quantity}</span>
+                                    <span className="text-sm font-black w-6 text-center">{quantity}</span>
                                     <button 
                                         onClick={() => setQuantity(quantity + 1)}
-                                        className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-900 font-bold"
+                                        className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-900 font-bold text-sm"
                                     >
                                         +
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Delivery Commitment</p>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {['Today, 8 PM', 'Tomorrow, 6 PM', 'In 2 Days', 'Custom Time'].map(time => (
-                                        <button 
-                                            key={time}
-                                            onClick={() => setDeliveryTime(time)}
-                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${deliveryTime === time ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100'}`}
-                                        >
-                                            {time}
-                                        </button>
-                                    ))}
-                                </div>
+                            {/* Row 2: Delivery commitment in a single horizontal row */}
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                {['Today, 8 PM', 'Tomorrow, 6 PM', 'In 2 Days', 'Custom Time'].map(time => (
+                                    <button 
+                                        key={time}
+                                        onClick={() => setDeliveryTime(time)}
+                                        className={`py-3 px-5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap ${deliveryTime === time ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-white text-slate-400 border-slate-100'}`}
+                                    >
+                                        {time}
+                                    </button>
+                                ))}
                             </div>
 
+                            {/* Row 3: Add button only with "ADD" text */}
                             <motion.button
-                                whileTap={{ scale: 0.95 }}
+                                whileTap={{ scale: 0.98 }}
                                 onClick={addItem}
-                                className="w-full py-5 bg-primary text-white font-black text-[10px] uppercase tracking-widest rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-2"
+                                className="w-full py-3.5 bg-slate-950 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-md flex items-center justify-center hover:bg-slate-900 transition-colors"
                             >
-                                <span className="material-symbols-outlined text-sm">add_circle</span>
-                                Add {quantity}x {selectedService.title} to Order
+                                Add
                             </motion.button>
                         </motion.div>
                     )}
@@ -302,35 +406,188 @@ const WalkInOrderPage = () => {
             </main>
 
             {/* Sticky Order Action */}
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-[50]">
+            <div className="fixed bottom-16 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-[50]">
                 <div className="max-w-2xl mx-auto flex items-center justify-between gap-6">
                     <div>
                         <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Total Billable</p>
-                        <p className="text-3xl font-black text-slate-900 tracking-tighter leading-none">₹{total.toFixed(2)}</p>
+                        <p className="text-xl font-black text-slate-900 tracking-tight leading-none">₹{total.toFixed(2)}</p>
                     </div>
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         disabled={items.length === 0 || !customerPhone || isProcessing}
-                        onClick={handleCollectAndPrint}
-                        className={`flex-[1.5] py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all shadow-xl ${items.length > 0 && customerPhone ? 'bg-slate-950 text-white shadow-slate-900/10' : 'bg-slate-100 text-slate-300 opacity-50 grayscale cursor-not-allowed'}`}
+                        onClick={() => setShowDeliveryModal(true)}
+                        className={`px-8 py-3.5 rounded-[1.25rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md ${items.length > 0 && customerPhone ? 'bg-slate-950 text-white shadow-slate-900/10' : 'bg-slate-100 text-slate-300 opacity-50 grayscale cursor-not-allowed'}`}
                     >
                         {isProcessing ? (
                             <motion.span 
                                 animate={{ rotate: 360 }}
                                 transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                className="material-symbols-outlined text-[18px]"
+                                className="material-symbols-outlined text-[16px]"
                             >
                                 autorenew
                             </motion.span>
                         ) : (
                             <>
-                                <span className="material-symbols-outlined text-[18px]">print</span>
-                                <span className="whitespace-nowrap">Collect & Print</span>
+                                <span className="material-symbols-outlined text-[16px]">payments</span>
+                                <span className="whitespace-nowrap">Collect</span>
                             </>
                         )}
                     </motion.button>
                 </div>
             </div>
+
+            {/* Customer Name Modal */}
+            <AnimatePresence>
+                {showNameModal && (
+                    <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-slate-100"
+                        >
+                            <div className="h-2 bg-[#3D5AFE]"></div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-black tracking-tighter uppercase text-slate-950 font-headline">Customer Name</h3>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Phone: +91 {customerPhone}</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[8px] font-black text-[#3D5AFE] uppercase tracking-widest ml-1">Full Name</label>
+                                    <input 
+                                        type="text"
+                                        placeholder="e.g. John Doe"
+                                        value={tempName}
+                                        onChange={(e) => setTempName(e.target.value)}
+                                        className="w-full px-5 py-4 bg-slate-50 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white border-2 border-transparent focus:border-slate-100 transition-all outline-none"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleConfirmName();
+                                        }}
+                                    />
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button 
+                                        onClick={() => setShowNameModal(false)}
+                                        className="flex-1 py-4 bg-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={handleConfirmName}
+                                        className="flex-1 py-4 bg-[#3D5AFE] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#3D5AFE]/20 hover:bg-[#3D5AFE]/95 transition-all"
+                                    >
+                                        Confirm
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delivery Method Modal */}
+            <AnimatePresence>
+                {showDeliveryModal && (
+                    <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-slate-100"
+                        >
+                            <div className="h-2 bg-[#3D5AFE]"></div>
+                            <div className="p-8 space-y-6">
+                                <div className="space-y-1">
+                                    <h3 className="text-xl font-black tracking-tighter uppercase text-slate-950">Delivery Mode</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Select how this order will be delivered</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {/* Option 1: Self / Direct */}
+                                    <button 
+                                        onClick={() => setDeliveryMethod('self')}
+                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${deliveryMethod === 'self' ? 'border-[#3D5AFE] bg-[#3D5AFE]/5 text-slate-900' : 'border-slate-100 hover:border-slate-200 text-slate-600'}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${deliveryMethod === 'self' ? 'bg-[#3D5AFE]/20 text-[#3D5AFE]' : 'bg-slate-50 text-slate-400'}`}>
+                                            <span className="material-symbols-outlined text-lg">storefront</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black uppercase tracking-wider">Customer / Ourself</p>
+                                            <p className="text-[9px] font-bold text-slate-400 mt-0.5">Self-pickup or direct delivery by store staff</p>
+                                        </div>
+                                    </button>
+
+                                    {/* Option 2: Shiprocket */}
+                                    <button 
+                                        onClick={() => setDeliveryMethod('shiprocket')}
+                                        className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${deliveryMethod === 'shiprocket' ? 'border-[#3D5AFE] bg-[#3D5AFE]/5 text-slate-900' : 'border-slate-100 hover:border-slate-200 text-slate-600'}`}
+                                    >
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${deliveryMethod === 'shiprocket' ? 'bg-[#3D5AFE]/20 text-[#3D5AFE]' : 'bg-slate-50 text-slate-400'}`}>
+                                            <span className="material-symbols-outlined text-lg">local_shipping</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-black uppercase tracking-wider">Delivery by Shiprocket</p>
+                                            <p className="text-[9px] font-bold text-slate-400 mt-0.5">Automated courier shipment via Shiprocket</p>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {deliveryMethod === 'shiprocket' && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="space-y-2"
+                                    >
+                                        <label className="text-[8px] font-black text-[#3D5AFE] uppercase tracking-widest ml-1">Shipping Address</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-sm">location_on</span>
+                                            <input 
+                                                type="text"
+                                                placeholder="Enter Delivery Address"
+                                                value={deliveryAddress}
+                                                onChange={(e) => setDeliveryAddress(e.target.value)}
+                                                className="w-full pl-11 pr-5 py-4 bg-slate-50 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white border-2 border-transparent focus:border-slate-100 transition-all outline-none"
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )}
+
+                                <div className="flex gap-3 pt-2">
+                                    <button 
+                                        onClick={() => setShowDeliveryModal(false)}
+                                        className="flex-1 py-4 bg-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={handleCollectAndPrint}
+                                        disabled={isProcessing}
+                                        className="flex-1 py-4 bg-[#3D5AFE] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#3D5AFE]/20 hover:bg-[#3D5AFE]/95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isProcessing ? (
+                                            <motion.span 
+                                                animate={{ rotate: 360 }}
+                                                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                                className="material-symbols-outlined text-[14px]"
+                                            >
+                                                autorenew
+                                            </motion.span>
+                                        ) : (
+                                            <>
+                                                <span className="material-symbols-outlined text-[14px]">print</span>
+                                                <span>Print</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Invoice Modal */}
             <AnimatePresence>
@@ -361,8 +618,13 @@ const WalkInOrderPage = () => {
                                 {/* Customer & Store Info */}
                                 <div className="grid grid-cols-2 gap-4 pb-6 border-b border-slate-100">
                                     <div className="space-y-1">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Customer Phone</p>
-                                        <p className="text-sm font-bold text-slate-800 tracking-tight">+91 {customerPhone}</p>
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Customer</p>
+                                        <p className="text-sm font-bold text-slate-800 tracking-tight leading-tight">
+                                            {customerName ? `${customerName}` : `+91 ${customerPhone}`}
+                                        </p>
+                                        {customerName && (
+                                            <p className="text-[10px] font-bold text-slate-400">+91 {customerPhone}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1 text-right">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Store Entity</p>
@@ -370,8 +632,8 @@ const WalkInOrderPage = () => {
                                     </div>
                                     <div className="space-y-1 col-span-2 border-t border-slate-100 pt-3">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Delivery Mode</p>
-                                        <p className="text-sm font-bold text-slate-800 tracking-tight">
-                                            {createdOrder.riderDropOff ? `Rider Delivery (Address: ${createdOrder.dropAddress})` : 'Self Pickup'}
+                                        <p className="text-sm font-bold text-slate-800 tracking-tight text-wrap">
+                                            {createdOrder.riderDropOff ? `Shiprocket Delivery (Address: ${createdOrder.dropAddress})` : 'Self Delivery / Customer'}
                                         </p>
                                     </div>
                                 </div>
@@ -424,6 +686,7 @@ const WalkInOrderPage = () => {
                                                 setShowInvoice(false);
                                                 setItems([]);
                                                 setCustomerPhone('');
+                                                setCustomerName('');
                                                 navigate('/vendor/dashboard');
                                             }}
                                             className="flex-1 py-4 bg-[#3D5AFE] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-[#3D5AFE]/20 flex items-center justify-center gap-2"
@@ -451,18 +714,19 @@ const WalkInOrderPage = () => {
                                             <p>TIME: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                         </div>
                                         <div className="text-right space-y-1">
+                                            {customerName && <p>NAME: {customerName.toUpperCase()}</p>}
                                             <p>CUST: +91 {customerPhone}</p>
                                             <p>TYPE: WALK-IN</p>
                                             <p>STATUS: PAID</p>
                                         </div>
                                     </div>
 
-                                    {createdOrder.riderDropOff && (
-                                        <div className="text-[10px] font-mono border-b border-slate-200 pb-4 space-y-0.5">
-                                            <p>DELIVERY MODE: RIDER DROP-OFF</p>
+                                    <div className="text-[10px] font-mono border-b border-slate-200 pb-4 space-y-0.5">
+                                        <p>DELIVERY MODE: {createdOrder.riderDropOff ? 'SHIPROCKET DELIVERY' : 'SELF / CUSTOMER'}</p>
+                                        {createdOrder.riderDropOff && (
                                             <p className="break-all whitespace-normal">DELIVERY ADDR: {createdOrder.dropAddress}</p>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
 
                                     <div className="space-y-3">
                                         <table className="w-full text-xs font-bold">

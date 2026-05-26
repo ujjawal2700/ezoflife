@@ -115,6 +115,15 @@ export const approveFinalVendor = async (req, res) => {
         vendor.role = 'Vendor';
         vendor.status = 'approved';
         vendor.onboardingStage = 'COMPLETED';
+
+        // Approve all selected onboarding services
+        if (vendor.shopDetails && vendor.shopDetails.services) {
+            vendor.shopDetails.services.forEach(svc => {
+                if (svc.status === 'pending') {
+                    svc.status = 'approved';
+                }
+            });
+        }
         
         await vendor.save();
         res.status(200).json({ message: 'Vendor officially onboarded!', vendor });

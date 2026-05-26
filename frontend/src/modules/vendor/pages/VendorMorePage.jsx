@@ -12,7 +12,6 @@ const VendorMorePage = () => {
       icon: "settings_suggest",
       items: [
         { icon: "insights", title: "Business Insights", desc: "View Performance Reports", path: "/vendor/reports", color: "primary" },
-        { icon: "cancel_schedule_send", title: "Rejected Services", desc: "View blocked requests", path: "/vendor/rejected-services", color: "rose" },
       ]
     },
     {

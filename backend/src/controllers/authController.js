@@ -897,3 +897,17 @@ export const updateDraftCart = async (req, res) => {
         res.status(500).json({ message: 'Error updating cart' });
     }
 };
+
+export const lookupCustomerByPhone = async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const customer = await User.findOne({ phone: new RegExp(phone.slice(-10) + '$') });
+        if (!customer) {
+            return res.status(404).json({ message: 'Customer not found' });
+        }
+        res.status(200).json({ displayName: customer.displayName || '' });
+    } catch (err) {
+        console.error('Lookup Phone Error:', err);
+        res.status(500).json({ message: 'Error looking up customer' });
+    }
+};

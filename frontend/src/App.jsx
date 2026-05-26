@@ -12,7 +12,7 @@ import LocationPicker from './shared/components/LocationPicker'
 import GlobalCartButton from './modules/user/components/GlobalCartButton'
 import { useJsApiLoader } from '@react-google-maps/api'
 import { onMessageListener } from './lib/firebase'
-import toast from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
 import './index.css'
 
 const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places', 'geometry'];
@@ -41,6 +41,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <Toaster />
       <GlobalToast />
       <LocationPrompt />
       <LocationPicker isLoaded={isLoaded} />

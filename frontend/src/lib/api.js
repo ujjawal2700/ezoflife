@@ -4,13 +4,13 @@ window.fetch = async (input, init) => {
     let url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
     let options = init || {};
     
-    const token = localStorage.getItem('adminToken');
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     if (token) {
         const urlLower = url.toLowerCase();
         const isAdminEndpoint = urlLower.includes('/admin') || 
-                                urlLower.includes('/geofence') || 
+                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability')) || 
                                 urlLower.includes('/area-overrides') || 
-                                urlLower.includes('/master-pricing') ||
+                                (urlLower.includes('/master-pricing') && !urlLower.includes('fenceid=')) ||
                                 urlLower.includes('/supplier/requests') ||
                                 urlLower.includes('/labor/add') ||
                                 urlLower.includes('/labor/active-requests') ||
@@ -60,9 +60,9 @@ window.fetch = async (input, init) => {
     if (res.status === 401 || res.status === 403) {
         const urlLower = url.toLowerCase();
         const isAdminEndpoint = urlLower.includes('/admin') || 
-                                urlLower.includes('/geofence') || 
+                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability')) || 
                                 urlLower.includes('/area-overrides') || 
-                                urlLower.includes('/master-pricing') ||
+                                (urlLower.includes('/master-pricing') && !urlLower.includes('fenceid=')) ||
                                 urlLower.includes('/supplier/requests') ||
                                 urlLower.includes('/labor/active-requests') ||
                                 urlLower.includes('/labor/add');
@@ -84,7 +84,7 @@ export const UPLOADS_URL = BASE_URL.replace('/api', '') + '/uploads/';
 
 // ─── Admin Auth Helpers ───────────────────────────────────────────────────────
 // These are used by every admin API call to attach the JWT token.
-export const getAdminToken = () => localStorage.getItem('adminToken');
+export const getAdminToken = () => localStorage.getItem('adminToken') || localStorage.getItem('token');
 
 export const adminAuthHeaders = (extra = {}) => ({
     'Content-Type': 'application/json',
@@ -383,6 +383,19 @@ export const authApi = {
             return await response.json();
         } catch (error) {
             console.error('Update Cart Error:', error);
+            throw error;
+        }
+    },
+    lookupPhone: async (phone) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/lookup-phone/${phone}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Lookup failed');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Lookup Phone API Error:', error);
             throw error;
         }
     }
@@ -1821,14 +1834,87 @@ export const jobApi = {
         });
         return await response.json();
     },
-    getAdminApplications: async () => {
-        const response = await fetch(`${BASE_URL}/jobs/admin/applications`, {
+    getAdminApplications: async (creatorRole) => {
+        const response = await fetch(`${BASE_URL}/jobs/admin/applications${creatorRole ? `?creatorRole=${creatorRole}` : ''}`, {
             headers: adminAuthHeaders()
         });
         return await response.json();
     },
     delete: async (id) => {
         const response = await fetch(`${BASE_URL}/jobs/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return await response.json();
+    },
+    update: async (id, data) => {
+        const response = await fetch(`${BASE_URL}/jobs/${id}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...adminAuthHeaders()
+            },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    },
+    updateStatus: async (id, status) => {
+        const response = await fetch(`${BASE_URL}/jobs/${id}/status`, {
+            method: 'PATCH',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...adminAuthHeaders()
+            },
+            body: JSON.stringify({ status })
+        });
+        return await response.json();
+    },
+    updateApplicationStatus: async (id, status) => {
+        const response = await fetch(`${BASE_URL}/jobs/applications/${id}/status`, {
+            method: 'PATCH',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...adminAuthHeaders()
+            },
+            body: JSON.stringify({ status })
+        });
+        return await response.json();
+    },
+    deleteApplication: async (id) => {
+        const response = await fetch(`${BASE_URL}/jobs/applications/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return await response.json();
+    },
+    getRoleTemplates: async () => {
+        const response = await fetch(`${BASE_URL}/jobs/role-templates`);
+        return await response.json();
+    },
+    createRoleTemplate: async (data) => {
+        const response = await fetch(`${BASE_URL}/jobs/role-templates`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...adminAuthHeaders()
+            },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    },
+    updateRoleTemplate: async (id, data) => {
+        const response = await fetch(`${BASE_URL}/jobs/role-templates/${id}`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...adminAuthHeaders()
+            },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    },
+    deleteRoleTemplate: async (id) => {
+        const response = await fetch(`${BASE_URL}/jobs/role-templates/${id}`, {
             method: 'DELETE',
             headers: adminAuthHeaders()
         });

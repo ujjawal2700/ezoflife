@@ -111,7 +111,7 @@ const LaborRequestPage = () => {
                                     <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Manage Jobs & Workers</p>
                                 </div>
                             </div>
-                            <button onClick={() => setShowCreateModal(true)} className="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-90 transition-all">
+                            <button onClick={() => navigate('/vendor/labor-request/create')} className="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-90 transition-all">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </header>

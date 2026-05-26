@@ -58,7 +58,7 @@ export const masterPricingController = {
             const total = await MasterPricing.countDocuments(query);
             
             const data = await MasterPricing.find(query)
-                .populate('serviceId', 'itemName skuId gst heritageGst allowDiscount')
+                .populate('serviceId', 'itemName skuId gst heritageGst allowDiscount icon tier')
                 .populate('categoryId', 'mainCategory subCategory')
                 .populate('fenceId', 'areaName city excelFenceId basePriceMultiplier heritageMultiplier dynamicSurgeMultiplier discountPriceMultiplier allowDiscount')
                 .sort({ createdAt: -1 })

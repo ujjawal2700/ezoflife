@@ -39,114 +39,127 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const navItems = [
+    {
+        group: 'Operations', items: [
+            { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
+            { icon: Users, label: 'User Management', path: '/admin/users' },
+            { 
+                icon: ShieldCheck, 
+                label: 'Approvals', 
+                path: '/admin/vendors/approvals',
+                subItems: [
+                    { label: 'Vendor Requests', path: '/admin/vendors/approvals' },
+                    { label: 'Supplier Requests', path: '/admin/supplier-requests' },
+                ]
+            },
+            { icon: ClipboardList, label: 'Vendor Service Request', path: '/admin/vendor-service-requests' },
+            { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
+            { 
+                icon: CreditCard, 
+                label: 'Payments', 
+                path: '/admin/payments',
+                subItems: [
+                    { label: 'Customer Payments', path: '/admin/payments?tab=customer' },
+                    { label: 'Customer Analytics', path: '/admin/customer-payments' },
+                    { label: 'Vendor Payouts', path: '/admin/payments?tab=vendor' },
+                    { label: 'Supplier Payouts', path: '/admin/payments?tab=supplier' },
+                    { label: 'Pending COD', path: '/admin/payments?tab=cod' },
+                    { label: 'Refunds', path: '/admin/payments?tab=refunds' },
+                ]
+            },
+            { 
+                icon: Layers, 
+                label: 'Services & Pricing', 
+                path: '/admin/services',
+                subItems: [
+                    { label: 'Category Management', path: '/admin/categories' },
+                    { label: 'Geofence Management', path: '/admin/geofencing' },
+                    { label: 'Master Services', path: '/admin/master-services' },
+                    { label: 'Service Geofence', path: '/admin/geofence-table' },
+                    { label: 'Master Pricing Table', path: '/admin/master-pricing' },
+                    { label: 'Global Policies', path: '/admin/pricing' },
+                ]
+            },
+            { 
+                icon: MessageSquare, 
+                label: 'Support Tickets', 
+                path: '/admin/help-desk',
+                subItems: [
+                    { label: 'Customer Issues', path: '/admin/help-desk?activeTab=Customer' },
+                    { label: 'Vendor Issues', path: '/admin/help-desk?activeTab=Vendor' },
+                    { label: 'Supplier Issue', path: '/admin/help-desk?activeTab=Supplier' },
+                    { label: 'Missing Item Dispute', path: '/admin/dispute-center' },
+                ]
+            },
+
+            { 
+                icon: Bell, 
+                label: 'Notifications', 
+                path: '/admin/notifications',
+                subItems: [
+                    { label: 'Offers', path: '/admin/notifications?type=offers' },
+                    { label: 'Maintenance alert', path: '/admin/notifications?type=maintenance' },
+                    { label: 'Payment reminder', path: '/admin/notifications?type=payment' },
+                ]
+            },
+            { icon: HelpCircle, label: 'FAQ Manager', path: '/admin/faqs' },
+            { icon: ShieldAlert, label: 'Privacy Policy', path: '/admin/privacy-policy' },
+            { icon: FileText, label: 'Terms & Conditions', path: '/admin/terms-conditions' },
+            { icon: Rocket, label: 'Splash Ads', path: '/admin/ads' },
+            { icon: MessageSquare, label: 'Advertise', path: '/admin/advertise' },
+            { icon: Share2, label: 'Referral Settings', path: '/admin/referral-settings' },
+            { icon: FileText, label: 'B2B Leads', path: '/admin/b2b-leads' },
+            { icon: Handshake, label: 'Partnerships', path: '/admin/partnerships' },
+            { icon: Star, label: 'Customer Feedback', path: '/admin/feedback' },
+        ]
+    },
+    {
+        group: 'Network', items: [
+            { 
+                icon: Briefcase, 
+                label: 'Career Center', 
+                path: '/admin/careers/admin-posts',
+                subItems: [
+                    { label: 'Admin Posts', path: '/admin/careers/admin-posts' },
+                    { label: 'Vendor Posts', path: '/admin/careers/vendor-posts' },
+                    { label: 'Role Details', path: '/admin/careers/role-details' },
+                ]
+            },
+            { icon: Star, label: 'Ranking Engine', path: '/admin/vendor-ranking' },
+        ]
+    },
+    {
+        group: 'Core Assets', items: [
+            { icon: Layers, label: 'Material Catalog', path: '/admin/materials' },
+        ]
+    },
+    {
+        group: 'Settings', items: [
+            { icon: Settings, label: 'Settings', path: '/admin/settings' },
+            { icon: FileText, label: 'Invoice Design', path: '/admin/invoice-settings' },
+        ]
+    }
+];
+
 export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) {
     const navigate = useNavigate();
     const location = useLocation();
     const [expandedMenu, setExpandedMenu] = useState(null);
 
-    const navItems = [
-        {
-            group: 'Operations', items: [
-                { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
-                { icon: Users, label: 'User Management', path: '/admin/users' },
-                { 
-                    icon: ShieldCheck, 
-                    label: 'Approvals', 
-                    path: '/admin/vendors/approvals',
-                    subItems: [
-                        { label: 'Vendor Requests', path: '/admin/vendors/approvals' },
-                        { label: 'Supplier Requests', path: '/admin/supplier-requests' },
-                    ]
-                },
-                { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
-                { 
-                    icon: CreditCard, 
-                    label: 'Payments', 
-                    path: '/admin/payments',
-                    subItems: [
-                        { label: 'Customer Payments', path: '/admin/payments?tab=customer' },
-                        { label: 'Customer Analytics', path: '/admin/customer-payments' },
-                        { label: 'Vendor Payouts', path: '/admin/payments?tab=vendor' },
-                        { label: 'Supplier Payouts', path: '/admin/payments?tab=supplier' },
-                        { label: 'Pending COD', path: '/admin/payments?tab=cod' },
-                        { label: 'Refunds', path: '/admin/payments?tab=refunds' },
-                    ]
-                },
-                { 
-                    icon: Layers, 
-                    label: 'Services & Pricing', 
-                    path: '/admin/services',
-                    subItems: [
-                        { label: 'Category Management', path: '/admin/categories' },
-                        { label: 'Geofence Management', path: '/admin/geofencing' },
-                        { label: 'Master Services', path: '/admin/master-services' },
-                        { label: 'Service Geofence', path: '/admin/geofence-table' },
-                        { label: 'Master Pricing Table', path: '/admin/master-pricing' },
-                        { label: 'Global Policies', path: '/admin/pricing' },
-                    ]
-                },
-                { 
-                    icon: MessageSquare, 
-                    label: 'Support Tickets', 
-                    path: '/admin/help-desk',
-                    subItems: [
-                        { label: 'Customer Issues', path: '/admin/help-desk?activeTab=Customer' },
-                        { label: 'Vendor Issues', path: '/admin/help-desk?activeTab=Vendor' },
-                        { label: 'Supplier Issue', path: '/admin/help-desk?activeTab=Supplier' },
-                        { label: 'Missing Item Dispute', path: '/admin/dispute-center' },
-                    ]
-                },
-                { 
-                    icon: BarChart3, 
-                    label: 'Reports', 
-                    path: '/admin/reports',
-                    subItems: [
-                        { label: 'Financial Settlement', path: '/admin/reports?type=settlement' },
-                        { label: 'Vendor TAT Report', path: '/admin/reports?type=tat' },
-                        { label: 'Geospatial Heatmaps', path: '/admin/reports?type=heatmap' },
-                        { label: 'Revenue Leakage', path: '/admin/reports?type=leakage' },
-                        { label: 'Repeat Customers', path: '/admin/reports?type=customers' },
-                        { label: 'B2B Leads', path: '/admin/b2b-leads' },
-                    ]
-                },
-                { 
-                    icon: Bell, 
-                    label: 'Notifications', 
-                    path: '/admin/notifications',
-                    subItems: [
-                        { label: 'Offers', path: '/admin/notifications?type=offers' },
-                        { label: 'Maintenance alert', path: '/admin/notifications?type=maintenance' },
-                        { label: 'Payment reminder', path: '/admin/notifications?type=payment' },
-                    ]
-                },
-                { icon: HelpCircle, label: 'FAQ Manager', path: '/admin/faqs' },
-                { icon: ShieldAlert, label: 'Privacy Policy', path: '/admin/privacy-policy' },
-                { icon: FileText, label: 'Terms & Conditions', path: '/admin/terms-conditions' },
-                { icon: Rocket, label: 'Splash Ads', path: '/admin/ads' },
-                { icon: MessageSquare, label: 'Advertise', path: '/admin/advertise' },
-                { icon: Share2, label: 'Referral Settings', path: '/admin/referral-settings' },
-                { icon: Handshake, label: 'Partnerships', path: '/admin/partnerships' },
-                { icon: Star, label: 'Customer Feedback', path: '/admin/feedback' },
-            ]
-        },
-        {
-            group: 'Network', items: [
-                { icon: Briefcase, label: 'Career Center', path: '/admin/careers' },
-                { icon: Star, label: 'Ranking Engine', path: '/admin/vendor-ranking' },
-            ]
-        },
-        {
-            group: 'Core Assets', items: [
-                { icon: Layers, label: 'Material Catalog', path: '/admin/materials' },
-            ]
-        },
-        {
-            group: 'Settings', items: [
-                { icon: Settings, label: 'Settings', path: '/admin/settings' },
-                { icon: FileText, label: 'Invoice Design', path: '/admin/invoice-settings' },
-            ]
+    useEffect(() => {
+        // Auto-expand menu item if a sub-item is active
+        const currentPath = location.pathname;
+        const matchingItem = navItems.flatMap(g => g.items).find(item => 
+            item.subItems && item.subItems.some(sub => {
+                const subPathOnly = sub.path.split('?')[0];
+                return currentPath === subPathOnly;
+            })
+        );
+        if (matchingItem) {
+            setExpandedMenu(matchingItem.label);
         }
-    ];
+    }, [location.pathname]);
 
     return (
         <>
@@ -210,7 +223,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                 </div>
                             )}
                             {group.items.map((item) => {
-                                const isActive = location.pathname === item.path;
+                                const isActive = location.pathname === item.path || (item.subItems && item.subItems.some(sub => location.pathname === sub.path.split('?')[0]));
                                 const isExpanded = expandedMenu === item.label;
                                 const hasSubItems = item.subItems && item.subItems.length > 0;
 

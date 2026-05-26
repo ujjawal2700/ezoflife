@@ -4,7 +4,7 @@ import {
   Layers, Info, CheckCircle, AlertTriangle, Search, Navigation,
   Edit2, ChevronRight, ZapIcon, Percent, Shield, TrendingUp, Circle, Eye
 } from 'lucide-react';
-import { GoogleMap, useJsApiLoader, DrawingManager, Polygon } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, DrawingManager, Polygon, Autocomplete, Marker, InfoWindow } from '@react-google-maps/api';
 import PageHeader from '../components/common/PageHeader';
 import toast from 'react-hot-toast';
 import { BASE_URL } from '../../../lib/api';
@@ -35,11 +35,36 @@ export default function ServiceAreas() {
   // Ref to the google map
   const mapRef = useRef(null);
 
+  // Autocomplete ref
+  const autocompleteRef = useRef(null);
+
+  const handlePlaceChanged = () => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place && place.geometry && place.geometry.location) {
+        const location = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        setSearchedLocation(location);
+        if (mapRef.current) {
+          mapRef.current.panTo(location);
+          mapRef.current.setZoom(15);
+        }
+      } else {
+        toast.error('Location not found or has no coordinates');
+      }
+    }
+  };
+
   // Whether drawing mode is active
   const [drawingMode, setDrawingMode]   = useState(null);
 
   // Search filter
   const [search, setSearch]             = useState('');
+
+  // Searched location marker
+  const [searchedLocation, setSearchedLocation] = useState(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -61,6 +86,44 @@ export default function ServiceAreas() {
   }, []);
 
   useEffect(() => { fetchAreas(); }, [fetchAreas]);
+
+  // ─── Handle redirect parameters for vendor geofencing ────────────────────
+  useEffect(() => {
+    if (isLoaded) {
+      const params = new URLSearchParams(window.location.search);
+      const latParam = parseFloat(params.get('lat'));
+      const lngParam = parseFloat(params.get('lng'));
+      const nameParam = params.get('name');
+
+      if (!isNaN(latParam) && !isNaN(lngParam)) {
+        const vendorLoc = { lat: latParam, lng: lngParam };
+        setSearchedLocation(vendorLoc);
+        
+        toast(`Location Target: ${decodeURIComponent(nameParam || 'Vendor Location')}`, {
+          icon: '📍',
+          duration: 5000,
+          style: { fontSize: '11px', fontWeight: 700 }
+        });
+
+        // Try panning immediately, and retry slightly later to ensure mapRef.current is ready
+        const doPan = () => {
+          if (mapRef.current) {
+            mapRef.current.panTo(vendorLoc);
+            mapRef.current.setZoom(16);
+            return true;
+          }
+          return false;
+        };
+
+        if (!doPan()) {
+          const interval = setInterval(() => {
+            if (doPan()) clearInterval(interval);
+          }, 300);
+          setTimeout(() => clearInterval(interval), 3000); // safety timeout
+        }
+      }
+    }
+  }, [isLoaded]);
 
   // ─── Helper: extract GeoJSON coords from area ──────────────────────────────
   const getCoords = (area) => area?.boundary?.coordinates?.[0] || [];
@@ -85,6 +148,7 @@ export default function ServiceAreas() {
     const center = computeCenter(getCoords(area));
     mapRef.current.panTo(center);
     mapRef.current.setZoom(14);
+    setSearchedLocation(null);
   };
 
   // ─── Start editing the BOUNDARY of an existing area ───────────────────────
@@ -265,6 +329,7 @@ export default function ServiceAreas() {
 
     polygon.setMap(null);
     setDrawingMode(null);
+    setSearchedLocation(null);
 
     const color = ZONE_COLORS[areas.length % ZONE_COLORS.length];
     setSelectedArea({
@@ -310,14 +375,11 @@ export default function ServiceAreas() {
 
   const mapOptions = useMemo(() => ({
     disableDefaultUI: false,
-    clickableIcons: false,
-    styles: [
-      { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] }
-    ]
+    clickableIcons: true
   }), []);
 
   // ─── Sidebar: zone list ────────────────────────────────────────────────────
-  const ZoneListPanel = () => (
+  const renderZoneListPanel = () => (
     <div className="flex flex-col h-full overflow-hidden bg-white border border-slate-200 rounded-sm shadow-sm">
       {/* Header */}
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0">
@@ -440,7 +502,7 @@ export default function ServiceAreas() {
   );
 
   // ─── Sidebar: configure zone properties ───────────────────────────────────
-  const ConfigurePanel = () => (
+  const renderConfigurePanel = () => (
     <div className="flex flex-col h-full overflow-hidden bg-white border border-slate-200 rounded-sm shadow-sm">
       <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-900 text-white">
         <div>
@@ -590,7 +652,7 @@ export default function ServiceAreas() {
   );
 
   // ─── Sidebar: edit boundary mode ──────────────────────────────────────────
-  const EditBoundaryPanel = () => (
+  const renderEditBoundaryPanel = () => (
     <div className="flex flex-col h-full overflow-hidden bg-white border border-blue-200 rounded-sm shadow-sm">
       <div className="px-5 py-4 border-b border-blue-100 flex items-center justify-between shrink-0 bg-blue-600 text-white">
         <div>
@@ -668,6 +730,7 @@ export default function ServiceAreas() {
               setMode(null);
               setSelectedArea(null);
               setDrawingMode('polygon');
+              setSearchedLocation(null);
             }
           }
         ]}
@@ -677,9 +740,9 @@ export default function ServiceAreas() {
 
         {/* ─── Left sidebar ─────────────────────────────────────── */}
         <div className="w-80 shrink-0 h-full">
-          {mode === 'configure'     ? <ConfigurePanel />    :
-           mode === 'edit-boundary' ? <EditBoundaryPanel /> :
-                                     <ZoneListPanel />}
+          {mode === 'configure'     ? renderConfigurePanel()    :
+           mode === 'edit-boundary' ? renderEditBoundaryPanel() :
+                                     renderZoneListPanel()}
         </div>
 
         {/* ─── Map panel ────────────────────────────────────────── */}
@@ -693,6 +756,41 @@ export default function ServiceAreas() {
               onLoad={map => mapRef.current = map}
               options={mapOptions}
             >
+              {/* Search box overlay */}
+              <Autocomplete
+                onLoad={autocomplete => autocompleteRef.current = autocomplete}
+                onPlaceChanged={handlePlaceChanged}
+              >
+                <div className="absolute top-4 left-4 z-[100] w-72">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search locations..."
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-sm text-[10px] font-black uppercase tracking-wider outline-none focus:border-slate-900 focus:bg-white shadow-xl transition-all placeholder:text-slate-400 text-slate-900"
+                    />
+                  </div>
+                </div>
+              </Autocomplete>
+
+              {searchedLocation && (
+                <>
+                  <Marker position={searchedLocation} />
+                  {new URLSearchParams(window.location.search).get('name') && (
+                    <InfoWindow position={searchedLocation}>
+                      <div className="bg-white p-2 rounded-sm max-w-xs shadow-sm">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-800">
+                          {decodeURIComponent(new URLSearchParams(window.location.search).get('name'))}
+                        </p>
+                        <p className="text-[8px] font-bold text-slate-400 mt-0.5">
+                          Target Vendor Coordinates
+                        </p>
+                      </div>
+                    </InfoWindow>
+                  )}
+                </>
+              )}
+
               {/* Drawing manager — only active when drawingMode = 'polygon' */}
               {drawingMode && (
                 <DrawingManager

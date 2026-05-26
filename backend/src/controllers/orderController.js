@@ -52,7 +52,7 @@ const calculateGoogleDistance = async (lat1, lon1, lat2, lon2) => {
     }
 };
 
-export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4) => {
+export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, serviceIds = []) => {
     try {
         const cLat = Number(customerLat);
         const cLng = Number(customerLng);
@@ -60,6 +60,16 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4) =
         const nearbyVendors = [];
 
         for (const vendor of vendors) {
+            // Filter by active services if serviceIds are requested
+            if (serviceIds && serviceIds.length > 0) {
+                const vendorServices = vendor.shopDetails?.services || [];
+                const hasAllServices = serviceIds.every(sId => {
+                    const vendorService = vendorServices.find(vs => vs.id === sId || vs._id?.toString() === sId);
+                    return vendorService && vendorService.active !== false && vendorService.status === 'approved';
+                });
+                if (!hasAllServices) continue;
+            }
+
             const vLat = Number(vendor.location?.lat || 0);
             const vLng = Number(vendor.location?.lng || 0);
             let distance = calculateHaversineDistance(cLat, cLng, vLat, vLng);
@@ -374,16 +384,18 @@ export const createOrder = async (req, res) => {
 
         await newOrder.save();
 
-        // Real-time broadcast to ALL vendors in the pool (Diagnostic/Redundancy)
-        const io = getIO();
-        io.to('vendors_pool').emit('new_order_available', {
-            orderId: newOrder._id,
-            displayId: newOrder.orderId,
-            distance: 'Global'
-        });
-        logToFile(`Global broadcast sent for Order ${newOrder.orderId}`);
+        // Commented out to avoid broadcasting to vendors with inactive services
+        // const io = getIO();
+        // io.to('vendors_pool').emit('new_order_available', {
+        //     orderId: newOrder._id,
+        //     displayId: newOrder.orderId,
+        //     distance: 'Global'
+        // });
+        // logToFile(`Global broadcast sent for Order ${newOrder.orderId}`);
 
-        const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3);
+        const io = getIO();
+        const serviceIds = items.map(item => item.serviceId);
+        const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds);
 
         const notifications = nearbyVendors.map(vendor => ({
             recipient: vendor.id,
@@ -732,7 +744,16 @@ export const getPoolOrders = async (req, res) => {
         const pool = orders.filter(order => {
             if (!order.pickupLocation?.lat) return false;
             const dist = calculateHaversineDistance(vLat, vLng, order.pickupLocation.lat, order.pickupLocation.lng);
-            return dist <= 3; // 3km radius
+            if (dist > 3) return false; // 3km radius
+
+            // Check if vendor deactivated or doesn't offer any of the order's services
+            const serviceIds = order.items.map(item => item.serviceId);
+            const vendorServices = vendor.shopDetails?.services || [];
+            const hasAllServices = serviceIds.every(sId => {
+                const vendorService = vendorServices.find(vs => vs.id === sId || vs._id?.toString() === sId);
+                return vendorService && vendorService.active !== false && vendorService.status === 'approved';
+            });
+            return hasAllServices;
         }).map(o => ({
             ...o._doc,
             distance: calculateHaversineDistance(vLat, vLng, o.pickupLocation.lat, o.pickupLocation.lng).toFixed(2),
@@ -753,7 +774,23 @@ export const vendorAcceptOrder = async (req, res) => {
         const { vendorId } = req.body;
         
         const order = await Order.findById(id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.vendor) return res.status(400).json({ message: 'Order already accepted by another vendor' });
+
+        const vendor = await User.findById(vendorId);
+        if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+
+        // Verify that the vendor has all order services active and approved
+        const serviceIds = order.items.map(item => item.serviceId);
+        const vendorServices = vendor.shopDetails?.services || [];
+        const hasAllServices = serviceIds.every(sId => {
+            const vendorService = vendorServices.find(vs => vs.id === sId || vs._id?.toString() === sId);
+            return vendorService && vendorService.active !== false && vendorService.status === 'approved';
+        });
+
+        if (!hasAllServices) {
+            return res.status(400).json({ message: 'You cannot accept this order because some services are inactive or not offered by you.' });
+        }
 
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         const updatedOrder = await Order.findByIdAndUpdate(
@@ -761,8 +798,6 @@ export const vendorAcceptOrder = async (req, res) => {
             { vendor: vendorId, status: 'Assigned', pickupOtp, pickupStatus: 'scheduled' }, 
             { new: true }
         ).populate('customer', 'displayName phone address location');
-
-        const vendor = await User.findById(vendorId);
 
         // Remove availability notifications for other vendors
         await Notification.deleteMany({ orderId: id, type: 'order_available' });
@@ -1243,7 +1278,7 @@ const parseWalkInDeliveryTime = (deliveryTime) => {
 
 export const createWalkInOrder = async (req, res) => {
     try {
-        const { customerPhone, items, totalAmount, vendorId, riderDropOff, dropAddress, deliveryTime } = req.body;
+        const { customerPhone, customerName, items, totalAmount, vendorId, riderDropOff, dropAddress, deliveryTime } = req.body;
 
         if (!customerPhone || !items || !vendorId) {
             return res.status(400).json({ message: 'Missing required fields for walk-in order' });
@@ -1254,11 +1289,14 @@ export const createWalkInOrder = async (req, res) => {
         
         if (!customer) {
             customer = new User({
-                displayName: `Walk-In (${customerPhone.slice(-4)})`,
+                displayName: customerName || `Walk-In (${customerPhone.slice(-4)})`,
                 phone: customerPhone,
-                role: 'User',
+                role: 'Customer',
                 status: 'approved'
             });
+            await customer.save();
+        } else if (customerName) {
+            customer.displayName = customerName;
             await customer.save();
         }
 

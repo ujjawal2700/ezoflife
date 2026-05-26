@@ -7,8 +7,18 @@ import {
     getVendorApplications,
     getAdminApplications,
     getAdminAllJobs,
-    deleteJob
+    deleteJob,
+    updateJob,
+    updateJobStatus,
+    updateApplicationStatus,
+    deleteApplication
 } from '../controllers/jobController.js';
+import { 
+    getRoleTemplates, 
+    createRoleTemplate, 
+    updateRoleTemplate, 
+    deleteRoleTemplate 
+} from '../controllers/roleTemplateController.js';
 
 import multer from 'multer';
 import path from 'path';
@@ -30,6 +40,16 @@ router.get('/vendor', getVendorJobs); // Expected ?vendorId=
 router.get('/active', getAllActiveJobs);
 router.post('/apply', upload.single('resume'), applyToJob);
 router.get('/vendor/:vendorId/applications', getVendorApplications);
+router.patch('/applications/:id/status', updateApplicationStatus);
+router.delete('/applications/:id', deleteApplication);
+router.patch('/:id/status', updateJobStatus);
+router.put('/:id', updateJob);
 router.delete('/:id', verifyAdmin, deleteJob);
+
+// Role Templates Master Data
+router.get('/role-templates', getRoleTemplates);
+router.post('/role-templates', verifyAdmin, createRoleTemplate);
+router.put('/role-templates/:id', verifyAdmin, updateRoleTemplate);
+router.delete('/role-templates/:id', verifyAdmin, deleteRoleTemplate);
 
 export default router;

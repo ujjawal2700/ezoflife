@@ -141,9 +141,9 @@ app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
 
 // ─── Admin-only Data Routes (JWT required) ───────────────────────────────────
-app.use('/api/geofence', verifyAdmin, geofenceRoutes);
+app.use('/api/geofence', geofenceRoutes);
 app.use('/api/area-overrides', verifyAdmin, areaOverrideRoutes);
-app.use('/api/master-pricing', verifyAdmin, masterPricingRoutes);
+app.use('/api/master-pricing', masterPricingRoutes);
 
 // Labor Routes
 app.post('/api/labor/add', verifyAdmin, addSpecialist);
@@ -190,6 +190,79 @@ mongoose.connect(MONGODB_URI)
                         otp,
                         otpExpiry
                     },
+                    { upsert: true, new: true }
+                );
+            }
+
+            // Seed Role Templates
+            const RoleTemplate = (await import('./src/models/RoleTemplate.js')).default;
+            const defaultTemplates = [
+                {
+                    name: 'Ironing Specialist',
+                    description: 'Responsible for high-quality pressing and steam finishing of all garments.',
+                    responsibilities: [
+                        'Iron and steam press garments to meet quality standards',
+                        'Inspect garments for stains or damage before pressing',
+                        'Organize ironed clothes neatly on hangers or folded packs',
+                        'Follow safety protocols while handling hot equipment'
+                    ]
+                },
+                {
+                    name: 'Delivery Rider',
+                    description: 'Responsible for timely pickup and delivery of garments while ensuring customer satisfaction.',
+                    responsibilities: [
+                        'Deliver orders safely and on time',
+                        'Handle customer interactions professionally',
+                        'Maintain delivery records and receipts',
+                        'Follow assigned delivery schedules and route guidelines'
+                    ]
+                },
+                {
+                    name: 'Shop Assistant',
+                    description: 'Handles customer walk-ins, garment intake, tagging, and general storefront support.',
+                    responsibilities: [
+                        'Greet customers and register incoming garments',
+                        'Use shop software to generate receipts and tags',
+                        'Explain services, pricing, and promotional offers to customers',
+                        'Hand over completed orders and process payments'
+                    ]
+                },
+                {
+                    name: 'Dry Clean Technician',
+                    description: 'Operates dry cleaning machinery and handles delicate fabrics using specialized chemicals.',
+                    responsibilities: [
+                        'Categorize and inspect garments for dry clean compatibility',
+                        'Apply stain-treatment solvents and operate cleaning equipment',
+                        'Maintain chemicals and machine filters in compliance with standards',
+                        'Quality control check post dry-cleaning cycle'
+                    ]
+                },
+                {
+                    name: 'Packing Staff',
+                    description: 'Performs final checks, folding, sorting, and neat packaging of processed garments.',
+                    responsibilities: [
+                        'Verify orders against customer lists or invoices',
+                        'Professionally fold and pack garments to prevent wrinkling',
+                        'Affix barcode stickers or tags on final delivery bags',
+                        'Keep packaging station clean and stocked with supplies'
+                    ]
+                },
+                {
+                    name: 'Laundry Helper',
+                    description: 'Assists with washing, sorting, and loading garments into commercial washing machines.',
+                    responsibilities: [
+                        'Sort garments by color, fabric type, and washing instructions',
+                        'Load and unload commercial washing machines and dryers',
+                        'Measure detergent, bleach, and other laundry additives',
+                        'Assist senior staff with daily operational duties'
+                    ]
+                }
+            ];
+
+            for (const tpl of defaultTemplates) {
+                await RoleTemplate.findOneAndUpdate(
+                    { name: tpl.name },
+                    tpl,
                     { upsert: true, new: true }
                 );
             }

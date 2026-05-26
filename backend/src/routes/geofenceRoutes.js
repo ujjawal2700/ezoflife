@@ -7,15 +7,16 @@ import {
     checkLocationAvailability,
     getPincodeMappings
 } from '../controllers/geofenceController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Admin Routes
-router.post('/areas', createServiceArea);
-router.get('/areas', getAllServiceAreas);
-router.patch('/areas/:id', updateServiceArea);
-router.delete('/areas/:id', deleteServiceArea);
-router.get('/pincode-mappings', getPincodeMappings);
+// Admin Routes (JWT verification required)
+router.post('/areas', verifyAdmin, createServiceArea);
+router.get('/areas', verifyAdmin, getAllServiceAreas);
+router.patch('/areas/:id', verifyAdmin, updateServiceArea);
+router.delete('/areas/:id', verifyAdmin, deleteServiceArea);
+router.get('/pincode-mappings', verifyAdmin, getPincodeMappings);
 
 // Public/Customer Routes
 router.get('/check-availability', checkLocationAvailability);

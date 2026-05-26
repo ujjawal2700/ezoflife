@@ -10,7 +10,6 @@ import OnboardingApprovals from '../pages/OnboardingApprovals';
 import Payouts from '../pages/Payouts';
 import Services from '../pages/Services';
 import Users from '../pages/Users';
-import Reports from '../pages/Reports';
 import AdminLogin from '../pages/AdminLogin';
 import AdminOtp from '../pages/AdminOtp';
 import AdminOrderDetail from '../pages/AdminOrderDetail';
@@ -28,6 +27,7 @@ import PartnershipInquiries from '../pages/PartnershipInquiries';
 import LaborManagement from '../pages/LaborManagement';
 import NotificationsPage from '../pages/NotificationsPage';
 import CareerModeration from '../pages/CareerModeration';
+import RoleDetails from '../pages/RoleDetails';
 import Suppliers from '../pages/Suppliers';
 import AdminAdvertisementPage from '../pages/AdminAdvertisementPage';
 import B2BEscrowManagement from '../pages/B2BEscrowManagement';
@@ -38,7 +38,7 @@ import AdminSupplierRequestsPage from '../pages/AdminSupplierRequestsPage';
 import AdminSupplierRequestDetailPage from '../pages/AdminSupplierRequestDetailPage';
 import AdminVendorRequestDetailPage from '../pages/AdminVendorRequestDetailPage';
 import AdminBrandInquiries from '../pages/AdminBrandInquiries';
-
+import VendorServiceRequests from '../pages/VendorServiceRequests';
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
@@ -124,9 +124,9 @@ const AdminRoutes = () => {
         <Route path="/vendors/:id" element={<AdminVendorDetail />} />
         <Route path="/vendors/approvals" element={<OnboardingApprovals />} />
         <Route path="/vendors/requests/:id" element={<AdminVendorRequestDetailPage />} />
+        <Route path="/vendor-service-requests" element={<VendorServiceRequests />} />
         <Route path="/payments" element={<Payouts />} />
         <Route path="/pricing" element={<PricingConfig />} />
-        <Route path="/reports" element={<Reports />} />
         <Route path="/services" element={<Services />} />
         <Route path="/master-services" element={<MasterServiceManagement />} />
         <Route path="/riders" element={<Riders />} />
@@ -140,7 +140,10 @@ const AdminRoutes = () => {
         <Route path="/faqs" element={<FAQManagement />} />
         <Route path="/media" element={<MediaConfig />} />
         <Route path="/partnerships" element={<PartnershipInquiries />} />
-        <Route path="/careers" element={<CareerModeration />} />
+        <Route path="/careers" element={<CareerModeration creatorFilter="Admin" />} />
+        <Route path="/careers/admin-posts" element={<CareerModeration creatorFilter="Admin" />} />
+        <Route path="/careers/vendor-posts" element={<CareerModeration creatorFilter="Vendor" />} />
+        <Route path="/careers/role-details" element={<RoleDetails />} />
         <Route path="/categories" element={<CategoryManagement />} />
         <Route path="/vendor-ranking" element={<VendorRankingEngine />} />
         <Route path="/privacy-policy" element={<AdminLegalPage type="privacy-policy" />} />
