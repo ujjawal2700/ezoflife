@@ -114,16 +114,23 @@ export const requestOtp = async (req, res) => {
         const finalType = (req.body.customerType || customerType || 'individual').toLowerCase();
         console.log(`👤 [AUTH_TYPE] Setting Customer Type: ${finalType} for ${phone}`);
 
+        const nameToSave = req.body.displayName || req.body.name;
         if (!user) {
             user = new User({ 
                 phone, 
                 role: requestedRole, // Use the role requested by the frontend
                 status: requestedRole === 'Vendor' ? 'pending' : 'approved',
-                customerType: finalType
+                customerType: finalType,
+                displayName: nameToSave || ''
             });
-        } else if (mode === 'signup') {
-             // If for some reason user exists but trying to signup, update type
-             user.customerType = finalType;
+        } else {
+            if (nameToSave) {
+                user.displayName = nameToSave;
+            }
+            if (mode === 'signup') {
+                 // If for some reason user exists but trying to signup, update type
+                 user.customerType = finalType;
+            }
         }
 
         user.otp = otp;

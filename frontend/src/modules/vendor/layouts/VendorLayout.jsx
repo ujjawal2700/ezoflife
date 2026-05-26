@@ -108,7 +108,6 @@ const VendorLayout = () => {
     const hideHeaderRoutes = [
         ...hideNavRoutes,
         '/vendor/order/', // Hide on order details
-        '/vendor/walkin',
         '/vendor/fulfillment',
         '/vendor/promotions',
         '/vendor/reviews'
@@ -119,7 +118,7 @@ const VendorLayout = () => {
         <div className="admin-theme flex flex-col min-h-screen">
             {showHeader && <VendorHeader />}
             
-            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? 'pt-20' : ''}`}>
+            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? (currentPath === '/vendor/walk-in' ? 'pt-16' : 'pt-20') : ''}`}>
                 <Outlet />
             </main>
 

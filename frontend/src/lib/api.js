@@ -168,6 +168,135 @@ export const categoryApi = {
     }
 };
 
+export const vendorSupplyCategoryApi = {
+    getAll: async () => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories`);
+        return res.json();
+    },
+    getPaginated: async (page = 1, limit = 10, filters = {}) => {
+        const queryParams = new URLSearchParams({
+            page,
+            limit,
+            ...filters
+        }).toString();
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories?${queryParams}`);
+        return res.json();
+    },
+    getMain: async () => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories?isActive=true`);
+        const data = await res.json();
+        return Array.from(new Set(data.map(c => c.mainCategory)))
+            .filter(Boolean)
+            .map(name => ({ _id: name, name }));
+    },
+    getSub: async (mainCategoryName) => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories?isActive=true`);
+        const data = await res.json();
+        return data.filter(c => c.mainCategory === mainCategoryName);
+    },
+    create: async (data) => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories`, {
+            method: 'POST',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    update: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories/${id}`, {
+            method: 'PUT',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    delete: async (id) => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return res.json();
+    },
+    bulkUpload: async (categories) => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories/bulk-upload`, {
+            method: 'POST',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(categories)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Bulk upload failed');
+        }
+        return res.json();
+    },
+    clearAll: async () => {
+        const res = await fetch(`${BASE_URL}/vendor-supply-categories/clear-all`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return res.json();
+    }
+};
+
+export const vendorMasterSupplyApi = {
+    getAll: async (filters = {}) => {
+        const queryParams = new URLSearchParams(filters).toString();
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies?${queryParams}`);
+        return res.json();
+    },
+    getPaginated: async (page = 1, limit = 10, filters = {}) => {
+        const queryParams = new URLSearchParams({
+            page,
+            limit,
+            ...filters
+        }).toString();
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies?${queryParams}`);
+        return res.json();
+    },
+    create: async (data) => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies`, {
+            method: 'POST',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    update: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies/${id}`, {
+            method: 'PUT',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    delete: async (id) => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return res.json();
+    },
+    bulkUpload: async (items) => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies/bulk-upload`, {
+            method: 'POST',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(items)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Bulk upload failed');
+        }
+        return res.json();
+    },
+    clearAll: async () => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies/clear-all`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return res.json();
+    }
+};
+
 export const authApi = {
     requestOtp: async (phone, channel, mode, options = {}) => {
         // Mock Credentials Bypass

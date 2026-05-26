@@ -82,6 +82,17 @@ const navItems = [
                 ]
             },
             { 
+                icon: Factory, 
+                label: 'Vendor Supply Pricing', 
+                path: '/admin/vendor-supply-pricing/categories',
+                subItems: [
+                    { label: 'Category Management', path: '/admin/vendor-supply-pricing/categories' },
+                    { label: 'Master Supplies Table', path: '/admin/vendor-supply-pricing/supplies' }
+                ]
+            },
+
+
+            { 
                 icon: MessageSquare, 
                 label: 'Support Tickets', 
                 path: '/admin/help-desk',

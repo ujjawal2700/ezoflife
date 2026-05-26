@@ -36,11 +36,15 @@ import masterServiceRoutes from './src/routes/masterServiceRoutes.js';
 import adRoutes from './src/routes/adRoutes.js';
 import logisticsRoutes from './src/routes/logisticsRoutes.js';
 import categoryRoutes from './src/routes/categoryRoutes.js';
+import vendorSupplyCategoryRoutes from './src/routes/vendorSupplyCategoryRoutes.js';
+import vendorMasterSupplyRoutes from './src/routes/vendorMasterSupplyRoutes.js';
+
 import legalRoutes from './src/routes/legalRoutes.js';
 import supplierRoutes from './src/routes/supplierRoutes.js';
 import geofenceRoutes from './src/routes/geofenceRoutes.js';
 import areaOverrideRoutes from './src/routes/areaOverrideRoutes.js';
 import masterPricingRoutes from './src/routes/masterPricingRoutes.js';
+
 
 import SystemConfig from './src/models/SystemConfig.js';
 import { getSystemConfig, updateSystemConfig } from './src/controllers/adminController.js';
@@ -139,6 +143,10 @@ app.use('/api/b2b-orders', b2bOrderRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/vendor-supply-categories', vendorSupplyCategoryRoutes);
+app.use('/api/vendor-master-supplies', vendorMasterSupplyRoutes);
+
+
 
 // ─── Admin-only Data Routes (JWT required) ───────────────────────────────────
 app.use('/api/geofence', geofenceRoutes);

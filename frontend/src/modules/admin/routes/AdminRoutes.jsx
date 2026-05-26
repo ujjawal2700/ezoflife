@@ -42,6 +42,10 @@ import VendorServiceRequests from '../pages/VendorServiceRequests';
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
+import VendorSupplyCategoryManagement from '../pages/VendorSupplyCategoryManagement';
+import VendorMasterSupplyManagement from '../pages/VendorMasterSupplyManagement';
+
+
 import ServiceGeofenceTable from '../pages/ServiceGeofenceTable';
 import GeofencePincodeMapping from '../pages/GeofencePincodeMapping';
 import PricingPreview from '../pages/PricingPreview';
@@ -145,6 +149,10 @@ const AdminRoutes = () => {
         <Route path="/careers/vendor-posts" element={<CareerModeration creatorFilter="Vendor" />} />
         <Route path="/careers/role-details" element={<RoleDetails />} />
         <Route path="/categories" element={<CategoryManagement />} />
+        <Route path="/vendor-supply-pricing/categories" element={<VendorSupplyCategoryManagement />} />
+        <Route path="/vendor-supply-pricing/supplies" element={<VendorMasterSupplyManagement />} />
+
+
         <Route path="/vendor-ranking" element={<VendorRankingEngine />} />
         <Route path="/privacy-policy" element={<AdminLegalPage type="privacy-policy" />} />
         <Route path="/terms-conditions" element={<AdminLegalPage type="terms-conditions" />} />

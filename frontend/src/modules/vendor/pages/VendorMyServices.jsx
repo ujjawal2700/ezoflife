@@ -129,6 +129,9 @@ const VendorMyServices = () => {
             });
 
             masterRes.forEach(s => {
+                if (s.approvalStatus !== 'Approved') {
+                    return;
+                }
                 const id = s._id || s.id;
                 const pricingInfo = pricingMap[id] || {};
                 const msInfo = masterServicesMap[id] || {};
