@@ -5,6 +5,9 @@ import Order from '../models/Order.js';
 import SystemConfig from '../models/SystemConfig.js';
 import SupplierApplication from '../models/SupplierApplication.js';
 import Payout from '../models/Payout.js';
+import SupplierServiceZone from '../models/SupplierServiceZone.js';
+import VendorMasterSupply from '../models/VendorMasterSupply.js';
+import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
 
 // Get all roles pending approval
 export const getPendingApprovals = async (req, res) => {
@@ -31,13 +34,15 @@ export const getPendingApprovals = async (req, res) => {
         const supplierQuery = { status: 'Pending' };
 
         if (vendorName && vendorName.trim() !== '') {
-            supplierQuery.fullName = vendorName.trim();
+            supplierQuery.contactPersonName = { $regex: vendorName.trim(), $options: 'i' };
         }
         if (businessName && businessName.trim() !== '') {
-            supplierQuery.businessName = businessName.trim();
+            supplierQuery.registeredBusinessName = { $regex: businessName.trim(), $options: 'i' };
         }
         if (phone && phone.trim() !== '') {
-            supplierQuery.phone = phone.trim();
+            const matchingUsers = await User.find({ phone }).select('_id');
+            const userIds = matchingUsers.map(u => u._id);
+            supplierQuery.user = { $in: userIds };
         }
 
         const [pendingVendors, supplierApps] = await Promise.all([
@@ -49,20 +54,20 @@ export const getPendingApprovals = async (req, res) => {
         const transformedSuppliers = supplierApps.map(app => ({
             _id: app._id,
             role: 'Supplier',
-            displayName: app.fullName,
-            phone: app.phone,
-            email: app.email,
+            displayName: app.user?.displayName || app.contactPersonName || '',
+            phone: app.user?.phone || '',
+            email: app.user?.email || '',
             createdAt: app.createdAt,
             supplierDetails: {
-                businessName: app.businessName,
-                address: app.businessAddress,
-                gst: app.gstNumber
+                businessName: app.registeredBusinessName || '',
+                address: app.warehouseAddress || '',
+                gst: app.gstNumber || ''
             },
             documents: [
                 { type: 'GST Certificate', url: app.gstDoc },
-                { type: 'Udyog Aadhaar', url: app.udyogAadharDoc },
-                { type: 'Aadhaar Card', url: app.aadharDoc },
-                { type: 'Address Proof', url: app.addressProofDoc }
+                { type: 'PAN Card', url: app.panDoc },
+                { type: 'MSME Copy', url: app.msmeDoc },
+                { type: 'Manufacturer Auth', url: app.manufacturerAuthDoc }
             ].filter(d => d.url), // Only include documents that have a URL
             applicationId: app._id // Keep original app ID for approval/rejection
         }));
@@ -218,18 +223,128 @@ export const approveSupplier = async (req, res) => {
             application.reviewedAt = new Date();
             await application.save();
 
+            const userObj = await User.findById(application.user);
+            const userPhone = userObj?.phone || '';
+            const supplierId = `SUP-${userPhone ? userPhone.slice(-4) : '001'}`;
+
             const user = await User.findByIdAndUpdate(
                 application.user,
                 { 
                     role: 'Supplier', 
                     status: 'approved',
-                    displayName: application.fullName,
-                    email: application.email,
-                    address: application.businessAddress,
-                    isProfileComplete: true
+                    displayName: application.contactPersonName || userObj?.displayName || '',
+                    email: userObj?.email || '',
+                    address: application.warehouseAddress || '',
+                    isProfileComplete: true,
+                    supplierDetails: {
+                        businessName: application.registeredBusinessName || '',
+                        address: application.warehouseAddress || '',
+                        city: application.city || '',
+                        pincode: application.pincode || '',
+                        gst: application.gstNumber || ''
+                    }
                 },
                 { new: true }
             );
+
+            // Automatically create SupplierServiceZone record if zone and pincode exist
+            if (application.zone && application.pincode) {
+                // Auto-generate zoneId (Starts from SPZ-ZONE-001, SPZ-ZONE-002...)
+                const lastZone = await SupplierServiceZone.findOne({ zoneId: { $regex: /^SPZ-ZONE-/ } }).sort({ zoneId: -1 });
+                let nextNum = 1;
+                if (lastZone && lastZone.zoneId) {
+                    const match = lastZone.zoneId.match(/^SPZ-ZONE-(\d+)$/);
+                    if (match) {
+                        nextNum = parseInt(match[1], 10) + 1;
+                    }
+                }
+                const zoneId = `SPZ-ZONE-${String(nextNum).padStart(3, '0')}`;
+
+                const newZone = new SupplierServiceZone({
+                    zoneId,
+                    zoneName: application.zone,
+                    supplierId: supplierId,
+                    pincodes: [application.pincode],
+                    deliveryCharges: 0,
+                    minOrderValue: 0,
+                    isActive: true
+                });
+                await newZone.save();
+            }
+
+            // Clone the selected products into VendorMasterSupply with this supplierId & supplierFacilityName
+            if (application.selectedProducts && application.selectedProducts.length > 0) {
+                for (const selectedItem of application.selectedProducts) {
+                    // Ensure we don't duplicate clone for the same supplier
+                    const exists = await VendorMasterSupply.findOne({
+                        materialName: selectedItem.productName,
+                        supplierId: supplierId
+                    });
+                    
+                    if (!exists) {
+                        // Find template supply item
+                        const templateItem = await VendorMasterSupply.findOne({
+                            materialName: selectedItem.productName,
+                            supplierId: '-'
+                        });
+                        
+                        if (templateItem) {
+                            const lastSupply = await VendorMasterSupply.findOne().sort({ serialNumber: -1 });
+                            const nextSerial = (lastSupply?.serialNumber || 0) + 1;
+                            
+                            const categoryDoc = await VendorSupplyCategory.findById(templateItem.categoryId);
+                            
+                            // Generate SKU ID
+                            const prefix1 = "spz";
+                            const prefix2 = "sup";
+                            let catPart = "cat";
+                            if (categoryDoc && categoryDoc.mainCategory) {
+                                catPart = categoryDoc.mainCategory.trim().replace(/[^a-zA-Z\s]/g, '').slice(0, 3).toLowerCase();
+                                if (!catPart) catPart = "cat";
+                            }
+                            let subPart = "sub";
+                            if (categoryDoc && categoryDoc.subCategory) {
+                                const words = categoryDoc.subCategory.trim().replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(Boolean);
+                                if (words.length >= 2) {
+                                    subPart = (words[0][0] + words[1][0]).toLowerCase();
+                                } else if (words.length === 1) {
+                                    subPart = words[0].slice(0, 2).toLowerCase();
+                                }
+                                if (!subPart) subPart = "sub";
+                            }
+                            const serialStr = String(nextSerial).padStart(3, '0');
+                            const newSkuId = `${prefix1}-${prefix2}-${catPart}-${subPart}-${serialStr}`.toUpperCase();
+
+                            const newSupply = new VendorMasterSupply({
+                                skuId: newSkuId,
+                                categoryId: templateItem.categoryId,
+                                hsnCode: templateItem.hsnCode || '-',
+                                gst: templateItem.gst || 18,
+                                brand: templateItem.brand || 'Generic',
+                                materialName: templateItem.materialName,
+                                quantity: templateItem.quantity || '-',
+                                wholesaleRate: selectedItem.wholesaleRate || 0,
+                                bulkDiscount: selectedItem.bulkDiscount || 0,
+                                bulkThreshold: selectedItem.bulkThreshold || 0,
+                                isActive: 'y',
+                                deliveryFrequency: (application.deliveryFrequency && application.deliveryFrequency.length > 0)
+                                    ? application.deliveryFrequency.join(', ')
+                                    : '-',
+                                movFreeDelivery: selectedItem.movFreeDelivery || 0,
+                                supplierId: supplierId,
+                                supplierFacilityName: application.registeredBusinessName,
+                                serialNumber: nextSerial
+                            });
+                            
+                            await newSupply.save();
+                        }
+                    }
+                }
+            }
+
+            application.onboardingStage = 'Onboarded';
+            await application.save();
+
             return res.status(200).json({ message: 'Application approved and user profile updated', user });
         }
 

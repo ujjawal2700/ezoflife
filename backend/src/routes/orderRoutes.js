@@ -5,14 +5,9 @@ import {
     getVendorOrders, 
     updateOrderStatus, 
     getAllOrders,
-    getRiderTasks,
-    acceptOrder,
-    verifyPickupOtp,
-    getRiderStats,
     getOrderById,
     vendorAcceptOrder,
     getPoolOrders,
-    verifyDeliveryOtp,
     deleteOrder,
     createWalkInOrder,
     markOrderReady,
@@ -43,12 +38,7 @@ router.patch('/status/:id', updateOrderStatus);
 router.post('/mark-ready/:id', markOrderReady);
 router.post('/verify-handshake/:id', verifyHandshake);
 
-// Rider Specific Routes
-router.post('/accept/:id', acceptOrder);
-router.post('/verify-pickup/:id', verifyPickupOtp);
-router.post('/verify-delivery/:id', verifyDeliveryOtp);
-router.get('/rider/:riderId', getRiderTasks);
-router.get('/rider-stats/:riderId', getRiderStats);
+// Rider Specific Routes (Decommissioned - Handled by Shiprocket/LogisticsController)
 
 // Admin: Get all orders
 router.get('/all', getAllOrders);

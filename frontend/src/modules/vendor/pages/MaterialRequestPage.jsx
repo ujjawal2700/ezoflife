@@ -12,6 +12,8 @@ const MaterialRequestPage = () => {
     const [vendorOrders, setVendorOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'requests'
     const [cart, setCart] = useState({});
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedSubCategory, setSelectedSubCategory] = useState('');
     
     const [showInvoice, setShowInvoice] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
@@ -37,12 +39,29 @@ const MaterialRequestPage = () => {
     const vendorData = JSON.parse(vendorDataRaw);
     const vendorId = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id;
 
+    const uniqueCategories = Array.from(new Set(materials.map(m => m.category).filter(Boolean)));
+    const activeCategory = selectedCategory || uniqueCategories[0] || '';
+
+    const uniqueSubCategories = Array.from(
+        new Set(
+            materials
+                .filter(m => m.category === activeCategory)
+                .map(m => m.subCategory)
+                .filter(Boolean)
+        )
+    );
+    const activeSubCategory = selectedSubCategory || uniqueSubCategories[0] || '';
+
+    const filteredMaterials = materials.filter(item => {
+        return item.category === activeCategory && item.subCategory === activeSubCategory;
+    });
+
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
                 const [materialData, orderData] = await Promise.all([
-                    materialApi.getAll(),
+                    vendorId ? materialApi.getLiveCatalog(vendorId) : [],
                     vendorId ? b2bOrderApi.getVendorOrders(vendorId) : []
                 ]);
                 setMaterials(materialData);
@@ -147,29 +166,26 @@ const MaterialRequestPage = () => {
                 ) : (
                     <motion.div key="main-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                         {/* Header */}
-                        <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-4 border-b border-slate-100">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-4">
-                                    <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
-                                        <span className="material-symbols-outlined text-primary">arrow_back</span>
-                                    </motion.button>
-                                    <div>
-                                        <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none mb-1">Order Supplies</h1>
-                                    </div>
-                                </div>
-                            </div>
+                        <header className="bg-white/80 backdrop-blur-xl sticky top-16 z-50 px-6 py-3 border-b border-slate-100 flex items-center gap-4">
+                            <motion.button 
+                                whileTap={{ scale: 0.9 }} 
+                                onClick={() => navigate(-1)} 
+                                className="p-2 hover:bg-slate-50 rounded-full transition-colors shrink-0"
+                            >
+                                <span className="material-symbols-outlined text-primary">arrow_back</span>
+                            </motion.button>
 
                             {/* Tab Switcher */}
-                            <div className="flex bg-slate-100 p-1 rounded-2xl">
+                            <div className="flex-1 flex bg-slate-100 p-1 rounded-2xl">
                                 <button 
                                     onClick={() => setActiveTab('catalog')}
-                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'catalog' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'catalog' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
                                 >
                                     Catalog
                                 </button>
                                 <button 
                                     onClick={() => setActiveTab('requests')}
-                                    className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
+                                    className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'requests' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}
                                 >
                                     My Requests
                                 </button>
@@ -183,63 +199,108 @@ const MaterialRequestPage = () => {
                                     animate={{ opacity: 1, y: 0 }}
                                     className="space-y-6"
                                 >
-                                    {/* Categories Filter */}
-                                    <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                                        {['All Supplies', ...new Set(materials.map(m => m.category))].map((cat, i) => (
-                                            <button key={i} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${i === 0 ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:border-primary/20'}`}>
-                                                {cat}
-                                            </button>
-                                        ))}
+                                    {/* Categories & Subcategories Filter */}
+                                    <div className="space-y-4 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm">
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Category</span>
+                                            </div>
+                                            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                                {uniqueCategories.map((cat) => (
+                                                    <button 
+                                                        key={cat} 
+                                                        onClick={() => { 
+                                                            setSelectedCategory(cat); 
+                                                            setSelectedSubCategory(''); 
+                                                        }}
+                                                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${activeCategory === cat ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
+                                                    >
+                                                        {cat}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Sub Category</span>
+                                            </div>
+                                            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                                {uniqueSubCategories.map((sub) => (
+                                                    <button 
+                                                        key={sub} 
+                                                        onClick={() => setSelectedSubCategory(sub)}
+                                                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${activeSubCategory === sub ? 'bg-primary text-white border-primary shadow-lg shadow-primary/10' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
+                                                    >
+                                                        {sub}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Catalog Grid */}
                                     <div className="grid grid-cols-1 gap-4">
-                                        {materials.map((item) => (
-                                            <motion.div 
-                                                key={item._id}
-                                                layout
-                                                className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-center gap-5 hover:border-primary/20 transition-all group"
-                                            >
-                                                <div className="w-24 h-24 rounded-3xl bg-slate-50 overflow-hidden shrink-0 border border-slate-50 shadow-inner flex items-center justify-center">
-                                                    {item.image ? (
-                                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                                                    ) : (
-                                                        <span className="material-symbols-outlined text-4xl text-slate-200">inventory_2</span>
-                                                    )}
-                                                </div>
-                                                
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-[8px] font-black text-primary uppercase bg-primary/5 px-2 py-0.5 rounded-full">{item.category}</span>
-                                                        {item.stock === 'Limited' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>}
+                                        {filteredMaterials.length === 0 ? (
+                                            <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center space-y-3">
+                                                <span className="material-symbols-outlined text-4xl text-slate-300">inventory_2</span>
+                                                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">No supplies found matching filters</p>
+                                            </div>
+                                        ) : (
+                                            filteredMaterials.map((item) => (
+                                                <motion.div 
+                                                    key={item._id}
+                                                    layout
+                                                    className="bg-white p-3 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:border-primary/20 transition-all group"
+                                                >
+                                                    {/* Small Image */}
+                                                    <div className="w-14 h-14 rounded-2xl bg-slate-50 overflow-hidden shrink-0 border border-slate-50 shadow-inner flex items-center justify-center">
+                                                        {item.image ? (
+                                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                                        ) : (
+                                                            <span className="material-symbols-outlined text-2xl text-slate-200">inventory_2</span>
+                                                        )}
                                                     </div>
-                                                    <h3 className="text-sm font-black text-slate-900 truncate tracking-tight">{item.name}</h3>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{item.stock}</p>
                                                     
-                                                    <div className="flex items-center justify-between mt-3">
-                                                        <p className="text-base font-black text-slate-900">₹{item.price}</p>
-                                                        
-                                                        <div className="flex items-center bg-slate-50 rounded-xl p-1 gap-3 border border-slate-100">
-                                                            <button 
-                                                                onClick={() => updateQuantity(item._id, -1)}
-                                                                className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
-                                                            >
-                                                                <span className="material-symbols-outlined text-sm">remove</span>
-                                                            </button>
-                                                            <span className="text-xs font-black text-slate-900 w-4 text-center tabular-nums">
-                                                                {cart[item._id] || 0}
-                                                            </span>
-                                                            <button 
-                                                                onClick={() => updateQuantity(item._id, 1)}
-                                                                className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors"
-                                                            >
-                                                                <span className="material-symbols-outlined text-sm">add</span>
-                                                            </button>
+                                                    {/* Row containing Name, Supplier and Price/Counter */}
+                                                    <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
+                                                        {/* Left: Name and Supplier Details */}
+                                                        <div className="min-w-0 flex-1">
+                                                            <h3 className="text-xs font-black text-slate-900 truncate tracking-tight">{item.name}</h3>
+                                                            {/* Supplier Info */}
+                                                            <div className="flex items-center gap-1 mt-0.5 text-slate-400">
+                                                                <span className="material-symbols-outlined text-[12px]">store</span>
+                                                                <span className="text-[9px] font-bold uppercase tracking-wider truncate">{item.supplierFacilityName}</span>
+                                                            </div>
+                                                            <p className="text-[8px] font-bold text-slate-400 uppercase mt-0.5">{item.stock} • {item.quantity}</p>
+                                                        </div>
+
+                                                        {/* Right: Price and Counter Button */}
+                                                        <div className="flex items-center gap-3 shrink-0">
+                                                            <p className="text-sm font-black text-slate-900">₹{item.price}</p>
+                                                            
+                                                            <div className="flex items-center bg-slate-50 rounded-xl p-0.5 gap-2 border border-slate-100">
+                                                                <button 
+                                                                    onClick={() => updateQuantity(item._id, -1)}
+                                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[14px]">remove</span>
+                                                                </button>
+                                                                <span className="text-xs font-black text-slate-900 w-3 text-center tabular-nums">
+                                                                    {cart[item._id] || 0}
+                                                                </span>
+                                                                <button 
+                                                                    onClick={() => updateQuantity(item._id, 1)}
+                                                                    className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[14px]">add</span>
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
+                                                </motion.div>
+                                            ))
+                                        )}
                                     </div>
                                 </motion.div>
                             ) : (

@@ -55,9 +55,13 @@ const AdminSupplierRequestDetailPage = () => {
     fetchRequest();
   }, [id]);
 
+  const getAdminToken = () => localStorage.getItem('adminToken') || localStorage.getItem('token') || localStorage.getItem('user_auth_token') || '';
+
   const fetchRequest = async () => {
     try {
-        const response = await fetch(`${BASE_URL}/supplier/requests/${id}`);
+        const response = await fetch(`${BASE_URL}/supplier/requests/${id}`, {
+            headers: { 'Authorization': `Bearer ${getAdminToken()}` }
+        });
         const data = await response.json();
         setRequest(data);
     } catch (error) {
@@ -70,13 +74,15 @@ const AdminSupplierRequestDetailPage = () => {
   const handleInitialApprove = async () => {
     try {
         const response = await fetch(`${BASE_URL}/supplier/requests/${id}/approve-initial`, {
-            method: 'PATCH'
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getAdminToken()}` }
         });
         if (response.ok) {
             toast.success('Initial Documents Approved! Supplier can now select products.');
             fetchRequest();
         } else {
-            toast.error('Operation failed');
+            const err = await response.json();
+            toast.error(err.message || 'Operation failed');
         }
     } catch (error) {
         toast.error('Approval failed');
@@ -86,7 +92,8 @@ const AdminSupplierRequestDetailPage = () => {
   const handleFinalApprove = async () => {
     try {
         const response = await fetch(`${BASE_URL}/supplier/requests/${id}/approve-final`, {
-            method: 'PATCH'
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getAdminToken()}` }
         });
         if (response.ok) {
             toast.success('Supplier officially onboarded!');
@@ -108,14 +115,18 @@ const AdminSupplierRequestDetailPage = () => {
     try {
         const response = await fetch(`${BASE_URL}/supplier/requests/${id}/reject`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getAdminToken()}`
+            },
             body: JSON.stringify(rejectionForm)
         });
         if (response.ok) {
             toast.success(rejectionForm.status === 'Revision_Required' ? 'Clarification request sent to supplier' : 'Supplier application rejected');
             navigate('/admin/supplier-requests');
         } else {
-            toast.error('Operation failed');
+            const err = await response.json();
+            toast.error(err.message || 'Operation failed');
         }
     } catch (error) {
         toast.error('Rejection failed');
@@ -189,6 +200,25 @@ const AdminSupplierRequestDetailPage = () => {
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">PAN Number</p>
                         <p className="font-bold text-slate-900 uppercase break-all">{request.panNumber}</p>
                     </div>
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Owner Aadhaar</p>
+                        <p className="font-bold text-slate-900 break-all">{request.ownerAadhaar || '—'}</p>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-8 border-t border-slate-100">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Supply Categories</p>
+                    <div className="flex flex-wrap gap-2">
+                        {request.supplyCategories && request.supplyCategories.length > 0 ? (
+                            request.supplyCategories.map(c => (
+                                <span key={c} className="px-3.5 py-1.5 bg-slate-100 rounded-xl text-[9px] font-black text-slate-700 uppercase tracking-wider">
+                                    {c}
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-slate-400 italic text-[11px]">No categories specified</span>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -202,6 +232,21 @@ const AdminSupplierRequestDetailPage = () => {
                     <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Warehouse Address</p>
                         <p className="font-bold text-slate-900">{request.warehouseAddress}</p>
+                        
+                        <div className="grid grid-cols-3 gap-4 mt-4 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
+                            <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">City</p>
+                                <p className="text-[10px] font-black text-slate-800 uppercase">{request.city || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Zone / Area</p>
+                                <p className="text-[10px] font-black text-slate-800 uppercase">{request.zone || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase mb-1">Pincode</p>
+                                <p className="text-[10px] font-black text-slate-800 uppercase">{request.pincode || '—'}</p>
+                            </div>
+                        </div>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                         <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -235,14 +280,39 @@ const AdminSupplierRequestDetailPage = () => {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {request.selectedProducts?.map((p, i) => (
-                            <div key={i} className="p-5 bg-white rounded-2xl border border-primary/10 flex justify-between items-center">
-                                <div>
-                                    <p className="text-sm font-black text-slate-900">{p.productName}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase">{p.category}</p>
+                            <div key={i} className="p-6 bg-white rounded-[2rem] border border-primary/10 shadow-sm flex flex-col justify-between gap-4">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm font-black text-slate-900">{p.productName}</p>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{p.category}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase bg-primary/10 text-primary border border-primary/20">
+                                            {p.capacityPerMonth || '—'}
+                                        </span>
+                                        <p className="text-[8px] font-bold text-slate-400 uppercase mt-1">Capacity / Month</p>
+                                    </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] font-black text-primary uppercase">{p.capacityPerMonth}</p>
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase">Monthly Capacity</p>
+                                
+                                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 bg-slate-50/50 p-3 rounded-xl">
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Wholesale Rate</p>
+                                        <p className="text-[11px] font-bold text-slate-800 tabular-nums">
+                                            {p.wholesaleRate === 0 || p.wholesaleRate === '-' || !p.wholesaleRate ? '—' : `₹${p.wholesaleRate}`}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Bulk Discount</p>
+                                        <p className="text-[11px] font-bold text-slate-800 tabular-nums">
+                                            {p.bulkDiscount === 0 && p.bulkThreshold === 0 ? '—' : `${p.bulkDiscount ?? 0}%`} {p.bulkDiscount !== 0 || p.bulkThreshold !== 0 ? <span className="text-[8px] text-slate-400">Min: {p.bulkThreshold ?? 0}</span> : null}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Free Delivery MOV</p>
+                                        <p className="text-[11px] font-bold text-slate-800 tabular-nums">
+                                            {p.movFreeDelivery === 0 || p.movFreeDelivery === '-' || !p.movFreeDelivery ? '—' : `₹${p.movFreeDelivery}`}
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -259,10 +329,27 @@ const AdminSupplierRequestDetailPage = () => {
                     Financials & Compliance
                 </h3>
                 <div className="space-y-6">
-                    <div className="p-5 bg-white/5 rounded-2xl border border-white/10">
-                        <p className="text-[9px] font-black text-white/40 uppercase mb-2">Settlement Account</p>
-                        <p className="font-black text-sm">{request.accountNumber?.replace(/./g, '*')}</p>
-                        <p className="text-[10px] font-bold text-primary uppercase mt-1">{request.bankName} • {request.ifscCode}</p>
+                    <div className="p-5 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                        <div>
+                            <p className="text-[9px] font-black text-white/40 uppercase mb-2">Settlement Account</p>
+                            <p className="font-black text-sm text-white select-all">{request.accountNumber || '—'}</p>
+                            <p className="text-[10px] font-black text-slate-300 uppercase mt-2">
+                                Bank Name: <span className="text-white font-bold">{request.bankName || '—'}</span>
+                            </p>
+                            <p className="text-[10px] font-black text-slate-300 uppercase mt-1">
+                                IFSC Code: <span className="text-white font-bold">{request.ifscCode || '—'}</span>
+                            </p>
+                        </div>
+                        <div className="pt-2 border-t border-white/10 flex justify-between items-center">
+                            <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Verification Status</span>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                request.isBankVerified 
+                                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            }`}>
+                                {request.isBankVerified ? 'Verified' : 'Pending'}
+                            </span>
+                        </div>
                     </div>
                     <div className="space-y-3">
                         {[

@@ -20,23 +20,33 @@ export const createMasterService = async (req, res) => {
 
         // 2. Build SKU components
         const prefix = "SPZ";
-        const catCode = category.mainCategory.substring(0, 3).toUpperCase().replace(/\s+/g, '');
-        const subCatCode = category.subCategory.substring(0, 3).toUpperCase().replace(/\s+/g, '');
-        const itemCode = itemName.substring(0, 5).toUpperCase().replace(/\s+/g, '');
+        const catCode = category.mainCategory.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const subCatCode = category.subCategory.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const itemCode = itemName.substring(0, 5).toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-        // 3. Find latest sequence for this pattern
-        const skuPrefix = `${prefix}-${catCode}-${subCatCode}-${itemCode}`;
-        const lastService = await MasterService.findOne({ skuId: new RegExp(`^${skuPrefix}`) }).sort({ createdAt: -1 });
+        // 3. Find latest sequence for this Category/Subcategory combination
+        const catSubPrefix = `${prefix}-${catCode}-${subCatCode}`;
+        const servicesInCatSub = await MasterService.find({ skuId: new RegExp(`^${catSubPrefix}-`) });
         
         let sequence = 0;
-        if (lastService && lastService.skuId) {
-            const parts = lastService.skuId.split('-');
-            const lastSeq = parseInt(parts[parts.length - 1]);
-            if (!isNaN(lastSeq)) sequence = lastSeq + 1;
+        if (servicesInCatSub.length > 0) {
+            let maxSeq = -1;
+            servicesInCatSub.forEach(s => {
+                if (s.skuId) {
+                    const parts = s.skuId.split('-');
+                    const seq = parseInt(parts[parts.length - 1]);
+                    if (!isNaN(seq) && seq > maxSeq) {
+                        maxSeq = seq;
+                    }
+                }
+            });
+            if (maxSeq !== -1) {
+                sequence = maxSeq + 1;
+            }
         }
 
         const formattedSeq = sequence.toString().padStart(3, '0');
-        const finalSkuId = `${skuPrefix}-${formattedSeq}`;
+        const finalSkuId = `${catSubPrefix}-${itemCode}-${formattedSeq}`;
 
         const service = new MasterService({ 
             itemName, 

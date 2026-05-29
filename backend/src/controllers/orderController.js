@@ -13,6 +13,7 @@ import Razorpay from 'razorpay';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
+import ServiceArea from '../models/ServiceArea.js';
 
 
 const logToFile = (msg) => {
@@ -52,10 +53,47 @@ const calculateGoogleDistance = async (lat1, lon1, lat2, lon2) => {
     }
 };
 
+// Helper: Ray casting algorithm to check if point is in polygon
+const isPointInPolygon = (lat, lng, polygonCoords) => {
+    let inside = false;
+    const x = lng;
+    const y = lat;
+    for (let i = 0, j = polygonCoords.length - 1; i < polygonCoords.length; j = i++) {
+        const xi = polygonCoords[i][0];
+        const yi = polygonCoords[i][1];
+        const xj = polygonCoords[j][0];
+        const yj = polygonCoords[j][1];
+        const intersect = ((yi > y) !== (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
+
 export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, serviceIds = []) => {
     try {
         const cLat = Number(customerLat);
         const cLng = Number(customerLng);
+
+        // 1. Try to find the active ServiceArea containing the customer's coordinates
+        const serviceArea = await ServiceArea.findOne({
+            isActive: true,
+            boundary: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [cLng, cLat] // [lng, lat]
+                    }
+                }
+            }
+        });
+
+        if (serviceArea) {
+            logToFile(`📍 Customer coordinates match ServiceArea: ${serviceArea.areaName} (ID: ${serviceArea._id})`);
+        } else {
+            logToFile(`⚠️ Customer coordinates outside active ServiceAreas. Falling back to ${radiusKm}km radius.`);
+        }
+
         const vendors = await User.find({ role: 'Vendor', status: 'approved' });
         const nearbyVendors = [];
 
@@ -72,8 +110,24 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, s
 
             const vLat = Number(vendor.location?.lat || 0);
             const vLng = Number(vendor.location?.lng || 0);
+            let isMatched = false;
             let distance = calculateHaversineDistance(cLat, cLng, vLat, vLng);
-            if (distance <= radiusKm) {
+
+            // Match if vendor is in the same ServiceArea geofence
+            if (serviceArea && serviceArea.boundary?.coordinates?.[0]) {
+                const polygonCoords = serviceArea.boundary.coordinates[0];
+                if (isPointInPolygon(vLat, vLng, polygonCoords)) {
+                    isMatched = true;
+                    logToFile(`Matched Vendor ${vendor.shopDetails?.name || vendor.displayName} in Geofence: ${serviceArea.areaName}`);
+                }
+            }
+
+            // Fallback: If customer is not in any geofence, match by distance
+            if (!isMatched && !serviceArea && distance <= radiusKm) {
+                isMatched = true;
+            }
+
+            if (isMatched) {
                 nearbyVendors.push({
                     id: vendor._id,
                     name: vendor.shopDetails?.name || vendor.displayName,
@@ -135,37 +189,7 @@ const assignVendor = async (customerLat, customerLng) => {
     }
 };
 
-export const getNearbyRiders = async (customerLat, customerLng, radiusKm = 4) => {
-    try {
-        const cLat = Number(customerLat);
-        const cLng = Number(customerLng);
-        
-        const riders = await User.find({ role: 'Rider', status: 'approved' });
-        const nearbyRiders = [];
-
-        logToFile(`--- Matching for ${cLat}, ${cLng} (Found ${riders.length} active riders) ---`);
-
-        for (const rider of riders) {
-            const rLat = Number(rider.location?.lat || 0);
-            const rLng = Number(rider.location?.lng || 0);
-
-            let distance = calculateHaversineDistance(cLat, cLng, rLat, rLng);
-            logToFile(`Rider: ${rider.displayName}, Pos: ${rLat},${rLng}, Dist: ${distance.toFixed(3)}km`);
-            
-            if (distance <= radiusKm) {
-                nearbyRiders.push({
-                    id: rider._id,
-                    distance: distance.toFixed(2),
-                    name: rider.displayName
-                });
-            }
-        }
-        return nearbyRiders;
-    } catch (err) {
-        console.error('Nearby Riders Error:', err);
-        return [];
-    }
-};
+// getNearbyRiders removed (obsolete custom local rider flow)
 
 export const createRazorpayOrder = async (req, res) => {
     try {
@@ -553,56 +577,10 @@ export const updateOrderStatus = async (req, res) => {
                 updateData.deliveryTriggerTime = deliveryTriggerTime;
                 updateData.deliveryStatus = 'scheduled';
 
-                const vLat = order.vendor?.location?.lat || 22.7196; 
-                const vLng = order.vendor?.location?.lng || 75.8577;
-                const nearbyRiders = await getNearbyRiders(vLat, vLng, 4);
-                updateData.nearbyRiders = nearbyRiders;
+                // Local rider allocation, notifications, and broadcasts are bypassed because Shiprocket handles all deliveries.
+                updateData.nearbyRiders = [];
                 updateData.rider = null; 
                 updateData.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
-
-                const io = getIO();
-                
-                if (nearbyRiders.length > 0) {
-                    // Notifications and Broadcast
-                    nearbyRiders.forEach(rider => {
-                        const riderRoom = `user_${rider.id.toString()}`;
-                        const earnings = 20 + (parseFloat(rider.distance) * 5);
-                        
-                        console.log(`[LOGISTICS] Sending delivery broadcast to Room: ${riderRoom}`);
-                        
-                        // Socket broadcast for real-time card
-                        io.to(riderRoom).emit('new_pickup_broadcast', {
-                            orderId: order.orderId,
-                            mongoOrderId: id,
-                            mongoId: id,
-                            customerName: order.customer?.displayName || 'Customer',
-                            pickupAddress: order.vendor?.shopDetails?.address || order.vendor?.address || 'Vendor Shop',
-                            dropAddress: order.customer?.address || order.pickupAddress, 
-                            distance: rider.distance,
-                            earnings: earnings.toFixed(2),
-                            type: 'pickup_available'
-                        });
-                    });
-
-                    // Persistent Notifications
-                    const riderNotifs = nearbyRiders.map(rider => ({
-                        recipient: rider.id,
-                        role: 'rider',
-                        title: 'New Delivery Task',
-                        message: `Pickup: ${order.vendor?.shopDetails?.address || 'Vendor'} | Drop: ${order.customer?.displayName}`,
-                        type: 'pickup_available',
-                        orderId: id,
-                        payload: {
-                            customer: order.customer?.displayName || 'Customer',
-                            from: order.vendor?.shopDetails?.address || order.vendor?.address || 'Vendor Shop',
-                            to: order.customer?.address || order.pickupAddress,
-                            dist: rider.distance,
-                            pay: (20 + (parseFloat(rider.distance) * 5)).toFixed(2),
-                            displayId: order.orderId
-                        }
-                    }));
-                    await Notification.insertMany(riderNotifs);
-                }
             }
         }
 
@@ -677,29 +655,7 @@ export const getAllOrders = async (req, res) => {
     }
 };
 
-// Rider Specific Controllers
-export const getRiderTasks = async (req, res) => {
-    try {
-        const { riderId } = req.params;
-        const rid = new mongoose.Types.ObjectId(riderId);
-
-        const orders = await Order.find({ 
-            $or: [
-                { rider: rid },
-                { 
-                    status: { $in: ['Assigned', 'Ready'] }, 
-                    'nearbyRiders.id': rid 
-                }
-            ]
-        }).populate('customer', 'displayName phone address location').sort({ createdAt: -1 });
-
-        console.log(`getRiderTasks for ${riderId}: found ${orders.length} orders`);
-        res.status(200).json(orders);
-    } catch (err) {
-        console.error('Fetch Tasks Error:', err);
-        res.status(500).json({ message: 'Error fetching rider tasks' });
-    }
-};
+// getRiderTasks removed (obsolete custom local rider flow)
 
 export const getPoolOrders = async (req, res) => {
     try {
@@ -803,8 +759,8 @@ export const vendorAcceptOrder = async (req, res) => {
         await Notification.deleteMany({ orderId: id, type: 'order_available' });
 
 
-        // Update nearby riders in order for dashboard listing (Internal Pool)
-        const nearbyRiders = await getNearbyRiders(updatedOrder.pickupLocation.lat, updatedOrder.pickupLocation.lng, 4);
+        // Update nearby riders in order for dashboard listing (Internal Pool - Decommissioned)
+        const nearbyRiders = [];
         updatedOrder.nearbyRiders = nearbyRiders;
         await updatedOrder.save();
 
@@ -883,102 +839,9 @@ export const vendorAcceptOrder = async (req, res) => {
     }
 };
 
-export const acceptOrder = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { riderId } = req.body;
-        
-        // Ensure order isn't already taken
-        const order = await Order.findById(id);
-        if (order.rider) return res.status(400).json({ message: 'Order already accepted by another rider' });
+// acceptOrder removed (obsolete custom local rider flow)
 
-        // Determine new status: If it was Ready for delivery, it's now Out for Delivery
-        const newStatus = order.status === 'Ready' ? 'Out for Delivery' : 'Assigned';
-
-        const updatedOrder = await Order.findByIdAndUpdate(
-            id, 
-            { rider: riderId, status: newStatus }, 
-            { new: true }
-        )
-        .populate('customer', 'displayName phone address location')
-        .populate('rider', 'displayName phone location')
-        .populate('vendor', 'shopDetails address location');
-
-        // Remove active task notifications for this order so it doesn't show as a broadcast anymore
-        await Notification.deleteMany({ orderId: id, role: 'rider' });
-
-        // Socket.io: Notify Customer room
-        const io = getIO();
-        io.to(`order_${id}`).emit('order_status_update', updatedOrder);
-        io.emit('rider_pool_update', { orderId: id, action: 'removed' });
-
-        // --- REAL FIREBASE PUSH NOTIFICATION ---
-        console.log(`📡 [FCM_DEBUG] acceptOrder hit for order: ${updatedOrder.orderId}`);
-        let customerId = updatedOrder.customer;
-        if (customerId && typeof customerId === 'object') {
-            customerId = customerId._id || customerId.id || customerId;
-        }
-        customerId = customerId?.toString();
-
-        if (customerId) {
-            console.log(`📡 [FCM_DEBUG] Found customerId for Rider Assigned: ${customerId}`);
-            io.to(`user_${customerId}`).emit('push_notification', {
-                title: 'Rider Assigned! 🛵',
-                body: `your rider is assigned`,
-                orderId: updatedOrder.orderId
-            });
-
-            try {
-                const admin = (await import('../utils/firebaseAdmin.js')).default;
-                const customer = await User.findById(customerId);
-                
-                if (customer && customer.fcmToken) {
-                    console.log(`🚀 [FCM_PUSH] Sending Rider Assigned Notification to ${customer.phone}`);
-                    const message = {
-                        notification: {
-                            title: 'Rider Assigned! 🛵',
-                            body: `your rider is assigned`
-                        },
-                        data: {
-                            orderId: updatedOrder.orderId.toString(),
-                            type: 'RIDER_ASSIGNED'
-                        },
-                        token: customer.fcmToken
-                    };
-
-                    await admin.messaging().send(message);
-                    console.log(`🚀 [FCM_PUSH] Rider Assignment Success`);
-                } else {
-                    console.log(`⚠️ [FCM_PUSH] Skipping Rider Assigned - Token missing`);
-                }
-            } catch (pushErr) {
-                console.error('❌ [FCM_PUSH] Rider notification error:', pushErr.message);
-            }
-        }
-
-        res.status(200).json(updatedOrder);
-    } catch (err) {
-        res.status(500).json({ message: 'Error accepting order' });
-    }
-};
-
-export const getRiderStats = async (req, res) => {
-    try {
-        const { riderId } = req.params;
-        const orders = await Order.find({ rider: riderId });
-        
-        const completed = orders.filter(o => o.status === 'Delivered').length;
-        const totalEarnings = orders.reduce((sum, o) => sum + (o.totalAmount * 0.05), 0); // 5% commission
-
-        res.status(200).json({
-            earnings: `₹${totalEarnings.toFixed(2)}`,
-            completed: completed.toString(),
-            rating: '4.9' // Placeholder until review system is in place
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Error fetching rider stats' });
-    }
-};
+// getRiderStats removed (obsolete custom local rider flow)
 
 export const getOrderById = async (req, res) => {
     try {
@@ -1005,46 +868,7 @@ export const getOrderById = async (req, res) => {
     }
 };
 
-export const verifyPickupOtp = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { otp } = req.body;
-
-        const order = await Order.findById(id);
-        if (!order) return res.status(404).json({ message: 'Order not found' });
-
-        if (order.pickupOtp !== otp) {
-            return res.status(400).json({ message: 'Invalid OTP. Please check with customer.' });
-        }
-
-        order.status = 'Picked Up';
-        await order.save();
-        
-        // Remove active task notifications for this order
-        await Notification.deleteMany({ orderId: id, role: 'rider' });
-
-        const populatedOrder = await Order.findById(id)
-            .populate('customer', 'displayName phone address email')
-            .populate('vendor', 'shopDetails address location')
-            .populate('rider', 'displayName phone location');
-
-        const io = getIO();
-        // Notify others to remove this from their screen
-        io.emit('rider_pool_update', { orderId: id, action: 'removed' });
-        io.to(`order_${id}`).emit('order_status_update', populatedOrder);
-
-        // Trigger notification to the customer
-        io.to(`user_${order.customer}`).emit('push_notification', {
-            title: 'Items Picked Up! 👕',
-            body: `Rider ${order.rider?.displayName || 'Partner'} has collected your garments.`,
-            orderId: order.orderId
-        });
-
-        res.status(200).json({ message: 'Pickup verified and completed!', order: populatedOrder });
-    } catch (err) {
-        res.status(500).json({ message: 'Verification error', error: err.message });
-    }
-};
+// verifyPickupOtp removed (obsolete custom local rider flow)
 
 /**
  * PHASE 2: Mark Order as Ready & Generate Reverse Handover OTP
@@ -1202,39 +1026,7 @@ export const verifyHandshake = async (req, res) => {
     }
 };
 
-export const verifyDeliveryOtp = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { otp } = req.body;
-
-        const order = await Order.findById(id);
-        if (!order) return res.status(404).json({ message: 'Order not found' });
-
-        if (order.deliveryOtp !== otp) {
-            return res.status(400).json({ message: 'Invalid OTP. Please check with customer.' });
-        }
-
-        order.status = 'Delivered';
-        await order.save();
-
-        // Cleanup notifications
-        await Notification.deleteMany({ orderId: id, role: 'rider' });
-        
-        const populatedOrder = await Order.findById(id)
-            .populate('customer', 'displayName phone address email')
-            .populate('vendor', 'shopDetails address location')
-            .populate('rider', 'displayName phone location');
-
-        const io = getIO();
-        // Cleanup for all riders
-        io.emit('rider_pool_update', { orderId: id, action: 'removed' });
-        io.to(`order_${id}`).emit('order_status_update', populatedOrder);
-
-        res.status(200).json({ message: 'Delivery completed successfully!', order: populatedOrder });
-    } catch (err) {
-        res.status(500).json({ message: 'Verification error', error: err.message });
-    }
-};
+// verifyDeliveryOtp removed (obsolete custom local rider flow)
 
 export const deleteOrder = async (req, res) => {
     try {

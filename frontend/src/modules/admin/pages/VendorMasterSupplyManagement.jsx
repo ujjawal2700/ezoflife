@@ -63,7 +63,10 @@ const VendorMasterSupplyManagement = () => {
     const fetchSupplies = async (page = 1, activeFilters = filters) => {
         try {
             setLoading(true);
-            const result = await vendorMasterSupplyApi.getPaginated(page, pagination.limit, activeFilters);
+            const result = await vendorMasterSupplyApi.getPaginated(page, pagination.limit, {
+                ...activeFilters,
+                isTemplate: 'n'
+            });
             
             if (result.data && result.pagination) {
                 setSupplies(result.data);
@@ -372,7 +375,7 @@ const VendorMasterSupplyManagement = () => {
 
     const columns = useMemo(() => [
         {
-            header: 'SKU ID',
+            header: 'SKU ID (PK)',
             key: 'skuId',
             render: (val) => (
                 <span className="font-black text-slate-900 tabular-nums bg-slate-100/70 px-2 py-0.5 rounded-sm border border-slate-200 uppercase tracking-widest text-[9px] whitespace-nowrap">
@@ -381,7 +384,7 @@ const VendorMasterSupplyManagement = () => {
             )
         },
         {
-            header: 'Category ID',
+            header: 'Category_Subcat_ID (FK)',
             key: 'categoryId.excelCategoryId',
             render: (val, row) => (
                 <span className="font-bold text-slate-700 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm tabular-nums text-[9px]">
@@ -393,7 +396,7 @@ const VendorMasterSupplyManagement = () => {
             header: 'HSN Code',
             key: 'hsnCode',
             render: (val) => (
-                <span className="text-slate-500 font-bold tabular-nums text-[10px]">{val || '2800'}</span>
+                <span className="text-slate-500 font-bold tabular-nums text-[10px]">{!val || val === '-' ? '—' : val}</span>
             )
         },
         {
@@ -407,7 +410,7 @@ const VendorMasterSupplyManagement = () => {
             header: 'Brand',
             key: 'brand',
             render: (val) => (
-                <span className="text-slate-600 font-black uppercase tracking-wider text-[9px]">{val || 'Generic'}</span>
+                <span className="text-slate-600 font-black uppercase tracking-wider text-[9px]">{!val || val === '-' ? '—' : val}</span>
             )
         },
         {
@@ -418,28 +421,37 @@ const VendorMasterSupplyManagement = () => {
             )
         },
         {
-            header: 'Quantity',
+            header: 'Pack Size / Quality',
             key: 'quantity',
             render: (val) => (
-                <span className="text-slate-500 font-black uppercase tracking-widest text-[9px] whitespace-nowrap">{val}</span>
+                <span className="text-slate-500 font-black uppercase tracking-widest text-[9px] whitespace-nowrap">{!val || val === '-' ? '—' : val}</span>
             )
         },
         {
-            header: 'Wholesale Rate',
+            header: 'Wholesale Rate (₹)',
             key: 'wholesaleRate',
             render: (val) => (
-                <span className="font-bold tabular-nums text-slate-800">₹{val}</span>
+                <span className="font-bold tabular-nums text-slate-800">
+                    {val === 0 || val === '-' || val === undefined || val === null ? '—' : `₹${val}`}
+                </span>
             )
         },
         {
             header: 'Bulk Discount & Threshold',
             key: 'bulkDiscount',
-            render: (val, row) => (
-                <div className="flex flex-col">
-                    <span className="font-bold text-slate-800 tabular-nums text-[10px]">{row.bulkDiscount || 0}% Off</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Min: {row.bulkThreshold || 0} Units</span>
-                </div>
-            )
+            render: (val, row) => {
+                const discount = row.bulkDiscount || 0;
+                const threshold = row.bulkThreshold || 0;
+                if (discount === 0 && threshold === 0) {
+                    return <span className="text-slate-300 font-bold">—</span>;
+                }
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-bold text-slate-800 tabular-nums text-[10px]">{discount}% Off</span>
+                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Min: {threshold} Units</span>
+                    </div>
+                );
+            }
         },
         {
             header: 'Active',
@@ -454,28 +466,30 @@ const VendorMasterSupplyManagement = () => {
             header: 'Delivery Frequency',
             key: 'deliveryFrequency',
             render: (val) => (
-                <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px] whitespace-nowrap">{val || 'Weekly'}</span>
+                <span className="text-slate-400 font-bold uppercase tracking-widest text-[9px] whitespace-nowrap">{!val || val === '-' ? '—' : val}</span>
             )
         },
         {
             header: 'MOV for Free Delivery',
             key: 'movFreeDelivery',
             render: (val) => (
-                <span className="text-slate-500 font-bold tabular-nums text-[10px]">₹{val || 0}</span>
+                <span className="text-slate-500 font-bold tabular-nums text-[10px]">
+                    {val === 0 || val === '-' || val === undefined || val === null ? '—' : `₹${val}`}
+                </span>
             )
         },
         {
-            header: 'Supplier ID',
+            header: 'SUPPLIER ID',
             key: 'supplierId',
             render: (val) => (
-                <span className="font-black text-slate-700 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm text-[9px] whitespace-nowrap">{val || 'SUP-001'}</span>
+                <span className="font-black text-slate-700 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm text-[9px] whitespace-nowrap">{!val || val === '-' ? '—' : val}</span>
             )
         },
         {
-            header: 'Supplier Facility Name',
+            header: 'SUPPLIER FACILITY NAME',
             key: 'supplierFacilityName',
             render: (val) => (
-                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] whitespace-nowrap">{val || 'Main Facility'}</span>
+                <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] whitespace-nowrap">{!val || val === '-' ? '—' : val}</span>
             )
         },
         {
@@ -502,20 +516,7 @@ const VendorMasterSupplyManagement = () => {
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader 
                 title="Master Supplies Table" 
-                actions={[
-                    {
-                        label: "Bulk Upload",
-                        icon: Upload,
-                        onClick: () => { resetBulkModal(); setIsBulkModalOpen(true); },
-                        variant: 'secondary'
-                    },
-                    {
-                        label: "Add Supply Item",
-                        icon: Plus,
-                        onClick: () => handleOpenModal(),
-                        variant: 'primary'
-                    }
-                ]}
+                actions={[]}
             />
 
             <div className="p-6 space-y-6 max-w-[1800px] mx-auto w-full overflow-x-auto">
@@ -649,16 +650,18 @@ const VendorMasterSupplyManagement = () => {
 
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST Percentage (%)</label>
-                                    <input 
+                                    <select
                                         required
-                                        type="number"
-                                        min="0"
-                                        max="100"
                                         value={formData.gst}
                                         onChange={e => setFormData({...formData, gst: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. 18"
-                                    />
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                    >
+                                        <option value="0">0%</option>
+                                        <option value="5">5%</option>
+                                        <option value="12">12%</option>
+                                        <option value="18">18%</option>
+                                        <option value="28">28%</option>
+                                    </select>
                                 </div>
 
                                 <div className="space-y-1.5">

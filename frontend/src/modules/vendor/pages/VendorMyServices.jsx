@@ -129,9 +129,6 @@ const VendorMyServices = () => {
             });
 
             masterRes.forEach(s => {
-                if (s.approvalStatus !== 'Approved') {
-                    return;
-                }
                 const id = s._id || s.id;
                 const pricingInfo = pricingMap[id] || {};
                 const msInfo = masterServicesMap[id] || {};
@@ -147,6 +144,7 @@ const VendorMyServices = () => {
                     _id: id,
                     isFromRegistration: false,
                     approvalStatus: s.approvalStatus || 'Pending',
+                    adminMessage: s.adminMessage || '',
                     active: s.status === 'Active',
                     basePrice: s.basePrice || 0,
                     name: resolvedName,
@@ -177,7 +175,7 @@ const VendorMyServices = () => {
         const target = newServices[idx];
         
         if (target.approvalStatus !== 'Approved') {
-            alert('This service is waiting for Admin approval. You cannot activate it yet.');
+            alert(target.approvalStatus === 'Rejected' ? 'This service was rejected by the Admin.' : 'This service is waiting for Admin approval. You cannot activate it yet.');
             return;
         }
 
@@ -358,13 +356,25 @@ const VendorMyServices = () => {
                                             const heritageExpress = Math.round(basePrice * areaMultiplier * heritageMultiplier * surgeMultiplier);
                                             
                                             const isPending = service.approvalStatus === 'Pending';
+                                            const isRejected = service.approvalStatus === 'Rejected';
 
                                             return (
                                                 <tr key={service.id || service._id} className="hover:bg-slate-50/50 transition-colors">
                                                     <td className="p-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="material-symbols-outlined text-slate-400 text-lg">{service.icon}</span>
-                                                            <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{service.name}</span>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="material-symbols-outlined text-slate-400 text-lg">{service.icon}</span>
+                                                                <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{service.name}</span>
+                                                            </div>
+                                                            {service.adminMessage && (
+                                                                <div className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-sm w-fit mt-1 border ${
+                                                                    isRejected 
+                                                                        ? 'bg-rose-50 text-rose-500 border-rose-100' 
+                                                                        : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                }`}>
+                                                                    Msg: {service.adminMessage}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
@@ -389,6 +399,8 @@ const VendorMyServices = () => {
                                                         <div className="flex items-center justify-center gap-2">
                                                             {isPending ? (
                                                                 <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded uppercase tracking-wider">Awaiting Approval</span>
+                                                            ) : isRejected ? (
+                                                                <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded uppercase tracking-wider border border-rose-100">Rejected</span>
                                                             ) : (
                                                                 <div 
                                                                     onClick={() => toggleService(idx)}

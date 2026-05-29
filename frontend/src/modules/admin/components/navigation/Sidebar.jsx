@@ -87,7 +87,9 @@ const navItems = [
                 path: '/admin/vendor-supply-pricing/categories',
                 subItems: [
                     { label: 'Category Management', path: '/admin/vendor-supply-pricing/categories' },
-                    { label: 'Master Supplies Table', path: '/admin/vendor-supply-pricing/supplies' }
+                    { label: 'Product Table', path: '/admin/vendor-supply-pricing/products' },
+                    { label: 'Master Supplies Table', path: '/admin/vendor-supply-pricing/supplies' },
+                    { label: 'Supplier Service Zone', path: '/admin/vendor-supply-pricing/zones' }
                 ]
             },
 

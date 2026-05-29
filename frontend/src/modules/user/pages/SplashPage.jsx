@@ -37,9 +37,9 @@ const SplashPage = () => {
           case 'vendor':
             navigate('/vendor/dashboard', { replace: true });
             break;
-          case 'rider':
-            navigate('/rider/dashboard', { replace: true });
-            break;
+          // case 'rider':
+          //   navigate('/rider/dashboard', { replace: true });
+          //   break;
           case 'customer':
           case 'user':
             navigate('/user/home', { replace: true });

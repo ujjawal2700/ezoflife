@@ -4,7 +4,7 @@ import UserRoutes from './modules/user/routes/userRoutes'
 import VendorRoutes from './modules/vendor/routes/VendorRoutes'
 import SupplierRoutes from './modules/supplier/routes/SupplierRoutes'
 import AdminRoutes from './modules/admin/routes/AdminRoutes'
-import RiderRoutes from './modules/rider/routes/RiderRoutes'
+// import RiderRoutes from './modules/rider/routes/RiderRoutes'
 import ScrollToTop from './shared/components/ScrollToTop'
 import GlobalToast from './shared/components/GlobalToast'
 import LocationPrompt from './shared/components/LocationPrompt'
@@ -56,9 +56,6 @@ function App() {
 
         {/* Supplier Module Routes */}
         <Route path="/supplier/*" element={<SupplierRoutes />} />
-
-        {/* Rider Module Routes (NEW) */}
-        <Route path="/rider/*" element={<RiderRoutes />} />
 
         {/* Admin Module Routes */}
         <Route path="/admin/*" element={<AdminRoutes />} />

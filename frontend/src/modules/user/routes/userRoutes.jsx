@@ -38,7 +38,7 @@ import SupportTicketsPage from '../pages/SupportTicketsPage';
 import FeedbackForm from '../pages/FeedbackForm';
 import RegisterAsSupplierPage from '../pages/RegisterAsSupplierPage';
 import SupplierProductSelectionPage from '../pages/SupplierProductSelectionPage';
-import RiderSimulation from '../pages/RiderSimulation';
+// import RiderSimulation from '../pages/RiderSimulation';
 
 
 import UserLayout from '../layouts/UserLayout';
@@ -92,7 +92,7 @@ const UserRoutes = () => {
         <Route path="/feedback" element={<FeedbackForm />} />
         <Route path="/upload-photos" element={<ServiceImageUploadPage />} />
         <Route path="/referral" element={<ReferralPage />} />
-        <Route path="/rider/simulate/:id" element={<RiderSimulation />} />
+        {/* <Route path="/rider/simulate/:id" element={<RiderSimulation />} /> */}
       </Route>
 
       {/* Fallback to landing */}

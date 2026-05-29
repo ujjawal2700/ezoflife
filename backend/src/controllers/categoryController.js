@@ -45,7 +45,7 @@ export const categoryController = {
 
                 const total = await Category.countDocuments(query);
                 const categories = await Category.find(query)
-                    .sort({ createdAt: -1 })
+                    .sort({ excelCategoryId: 1 })
                     .skip(skip)
                     .limit(limitNumber);
 
@@ -60,7 +60,7 @@ export const categoryController = {
                 });
             }
 
-            const categories = await Category.find(query).sort({ createdAt: -1 });
+            const categories = await Category.find(query).sort({ excelCategoryId: 1 });
             res.json(categories);
         } catch (error) {
             res.status(500).json({ message: error.message });

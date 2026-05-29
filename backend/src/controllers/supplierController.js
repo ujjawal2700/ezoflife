@@ -201,7 +201,9 @@ export const initialApproveApplication = async (req, res) => {
 
 export const selectProducts = async (req, res) => {
     try {
-        const { applicationId, products } = req.body; // products: [{productName, category, capacity}]
+        const { applicationId } = req.body;
+        const products = req.body.products || req.body.selectedProducts;
+        
         const application = await SupplierApplication.findById(applicationId);
         
         if (!application) return res.status(404).json({ message: 'Application not found' });
@@ -209,7 +211,7 @@ export const selectProducts = async (req, res) => {
             return res.status(400).json({ message: 'Product selection is not allowed at this stage' });
         }
 
-        application.selectedProducts = products;
+        application.selectedProducts = products || [];
         application.onboardingStage = 'Final_Approval_Pending';
         await application.save();
 
@@ -236,15 +238,121 @@ export const finalApproveApplication = async (req, res) => {
         application.reviewedAt = new Date();
         await application.save();
 
+        const userObj = await User.findById(application.user);
+        const userPhone = userObj?.phone || '';
+        const supplierId = `SUP-${userPhone ? userPhone.slice(-4) : '001'}`;
+
         // Officially promote user to Supplier
         await User.findByIdAndUpdate(application.user, { 
             role: 'Supplier',
+            status: 'approved',
+            isProfileComplete: true,
             supplierDetails: {
                 businessName: application.registeredBusinessName,
                 address: application.warehouseAddress,
-                gst: application.gstNumber
+                gst: application.gstNumber,
+                city: application.city || '',
+                pincode: application.pincode || ''
             }
         });
+
+        // Automatically create SupplierServiceZone record if zone and pincode exist
+        if (application.zone && application.pincode) {
+            const SupplierServiceZone = (await import('../models/SupplierServiceZone.js')).default;
+            const lastZone = await SupplierServiceZone.findOne({ zoneId: { $regex: /^SPZ-ZONE-/ } }).sort({ zoneId: -1 });
+            let nextNum = 1;
+            if (lastZone && lastZone.zoneId) {
+                const match = lastZone.zoneId.match(/^SPZ-ZONE-(\d+)$/);
+                if (match) {
+                    nextNum = parseInt(match[1], 10) + 1;
+                }
+            }
+            const zoneId = `SPZ-ZONE-${String(nextNum).padStart(3, '0')}`;
+
+            const newZone = new SupplierServiceZone({
+                zoneId,
+                zoneName: application.zone,
+                supplierId: supplierId,
+                pincodes: [application.pincode],
+                deliveryCharges: 0,
+                minOrderValue: 0,
+                isActive: true
+            });
+            await newZone.save();
+        }
+
+        // Clone the selected products into VendorMasterSupply with this supplierId & supplierFacilityName
+        if (application.selectedProducts && application.selectedProducts.length > 0) {
+            const VendorMasterSupply = (await import('../models/VendorMasterSupply.js')).default;
+            const VendorSupplyCategory = (await import('../models/VendorSupplyCategory.js')).default;
+            
+            for (const selectedItem of application.selectedProducts) {
+                // Ensure we don't duplicate clone for the same supplier
+                const exists = await VendorMasterSupply.findOne({
+                    materialName: selectedItem.productName,
+                    supplierId: supplierId
+                });
+                
+                if (!exists) {
+                    // Find template supply item
+                    const templateItem = await VendorMasterSupply.findOne({
+                        materialName: selectedItem.productName,
+                        supplierId: '-'
+                    });
+                    
+                    if (templateItem) {
+                        const lastSupply = await VendorMasterSupply.findOne().sort({ serialNumber: -1 });
+                        const nextSerial = (lastSupply?.serialNumber || 0) + 1;
+                        
+                        const categoryDoc = await VendorSupplyCategory.findById(templateItem.categoryId);
+                        
+                        // Generate SKU ID
+                        const prefix1 = "spz";
+                        const prefix2 = "sup";
+                        let catPart = "cat";
+                        if (categoryDoc && categoryDoc.mainCategory) {
+                            catPart = categoryDoc.mainCategory.trim().replace(/[^a-zA-Z\s]/g, '').slice(0, 3).toLowerCase();
+                            if (!catPart) catPart = "cat";
+                        }
+                        let subPart = "sub";
+                        if (categoryDoc && categoryDoc.subCategory) {
+                            const words = categoryDoc.subCategory.trim().replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(Boolean);
+                            if (words.length >= 2) {
+                                subPart = (words[0][0] + words[1][0]).toLowerCase();
+                            } else if (words.length === 1) {
+                                subPart = words[0].slice(0, 2).toLowerCase();
+                            }
+                            if (!subPart) subPart = "sub";
+                        }
+                        const serialStr = String(nextSerial).padStart(3, '0');
+                        const newSkuId = `${prefix1}-${prefix2}-${catPart}-${subPart}-${serialStr}`.toUpperCase();
+
+                        const newSupply = new VendorMasterSupply({
+                            skuId: newSkuId,
+                            categoryId: templateItem.categoryId,
+                            hsnCode: templateItem.hsnCode || '-',
+                            gst: templateItem.gst || 18,
+                            brand: templateItem.brand || 'Generic',
+                            materialName: templateItem.materialName,
+                            quantity: templateItem.quantity || '-',
+                            wholesaleRate: selectedItem.wholesaleRate || 0,
+                            bulkDiscount: selectedItem.bulkDiscount || 0,
+                            bulkThreshold: selectedItem.bulkThreshold || 0,
+                            isActive: 'y',
+                            deliveryFrequency: (application.deliveryFrequency && application.deliveryFrequency.length > 0)
+                                ? application.deliveryFrequency.join(', ')
+                                : '-',
+                            movFreeDelivery: selectedItem.movFreeDelivery || 0,
+                            supplierId: supplierId,
+                            supplierFacilityName: application.registeredBusinessName,
+                            serialNumber: nextSerial
+                        });
+                        
+                        await newSupply.save();
+                    }
+                }
+            }
+        }
 
         res.status(200).json({ 
             message: 'Supplier onboarded officially!',

@@ -47,19 +47,46 @@ export const getAllServices = async (req, res) => {
         const essentialFee = Number(config.find(c => c.key === 'essential_fee')?.value || 20);
         const heritageFee = Number(config.find(c => c.key === 'heritage_fee')?.value || 150);
 
-        // Attach Calculated Pricing Breakdown
-        const enrichedServices = services.map(service => {
+        // Fetch category & master services schemas for verification
+        const Category = (await import('../models/Category.js')).default;
+        const MasterService = (await import('../models/MasterService.js')).default;
+
+        // Attach Calculated Pricing Breakdown & Master Service Verification
+        const enrichedServices = await Promise.all(services.map(async (service) => {
             const feePercent = service.tier === 'Heritage' ? heritageFee : essentialFee;
             const feeAmount = (service.basePrice * feePercent) / 100;
             const totalPrice = service.basePrice + feeAmount;
+
+            let hasMasterService = false;
+            let masterServiceDetails = null;
+
+            if (!service.isMaster && service.approvalStatus === 'Pending') {
+                const cat = await Category.findOne({
+                    mainCategory: { $regex: new RegExp(`^${service.category.trim()}$`, 'i') },
+                    subCategory: { $regex: new RegExp(`^${service.subCategory.trim()}$`, 'i') }
+                });
+
+                if (cat) {
+                    const masterSvc = await MasterService.findOne({
+                        itemName: { $regex: new RegExp(`^${service.name.trim()}$`, 'i') },
+                        categoryId: cat._id
+                    });
+                    if (masterSvc) {
+                        hasMasterService = true;
+                        masterServiceDetails = masterSvc;
+                    }
+                }
+            }
 
             return {
                 ...service,
                 feePercent,
                 feeAmount,
-                totalPrice
+                totalPrice,
+                hasMasterService,
+                masterServiceDetails
             };
-        });
+        }));
 
         res.status(200).json(enrichedServices);
     } catch (err) {
@@ -139,8 +166,9 @@ export const updateService = async (req, res) => {
                     const svcIndex = vendorUser.shopDetails.services.findIndex(s => s.id === id);
                     if (svcIndex !== -1) {
                         vendorUser.shopDetails.services[svcIndex].status = mappedStatus;
+                        vendorUser.shopDetails.services[svcIndex].adminMessage = req.body.adminMessage || '';
                         if (mappedStatus === 'approved') {
-                            vendorUser.shopDetails.services[svcIndex].active = true;
+                            vendorUser.shopDetails.services[svcIndex].active = false; // bydefault inactive
                         }
                         vendorUser.markModified('shopDetails.services');
                         await vendorUser.save();

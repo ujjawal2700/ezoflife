@@ -40,40 +40,90 @@ export const placeB2BOrder = async (req, res) => {
 
         console.log(`📦 [B2B_AGGREGATION] Order Attempt -> Vendor: ${vendor.displayName} | Pincode: ${pincode} | City: ${city}`);
 
-        // 3. Check for existing "Open" order for this vendor in this cycle
-        let order = await B2BOrder.findOne({
-            vendor: vendorId,
-            cycleId: cycleId,
-            status: 'Open'
+        // 3. Fetch VendorMasterSupply to determine supplierId for each cart item
+        const VendorMasterSupply = (await import('../models/VendorMasterSupply.js')).default;
+        const materialIds = items.map(i => i.materialId);
+        const supplyProducts = await VendorMasterSupply.find({ _id: { $in: materialIds } });
+        
+        const productMap = {};
+        supplyProducts.forEach(p => {
+            productMap[p._id.toString()] = p;
         });
 
-        if (order) {
-            console.log(`🔄 [B2B_AGGREGATION] Found existing open order ${order.b2bOrderId}. Aggregating items.`);
-            
-            // Aggregate items
-            items.forEach(newItem => {
-                const existingItem = order.items.find(i => i.materialId?.toString() === newItem.materialId?.toString());
-                if (existingItem) {
-                    existingItem.quantity += newItem.quantity;
-                } else {
-                    order.items.push(newItem);
+        // Group items by supplierId
+        const groups = {};
+        items.forEach(item => {
+            const product = productMap[item.materialId?.toString()];
+            const sId = product?.supplierId || '-';
+            if (!groups[sId]) groups[sId] = [];
+            groups[sId].push(item);
+        });
+
+        const createdOrders = [];
+
+        // For each supplier group, create or aggregate separate orders
+        for (const [sId, groupItems] of Object.entries(groups)) {
+            // Find supplier user ObjectId by phone suffix matching
+            let supplierObjectId = null;
+            if (sId !== '-') {
+                const suffix = sId.split('-')[1];
+                if (suffix) {
+                    const supplierUser = await User.findOne({
+                        role: 'Supplier',
+                        phone: { $regex: new RegExp(suffix + '$') }
+                    });
+                    if (supplierUser) {
+                        supplierObjectId = supplierUser._id;
+                    }
                 }
+            }
+
+            const groupTotal = groupItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+            // Check if there is an existing open order for this vendor + supplier in this cycle
+            let order = await B2BOrder.findOne({
+                vendor: vendorId,
+                supplier: supplierObjectId,
+                cycleId: cycleId,
+                status: 'Open'
             });
 
-            order.totalAmount += Number(totalAmount);
-            order.shippingAddress = shippingAddress; // Use latest address
-            await order.save();
-
-            return res.status(200).json({ 
-                message: 'Items aggregated into your existing delivery cycle!',
-                order 
-            });
+            if (order) {
+                console.log(`🔄 [B2B_AGGREGATION] Aggregating items for supplier ${sId} into existing order ${order.b2bOrderId}`);
+                groupItems.forEach(newItem => {
+                    const existingItem = order.items.find(i => i.materialId?.toString() === newItem.materialId?.toString());
+                    if (existingItem) {
+                        existingItem.quantity += newItem.quantity;
+                    } else {
+                        order.items.push(newItem);
+                    }
+                });
+                order.totalAmount += Number(groupTotal);
+                order.shippingAddress = shippingAddress;
+                await order.save();
+            } else {
+                console.log(`✨ [B2B_AGGREGATION] Creating new order for supplier ${sId}`);
+                order = new B2BOrder({
+                    vendor: vendorId,
+                    supplier: supplierObjectId, // PRE-ASSIGNED!
+                    items: groupItems,
+                    totalAmount: groupTotal,
+                    shippingAddress,
+                    pincode,
+                    city: city?.trim(),
+                    status: 'Open',
+                    cycleId,
+                    deliveryDay: deliveryDayName,
+                    deliveryDate,
+                    paymentStatus: 'Pending',
+                    escrowStatus: 'Held'
+                });
+                await order.save();
+            }
+            createdOrders.push(order);
         }
 
-        // 4. No existing order, create new one
-        console.log('✨ [B2B_AGGREGATION] No open order found. Creating new one.');
-
-        // Build supplier match query
+        // 4. Send Push Notification to regional Suppliers
         const supplierMatch = [];
         if (pincode) {
             supplierMatch.push({ 'supplierDetails.pincode': pincode });
@@ -84,44 +134,6 @@ export const placeB2BOrder = async (req, res) => {
             supplierMatch.push({ city: new RegExp(city, 'i') });
         }
 
-        // Check for suppliers in region
-        let supplierCount = 0;
-        if (supplierMatch.length > 0) {
-            supplierCount = await User.countDocuments({
-                role: 'Supplier',
-                status: 'approved',
-                $or: supplierMatch
-            });
-        }
-
-        console.log(`🔍 [B2B_MATCH] Regional Supplier Count: ${supplierCount}`);
-
-        // For testing/debugging, we allow creating order even if count is 0, 
-        // but we notify in logs. (Or we can keep it strict if you prefer)
-        if (supplierCount === 0 && process.env.NODE_ENV === 'production') {
-            return res.status(404).json({ 
-                message: `No approved suppliers found in your region (${city || pincode || 'Location Unknown'}).` 
-            });
-        }
-
-        order = new B2BOrder({
-            vendor: vendorId,
-            items,
-            shippingAddress,
-            totalAmount,
-            pincode: pincode,
-            city: city?.trim(),
-            status: 'Open',
-            cycleId,
-            deliveryDay: deliveryDayName,
-            deliveryDate,
-            paymentStatus: 'Pending',
-            escrowStatus: 'Held'
-        });
-
-        await order.save();
-
-        // 5. Send Push Notification to regional Suppliers
         try {
             const regionalSuppliers = await User.find({
                 role: 'Supplier',
@@ -130,16 +142,17 @@ export const placeB2BOrder = async (req, res) => {
                 fcmToken: { $exists: true, $ne: '' }
             });
 
-            if (regionalSuppliers.length > 0) {
+            if (regionalSuppliers.length > 0 && createdOrders.length > 0) {
                 const tokens = regionalSuppliers.map(s => s.fcmToken);
+                const firstOrder = createdOrders[0];
                 const notificationMessage = {
                     notification: {
                         title: 'New B2B Order Request',
-                        body: `A new order request #${order.b2bOrderId} is available in your region. Accept it now!`
+                        body: `New B2B order requests are available in your region. Accept them now!`
                     },
                     data: {
                         type: 'NEW_B2B_ORDER',
-                        orderId: order._id.toString()
+                        orderId: firstOrder._id.toString()
                     },
                     tokens: tokens
                 };
@@ -152,8 +165,10 @@ export const placeB2BOrder = async (req, res) => {
         }
         
         res.status(201).json({ 
-            message: 'Order created for the upcoming delivery cycle!',
-            order
+            message: createdOrders.length > 1 
+                ? 'Your order was split by supplier and placed successfully!' 
+                : 'Order created for the upcoming delivery cycle!',
+            orders: createdOrders
         });
 
     } catch (err) {

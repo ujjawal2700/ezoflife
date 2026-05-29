@@ -20,5 +20,6 @@ router.get('/pincode-mappings', verifyAdmin, getPincodeMappings);
 
 // Public/Customer Routes
 router.get('/check-availability', checkLocationAvailability);
+router.get('/public/areas', getAllServiceAreas);
 
 export default router;

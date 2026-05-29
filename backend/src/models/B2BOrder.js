@@ -13,7 +13,7 @@ const b2bOrderSchema = new mongoose.Schema({
     },
     items: [
         {
-            materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'Material' },
+            materialId: { type: mongoose.Schema.Types.ObjectId, ref: 'VendorMasterSupply' },
             name: { type: String, required: true },
             quantity: { type: Number, required: true },
             price: { type: Number, required: true }

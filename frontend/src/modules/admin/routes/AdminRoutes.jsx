@@ -44,6 +44,8 @@ import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
 import VendorSupplyCategoryManagement from '../pages/VendorSupplyCategoryManagement';
 import VendorMasterSupplyManagement from '../pages/VendorMasterSupplyManagement';
+import VendorProductTableManagement from '../pages/VendorProductTableManagement';
+import SupplierServiceZoneManagement from '../pages/SupplierServiceZoneManagement';
 
 
 import ServiceGeofenceTable from '../pages/ServiceGeofenceTable';
@@ -151,6 +153,8 @@ const AdminRoutes = () => {
         <Route path="/categories" element={<CategoryManagement />} />
         <Route path="/vendor-supply-pricing/categories" element={<VendorSupplyCategoryManagement />} />
         <Route path="/vendor-supply-pricing/supplies" element={<VendorMasterSupplyManagement />} />
+        <Route path="/vendor-supply-pricing/products" element={<VendorProductTableManagement />} />
+        <Route path="/vendor-supply-pricing/zones" element={<SupplierServiceZoneManagement />} />
 
 
         <Route path="/vendor-ranking" element={<VendorRankingEngine />} />

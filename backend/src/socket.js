@@ -24,13 +24,6 @@ export const initSocket = (server) => {
             } catch (e) {}
         });
 
-        socket.on('rider_location', (data) => {
-            const { orderId, lat, lng } = data;
-            console.log(`📍 Rider location update for order_${orderId}: ${lat}, ${lng}`);
-            // Broadcast to the specific order room
-            io.to(`order_${orderId}`).emit('rider_location_update', { lat, lng });
-        });
-
         socket.on('disconnect', () => {
             console.log(`🚪 Client disconnected: ${socket.id}`);
         });

@@ -38,6 +38,7 @@ import logisticsRoutes from './src/routes/logisticsRoutes.js';
 import categoryRoutes from './src/routes/categoryRoutes.js';
 import vendorSupplyCategoryRoutes from './src/routes/vendorSupplyCategoryRoutes.js';
 import vendorMasterSupplyRoutes from './src/routes/vendorMasterSupplyRoutes.js';
+import supplierServiceZoneRoutes from './src/routes/supplierServiceZoneRoutes.js';
 
 import legalRoutes from './src/routes/legalRoutes.js';
 import supplierRoutes from './src/routes/supplierRoutes.js';
@@ -145,6 +146,7 @@ app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/vendor-supply-categories', vendorSupplyCategoryRoutes);
 app.use('/api/vendor-master-supplies', vendorMasterSupplyRoutes);
+app.use('/api/supplier-service-zones', supplierServiceZoneRoutes);
 
 
 
@@ -169,6 +171,7 @@ mongoose.connect(MONGODB_URI)
         try {
             const User = (await import('./src/models/User.js')).default;
             const testUsers = [
+                { phone: '6565656565', role: 'Customer', status: 'approved', displayName: 'Customer 65' },
                 { phone: '9926723112', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test 2' },
                 { phone: '9826723221', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test' },
                 { phone: '+919826723221', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test Prefix' },
@@ -491,4 +494,4 @@ server.listen(PORT, () => {
     logToFile(msg);
 });
 
-// trigger restart 2
+// trigger restart 6

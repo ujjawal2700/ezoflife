@@ -47,6 +47,10 @@ const serviceSchema = new mongoose.Schema({
         enum: ['Pending', 'Approved', 'Rejected'],
         default: 'Approved' // Master services are approved by default
     },
+    adminMessage: {
+        type: String,
+        default: ''
+    },
     image: {
         type: String,
         default: ''

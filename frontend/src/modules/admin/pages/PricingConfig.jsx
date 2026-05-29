@@ -197,29 +197,7 @@ export default function PricingConfig() {
                 </div>
             </div>
 
-            {/* B2B Delivery Cycle Day Card */}
-            <div className="bg-white rounded-sm border border-slate-200 overflow-hidden shadow-sm transition-all duration-500">
-                <div className="p-6 bg-indigo-50/30 border-b border-indigo-100 flex items-center gap-4">
-                    <div className="w-10 h-10 bg-indigo-600 text-white flex items-center justify-center rounded-sm">
-                        <Clock size={18} />
-                    </div>
-                    <div>
-                        <h3 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">B2B Delivery Cycle</h3>
-                        <p className="text-[9px] font-bold text-indigo-600/60 uppercase tracking-widest mt-1">Weekly Schedule</p>
-                    </div>
-                </div>
-                <div className="p-8 space-y-6">
-                    <select 
-                        value={deliveryDay}
-                        onChange={(e) => setDeliveryDay(e.target.value)}
-                        className="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-sm text-sm font-bold text-slate-900 focus:bg-white focus:border-slate-900 outline-none transition-all appearance-none cursor-pointer"
-                    >
-                        {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
-                            <option key={day} value={day}>{day}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+
 
         </div>
 

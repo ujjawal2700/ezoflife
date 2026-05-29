@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { vendorSupplyCategoryApi } from '../../../lib/api';
+import { supplierServiceZoneApi, adminApi } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -9,27 +9,29 @@ import {
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 
-const VendorSupplyCategoryManagement = () => {
-    const [categories, setCategories] = useState([]);
+const SupplierServiceZoneManagement = () => {
+    const [zones, setZones] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState(null);
+    const [editingZone, setEditingZone] = useState(null);
     const [formData, setFormData] = useState({
-        excelCategoryId: '',
-        mainCategory: '',
-        subCategory: '',
+        zoneName: '',
+        supplierId: 'SUP-001',
+        pincodes: '',
+        deliveryCharges: '0',
+        minOrderValue: '0',
         isActive: true
     });
 
+    const [supplierMap, setSupplierMap] = useState({});
+
     const [filters, setFilters] = useState({
-        mainCategory: '',
-        subCategory: '',
+        zoneName: '',
         isActive: ''
     });
 
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
-    const [allCategoriesList, setAllCategoriesList] = useState([]);
 
     // Bulk upload state
     const [bulkFile, setBulkFile] = useState(null);
@@ -39,40 +41,19 @@ const VendorSupplyCategoryManagement = () => {
     const [bulkError, setBulkError] = useState('');
     const fileInputRef = useRef(null);
 
-    const fetchAllCategoriesList = async () => {
-        try {
-            const list = await vendorSupplyCategoryApi.getAll();
-            setAllCategoriesList(Array.isArray(list) ? list : []);
-        } catch (err) {
-            console.error('Failed to load full supply category list', err);
-        }
-    };
-
-    const uniqueMainCategories = useMemo(() => {
-        return Array.from(new Set(allCategoriesList.map(c => c.mainCategory))).filter(Boolean).sort();
-    }, [allCategoriesList]);
-
-    const uniqueSubCategories = useMemo(() => {
-        const filtered = filters.mainCategory 
-            ? allCategoriesList.filter(c => c.mainCategory === filters.mainCategory)
-            : allCategoriesList;
-        return Array.from(new Set(filtered.map(c => c.subCategory))).filter(Boolean).sort();
-    }, [allCategoriesList, filters.mainCategory]);
-
-    const fetchCategories = async (page = 1, activeFilters = filters) => {
+    const fetchZones = async (page = 1, activeFilters = filters) => {
         try {
             setLoading(true);
-            const result = await vendorSupplyCategoryApi.getPaginated(page, pagination.limit, activeFilters);
+            const result = await supplierServiceZoneApi.getPaginated(page, pagination.limit, activeFilters);
             
             if (result.data && result.pagination) {
-                setCategories(result.data);
+                setZones(result.data);
                 setPagination(result.pagination);
             } else {
-                setCategories(Array.isArray(result) ? result : []);
+                setZones(Array.isArray(result) ? result : []);
             }
-            fetchAllCategoriesList();
         } catch (error) {
-            toast.error('Failed to fetch supply categories');
+            toast.error('Failed to fetch supplier service zones');
         } finally {
             setLoading(false);
         }
@@ -81,20 +62,23 @@ const VendorSupplyCategoryManagement = () => {
     const handleFilterChange = (key, value) => {
         const updatedFilters = { ...filters, [key]: value };
         setFilters(updatedFilters);
-        fetchCategories(1, updatedFilters);
+        fetchZones(1, updatedFilters);
     };
 
     const handleDownload = () => {
-        if (!categories || categories.length === 0) {
-            toast.error('No supply categories available to download');
+        if (!zones || zones.length === 0) {
+            toast.error('No service zones available to download');
             return;
         }
-        const headers = ['Category ID', 'Category Name', 'Sub Category Name', 'Status'];
-        const rows = categories.map(cat => [
-            cat.excelCategoryId || '—',
-            cat.mainCategory || '',
-            cat.subCategory || '',
-            cat.isActive ? 'Active' : 'Inactive'
+        const headers = ['Zone ID', 'Zone Name', 'Supplier ID', 'Pincodes', 'Delivery Charges (INR)', 'Min Order Value (INR)', 'Status'];
+        const rows = zones.map(z => [
+            z.zoneId || '—',
+            z.zoneName || '',
+            z.supplierId || 'SUP-001',
+            Array.isArray(z.pincodes) ? z.pincodes.join('; ') : '',
+            z.deliveryCharges || 0,
+            z.minOrderValue || 0,
+            z.isActive ? 'Active' : 'Inactive'
         ]);
 
         const csvRows = [
@@ -106,7 +90,7 @@ const VendorSupplyCategoryManagement = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `Vendor_Supply_Category_Registry_${new Date().toISOString().split('T')[0]}.csv`);
+        link.setAttribute("download", `Supplier_Service_Zones_${new Date().toISOString().split('T')[0]}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -115,16 +99,16 @@ const VendorSupplyCategoryManagement = () => {
 
     // Download a sample template the user can fill and re-upload
     const handleDownloadTemplate = () => {
-        const headers = ['mainCategory', 'subCategory', 'isActive'];
+        const headers = ['zoneName', 'supplierId', 'pincodes', 'deliveryCharges', 'minOrderValue', 'isActive'];
         const sample = [
-            ['Supplier Category A', 'Item Type X', 'TRUE'],
-            ['Supplier Category B', 'Item Type Y', 'TRUE'],
-            ['Supplier Category C', 'Item Type Z', 'TRUE']
+            ['North Zone', 'SUP-001', '452001,452010', '50', '300', 'TRUE'],
+            ['South Zone', 'SUP-002', '452005,452015', '40', '250', 'TRUE'],
+            ['West Zone', 'SUP-001', '452020', '0', '500', 'FALSE']
         ];
         const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'SupplyCategories');
-        XLSX.writeFile(wb, 'Vendor_Supply_Category_Bulk_Upload_Template.xlsx');
+        XLSX.utils.book_append_sheet(wb, ws, 'ServiceZones');
+        XLSX.writeFile(wb, 'Supplier_Service_Zones_Bulk_Upload_Template.xlsx');
         toast.success('Template downloaded!');
     };
 
@@ -151,35 +135,35 @@ const VendorSupplyCategoryManagement = () => {
                     return;
                 }
 
-                // Normalise column names to camelCase-friendly versions
+                // Normalise column names
                 const normalised = jsonData.map((row, idx) => {
-                    const mainCat =
-                        row['mainCategory'] || row['Main Category'] || row['category'] ||
-                        row['Category'] || row['main_category'] || '';
-                    const subCat =
-                        row['subCategory'] || row['Sub Category'] || row['subcategory'] ||
-                        row['SubCategory'] || row['sub_category'] || '';
-                    const activeRaw =
-                        row['isActive'] ?? row['Is Active'] ?? row['status'] ?? row['Status'] ?? 'TRUE';
-                    const isActive =
-                        typeof activeRaw === 'boolean'
-                            ? activeRaw
-                            : String(activeRaw).toLowerCase() !== 'false' &&
-                              String(activeRaw).toLowerCase() !== '0' &&
-                              String(activeRaw).toLowerCase() !== 'inactive';
+                    const zoneName = row['zoneName'] || row['Zone Name'] || row['zone'] || row['Zone'] || '';
+                    const supplierId = row['supplierId'] || row['Supplier ID'] || row['supplier'] || 'SUP-001';
+                    const pincodesRaw = row['pincodes'] || row['Pincodes'] || row['pincode'] || '';
+                    const deliveryCharges = row['deliveryCharges'] || row['Delivery Charges'] || 0;
+                    const minOrderValue = row['minOrderValue'] || row['Min Order Value'] || 0;
+                    const activeRaw = row['isActive'] ?? row['Is Active'] ?? row['status'] ?? row['Status'] ?? 'TRUE';
+                    const isActive = typeof activeRaw === 'boolean'
+                        ? activeRaw
+                        : String(activeRaw).toLowerCase() !== 'false' &&
+                          String(activeRaw).toLowerCase() !== '0' &&
+                          String(activeRaw).toLowerCase() !== 'inactive';
 
                     return {
                         _rowIndex: idx + 2, // 1-indexed row for error messages
-                        mainCategory: String(mainCat).trim(),
-                        subCategory: String(subCat).trim(),
+                        zoneName: String(zoneName).trim(),
+                        supplierId: String(supplierId).trim(),
+                        pincodes: String(pincodesRaw).split(',').map(p => p.trim()).filter(Boolean),
+                        deliveryCharges: Number(deliveryCharges) || 0,
+                        minOrderValue: Number(minOrderValue) || 0,
                         isActive,
-                        _valid: !!String(mainCat).trim() && !!String(subCat).trim()
+                        _valid: !!String(zoneName).trim() && String(pincodesRaw).trim().length > 0
                     };
                 });
 
                 const invalid = normalised.filter(r => !r._valid).length;
                 if (invalid > 0) {
-                    setBulkError(`${invalid} row(s) are missing mainCategory or subCategory and will be skipped.`);
+                    setBulkError(`${invalid} row(s) are missing zoneName or pincodes and will be skipped.`);
                 }
                 setBulkPreview(normalised);
             } catch (err) {
@@ -200,10 +184,10 @@ const VendorSupplyCategoryManagement = () => {
         setBulkUploading(true);
         setBulkResult(null);
         try {
-            const result = await vendorSupplyCategoryApi.bulkUpload(validRows);
+            const result = await supplierServiceZoneApi.bulkUpload(validRows);
             setBulkResult(result);
             toast.success(`Upload done! Created: ${result.results?.created ?? '?'}, Skipped: ${result.results?.skipped ?? '?'}`);
-            fetchCategories(1);
+            fetchZones(1);
         } catch (err) {
             toast.error(err.message || 'Bulk upload failed');
         } finally {
@@ -219,25 +203,47 @@ const VendorSupplyCategoryManagement = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const fetchSuppliers = async () => {
+        try {
+            const suppliersList = await adminApi.getAllSuppliers();
+            const map = {};
+            if (Array.isArray(suppliersList)) {
+                suppliersList.forEach(s => {
+                    const phone = s.phone || '';
+                    const id = `SUP-${phone ? phone.slice(-4) : '001'}`;
+                    map[id] = s.supplierDetails?.businessName || s.displayName || s.ownerName || 'SUPPLIER';
+                });
+            }
+            setSupplierMap(map);
+        } catch (err) {
+            console.error('Error fetching suppliers:', err);
+        }
+    };
+
     useEffect(() => {
-        fetchCategories(1);
+        fetchSuppliers();
+        fetchZones(1);
     }, []);
 
-    const handleOpenModal = (category = null) => {
-        if (category) {
-            setEditingCategory(category);
+    const handleOpenModal = (zone = null) => {
+        if (zone) {
+            setEditingZone(zone);
             setFormData({
-                excelCategoryId: category.excelCategoryId || '',
-                mainCategory: category.mainCategory || '',
-                subCategory: category.subCategory || '',
-                isActive: category.isActive !== undefined ? category.isActive : true
+                zoneName: zone.zoneName || '',
+                supplierId: zone.supplierId || 'SUP-001',
+                pincodes: Array.isArray(zone.pincodes) ? zone.pincodes.join(', ') : '',
+                deliveryCharges: String(zone.deliveryCharges || 0),
+                minOrderValue: String(zone.minOrderValue || 0),
+                isActive: zone.isActive !== undefined ? zone.isActive : true
             });
         } else {
-            setEditingCategory(null);
+            setEditingZone(null);
             setFormData({
-                excelCategoryId: '',
-                mainCategory: '',
-                subCategory: '',
+                zoneName: '',
+                supplierId: 'SUP-001',
+                pincodes: '',
+                deliveryCharges: '0',
+                minOrderValue: '0',
                 isActive: true
             });
         }
@@ -247,30 +253,33 @@ const VendorSupplyCategoryManagement = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            const pincodesArr = formData.pincodes.split(',').map(p => p.trim()).filter(Boolean);
             const payload = {
                 ...formData,
-                excelCategoryId: formData.excelCategoryId ? Number(formData.excelCategoryId) : undefined
+                pincodes: pincodesArr,
+                deliveryCharges: Number(formData.deliveryCharges) || 0,
+                minOrderValue: Number(formData.minOrderValue) || 0
             };
-            if (editingCategory) {
-                await vendorSupplyCategoryApi.update(editingCategory._id, payload);
-                toast.success('Supply category updated');
+            if (editingZone) {
+                await supplierServiceZoneApi.update(editingZone._id, payload);
+                toast.success('Service zone updated');
             } else {
-                await vendorSupplyCategoryApi.create(payload);
-                toast.success('Supply category created');
+                await supplierServiceZoneApi.create(payload);
+                toast.success('Service zone created');
             }
             setIsModalOpen(false);
-            fetchCategories(pagination.page);
+            fetchZones(pagination.page);
         } catch (error) {
             toast.error(error.message || 'Operation failed');
         }
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Are you sure you want to delete this supply category?')) {
+        if (window.confirm('Are you sure you want to delete this service zone?')) {
             try {
-                await vendorSupplyCategoryApi.delete(id);
-                toast.success('Supply category deleted');
-                fetchCategories(pagination.page);
+                await supplierServiceZoneApi.delete(id);
+                toast.success('Service zone deleted');
+                fetchZones(pagination.page);
             } catch (error) {
                 toast.error(error.message || 'Failed to delete');
             }
@@ -279,38 +288,35 @@ const VendorSupplyCategoryManagement = () => {
 
     const columns = useMemo(() => [
         {
-            header: 'Category_Subcat_ID (PK)',
-            key: 'excelCategoryId',
+            header: 'Supplier Name',
+            key: 'supplierId',
+            render: (val) => {
+                const name = supplierMap[val] || val || 'SUP-001';
+                return (
+                    <span className="font-black text-slate-800 uppercase tracking-tight">
+                        {name}
+                    </span>
+                );
+            }
+        },
+        {
+            header: 'Zone Name',
+            key: 'zoneName',
             render: (val) => (
-                <span className="font-black text-slate-900 tabular-nums bg-slate-50 px-2 py-1 rounded-sm border border-slate-100">
-                    {val || '—'}
-                </span>
+                <span className="font-bold uppercase tracking-tight text-slate-800">{val}</span>
             )
         },
         {
-            header: 'Category Name',
-            key: 'mainCategory',
+            header: 'Pincode',
+            key: 'pincodes',
             render: (val) => (
-                <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                    <span className="font-bold uppercase tracking-tight text-slate-800">{val}</span>
+                <div className="flex flex-wrap gap-1 max-w-xs">
+                    {Array.isArray(val) && val.map(p => (
+                        <span key={p} className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-sm font-bold text-[9px] tabular-nums">
+                            {p}
+                        </span>
+                    ))}
                 </div>
-            )
-        },
-        {
-            header: 'Sub Category Name',
-            key: 'subCategory',
-            render: (val) => (
-                <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{val}</span>
-            )
-        },
-        {
-            header: 'Status',
-            key: 'isActive',
-            render: (val) => (
-                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${val ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
-                    {val ? 'Active' : 'Inactive'}
-                </span>
             )
         },
         {
@@ -322,10 +328,13 @@ const VendorSupplyCategoryManagement = () => {
                     <button onClick={() => handleOpenModal(row)} className="p-2 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-slate-900 transition-all">
                         <Edit2 size={14} />
                     </button>
+                    <button onClick={() => handleDelete(row._id)} className="p-2 hover:bg-red-50 rounded-sm text-slate-400 hover:text-red-600 transition-all">
+                        <X size={14} />
+                    </button>
                 </div>
             )
         }
-    ], []);
+    ], [supplierMap]);
 
     const validCount = bulkPreview.filter(r => r._valid).length;
     const invalidCount = bulkPreview.filter(r => !r._valid).length;
@@ -333,19 +342,13 @@ const VendorSupplyCategoryManagement = () => {
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader 
-                title="Vendor Supply Category Management" 
+                title="Supplier Service Zone Management" 
                 actions={[
                     {
                         label: "Bulk Upload",
                         icon: Upload,
                         onClick: () => { resetBulkModal(); setIsBulkModalOpen(true); },
                         variant: 'secondary'
-                    },
-                    {
-                        label: "Add Category",
-                        icon: Plus,
-                        onClick: () => handleOpenModal(),
-                        variant: 'primary'
                     }
                 ]}
             />
@@ -357,41 +360,28 @@ const VendorSupplyCategoryManagement = () => {
                     showSearch={false}
                     actions={
                         <div className="flex items-center gap-2">
-                            <select
-                                value={filters.mainCategory}
-                                onChange={(e) => handleFilterChange('mainCategory', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Categories</option>
-                                {uniqueMainCategories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={filters.subCategory}
-                                onChange={(e) => handleFilterChange('subCategory', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Sub Cats</option>
-                                {uniqueSubCategories.map(sub => (
-                                    <option key={sub} value={sub}>{sub}</option>
-                                ))}
-                            </select>
+                            <input
+                                type="text"
+                                placeholder="Search Zone Name"
+                                value={filters.zoneName}
+                                onChange={(e) => handleFilterChange('zoneName', e.target.value)}
+                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-48 placeholder-slate-400 uppercase tracking-wider"
+                            />
                             <select
                                 value={filters.isActive}
                                 onChange={(e) => handleFilterChange('isActive', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-28 uppercase tracking-wider cursor-pointer"
+                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
                             >
                                 <option value="">All Status</option>
                                 <option value="true">Active</option>
                                 <option value="false">Inactive</option>
                             </select>
-                            {(filters.mainCategory || filters.subCategory || filters.isActive !== '') && (
+                            {(filters.zoneName || filters.isActive !== '') && (
                                 <button 
                                     onClick={() => {
-                                        const cleared = { mainCategory: '', subCategory: '', isActive: '' };
+                                        const cleared = { zoneName: '', isActive: '' };
                                         setFilters(cleared);
-                                        fetchCategories(1, cleared);
+                                        fetchZones(1, cleared);
                                     }}
                                     className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
                                 >
@@ -401,15 +391,15 @@ const VendorSupplyCategoryManagement = () => {
                         </div>
                     }
                     columns={columns}
-                    data={categories}
+                    data={zones}
                     loading={loading}
                     pagination={pagination}
-                    onPageChange={(newPage) => fetchCategories(newPage)}
+                    onPageChange={(newPage) => fetchZones(newPage)}
                     onDownload={handleDownload}
                 />
             </div>
 
-            {/* ─── Single Category Modal ─────────────────────────────────────── */}
+            {/* ─── Single Zone Modal ─────────────────────────────────────── */}
             <AnimatePresence>
                 {isModalOpen && (
                     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
@@ -431,8 +421,8 @@ const VendorSupplyCategoryManagement = () => {
                                         <PlusCircle size={18} />
                                     </div>
                                     <div>
-                                        <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest">{editingCategory ? 'Update Details' : 'New Supply Category'}</h3>
-                                        {!editingCategory && (
+                                        <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest">{editingZone ? 'Update Details' : 'New Service Zone'}</h3>
+                                        {!editingZone && (
                                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">ID auto-generated on save</p>
                                         )}
                                     </div>
@@ -443,34 +433,71 @@ const VendorSupplyCategoryManagement = () => {
                             </div>
 
                             <div className="space-y-4">
-                                {editingCategory && (
+                                {editingZone && (
                                     <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Category ID (Auto-generated)</label>
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone ID (Auto-generated)</label>
                                         <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
-                                            {formData.excelCategoryId || 'Auto-generated'}
+                                            {formData.zoneId || 'Auto-generated'}
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Category Name</label>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone Name</label>
                                     <input 
                                         required
-                                        value={formData.mainCategory}
-                                        onChange={e => setFormData({...formData, mainCategory: e.target.value})}
+                                        value={formData.zoneName}
+                                        onChange={e => setFormData({...formData, zoneName: e.target.value})}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. Supplier Category A"
+                                        placeholder="e.g. North Zone"
                                     />
                                 </div>
 
                                 <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Sub Category Name</label>
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Supplier ID</label>
                                     <input 
                                         required
-                                        value={formData.subCategory}
-                                        onChange={e => setFormData({...formData, subCategory: e.target.value})}
+                                        value={formData.supplierId}
+                                        onChange={e => setFormData({...formData, supplierId: e.target.value})}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. Item Type X"
+                                        placeholder="e.g. SUP-001"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Pincodes (Comma separated)</label>
+                                    <input 
+                                        required
+                                        value={formData.pincodes}
+                                        onChange={e => setFormData({...formData, pincodes: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        placeholder="e.g. 452001, 452010"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Delivery Charges (₹)</label>
+                                    <input 
+                                        required
+                                        type="number"
+                                        min="0"
+                                        value={formData.deliveryCharges}
+                                        onChange={e => setFormData({...formData, deliveryCharges: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        placeholder="e.g. 50"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Min Order Value (₹)</label>
+                                    <input 
+                                        required
+                                        type="number"
+                                        min="0"
+                                        value={formData.minOrderValue}
+                                        onChange={e => setFormData({...formData, minOrderValue: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        placeholder="e.g. 200"
                                     />
                                 </div>
 
@@ -517,7 +544,7 @@ const VendorSupplyCategoryManagement = () => {
                                         <FileSpreadsheet size={18} />
                                     </div>
                                     <div>
-                                        <h3 className="text-[13px] font-black text-slate-900 uppercase tracking-widest">Bulk Upload Supply Categories</h3>
+                                        <h3 className="text-[13px] font-black text-slate-900 uppercase tracking-widest">Bulk Upload Service Zones</h3>
                                         <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-0.5">
                                             Upload .xlsx, .xls or .csv — IDs are auto-generated
                                         </p>
@@ -535,7 +562,7 @@ const VendorSupplyCategoryManagement = () => {
                                 <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-sm px-5 py-4">
                                     <div>
                                         <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Download Template</p>
-                                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">Fill columns: mainCategory, subCategory, isActive</p>
+                                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">Fill columns: zoneName, supplierId, pincodes, deliveryCharges, minOrderValue, isActive</p>
                                     </div>
                                     <button
                                         onClick={handleDownloadTemplate}
@@ -594,9 +621,12 @@ const VendorSupplyCategoryManagement = () => {
                                                     <thead className="bg-slate-900 text-white sticky top-0">
                                                         <tr>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Row</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Category ID</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Main Category</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Sub Category</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Zone ID</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Zone Name</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Supplier ID</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Pincodes</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Delivery Charges</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Min Order Value</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Active</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
                                                         </tr>
@@ -608,8 +638,11 @@ const VendorSupplyCategoryManagement = () => {
                                                                 <td className="px-4 py-2">
                                                                     <span className="text-slate-400 italic text-[9px]">auto</span>
                                                                 </td>
-                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.mainCategory || <span className="text-rose-400">—</span>}</td>
-                                                                <td className="px-4 py-2 text-slate-500">{row.subCategory || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.zoneName || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.supplierId}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.pincodes.join(', ') || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-500">₹{row.deliveryCharges}</td>
+                                                                <td className="px-4 py-2 text-slate-500">₹{row.minOrderValue}</td>
                                                                 <td className="px-4 py-2">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.isActive ? 'Yes' : 'No'}
@@ -695,4 +728,4 @@ const VendorSupplyCategoryManagement = () => {
     );
 };
 
-export default VendorSupplyCategoryManagement;
+export default SupplierServiceZoneManagement;

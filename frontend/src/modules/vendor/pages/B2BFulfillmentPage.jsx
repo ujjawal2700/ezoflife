@@ -11,6 +11,12 @@ const B2BFulfillmentPage = () => {
 
     const [liveSupplies, setLiveSupplies] = useState([]);
 
+    const rawData = localStorage.getItem('vendorData') || 
+                     localStorage.getItem('user') || 
+                     localStorage.getItem('userData') || '{}';
+    const vendorData = JSON.parse(rawData);
+    const vendorId = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id;
+
     const supplies = useMemo(() => liveSupplies.map(m => ({
         id: m._id,
         title: m.name,
@@ -20,7 +26,7 @@ const B2BFulfillmentPage = () => {
 
     const fetchMaterials = async () => {
         try {
-            const materialsData = await materialApi.getAll();
+            const materialsData = vendorId ? await materialApi.getLiveCatalog(vendorId) : [];
             setLiveSupplies(materialsData);
         } catch (error) {
             console.error('Fetch Data Error:', error);
@@ -29,7 +35,7 @@ const B2BFulfillmentPage = () => {
 
     useEffect(() => {
         fetchMaterials();
-    }, []);
+    }, [vendorId]);
 
     const total = cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
 

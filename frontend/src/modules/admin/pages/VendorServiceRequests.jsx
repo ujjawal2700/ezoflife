@@ -23,6 +23,16 @@ export default function VendorServiceRequests() {
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
+  // Feedback Modal State
+  const [modalData, setModalData] = useState({
+    isOpen: false,
+    requestId: null,
+    type: null, // 'approved' | 'rejected'
+    serviceName: '',
+    basePrice: 0,
+    message: ''
+  });
+
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -45,18 +55,20 @@ export default function VendorServiceRequests() {
     fetchRequests();
   }, []);
 
-  const handleAction = async (id, status) => {
+  const handleAction = async (id, status, message) => {
     setIsProcessing(id);
     try {
       const approvalStatus = status === 'approved' ? 'Approved' : 'Rejected';
-      const activeStatus = status === 'approved' ? 'Active' : 'Inactive';
+      const activeStatus = 'Inactive'; // default inactive for approved/rejected custom services
 
       await serviceApi.update(id, { 
         approvalStatus, 
-        status: activeStatus 
+        status: activeStatus,
+        adminMessage: message
       });
 
       toast.success(`Service request ${status === 'approved' ? 'approved' : 'rejected'} successfully!`);
+      setModalData({ isOpen: false, requestId: null, type: null, serviceName: '', basePrice: 0, message: '' });
       fetchRequests();
     } catch (err) {
       console.error('Action Error:', err);
@@ -257,26 +269,42 @@ export default function VendorServiceRequests() {
                       {/* Actions */}
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                          <button
-                            disabled={isProcessing !== null}
-                            onClick={() => handleAction(req._id || req.id, 'rejected')}
-                            className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm cursor-pointer disabled:opacity-50"
-                            title="Reject Request"
-                          >
-                            <X size={18} />
-                          </button>
-                          <button
-                            disabled={isProcessing !== null}
-                            onClick={() => handleAction(req._id || req.id, 'approved')}
-                            className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg active:scale-95 whitespace-nowrap cursor-pointer disabled:opacity-50"
-                          >
-                            {isProcessing === (req._id || req.id) ? (
-                              <RotateCw size={14} className="animate-spin" />
-                            ) : (
-                              <Check size={14} />
-                            )}
-                            {isProcessing === (req._id || req.id) ? 'Wait...' : 'Approve'}
-                          </button>
+                          {req.hasMasterService ? (
+                            <>
+                              <button
+                                disabled={isProcessing !== null}
+                                onClick={() => setModalData({
+                                  isOpen: true,
+                                  requestId: req._id || req.id,
+                                  type: 'rejected',
+                                  serviceName: req.name,
+                                  basePrice: req.basePrice,
+                                  message: ''
+                                })}
+                                className="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm cursor-pointer disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                              <button
+                                disabled={isProcessing !== null}
+                                onClick={() => setModalData({
+                                  isOpen: true,
+                                  requestId: req._id || req.id,
+                                  type: 'approved',
+                                  serviceName: req.name,
+                                  basePrice: req.basePrice,
+                                  message: ''
+                                })}
+                                className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50"
+                              >
+                                Approve
+                              </button>
+                            </>
+                          ) : (
+                            <span className="px-2.5 py-1 text-[8px] font-black text-amber-500 bg-amber-50 rounded uppercase tracking-wider border border-amber-100">
+                              Setup Category/Service First
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -312,6 +340,85 @@ export default function VendorServiceRequests() {
           )}
         </div>
       </div>
+
+      {/* Confirmation & Feedback Message Input Window (Modal) */}
+      <AnimatePresence>
+        {modalData.isOpen && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setModalData(prev => ({ ...prev, isOpen: false }))}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl space-y-5 border border-slate-200"
+            >
+              <div className="flex justify-between items-center pb-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${modalData.type === 'approved' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                    <MessageSquare size={16} />
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    {modalData.type === 'approved' ? 'Approve Service Request' : 'Reject Service Request'}
+                  </h3>
+                </div>
+                <button 
+                  onClick={() => setModalData(prev => ({ ...prev, isOpen: false }))} 
+                  className="p-1.5 hover:bg-slate-50 rounded-full text-slate-400"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Service Context Info */}
+              <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Service Details</p>
+                <div className="flex justify-between text-xs font-black text-slate-800">
+                  <span className="uppercase">{modalData.serviceName}</span>
+                  <span className="tabular-nums text-slate-900">₹{modalData.basePrice}</span>
+                </div>
+              </div>
+
+              {/* Feedback Input */}
+              <div className="space-y-1.5 text-left">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">
+                  Message for Vendor
+                </label>
+                <textarea 
+                  required
+                  rows={4}
+                  value={modalData.message}
+                  onChange={e => setModalData(prev => ({ ...prev, message: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none resize-none placeholder:text-slate-300"
+                  placeholder={modalData.type === 'approved' ? 'Add details/congratulations message (e.g. Your service is approved and is currently set to Inactive...)' : 'Reason for rejection...'}
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setModalData(prev => ({ ...prev, isOpen: false }))}
+                  className="flex-1 py-3.5 border border-slate-200 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 active:scale-95 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleAction(modalData.requestId, modalData.type, modalData.message)}
+                  disabled={!modalData.message.trim() || isProcessing !== null}
+                  className={`flex-1 py-3.5 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${modalData.type === 'approved' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/10' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/10'}`}
+                >
+                  {isProcessing !== null ? 'Processing...' : modalData.type === 'approved' ? 'Approve & Send' : 'Reject & Send'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

@@ -14,7 +14,7 @@ const vendorMasterSupplySchema = new mongoose.Schema({
     hsnCode: {
         type: String,
         trim: true,
-        default: '2800'
+        default: '-'
     },
     gst: {
         type: Number,
@@ -33,7 +33,8 @@ const vendorMasterSupplySchema = new mongoose.Schema({
     quantity: {
         type: String, // e.g. "10 Litres", "5 Kg", "100 Pcs"
         required: true,
-        trim: true
+        trim: true,
+        default: '-'
     },
     wholesaleRate: {
         type: Number,
@@ -56,7 +57,7 @@ const vendorMasterSupplySchema = new mongoose.Schema({
     deliveryFrequency: {
         type: String,
         trim: true,
-        default: 'Weekly'
+        default: '-'
     },
     movFreeDelivery: {
         type: Number,
@@ -65,12 +66,12 @@ const vendorMasterSupplySchema = new mongoose.Schema({
     supplierId: {
         type: String,
         trim: true,
-        default: 'SUP-001'
+        default: '-'
     },
     supplierFacilityName: {
         type: String,
         trim: true,
-        default: 'Main Facility'
+        default: '-'
     },
     serialNumber: {
         type: Number,

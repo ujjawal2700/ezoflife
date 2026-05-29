@@ -1,5 +1,6 @@
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
+import SupplierApplication from '../models/SupplierApplication.js';
 
 // Helper to generate SKU ID
 const generateSkuId = (categoryDoc, serialNumber) => {
@@ -25,6 +26,21 @@ const generateSkuId = (categoryDoc, serialNumber) => {
     
     const serialStr = String(serialNumber).padStart(3, '0');
     return `${prefix1}-${prefix2}-${catPart}-${subPart}-${serialStr}`.toUpperCase();
+};
+
+const populateDeliveryFrequencies = async (supplies) => {
+    const transformed = [];
+    for (const supply of supplies) {
+        const supplyObj = supply.toObject();
+        if (supplyObj.supplierId && supplyObj.supplierId !== '-' && supplyObj.supplierFacilityName && supplyObj.supplierFacilityName !== '-') {
+            const app = await SupplierApplication.findOne({ registeredBusinessName: supplyObj.supplierFacilityName });
+            if (app && app.deliveryFrequency && app.deliveryFrequency.length > 0) {
+                supplyObj.deliveryFrequency = app.deliveryFrequency.join(', ');
+            }
+        }
+        transformed.push(supplyObj);
+    }
+    return transformed;
 };
 
 export const vendorMasterSupplyController = {
@@ -77,7 +93,7 @@ export const vendorMasterSupplyController = {
 
     getAll: async (req, res) => {
         try {
-            const { page, limit, materialName, categoryId, isActive, brand, supplierId } = req.query;
+            const { page, limit, materialName, categoryId, isActive, brand, supplierId, isTemplate } = req.query;
             
             let query = {};
             if (materialName) {
@@ -87,13 +103,22 @@ export const vendorMasterSupplyController = {
                 query.brand = { $regex: brand, $options: 'i' };
             }
             if (supplierId) {
-                query.supplierId = { $regex: supplierId, $options: 'i' };
+                if (supplierId === '-') {
+                    query.supplierId = '-';
+                } else {
+                    query.supplierId = { $regex: supplierId, $options: 'i' };
+                }
             }
             if (categoryId) {
                 query.categoryId = categoryId;
             }
             if (isActive !== undefined && isActive !== '') {
                 query.isActive = isActive;
+            }
+            if (isTemplate === 'y') {
+                query.supplierId = '-';
+            } else if (isTemplate === 'n') {
+                query.supplierId = { $ne: '-' };
             }
 
             if (page && limit) {
@@ -108,8 +133,10 @@ export const vendorMasterSupplyController = {
                     .skip(skip)
                     .limit(limitNumber);
 
+                const populated = await populateDeliveryFrequencies(supplies);
+
                 return res.json({
-                    data: supplies,
+                    data: populated,
                     pagination: {
                         total,
                         page: pageNumber,
@@ -122,7 +149,9 @@ export const vendorMasterSupplyController = {
             const supplies = await VendorMasterSupply.find(query)
                 .populate('categoryId')
                 .sort({ createdAt: -1 });
-            res.json(supplies);
+
+            const populated = await populateDeliveryFrequencies(supplies);
+            res.json(populated);
         } catch (error) {
             res.status(500).json({ message: error.message });
         }
@@ -272,6 +301,83 @@ export const vendorMasterSupplyController = {
                 results
             });
         } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    },
+
+    getLiveCatalog: async (req, res) => {
+        try {
+            const { vendorId } = req.query;
+            if (!vendorId) {
+                return res.status(400).json({ message: 'vendorId is required' });
+            }
+
+            // 1. Find the Vendor User
+            const User = (await import('../models/User.js')).default;
+            const vendor = await User.findById(vendorId);
+            if (!vendor) {
+                return res.status(404).json({ message: 'Vendor not found' });
+            }
+
+            // 2. Get the Vendor's pincode
+            const vendorPincode = vendor.shopDetails?.pincode;
+            if (!vendorPincode) {
+                return res.status(400).json({ message: 'Vendor has no pincode configured in shopDetails' });
+            }
+
+            // 3. Find active Supplier Service Zones that serve this pincode
+            const SupplierServiceZone = (await import('../models/SupplierServiceZone.js')).default;
+            const zones = await SupplierServiceZone.find({
+                pincodes: vendorPincode,
+                isActive: true
+            });
+
+            // Extract supplierIds
+            const supplierIds = zones.map(z => z.supplierId);
+
+            // 4. Find all active supplies in VendorMasterSupply belonging to these suppliers
+            const query = {
+                isActive: 'y',
+                supplierId: { $in: supplierIds }
+            };
+
+            const supplies = await VendorMasterSupply.find(query)
+                .populate('categoryId')
+                .sort({ createdAt: -1 });
+
+            const populated = await populateDeliveryFrequencies(supplies);
+            
+            // Build a map to resolve the actual Supplier User info (for their displayNames)
+            const suppliers = await User.find({ role: 'Supplier' });
+            const supplierUserMap = {};
+            suppliers.forEach(s => {
+                if (s.phone) {
+                    const suffix = s.phone.slice(-4);
+                    supplierUserMap[`SUP-${suffix}`] = s;
+                }
+            });
+
+            // Format items to match frontend expectation
+            const formatted = populated.map(item => {
+                const supplierUserObj = supplierUserMap[item.supplierId];
+                return {
+                    _id: item._id,
+                    name: item.materialName,
+                    price: item.wholesaleRate,
+                    category: item.categoryId?.mainCategory || 'Other',
+                    subCategory: item.categoryId?.subCategory || 'General',
+                    brand: item.brand || 'Generic',
+                    quantity: item.quantity || '1 Unit',
+                    supplierId: item.supplierId,
+                    supplierFacilityName: supplierUserObj?.displayName || item.supplierFacilityName || item.supplierId,
+                    stock: 'Available',
+                    image: null
+                };
+            });
+
+            res.json(formatted);
+        } catch (error) {
+            console.error('Error in getLiveCatalog:', error);
             res.status(500).json({ message: error.message });
         }
     }

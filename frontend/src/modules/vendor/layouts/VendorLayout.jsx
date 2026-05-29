@@ -118,7 +118,7 @@ const VendorLayout = () => {
         <div className="admin-theme flex flex-col min-h-screen">
             {showHeader && <VendorHeader />}
             
-            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? (currentPath === '/vendor/walk-in' ? 'pt-16' : 'pt-20') : ''}`}>
+            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? (['/vendor/walk-in', '/vendor/material-request', '/vendor/labor-request', '/vendor/material-orders'].includes(currentPath) ? 'pt-16' : 'pt-20') : ''}`}>
                 <Outlet />
             </main>
 

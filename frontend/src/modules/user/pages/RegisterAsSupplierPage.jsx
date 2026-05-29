@@ -43,6 +43,11 @@ const RegisterAsSupplierPage = () => {
   const [isVerifyingGst, setIsVerifyingGst] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
+  const [dbServiceAreas, setDbServiceAreas] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedZone, setSelectedZone] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
+
   const isRevisionRequired = applicationStatus?.status === 'Revision_Required';
   const isPendingSupplier = applicationStatus && 
                            (applicationStatus.status === 'Pending' || applicationStatus.onboardingStage === 'Final_Approval_Pending' || applicationStatus.onboardingStage === 'Onboarded');
@@ -78,6 +83,9 @@ const RegisterAsSupplierPage = () => {
                     warehouseAddress: data.warehouseAddress || '',
                     warehouseLocation: data.warehouseLocation || null,
                     serviceableAreas: data.serviceableAreas || [],
+                    city: data.city || '',
+                    zone: data.zone || '',
+                    pincode: data.pincode || '',
                     vehicles: data.vehicles || [],
                     deliveryFrequency: data.deliveryFrequency || [],
                     warehousePhotos: data.warehousePhotos || [],
@@ -89,6 +97,10 @@ const RegisterAsSupplierPage = () => {
                     cancelledChequeDoc: data.cancelledChequeDoc || '',
                     priceListDoc: data.priceListDoc || '',
                 }));
+                if (data.city) setSelectedCity(data.city);
+                if (data.zone) setSelectedZone(data.zone);
+                if (data.pincode) setSelectedArea(data.pincode);
+
                 if (data.gstNumber && !data.rejectionFlags?.includes('gstNumber')) {
                     setIsGstVerified(true);
                 }
@@ -135,6 +147,9 @@ const RegisterAsSupplierPage = () => {
     warehouseAddress: '',
     warehouseLocation: null,
     serviceableAreas: [],
+    city: '',
+    zone: '',
+    pincode: '',
     vehicles: [],
     deliveryFrequency: [],
     warehousePhotos: [],
@@ -151,14 +166,126 @@ const RegisterAsSupplierPage = () => {
   });
 
   useEffect(() => {
-    if (selectedLoc && step === 3) {
-        setFormData(prev => ({ 
-            ...prev, 
-            warehouseAddress: selectedLoc.fullAddress || '',
-            warehouseLocation: { lat: selectedLoc.lat, lng: selectedLoc.lng }
+    const fetchGeofences = async () => {
+        try {
+            const res = await fetch(`${BASE_URL}/geofence/public/areas`);
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setDbServiceAreas(data);
+            }
+        } catch (err) {
+            console.error('Failed to load geofences:', err);
+        }
+    };
+    fetchGeofences();
+  }, []);
+
+  const uniqueCities = useMemo(() => {
+    const cities = dbServiceAreas
+        .map(a => a.city)
+        .filter(Boolean)
+        .map(c => {
+            const trimmed = c.trim();
+            return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+        });
+    return Array.from(new Set(cities)).sort();
+  }, [dbServiceAreas]);
+
+  const filteredZones = useMemo(() => {
+    if (!selectedCity) return [];
+    const zones = dbServiceAreas.filter(a => a.city?.trim().toLowerCase() === selectedCity.toLowerCase());
+    const unique = [];
+    const seen = new Set();
+    for (const zone of zones) {
+        const nameLower = zone.areaName?.trim().toLowerCase();
+        if (nameLower && !seen.has(nameLower)) {
+            seen.add(nameLower);
+            unique.push(zone);
+        }
+    }
+    return unique.sort((a, b) => a.areaName.localeCompare(b.areaName));
+  }, [dbServiceAreas, selectedCity]);
+
+  const availablePincodes = useMemo(() => {
+    if (!selectedZone) return [];
+    const matchingZones = dbServiceAreas.filter(a => 
+        a.city?.trim().toLowerCase() === selectedCity.toLowerCase() && 
+        a.areaName?.trim().toLowerCase() === selectedZone.toLowerCase()
+    );
+    const pins = matchingZones.flatMap(a => a.pincodes || []);
+    return Array.from(new Set(pins.filter(Boolean))).sort();
+  }, [dbServiceAreas, selectedCity, selectedZone]);
+
+  const handleCityChange = (e) => {
+    const city = e.target.value;
+    setSelectedCity(city);
+    setSelectedZone('');
+    setSelectedArea('');
+    setFormData(prev => ({
+        ...prev,
+        warehouseAddress: '',
+        serviceableAreas: [],
+        city: city,
+        zone: '',
+        pincode: ''
+    }));
+  };
+
+  const handleZoneChange = (e) => {
+    const zone = e.target.value;
+    setSelectedZone(zone);
+    setSelectedArea('');
+    setFormData(prev => ({
+        ...prev,
+        warehouseAddress: '',
+        serviceableAreas: [],
+        zone: zone,
+        pincode: ''
+    }));
+  };
+
+  const handleAreaChange = (e) => {
+    const area = e.target.value;
+    setSelectedArea(area);
+    if (area) {
+        setFormData(prev => ({
+            ...prev,
+            warehouseAddress: `${area} (Pincode), ${selectedZone}, ${selectedCity}`,
+            serviceableAreas: [area],
+            pincode: area
+        }));
+    } else {
+        setFormData(prev => ({
+            ...prev,
+            warehouseAddress: '',
+            serviceableAreas: [],
+            pincode: ''
         }));
     }
-  }, [selectedLoc, step]);
+  };
+
+  useEffect(() => {
+    if (formData.warehouseAddress && dbServiceAreas.length > 0 && !selectedCity) {
+        const parts = formData.warehouseAddress.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+            const areaPart = parts[0].replace(' (Pincode)', '');
+            const zonePart = parts[1];
+            const cityPart = parts[2];
+            
+            const foundArea = dbServiceAreas.find(a => 
+                a.city?.trim().toLowerCase() === cityPart.toLowerCase() &&
+                a.areaName?.trim().toLowerCase() === zonePart.toLowerCase() &&
+                a.pincodes?.includes(areaPart)
+            );
+            if (foundArea) {
+                const normalizedCity = foundArea.city.trim().charAt(0).toUpperCase() + foundArea.city.trim().slice(1).toLowerCase();
+                setSelectedCity(normalizedCity);
+                setSelectedZone(foundArea.areaName);
+                setSelectedArea(areaPart);
+            }
+        }
+    }
+  }, [formData.warehouseAddress, dbServiceAreas, selectedCity]);
 
   const categories = [
     'Industrial Chemicals', 
@@ -171,7 +298,6 @@ const RegisterAsSupplierPage = () => {
 
   const vehicleOptions = ['Two-wheeler', '3-Wheeler/Tempo', 'LCV/Truck', 'Third-party Logistics'];
   const frequencyOptions = ['Daily', 'Thrice a Week', 'Weekly', 'On-Demand'];
-  const cityOptions = ['Indore', 'Bhopal', 'Mumbai', 'Delhi', 'PAN India'];
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -380,12 +506,8 @@ const RegisterAsSupplierPage = () => {
     }
 
     if (step === 3) {
-        if (!formData.warehouseAddress) {
-            toast.error('Please enter warehouse address or pin on map');
-            return;
-        }
-        if (formData.serviceableAreas.length === 0) {
-            toast.error('Please select at least one serviceable area');
+        if (!selectedCity || !selectedZone || !selectedArea) {
+            toast.error('Please select City, Zone, and Area');
             return;
         }
         if (formData.vehicles.length === 0) {
@@ -812,54 +934,76 @@ const RegisterAsSupplierPage = () => {
 
         {step === 3 && (
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-8">
-                {/* Physical Presence Section */}
+                {/* Physical Presence & Serviceable Area Selection */}
                 <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-6">
-                    <FieldHighlight name="warehouseAddress" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                    <div className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Warehouse / Godown Address</label>
-                            <textarea 
-                                value={formData.warehouseAddress}
-                                onChange={(e) => setFormData({ ...formData, warehouseAddress: e.target.value })}
-                                placeholder="Enter full warehouse address..."
-                                rows={3}
-                                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold outline-none resize-none"
-                            />
-                        </div>
-                        <button 
-                            type="button"
-                            onClick={() => setPickerOpen(true)}
-                            className="w-full py-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center gap-3 text-slate-500 hover:bg-slate-100 transition-all"
-                        >
-                            <span className="material-symbols-outlined text-lg text-primary">location_on</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">Pin exact location on Map</span>
-                        </button>
+                    <div className="border-b border-slate-100 pb-2">
+                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sm text-primary">location_on</span>
+                            Service & Location Mapping
+                        </h4>
                     </div>
-                    </FieldHighlight>
-                </div>
 
-                {/* Serviceable Areas */}
-                <FieldHighlight name="serviceableAreas" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                <div className="space-y-4">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Serviceable Areas</label>
-                    <div className="flex flex-wrap gap-2">
-                        {cityOptions.map((city) => (
-                            <button
-                                key={city}
-                                type="button"
-                                onClick={() => toggleSelection('serviceableAreas', city)}
-                                className={`px-5 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
-                                    formData.serviceableAreas.includes(city)
-                                        ? 'bg-primary text-on-primary shadow-lg'
-                                        : 'bg-white text-slate-400 border border-slate-200'
-                                }`}
-                            >
-                                {city}
-                            </button>
-                        ))}
+                    <div className="space-y-4">
+                        {/* City Dropdown */}
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">City</label>
+                            <div className="relative">
+                                <select 
+                                    required
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all"
+                                    value={selectedCity}
+                                    onChange={handleCityChange}
+                                >
+                                    <option value="">Select City</option>
+                                    {uniqueCities.map(city => <option key={city} value={city}>{city}</option>)}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <span className="material-symbols-outlined text-sm">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Zone Dropdown */}
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone</label>
+                            <div className="relative">
+                                <select 
+                                    required
+                                    disabled={!selectedCity}
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer focus:bg-white focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all"
+                                    value={selectedZone}
+                                    onChange={handleZoneChange}
+                                >
+                                    <option value="">Select Zone</option>
+                                    {filteredZones.map(zone => <option key={zone._id} value={zone.areaName}>{zone.areaName}</option>)}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <span className="material-symbols-outlined text-sm">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Area (Pincode) Dropdown */}
+                        <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Area (Pincode)</label>
+                            <div className="relative">
+                                <select 
+                                    required
+                                    disabled={!selectedZone}
+                                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 outline-none appearance-none disabled:opacity-50 cursor-pointer focus:bg-white focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all"
+                                    value={selectedArea}
+                                    onChange={handleAreaChange}
+                                >
+                                    <option value="">Select Area / Pincode</option>
+                                    {availablePincodes.map(pin => <option key={pin} value={pin}>{pin}</option>)}
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <span className="material-symbols-outlined text-sm">expand_more</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                </FieldHighlight>
 
                 {/* Delivery Infrastructure */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

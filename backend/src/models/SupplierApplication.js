@@ -27,6 +27,9 @@ const supplierApplicationSchema = new mongoose.Schema({
         lat: Number,
         lng: Number
     },
+    city: { type: String },
+    zone: { type: String },
+    pincode: { type: String },
     serviceableAreas: [{ type: String }],
     vehicles: [{ type: String }],
     deliveryFrequency: [{ type: String }],
@@ -59,7 +62,11 @@ const supplierApplicationSchema = new mongoose.Schema({
     selectedProducts: [{
         productName: String,
         category: String,
-        capacityPerMonth: String
+        capacityPerMonth: String,
+        wholesaleRate: Number,
+        bulkDiscount: Number,
+        bulkThreshold: Number,
+        movFreeDelivery: Number
     }],
 
     status: {

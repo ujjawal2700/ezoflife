@@ -8,7 +8,7 @@ window.fetch = async (input, init) => {
     if (token) {
         const urlLower = url.toLowerCase();
         const isAdminEndpoint = urlLower.includes('/admin') || 
-                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability')) || 
+                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability') && !urlLower.includes('/public/')) || 
                                 urlLower.includes('/area-overrides') || 
                                 (urlLower.includes('/master-pricing') && !urlLower.includes('fenceid=')) ||
                                 urlLower.includes('/supplier/requests') ||
@@ -60,7 +60,7 @@ window.fetch = async (input, init) => {
     if (res.status === 401 || res.status === 403) {
         const urlLower = url.toLowerCase();
         const isAdminEndpoint = urlLower.includes('/admin') || 
-                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability')) || 
+                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability') && !urlLower.includes('/public/')) || 
                                 urlLower.includes('/area-overrides') || 
                                 (urlLower.includes('/master-pricing') && !urlLower.includes('fenceid=')) ||
                                 urlLower.includes('/supplier/requests') ||
@@ -296,6 +296,66 @@ export const vendorMasterSupplyApi = {
         return res.json();
     }
 };
+
+export const supplierServiceZoneApi = {
+    getAll: async (filters = {}) => {
+        const queryParams = new URLSearchParams(filters).toString();
+        const res = await fetch(`${BASE_URL}/supplier-service-zones?${queryParams}`);
+        return res.json();
+    },
+    getPaginated: async (page = 1, limit = 10, filters = {}) => {
+        const queryParams = new URLSearchParams({
+            page,
+            limit,
+            ...filters
+        }).toString();
+        const res = await fetch(`${BASE_URL}/supplier-service-zones?${queryParams}`);
+        return res.json();
+    },
+    create: async (data) => {
+        const res = await fetch(`${BASE_URL}/supplier-service-zones`, {
+            method: 'POST',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    update: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/supplier-service-zones/${id}`, {
+            method: 'PUT',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return res.json();
+    },
+    delete: async (id) => {
+        const res = await fetch(`${BASE_URL}/supplier-service-zones/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return res.json();
+    },
+    bulkUpload: async (zones) => {
+        const res = await fetch(`${BASE_URL}/supplier-service-zones/bulk-upload`, {
+            method: 'POST',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(zones)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Bulk upload failed');
+        }
+        return res.json();
+    },
+    clearAll: async () => {
+        const res = await fetch(`${BASE_URL}/supplier-service-zones/clear-all`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return res.json();
+    }
+};
+
 
 export const authApi = {
     requestOtp: async (phone, channel, mode, options = {}) => {
@@ -1376,6 +1436,15 @@ export const materialApi = {
             return await response.json();
         } catch (error) {
             console.error('Material API Error:', error);
+            throw error;
+        }
+    },
+    getLiveCatalog: async (vendorId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/vendor-master-supplies/live-catalog?vendorId=${vendorId}`);
+            return await response.json();
+        } catch (error) {
+            console.error('getLiveCatalog Error:', error);
             throw error;
         }
     },
