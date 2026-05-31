@@ -525,40 +525,51 @@ const VendorMasterSupplyManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
-                            <select
-                                value={filters.categoryId}
-                                onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-52 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Categories & Sub Cats</option>
-                                {categories.map(cat => (
-                                    <option key={cat._id} value={cat._id}>
-                                        {cat.mainCategory} — {cat.subCategory}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={filters.isActive}
-                                onChange={(e) => handleFilterChange('isActive', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-28 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Status</option>
-                                <option value="y">Active (Y)</option>
-                                <option value="n">Inactive (N)</option>
-                            </select>
-                            {(filters.categoryId || filters.isActive !== '') && (
-                                <button 
-                                    onClick={() => {
-                                        const cleared = { categoryId: '', isActive: '' };
-                                        setFilters(cleared);
-                                        fetchSupplies(1, cleared);
-                                    }}
-                                    className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                        <div className="flex flex-col gap-2 w-full">
+                            <div className="flex items-center w-full">
+                                <select
+                                    value={filters.categoryId}
+                                    onChange={(e) => handleFilterChange('categoryId', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full uppercase tracking-wider cursor-pointer"
                                 >
-                                    Reset
+                                    <option value="">All Categories & Sub Cats</option>
+                                    {categories.map(cat => (
+                                        <option key={cat._id} value={cat._id}>
+                                            {cat.mainCategory} — {cat.subCategory}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-2 w-full">
+                                <select
+                                    value={filters.isActive}
+                                    onChange={(e) => handleFilterChange('isActive', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-28 uppercase tracking-wider cursor-pointer"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="y">Active (Y)</option>
+                                    <option value="n">Inactive (N)</option>
+                                </select>
+                                {(filters.categoryId || filters.isActive !== '') && (
+                                    <button 
+                                        onClick={() => {
+                                            const cleared = { categoryId: '', isActive: '' };
+                                            setFilters(cleared);
+                                            fetchSupplies(1, cleared);
+                                        }}
+                                        className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                                    >
+                                        Reset
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={handleDownload}
+                                    className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm border border-slate-200 bg-white flex items-center justify-center h-8 w-8 ml-auto"
+                                    title="Download Excel/CSV"
+                                >
+                                    <Download size={14} />
                                 </button>
-                            )}
+                            </div>
                         </div>
                     }
                     columns={columns}
@@ -566,7 +577,6 @@ const VendorMasterSupplyManagement = () => {
                     loading={loading}
                     pagination={pagination}
                     onPageChange={(newPage) => fetchSupplies(newPage)}
-                    onDownload={handleDownload}
                 />
             </div>
 

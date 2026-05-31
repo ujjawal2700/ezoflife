@@ -342,7 +342,7 @@ const SupplierServiceZoneManagement = () => {
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader 
-                title="Supplier Service Zone Management" 
+                title="Service Zone" 
                 actions={[
                     {
                         label: "Bulk Upload",
@@ -359,35 +359,46 @@ const SupplierServiceZoneManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                placeholder="Search Zone Name"
-                                value={filters.zoneName}
-                                onChange={(e) => handleFilterChange('zoneName', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-48 placeholder-slate-400 uppercase tracking-wider"
-                            />
-                            <select
-                                value={filters.isActive}
-                                onChange={(e) => handleFilterChange('isActive', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Status</option>
-                                <option value="true">Active</option>
-                                <option value="false">Inactive</option>
-                            </select>
-                            {(filters.zoneName || filters.isActive !== '') && (
-                                <button 
-                                    onClick={() => {
-                                        const cleared = { zoneName: '', isActive: '' };
-                                        setFilters(cleared);
-                                        fetchZones(1, cleared);
-                                    }}
-                                    className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                            <div className="flex items-center w-full sm:w-auto">
+                                <input
+                                    type="text"
+                                    placeholder="Search Zone Name"
+                                    value={filters.zoneName}
+                                    onChange={(e) => handleFilterChange('zoneName', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full sm:w-48 placeholder-slate-400 uppercase tracking-wider"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <select
+                                    value={filters.isActive}
+                                    onChange={(e) => handleFilterChange('isActive', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-28 sm:w-36 uppercase tracking-wider cursor-pointer"
                                 >
-                                    Reset
+                                    <option value="">All Status</option>
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
+                                </select>
+                                {(filters.zoneName || filters.isActive !== '') && (
+                                    <button 
+                                        onClick={() => {
+                                            const cleared = { zoneName: '', isActive: '' };
+                                            setFilters(cleared);
+                                            fetchZones(1, cleared);
+                                        }}
+                                        className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                                    >
+                                        Reset
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={handleDownload}
+                                    className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm border border-slate-200 bg-white flex items-center justify-center h-8 w-8 ml-auto sm:ml-0"
+                                    title="Download Excel/CSV"
+                                >
+                                    <Download size={14} />
                                 </button>
-                            )}
+                            </div>
                         </div>
                     }
                     columns={columns}
@@ -395,7 +406,6 @@ const SupplierServiceZoneManagement = () => {
                     loading={loading}
                     pagination={pagination}
                     onPageChange={(newPage) => fetchZones(newPage)}
-                    onDownload={handleDownload}
                 />
             </div>
 

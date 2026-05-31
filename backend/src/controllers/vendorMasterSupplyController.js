@@ -1,6 +1,13 @@
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
 import SupplierApplication from '../models/SupplierApplication.js';
+import fs from 'fs';
+
+const logToFile = (msg) => {
+    try {
+        fs.appendFileSync('./REAL_USER_DEBUG.log', `[CONTROLLER_DEBUG] ${new Date().toISOString()} - ${msg}\n`);
+    } catch (e) {}
+};
 
 // Helper to generate SKU ID
 const generateSkuId = (categoryDoc, serialNumber) => {
@@ -29,11 +36,14 @@ const generateSkuId = (categoryDoc, serialNumber) => {
 };
 
 const populateDeliveryFrequencies = async (supplies) => {
+    logToFile(`populateDeliveryFrequencies processing ${supplies.length} items`);
     const transformed = [];
     for (const supply of supplies) {
         const supplyObj = supply.toObject();
+        logToFile(`supplyObj details: ID=${supplyObj._id}, supplierId=${supplyObj.supplierId}, supplierFacilityName=${supplyObj.supplierFacilityName}`);
         if (supplyObj.supplierId && supplyObj.supplierId !== '-' && supplyObj.supplierFacilityName && supplyObj.supplierFacilityName !== '-') {
             const app = await SupplierApplication.findOne({ registeredBusinessName: supplyObj.supplierFacilityName });
+            logToFile(`found app: ${app ? JSON.stringify({ id: app._id, registeredBusinessName: app.registeredBusinessName, deliveryFrequency: app.deliveryFrequency }) : 'null'}`);
             if (app && app.deliveryFrequency && app.deliveryFrequency.length > 0) {
                 supplyObj.deliveryFrequency = app.deliveryFrequency.join(', ');
             }
@@ -319,16 +329,47 @@ export const vendorMasterSupplyController = {
                 return res.status(404).json({ message: 'Vendor not found' });
             }
 
-            // 2. Get the Vendor's pincode
+            // 2. Resolve matching pincodes based on coordinates/geofence
+            const matchingPincodes = [];
             const vendorPincode = vendor.shopDetails?.pincode;
-            if (!vendorPincode) {
-                return res.status(400).json({ message: 'Vendor has no pincode configured in shopDetails' });
+            if (vendorPincode) {
+                matchingPincodes.push(vendorPincode);
             }
 
-            // 3. Find active Supplier Service Zones that serve this pincode
+            const vLat = Number(vendor.location?.lat || 0);
+            const vLng = Number(vendor.location?.lng || 0);
+
+            if (vLat && vLng) {
+                const ServiceArea = (await import('../models/ServiceArea.js')).default;
+                const serviceArea = await ServiceArea.findOne({
+                    isActive: true,
+                    boundary: {
+                        $geoIntersects: {
+                            $geometry: {
+                                type: 'Point',
+                                coordinates: [vLng, vLat] // [lng, lat]
+                            }
+                        }
+                    }
+                });
+
+                if (serviceArea && serviceArea.pincodes && serviceArea.pincodes.length > 0) {
+                    serviceArea.pincodes.forEach(pin => {
+                        if (!matchingPincodes.includes(pin)) {
+                            matchingPincodes.push(pin);
+                        }
+                    });
+                }
+            }
+
+            if (matchingPincodes.length === 0) {
+                return res.status(400).json({ message: 'Vendor has no pincode configured and coordinates are outside any active Service Area geofence' });
+            }
+
+            // 3. Find active Supplier Service Zones that serve any of these pincodes
             const SupplierServiceZone = (await import('../models/SupplierServiceZone.js')).default;
             const zones = await SupplierServiceZone.find({
-                pincodes: vendorPincode,
+                pincodes: { $in: matchingPincodes },
                 isActive: true
             });
 
@@ -371,7 +412,9 @@ export const vendorMasterSupplyController = {
                     supplierId: item.supplierId,
                     supplierFacilityName: supplierUserObj?.displayName || item.supplierFacilityName || item.supplierId,
                     stock: 'Available',
-                    image: null
+                    image: null,
+                    images: item.images || [],
+                    deliveryFrequency: item.deliveryFrequency || 'On-Demand'
                 };
             });
 

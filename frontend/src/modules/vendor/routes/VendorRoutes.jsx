@@ -34,6 +34,7 @@ import LaborRequestPage from '../pages/LaborRequestPage';
 import CreateJobRequisition from '../pages/CreateJobRequisition';
 import VendorMyServices from '../pages/VendorMyServices';
 import VendorReports from '../pages/VendorReports';
+import VendorProductImages from '../pages/VendorProductImages';
 
 // Profile sub-pages
 import EditProfile from '../pages/EditProfile';
@@ -83,6 +84,7 @@ const VendorRoutes = () => {
         <Route path="/material-orders" element={<B2BOrderHistory />} />
         <Route path="/reviews" element={<VendorReviews />} />
         <Route path="/jobs" element={<JobManagerPage />} />
+        <Route path="/product-images" element={<VendorProductImages />} />
         
         {/* Profile Sub-pages */}
         <Route path="/edit-profile" element={<EditProfile />} />

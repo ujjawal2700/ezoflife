@@ -43,8 +43,8 @@ export default function DataGrid({
     return (
         <div className="w-full bg-white border border-slate-200 flex flex-col rounded-sm">
             {/* Grid Header Strip */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white z-20">
-                <div className="flex items-center gap-3">
+            <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white z-20">
+                <div className="flex items-center flex-wrap gap-3">
                     <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />
                     <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
                         {title}
@@ -53,7 +53,7 @@ export default function DataGrid({
                         {pagination ? pagination.total : data.length} TOTAL ENTITIES
                     </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
                     {showSearch && (
                         <div className="relative group lg:block hidden">
                             <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-slate-900 transition-all" />
@@ -67,10 +67,14 @@ export default function DataGrid({
                         </div>
                     )}
                     {actions}
-                    <div className="h-4 w-px bg-slate-100 mx-1" />
-                    <button onClick={onDownload} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm" title="Download Excel/CSV">
-                        <Download size={14} />
-                    </button>
+                    {onDownload && (
+                        <>
+                            <div className="h-4 w-px bg-slate-100 mx-1" />
+                            <button onClick={onDownload} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm" title="Download Excel/CSV">
+                                <Download size={14} />
+                            </button>
+                        </>
+                    )}
                     {showFilter && (
                         <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
                             <Filter size={14} />

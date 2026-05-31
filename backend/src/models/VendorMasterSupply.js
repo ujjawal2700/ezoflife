@@ -76,7 +76,10 @@ const vendorMasterSupplySchema = new mongoose.Schema({
     serialNumber: {
         type: Number,
         required: true
-    }
+    },
+    images: [{
+        type: String
+    }]
 }, { timestamps: true });
 
 const VendorMasterSupply = mongoose.model('VendorMasterSupply', vendorMasterSupplySchema);

@@ -333,7 +333,7 @@ const VendorSupplyCategoryManagement = () => {
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
             <PageHeader 
-                title="Vendor Supply Category Management" 
+                title="Category Management" 
                 actions={[
                     {
                         label: "Bulk Upload",
@@ -356,7 +356,7 @@ const VendorSupplyCategoryManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2 w-full">
                             <select
                                 value={filters.mainCategory}
                                 onChange={(e) => handleFilterChange('mainCategory', e.target.value)}
@@ -386,6 +386,15 @@ const VendorSupplyCategoryManagement = () => {
                                 <option value="true">Active</option>
                                 <option value="false">Inactive</option>
                             </select>
+
+                            <button 
+                                onClick={handleDownload}
+                                className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm border border-slate-200 bg-white flex items-center justify-center h-8 w-8 ml-auto"
+                                title="Download Excel/CSV"
+                            >
+                                <Download size={14} />
+                            </button>
+
                             {(filters.mainCategory || filters.subCategory || filters.isActive !== '') && (
                                 <button 
                                     onClick={() => {
@@ -405,7 +414,6 @@ const VendorSupplyCategoryManagement = () => {
                     loading={loading}
                     pagination={pagination}
                     onPageChange={(newPage) => fetchCategories(newPage)}
-                    onDownload={handleDownload}
                 />
             </div>
 

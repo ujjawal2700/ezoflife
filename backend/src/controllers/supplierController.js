@@ -345,7 +345,8 @@ export const finalApproveApplication = async (req, res) => {
                             movFreeDelivery: selectedItem.movFreeDelivery || 0,
                             supplierId: supplierId,
                             supplierFacilityName: application.registeredBusinessName,
-                            serialNumber: nextSerial
+                            serialNumber: nextSerial,
+                            images: selectedItem.images || []
                         });
                         
                         await newSupply.save();

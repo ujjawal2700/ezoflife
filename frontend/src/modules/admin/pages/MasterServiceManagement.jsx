@@ -391,7 +391,7 @@ const MasterServiceManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2 w-full">
                             <select 
                                 value={filterCatId}
                                 onChange={e => setFilterCatId(e.target.value)}
@@ -429,6 +429,14 @@ const MasterServiceManagement = () => {
                                 <option value="n">N</option>
                             </select>
 
+                            <button 
+                                onClick={handleDownload}
+                                className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm border border-slate-200 bg-white flex items-center justify-center h-8 w-8 ml-auto"
+                                title="Download Excel/CSV"
+                            >
+                                <Download size={14} />
+                            </button>
+
                             {(filterCatId || filterCurrInd || filterItemName || filterSkuId) && (
                                 <button 
                                     onClick={() => {
@@ -449,7 +457,6 @@ const MasterServiceManagement = () => {
                     loading={isLoading}
                     pagination={pagination}
                     onPageChange={(newPage) => fetchServices(newPage)}
-                    onDownload={handleDownload}
                 />
             </div>
 

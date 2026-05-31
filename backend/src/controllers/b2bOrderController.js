@@ -10,7 +10,7 @@ const razorpay = new Razorpay({
 
 // Place B2B Order with Aggregation & Cycle Logic
 import SystemConfig from '../models/SystemConfig.js';
-import { getNextDeliveryDate, generateCycleId, isBeforeCutoff } from '../utils/cycleHelper.js';
+import { getNextDeliveryDate, generateCycleId, isBeforeCutoff, DAYS } from '../utils/cycleHelper.js';
 
 export const placeB2BOrder = async (req, res) => {
     console.log('\n🚨 [B2B_ORDER_INCOMING] ----------------------------------------');
@@ -65,6 +65,7 @@ export const placeB2BOrder = async (req, res) => {
         for (const [sId, groupItems] of Object.entries(groups)) {
             // Find supplier user ObjectId by phone suffix matching
             let supplierObjectId = null;
+            let supplierApp = null;
             if (sId !== '-') {
                 const suffix = sId.split('-')[1];
                 if (suffix) {
@@ -74,7 +75,39 @@ export const placeB2BOrder = async (req, res) => {
                     });
                     if (supplierUser) {
                         supplierObjectId = supplierUser._id;
+                        const SupplierApplication = (await import('../models/SupplierApplication.js')).default;
+                        supplierApp = await SupplierApplication.findOne({ user: supplierObjectId });
                     }
+                }
+            }
+
+            let groupDeliveryDate = deliveryDate;
+            let groupDeliveryDay = deliveryDayName;
+            let groupCycleId = cycleId;
+
+            if (supplierApp && supplierApp.deliveryFrequency && supplierApp.deliveryFrequency.length > 0) {
+                const freq = supplierApp.deliveryFrequency;
+                const now = new Date();
+
+                if (freq.includes('Daily')) {
+                    // Delivery tomorrow
+                    groupDeliveryDate = new Date();
+                    groupDeliveryDate.setDate(now.getDate() + 1);
+                    groupDeliveryDate.setHours(23, 59, 59, 999);
+                    groupDeliveryDay = DAYS[groupDeliveryDate.getDay()];
+                    groupCycleId = generateCycleId(groupDeliveryDate);
+                } else if (freq.includes('Thrice a Week') || freq.includes('On-Demand')) {
+                    // Delivery in 2 days
+                    groupDeliveryDate = new Date();
+                    groupDeliveryDate.setDate(now.getDate() + 2);
+                    groupDeliveryDate.setHours(23, 59, 59, 999);
+                    groupDeliveryDay = DAYS[groupDeliveryDate.getDay()];
+                    groupCycleId = generateCycleId(groupDeliveryDate);
+                } else if (freq.includes('Weekly')) {
+                    // Delivery next global delivery day (Sunday)
+                    groupDeliveryDate = getNextDeliveryDate(deliveryDayName);
+                    groupDeliveryDay = deliveryDayName;
+                    groupCycleId = generateCycleId(groupDeliveryDate);
                 }
             }
 
@@ -84,7 +117,7 @@ export const placeB2BOrder = async (req, res) => {
             let order = await B2BOrder.findOne({
                 vendor: vendorId,
                 supplier: supplierObjectId,
-                cycleId: cycleId,
+                cycleId: groupCycleId,
                 status: 'Open'
             });
 
@@ -112,9 +145,9 @@ export const placeB2BOrder = async (req, res) => {
                     pincode,
                     city: city?.trim(),
                     status: 'Open',
-                    cycleId,
-                    deliveryDay: deliveryDayName,
-                    deliveryDate,
+                    cycleId: groupCycleId,
+                    deliveryDay: groupDeliveryDay,
+                    deliveryDate: groupDeliveryDate,
                     paymentStatus: 'Pending',
                     escrowStatus: 'Held'
                 });

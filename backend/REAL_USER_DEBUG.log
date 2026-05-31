@@ -33036,3 +33036,657 @@
 2026-05-29T08:38:07.232Z - 📡 [TRAFFIC] 2:08:07 pm | GET /api/services?isMaster=false&approvalStatus=Pending
 2026-05-29T08:38:10.002Z - 📡 [TRAFFIC] 2:08:10 pm | GET /api/admin/config
 2026-05-29T08:38:10.040Z - 📡 [TRAFFIC] 2:08:10 pm | GET /api/admin/config
+2026-05-29T09:33:32.958Z - 📡 [TRAFFIC] 3:03:32 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T09:33:32.961Z - 📡 [TRAFFIC] 3:03:32 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-29T09:33:32.965Z - 📡 [TRAFFIC] 3:03:32 pm | GET /api/admin/config
+2026-05-29T09:33:58.724Z - 📡 [TRAFFIC] 3:03:58 pm | GET /api/vendor-supply/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T09:34:57.941Z - 📡 [TRAFFIC] 3:04:57 pm | GET /api/vendor-supply/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T09:36:14.730Z - 📡 [TRAFFIC] 3:06:14 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T09:49:14.968Z - 📡 [TRAFFIC] 3:19:14 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T09:51:45.419Z - 📡 [TRAFFIC] 3:21:45 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T09:52:08.293Z - 📡 [TRAFFIC] 3:22:08 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-29T09:53:22.411Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-29T09:53:22.413Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-29T09:53:22.455Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-29T09:53:22.456Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-29T09:53:22.508Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-29T09:54:36.857Z - 🚀 SERVER RESTARTED AT 2026-05-29T09:54:36.857Z ON PORT 5001
+2026-05-29T09:55:00.920Z - 📡 [TRAFFIC] 3:25:00 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-29T09:55:01.119Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-29T09:55:01.122Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-29T09:55:01.166Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-29T09:55:01.167Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-29T09:55:01.207Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-29T10:33:32.016Z - SOCKET_JOIN - Client kXqhddo9WD--tlBnAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-29T10:33:32.020Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-29T10:33:32.024Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/admin/config
+2026-05-29T10:33:32.035Z - SOCKET_JOIN - Client kXqhddo9WD--tlBnAAAJ -> admins_pool
+2026-05-29T10:33:32.036Z - SOCKET_JOIN - Client kXqhddo9WD--tlBnAAAJ -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-29T10:33:32.036Z - SOCKET_JOIN - Client kXqhddo9WD--tlBnAAAJ -> admins_pool
+2026-05-29T10:33:32.066Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-29T10:33:32.072Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/admin/config
+2026-05-29T10:33:32.211Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-29T10:33:32.217Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-29T10:33:32.222Z - SOCKET_JOIN - Client dCYFxcCeSKzYXsV6AAAL -> vendors_pool
+2026-05-29T10:33:32.224Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/admin/config
+2026-05-29T10:33:32.251Z - SOCKET_JOIN - Client dCYFxcCeSKzYXsV6AAAL -> user_6a193fdc803aa37a203b26af
+2026-05-29T10:33:32.252Z - SOCKET_JOIN - Client dCYFxcCeSKzYXsV6AAAL -> vendors_pool
+2026-05-29T10:33:32.253Z - SOCKET_JOIN - Client dCYFxcCeSKzYXsV6AAAL -> user_6a193fdc803aa37a203b26af
+2026-05-29T10:33:32.268Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/admin/config
+2026-05-29T10:33:32.312Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.447Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.447Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.511Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.512Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.546Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-29T10:33:32.582Z - 📡 [TRAFFIC] 4:03:32 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.742Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.745Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.774Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.774Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-29T10:33:32.816Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-29T10:58:19.149Z - 📡 [TRAFFIC] 4:28:19 pm | GET /api/supplier/requests
+2026-05-29T10:58:19.247Z - 📡 [TRAFFIC] 4:28:19 pm | GET /api/supplier/requests
+2026-05-29T10:58:19.331Z - 📡 [TRAFFIC] 4:28:19 pm | GET /api/supplier/requests
+2026-05-29T10:58:19.402Z - 📡 [TRAFFIC] 4:28:19 pm | GET /api/supplier/requests
+2026-05-29T10:58:54.986Z - 📡 [TRAFFIC] 4:28:54 pm | GET /api/vendor-supply-categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T10:58:55.081Z - 📡 [TRAFFIC] 4:28:55 pm | GET /api/vendor-supply-categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T10:58:55.085Z - 📡 [TRAFFIC] 4:28:55 pm | GET /api/vendor-supply-categories
+2026-05-29T10:58:55.173Z - 📡 [TRAFFIC] 4:28:55 pm | GET /api/vendor-supply-categories
+2026-05-29T11:12:34.692Z - 📡 [TRAFFIC] 4:42:34 pm | GET /api/categories
+2026-05-29T11:12:34.695Z - 📡 [TRAFFIC] 4:42:34 pm | GET /api/master-services?page=1&limit=10
+2026-05-29T11:12:34.725Z - 📡 [TRAFFIC] 4:42:34 pm | GET /api/categories
+2026-05-29T11:12:34.807Z - 📡 [TRAFFIC] 4:42:34 pm | GET /api/master-services?page=1&limit=10
+2026-05-29T11:13:45.924Z - 📡 [TRAFFIC] 4:43:45 pm | GET /api/geofence/areas?
+2026-05-29T11:13:45.926Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-29T11:13:45.927Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-29T11:13:45.929Z - 📡 [TRAFFIC] 4:43:45 pm | GET /api/geofence/areas
+2026-05-29T11:13:45.931Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-29T11:13:45.931Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-29T11:13:45.977Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-29T11:13:45.982Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-29T11:13:45.986Z - 📡 [TRAFFIC] 4:43:45 pm | GET /api/geofence/areas
+2026-05-29T11:13:45.987Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-29T11:13:45.987Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-29T11:13:45.989Z - 📡 [TRAFFIC] 4:43:45 pm | GET /api/geofence/areas?
+2026-05-29T11:13:45.990Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-29T11:13:45.990Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-29T11:13:46.018Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-29T11:13:46.023Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-29T11:13:49.439Z - 📡 [TRAFFIC] 4:43:49 pm | GET /api/geofence/areas
+2026-05-29T11:13:49.441Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-29T11:13:49.441Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-29T11:13:49.479Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-29T11:13:49.482Z - 📡 [TRAFFIC] 4:43:49 pm | GET /api/geofence/areas
+2026-05-29T11:13:49.484Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-29T11:13:49.485Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-29T11:13:49.519Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-29T11:13:49.860Z - 📡 [TRAFFIC] 4:43:49 pm | GET /api/master-pricing?page=1&limit=10
+2026-05-29T11:17:47.528Z - 📡 [TRAFFIC] 4:47:47 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:17:47.608Z - 📡 [TRAFFIC] 4:47:47 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:17:47.611Z - 📡 [TRAFFIC] 4:47:47 pm | GET /api/categories
+2026-05-29T11:17:47.676Z - 📡 [TRAFFIC] 4:47:47 pm | GET /api/categories
+2026-05-29T11:19:26.053Z - 📡 [TRAFFIC] 4:49:26 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-29T11:19:26.056Z - SOCKET_JOIN - Client ElO53qL9jc9w7bgFAAAN -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-29T11:19:26.057Z - 📡 [TRAFFIC] 4:49:26 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:19:26.071Z - SOCKET_JOIN - Client ElO53qL9jc9w7bgFAAAN -> admins_pool
+2026-05-29T11:19:26.071Z - SOCKET_JOIN - Client ElO53qL9jc9w7bgFAAAN -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-29T11:19:26.072Z - SOCKET_JOIN - Client ElO53qL9jc9w7bgFAAAN -> admins_pool
+2026-05-29T11:19:26.124Z - 📡 [TRAFFIC] 4:49:26 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-29T11:19:26.158Z - 📡 [TRAFFIC] 4:49:26 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:19:26.203Z - 📡 [TRAFFIC] 4:49:26 pm | GET /api/categories
+2026-05-29T11:19:26.363Z - 📡 [TRAFFIC] 4:49:26 pm | GET /api/categories
+2026-05-29T11:19:48.425Z - 🚀 SERVER RESTARTED AT 2026-05-29T11:19:48.424Z ON PORT 5001
+2026-05-29T11:20:36.536Z - 📡 [TRAFFIC] 4:50:36 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-29T11:20:36.543Z - SOCKET_JOIN - Client ZfByNBcE2t-mSCLBAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-29T11:20:36.546Z - 📡 [TRAFFIC] 4:50:36 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:20:36.582Z - 📡 [TRAFFIC] 4:50:36 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-29T11:20:36.630Z - 📡 [TRAFFIC] 4:50:36 pm | GET /api/categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:20:36.680Z - SOCKET_JOIN - Client ZfByNBcE2t-mSCLBAAAH -> admins_pool
+2026-05-29T11:20:36.681Z - SOCKET_JOIN - Client ZfByNBcE2t-mSCLBAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-29T11:20:36.681Z - SOCKET_JOIN - Client ZfByNBcE2t-mSCLBAAAH -> admins_pool
+2026-05-29T11:20:36.690Z - 📡 [TRAFFIC] 4:50:36 pm | GET /api/categories
+2026-05-29T11:20:36.845Z - 📡 [TRAFFIC] 4:50:36 pm | GET /api/categories
+2026-05-29T11:23:39.138Z - 📡 [TRAFFIC] 4:53:39 pm | GET /api/categories
+2026-05-29T11:23:39.141Z - 📡 [TRAFFIC] 4:53:39 pm | GET /api/master-services?page=1&limit=10
+2026-05-29T11:23:39.177Z - 📡 [TRAFFIC] 4:53:39 pm | GET /api/categories
+2026-05-29T11:23:39.275Z - 📡 [TRAFFIC] 4:53:39 pm | GET /api/master-services?page=1&limit=10
+2026-05-29T11:23:46.914Z - 📡 [TRAFFIC] 4:53:46 pm | GET /api/vendor-supply-categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:23:46.998Z - 📡 [TRAFFIC] 4:53:46 pm | GET /api/vendor-supply-categories?page=1&limit=10&mainCategory=&subCategory=&isActive=
+2026-05-29T11:23:47.003Z - 📡 [TRAFFIC] 4:53:47 pm | GET /api/vendor-supply-categories
+2026-05-29T11:23:47.085Z - 📡 [TRAFFIC] 4:53:47 pm | GET /api/vendor-supply-categories
+2026-05-29T11:23:53.150Z - 📡 [TRAFFIC] 4:53:53 pm | GET /api/vendor-supply-categories
+2026-05-29T11:23:53.153Z - 📡 [TRAFFIC] 4:53:53 pm | GET /api/vendor-master-supplies?page=1&limit=10&materialName=&categoryId=&isActive=&isTemplate=y
+2026-05-29T11:23:53.195Z - 📡 [TRAFFIC] 4:53:53 pm | GET /api/vendor-supply-categories
+[CONTROLLER_DEBUG] 2026-05-29T11:23:53.259Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-29T11:23:53.260Z - supplyObj details: ID=6a17e5dc8001b5f53d7e9ba0, supplierId=-, supplierFacilityName=-
+2026-05-29T11:23:53.264Z - 📡 [TRAFFIC] 4:53:53 pm | GET /api/vendor-master-supplies?page=1&limit=10&materialName=&categoryId=&isActive=&isTemplate=y
+[CONTROLLER_DEBUG] 2026-05-29T11:23:53.369Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-29T11:23:53.370Z - supplyObj details: ID=6a17e5dc8001b5f53d7e9ba0, supplierId=-, supplierFacilityName=-
+2026-05-29T11:24:00.046Z - 📡 [TRAFFIC] 4:54:00 pm | GET /api/vendor-supply-categories
+2026-05-29T11:24:00.048Z - 📡 [TRAFFIC] 4:54:00 pm | GET /api/vendor-master-supplies?page=1&limit=10&materialName=&categoryId=&isActive=&isTemplate=n
+2026-05-29T11:24:00.086Z - 📡 [TRAFFIC] 4:54:00 pm | GET /api/vendor-supply-categories
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.165Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.166Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.208Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.210Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.257Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-29T11:24:00.260Z - 📡 [TRAFFIC] 4:54:00 pm | GET /api/vendor-master-supplies?page=1&limit=10&materialName=&categoryId=&isActive=&isTemplate=n
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.383Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.384Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.423Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.425Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-29T11:24:00.464Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-29T11:30:02.308Z - 📡 [TRAFFIC] 5:00:02 pm | GET /api/supplier-service-zones?page=1&limit=10&zoneName=&isActive=
+2026-05-29T11:30:02.311Z - 📡 [TRAFFIC] 5:00:02 pm | GET /api/admin/suppliers
+2026-05-29T11:30:02.359Z - 📡 [TRAFFIC] 5:00:02 pm | GET /api/admin/suppliers
+2026-05-29T11:30:02.401Z - 📡 [TRAFFIC] 5:00:02 pm | GET /api/supplier-service-zones?page=1&limit=10&zoneName=&isActive=
+2026-05-29T11:46:39.776Z - 🚀 SERVER RESTARTED AT 2026-05-29T11:46:39.775Z ON PORT 5001
+2026-05-30T11:44:06.833Z - 🚀 SERVER RESTARTED AT 2026-05-30T11:44:06.830Z ON PORT 5001
+2026-05-30T11:44:30.784Z - 📡 [TRAFFIC] 5:14:30 pm | POST /api/auth/request-otp
+2026-05-30T11:44:33.104Z - 📡 [TRAFFIC] 5:14:33 pm | POST /api/auth/verify-otp
+2026-05-30T11:44:34.760Z - 📡 [TRAFFIC] 5:14:34 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-30T11:44:34.784Z - SOCKET_JOIN - Client 1_zDuCEVW_b5hRhAAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-30T11:44:34.789Z - 📡 [TRAFFIC] 5:14:34 pm | GET /api/admin/config
+2026-05-30T11:44:34.816Z - 📡 [TRAFFIC] 5:14:34 pm | GET /api/categories?isActive=true
+2026-05-30T11:44:34.843Z - 📡 [TRAFFIC] 5:14:34 pm | GET /api/categories
+2026-05-30T11:44:34.868Z - SOCKET_JOIN - Client 1_zDuCEVW_b5hRhAAAAD -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-30T11:44:34.894Z - 📡 [TRAFFIC] 5:14:34 pm | POST /api/auth/update-fcm-token
+2026-05-30T11:44:34.978Z - 📡 [TRAFFIC] 5:14:34 pm | POST /api/auth/update-fcm-token
+2026-05-30T11:44:35.115Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/auth/cart/69f1d2bc2c76f5ab4ec82160
+2026-05-30T11:44:35.273Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/categories
+2026-05-30T11:44:35.285Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/categories?isActive=true
+2026-05-30T11:44:35.311Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T11:44:35.327Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T11:44:35.380Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/admin/config
+2026-05-30T11:44:35.387Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-30T11:44:35.470Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T11:44:35.491Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T11:44:35.522Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/auth/profile/69f1d2bc2c76f5ab4ec82160
+2026-05-30T11:44:35.531Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T11:44:35.693Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T11:44:35.879Z - 📡 [TRAFFIC] 5:14:35 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T11:44:36.062Z - 📡 [TRAFFIC] 5:14:36 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T11:44:36.311Z - 📡 [TRAFFIC] 5:14:36 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T11:44:36.416Z - 📡 [TRAFFIC] 5:14:36 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T11:45:39.180Z - 📡 [TRAFFIC] 5:15:39 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T11:45:39.190Z - SOCKET_JOIN - Client 5kF_R7xan_7mWvXPAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T11:45:39.193Z - 📡 [TRAFFIC] 5:15:39 pm | GET /api/faqs
+2026-05-30T11:45:39.211Z - SOCKET_JOIN - Client 5kF_R7xan_7mWvXPAAAF -> admins_pool
+2026-05-30T11:45:39.216Z - SOCKET_JOIN - Client 5kF_R7xan_7mWvXPAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T11:45:39.220Z - SOCKET_JOIN - Client 5kF_R7xan_7mWvXPAAAF -> admins_pool
+2026-05-30T11:45:39.246Z - 📡 [TRAFFIC] 5:15:39 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T11:45:39.292Z - 📡 [TRAFFIC] 5:15:39 pm | GET /api/faqs
+2026-05-30T11:50:28.920Z - 📡 [TRAFFIC] 5:20:28 pm | GET /api/master-services
+2026-05-30T11:50:28.927Z - 📡 [TRAFFIC] 5:20:28 pm | GET /api/admin/users
+2026-05-30T11:50:29.042Z - 📡 [TRAFFIC] 5:20:29 pm | GET /api/master-services
+2026-05-30T11:50:29.081Z - 📡 [TRAFFIC] 5:20:29 pm | GET /api/admin/users
+2026-05-30T11:50:41.603Z - 📡 [TRAFFIC] 5:20:41 pm | POST /api/auth/request-otp
+2026-05-30T11:50:43.477Z - 📡 [TRAFFIC] 5:20:43 pm | POST /api/auth/verify-otp
+2026-05-30T11:50:45.238Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/orders/vendor?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.248Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/auth/vendor-earnings?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.256Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/auth/vendor-payouts/6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.263Z - SOCKET_JOIN - Client jrxvMDf55KYIecaQAAAH -> vendors_pool
+2026-05-30T11:50:45.282Z - SOCKET_JOIN - Client jrxvMDf55KYIecaQAAAH -> user_6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.284Z - SOCKET_JOIN - Client jrxvMDf55KYIecaQAAAH -> vendors_pool
+2026-05-30T11:50:45.285Z - SOCKET_JOIN - Client jrxvMDf55KYIecaQAAAH -> user_6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.300Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/orders/vendor?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.322Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/auth/vendor-payouts/6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.352Z - 📡 [TRAFFIC] 5:20:45 pm | POST /api/auth/update-fcm-token
+2026-05-30T11:50:45.380Z - 📡 [TRAFFIC] 5:20:45 pm | POST /api/auth/update-fcm-token
+2026-05-30T11:50:45.398Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/auth/vendor-earnings?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.489Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/orders/pool?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:45.498Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/notifications?userId=6a193fdc803aa37a203b26af&role=vendor
+2026-05-30T11:50:45.586Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/notifications?userId=6a193fdc803aa37a203b26af&role=vendor
+2026-05-30T11:50:45.664Z - 📡 [TRAFFIC] 5:20:45 pm | GET /api/orders/pool?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:53.984Z - 📡 [TRAFFIC] 5:20:53 pm | GET /api/jobs/vendor?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:53.990Z - 📡 [TRAFFIC] 5:20:53 pm | GET /api/jobs/vendor/6a193fdc803aa37a203b26af/applications
+2026-05-30T11:50:54.044Z - 📡 [TRAFFIC] 5:20:54 pm | GET /api/jobs/vendor?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:54.060Z - 📡 [TRAFFIC] 5:20:54 pm | GET /api/jobs/vendor/6a193fdc803aa37a203b26af/applications
+2026-05-30T11:50:57.752Z - 📡 [TRAFFIC] 5:20:57 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T11:50:57.763Z - 📡 [TRAFFIC] 5:20:57 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T11:50:57.777Z - 📡 [TRAFFIC] 5:20:57 pm | GET /api/admin/config
+2026-05-30T11:50:57.820Z - 📡 [TRAFFIC] 5:20:57 pm | GET /api/admin/config
+2026-05-30T11:50:57.868Z - 📡 [TRAFFIC] 5:20:57 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.009Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.011Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.061Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.062Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.113Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T11:50:58.196Z - 📡 [TRAFFIC] 5:20:58 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.473Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.476Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.526Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.528Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T11:50:58.580Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T12:33:21.814Z - 📡 [TRAFFIC] 6:03:21 pm | GET /api/materials
+2026-05-30T12:33:21.868Z - 📡 [TRAFFIC] 6:03:21 pm | GET /api/materials
+2026-05-30T16:37:50.406Z - 📡 [TRAFFIC] 10:07:50 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T16:37:50.427Z - 📡 [TRAFFIC] 10:07:50 pm | GET /api/materials
+2026-05-30T16:37:50.434Z - SOCKET_JOIN - Client 2GUy3AILZ1c4v9T2AAAM -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T16:37:50.454Z - SOCKET_JOIN - Client 3qkRcpziI3jsAD_VAAAN -> vendors_pool
+2026-05-30T16:37:51.270Z - SOCKET_JOIN - Client 2GUy3AILZ1c4v9T2AAAM -> admins_pool
+2026-05-30T16:37:51.272Z - SOCKET_JOIN - Client 2GUy3AILZ1c4v9T2AAAM -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T16:37:51.274Z - SOCKET_JOIN - Client 2GUy3AILZ1c4v9T2AAAM -> admins_pool
+2026-05-30T16:37:55.571Z - 📡 [TRAFFIC] 10:07:55 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T16:37:55.580Z - 📡 [TRAFFIC] 10:07:55 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T16:37:55.585Z - 📡 [TRAFFIC] 10:07:55 pm | GET /api/admin/config
+2026-05-30T16:37:55.591Z - SOCKET_JOIN - Client 0BW2U_eWHlEV27XtAAAP -> vendors_pool
+2026-05-30T16:37:55.593Z - SOCKET_JOIN - Client 0BW2U_eWHlEV27XtAAAP -> user_6a193fdc803aa37a203b26af
+2026-05-30T16:37:55.594Z - SOCKET_JOIN - Client 0BW2U_eWHlEV27XtAAAP -> vendors_pool
+2026-05-30T16:37:55.596Z - SOCKET_JOIN - Client 0BW2U_eWHlEV27XtAAAP -> user_6a193fdc803aa37a203b26af
+2026-05-30T16:37:56.032Z - 📡 [TRAFFIC] 10:07:56 pm | GET /api/materials
+2026-05-30T16:37:56.053Z - 📡 [TRAFFIC] 10:07:56 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T16:37:56.089Z - 📡 [TRAFFIC] 10:07:56 pm | GET /api/admin/config
+2026-05-30T16:37:56.648Z - 📡 [TRAFFIC] 10:07:56 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T16:37:57.886Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-30T16:37:57.888Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T16:37:58.009Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T16:37:58.010Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T16:37:58.096Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T16:37:58.924Z - 📡 [TRAFFIC] 10:07:58 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T16:37:59.463Z - populateDeliveryFrequencies processing 2 items
+[CONTROLLER_DEBUG] 2026-05-30T16:37:59.464Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T16:37:59.543Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T16:37:59.544Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T16:37:59.609Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:15:00.733Z - SOCKET_JOIN - Client TZf_1Cw3U1nIRXfpAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-30T17:15:00.758Z - SOCKET_JOIN - Client TZf_1Cw3U1nIRXfpAAAR -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-30T17:15:04.254Z - SOCKET_JOIN - Client mDCfW3zD80lOKSQAAAAT -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-30T17:15:04.273Z - SOCKET_JOIN - Client mDCfW3zD80lOKSQAAAAT -> user_69f1d2bc2c76f5ab4ec82160
+2026-05-30T17:15:11.063Z - 📡 [TRAFFIC] 10:45:11 pm | POST /api/auth/request-otp
+2026-05-30T17:15:13.124Z - 📡 [TRAFFIC] 10:45:13 pm | POST /api/auth/verify-otp
+2026-05-30T17:15:14.018Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:15:14.023Z - SOCKET_JOIN - Client s1OF2pttSIRxCVmjAAAV -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:15:14.025Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/categories?isActive=true
+2026-05-30T17:15:14.029Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/categories
+2026-05-30T17:15:14.036Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/admin/config
+2026-05-30T17:15:14.043Z - SOCKET_JOIN - Client s1OF2pttSIRxCVmjAAAV -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:15:14.118Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:15:14.124Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:15:14.218Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/admin/config
+2026-05-30T17:15:14.222Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/auth/profile/6a1b12cad7adf03d86736353
+2026-05-30T17:15:14.388Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:15:14.566Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/auth/profile/6a1b12cad7adf03d86736353
+2026-05-30T17:15:14.647Z - 📡 [TRAFFIC] 10:45:14 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:15:15.272Z - 📡 [TRAFFIC] 10:45:15 pm | POST /api/auth/update-fcm-token
+2026-05-30T17:15:15.276Z - 📡 [TRAFFIC] 10:45:15 pm | POST /api/auth/update-fcm-token
+2026-05-30T17:15:15.430Z - 📡 [TRAFFIC] 10:45:15 pm | GET /api/categories?isActive=true
+2026-05-30T17:15:15.487Z - 📡 [TRAFFIC] 10:45:15 pm | GET /api/categories
+2026-05-30T17:15:15.502Z - 📡 [TRAFFIC] 10:45:15 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T17:15:15.504Z - 📡 [TRAFFIC] 10:45:15 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T17:15:15.689Z - 📡 [TRAFFIC] 10:45:15 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T17:15:16.242Z - 📡 [TRAFFIC] 10:45:16 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T17:15:16.319Z - 📡 [TRAFFIC] 10:45:16 pm | POST /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:15:19.596Z - 📡 [TRAFFIC] 10:45:19 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:15:19.599Z - 📡 [TRAFFIC] 10:45:19 pm | GET /api/geofence/public/areas
+2026-05-30T17:15:19.600Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-30T17:15:19.600Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-30T17:15:19.682Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-30T17:15:19.688Z - 📡 [TRAFFIC] 10:45:19 pm | GET /api/geofence/public/areas
+2026-05-30T17:15:19.688Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-30T17:15:19.689Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-30T17:15:19.690Z - 📡 [TRAFFIC] 10:45:19 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:15:19.799Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-30T17:15:59.021Z - 📡 [TRAFFIC] 10:45:59 pm | POST /api/supplier/verify-gst
+2026-05-30T17:16:12.920Z - 📡 [TRAFFIC] 10:46:12 pm | POST /api/media/upload
+2026-05-30T17:16:18.498Z - 📡 [TRAFFIC] 10:46:18 pm | POST /api/media/upload
+2026-05-30T17:16:25.996Z - 📡 [TRAFFIC] 10:46:25 pm | POST /api/media/upload
+2026-05-30T17:16:49.402Z - 📡 [TRAFFIC] 10:46:49 pm | POST /api/media/upload
+2026-05-30T17:17:01.031Z - 📡 [TRAFFIC] 10:47:01 pm | POST /api/media/upload
+2026-05-30T17:17:07.579Z - 📡 [TRAFFIC] 10:47:07 pm | POST /api/media/upload
+2026-05-30T17:17:37.135Z - 📡 [TRAFFIC] 10:47:37 pm | POST /api/supplier/initiate-bank-verify
+2026-05-30T17:17:48.711Z - 📡 [TRAFFIC] 10:47:48 pm | POST /api/supplier/complete-bank-verify
+2026-05-30T17:17:55.720Z - 📡 [TRAFFIC] 10:47:55 pm | POST /api/media/upload
+2026-05-30T17:18:01.141Z - 📡 [TRAFFIC] 10:48:01 pm | POST /api/media/upload
+2026-05-30T17:18:04.783Z - 📡 [TRAFFIC] 10:48:04 pm | POST /api/supplier/apply/6a1b12cad7adf03d86736353
+2026-05-30T17:18:07.009Z - 📡 [TRAFFIC] 10:48:07 pm | GET /api/ads/active
+2026-05-30T17:18:07.121Z - 📡 [TRAFFIC] 10:48:07 pm | GET /api/ads/active
+2026-05-30T17:18:09.068Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:18:09.073Z - SOCKET_JOIN - Client s1OF2pttSIRxCVmjAAAV -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:18:09.076Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/categories
+2026-05-30T17:18:09.079Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/categories?isActive=true
+2026-05-30T17:18:09.081Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/admin/config
+2026-05-30T17:18:09.082Z - SOCKET_JOIN - Client s1OF2pttSIRxCVmjAAAV -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:18:09.093Z - 📡 [TRAFFIC] 10:48:09 pm | POST /api/auth/update-fcm-token
+2026-05-30T17:18:09.097Z - 📡 [TRAFFIC] 10:48:09 pm | POST /api/auth/update-fcm-token
+2026-05-30T17:18:09.162Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:18:09.176Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:18:09.178Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/admin/config
+2026-05-30T17:18:09.180Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/categories?isActive=true
+2026-05-30T17:18:09.243Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/categories
+2026-05-30T17:18:09.259Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/auth/profile/6a1b12cad7adf03d86736353
+2026-05-30T17:18:09.261Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T17:18:09.264Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T17:18:09.361Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/auth/profile/6a1b12cad7adf03d86736353
+2026-05-30T17:18:09.432Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T17:18:09.439Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T17:18:09.643Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:18:09.837Z - 📡 [TRAFFIC] 10:48:09 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:18:11.257Z - 📡 [TRAFFIC] 10:48:11 pm | POST /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:18:18.781Z - 📡 [TRAFFIC] 10:48:18 pm | GET /api/supplier/requests
+2026-05-30T17:18:19.038Z - 📡 [TRAFFIC] 10:48:19 pm | GET /api/supplier/requests
+2026-05-30T17:18:19.212Z - 📡 [TRAFFIC] 10:48:19 pm | GET /api/supplier/requests
+2026-05-30T17:18:19.398Z - 📡 [TRAFFIC] 10:48:19 pm | GET /api/supplier/requests
+2026-05-30T17:18:21.215Z - 📡 [TRAFFIC] 10:48:21 pm | GET /api/supplier/requests/6a1b1bcc3333566011c8a3b7
+2026-05-30T17:18:21.365Z - 📡 [TRAFFIC] 10:48:21 pm | GET /api/supplier/requests/6a1b1bcc3333566011c8a3b7
+2026-05-30T17:18:25.520Z - 📡 [TRAFFIC] 10:48:25 pm | PATCH /api/supplier/requests/6a1b1bcc3333566011c8a3b7/approve-initial
+2026-05-30T17:18:25.824Z - 📡 [TRAFFIC] 10:48:25 pm | GET /api/supplier/requests/6a1b1bcc3333566011c8a3b7
+2026-05-30T17:18:33.014Z - 📡 [TRAFFIC] 10:48:33 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:18:33.017Z - 📡 [TRAFFIC] 10:48:33 pm | GET /api/geofence/public/areas
+2026-05-30T17:18:33.017Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-30T17:18:33.017Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-30T17:18:33.117Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-30T17:18:33.123Z - 📡 [TRAFFIC] 10:48:33 pm | GET /api/geofence/public/areas
+2026-05-30T17:18:33.124Z - [DEBUG_GEOFENCE] req.query: {}
+2026-05-30T17:18:33.124Z - [DEBUG_GEOFENCE] Built Mongoose query: {}
+2026-05-30T17:18:33.127Z - 📡 [TRAFFIC] 10:48:33 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:18:33.286Z - [DEBUG_GEOFENCE] Fetched 8 areas. Data: [{"boundary":{"type":"Polygon","coordinates":[[[75.86943029893159,22.718273754864324],[75.87436556351899,22.718907125489103],[75.87586760056733,22.715878795690994],[75.8696663333249,22.715581897005876],[75.86943029893159,22.718273754864324]]]},"_id":"6a13ef19113e052b321253b0","areaName":"New Zone 44","city":"Nashik","multiplier":1,"isActive":true,"color":"#84cc16","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":8,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:41:29.963Z","updatedAt":"2026-05-25T06:41:29.963Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.8870039710225,22.715825956944904],[75.89142425147904,22.716300993684822],[75.89206798164261,22.71321322540378],[75.88751895515335,22.712579828428574],[75.8870039710225,22.715825956944904]]]},"_id":"6a13e748ab19808af1a3868b","areaName":"New Zone 3","city":"Nashik","multiplier":1,"isActive":true,"color":"#ec4899","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":7,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T06:08:08.125Z","updatedAt":"2026-05-25T06:08:08.125Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85088393399595,22.70078566322191],[75.87268492886899,22.70466550789821],[75.87826392361997,22.690808415120735],[75.85431716153501,22.689699787148513],[75.85088393399595,22.70078566322191]]]},"_id":"6a13e30cab19808af1a38638","areaName":"New Zone","city":"Nashik","multiplier":1,"isActive":true,"color":"#06b6d4","minimumOrderValue":0,"pincodes":["452014","452007","452001"],"excelFenceId":6,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-25T05:50:04.297Z","updatedAt":"2026-05-25T05:50:04.297Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[77.40588323917629,23.203526168225903],[77.43008749332668,23.204867256442032],[77.43180410709621,23.192402506195993],[77.40845815983059,23.190351233416795],[77.40588323917629,23.203526168225903]]]},"_id":"6a12eedc1ee2f63e383cff0f","areaName":"chunna bhatti","city":"Nashik","multiplier":1,"isActive":true,"color":"#8b5cf6","minimumOrderValue":0,"pincodes":["462039","462016","462042"],"excelFenceId":5,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T12:28:12.665Z","updatedAt":"2026-05-24T12:28:12.665Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[73.75648099192902,20.01063625882808],[73.77862530955598,20.012249230832676],[73.77811032542512,20.002732456986568],[73.75613766917512,20.00208723114793],[73.75648099192902,20.01063625882808]]]},"_id":"6a129a466fad3db9377d926a","areaName":"caneda","city":"Nashik","multiplier":1,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["422005","422003","422002"],"excelFenceId":4,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T06:27:18.205Z","updatedAt":"2026-05-24T06:27:18.205Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.89859419427891,22.695053037925234],[75.90940886102696,22.69608243826353],[75.91009550653477,22.68911403879635],[75.89988165460606,22.68879728494595],[75.89859419427891,22.695053037925234]]]},"_id":"6a128d71a941f857b7b13a40","areaName":"mushakhedi zone","city":"indore","multiplier":1.4,"isActive":true,"color":"#ef4444","minimumOrderValue":0,"pincodes":["452001"],"excelFenceId":3,"dynamicSurgeMultiplier":1,"basePriceMultiplier":1.4,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":true,"createdAt":"2026-05-24T05:32:33.028Z","updatedAt":"2026-05-24T05:32:33.028Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.85950160854162,22.72448738181576],[75.87117458217443,22.725120723677907],[75.87151790492834,22.719103857611685],[75.8610465609342,22.718324534134517],[75.85950160854162,22.72448738181576]]]},"_id":"6a0ed14f456312fd4a1688da","areaName":"siyagunj","city":"Indore","multiplier":1.1,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452003","452007","452001"],"excelFenceId":2,"dynamicSurgeMultiplier":1.2,"basePriceMultiplier":1.1,"discountPriceMultiplier":1,"heritageMultiplier":1,"platformMultiplier":1,"freeDeliveryThreshold":500,"allowDiscount":false,"createdAt":"2026-05-21T09:33:03.629Z","updatedAt":"2026-05-21T09:33:03.629Z","__v":0},{"boundary":{"type":"Polygon","coordinates":[[[75.88269917884405,22.726621516000847],[75.88548867621954,22.72677984927115],[75.88647572913702,22.723415227847344],[75.8823129407459,22.723177722031846],[75.88269917884405,22.726621516000847]]]},"_id":"6a0acb6ee9203efb8903a755","areaName":"palasiya zone","city":"Nashik","multiplier":1.5,"isActive":true,"color":"#3b82f6","minimumOrderValue":0,"pincodes":["452001","452003"],"excelFenceId":1,"dynamicSurgeMultiplier":1.5,"basePriceMultiplier":1.5,"discountPriceMultiplier":1,"heritageMultiplier":1.5,"platformMultiplier":1,"freeDeliveryThreshold":500,"createdAt":"2026-05-18T08:18:54.245Z","updatedAt":"2026-05-20T11:06:14.801Z","__v":0,"allowDiscount":false}]
+2026-05-30T17:18:35.401Z - 📡 [TRAFFIC] 10:48:35 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:18:35.516Z - 📡 [TRAFFIC] 10:48:35 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:18:35.518Z - 📡 [TRAFFIC] 10:48:35 pm | GET /api/vendor-master-supplies?isActive=y&isTemplate=y
+[CONTROLLER_DEBUG] 2026-05-30T17:18:35.675Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:18:35.676Z - supplyObj details: ID=6a17e5dc8001b5f53d7e9ba0, supplierId=-, supplierFacilityName=-
+2026-05-30T17:18:35.679Z - 📡 [TRAFFIC] 10:48:35 pm | GET /api/vendor-master-supplies?isActive=y&isTemplate=y
+[CONTROLLER_DEBUG] 2026-05-30T17:18:35.854Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:18:35.855Z - supplyObj details: ID=6a17e5dc8001b5f53d7e9ba0, supplierId=-, supplierFacilityName=-
+2026-05-30T17:31:36.425Z - 🚀 SERVER RESTARTED AT 2026-05-30T17:31:36.424Z ON PORT 5001
+2026-05-30T17:31:47.792Z - 📡 [TRAFFIC] 11:01:47 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:31:47.802Z - SOCKET_JOIN - Client 3ykbQfm6fOw8k2QKAAAF -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:31:47.851Z - 📡 [TRAFFIC] 11:01:47 pm | GET /api/supplier/my-status/6a1b12cad7adf03d86736353
+2026-05-30T17:31:47.858Z - 📡 [TRAFFIC] 11:01:47 pm | GET /api/vendor-master-supplies?isActive=y&isTemplate=y
+2026-05-30T17:31:47.909Z - SOCKET_JOIN - Client 3ykbQfm6fOw8k2QKAAAF -> user_6a1b12cad7adf03d86736353
+[CONTROLLER_DEBUG] 2026-05-30T17:31:47.988Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:31:47.989Z - supplyObj details: ID=6a17e5dc8001b5f53d7e9ba0, supplierId=-, supplierFacilityName=-
+2026-05-30T17:31:47.992Z - 📡 [TRAFFIC] 11:01:47 pm | GET /api/vendor-master-supplies?isActive=y&isTemplate=y
+[CONTROLLER_DEBUG] 2026-05-30T17:31:48.096Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:31:48.097Z - supplyObj details: ID=6a17e5dc8001b5f53d7e9ba0, supplierId=-, supplierFacilityName=-
+2026-05-30T17:34:46.047Z - 📡 [TRAFFIC] 11:04:46 pm | POST /api/media/upload
+2026-05-30T17:34:54.293Z - 📡 [TRAFFIC] 11:04:54 pm | POST /api/media/upload
+2026-05-30T17:35:03.553Z - 📡 [TRAFFIC] 11:05:03 pm | POST /api/media/upload
+2026-05-30T17:35:27.150Z - 📡 [TRAFFIC] 11:05:27 pm | POST /api/supplier/select-products
+2026-05-30T17:35:27.321Z - 📡 [TRAFFIC] 11:05:27 pm | GET /api/ads/active
+2026-05-30T17:35:27.388Z - 📡 [TRAFFIC] 11:05:27 pm | GET /api/ads/active
+2026-05-30T17:35:30.899Z - 📡 [TRAFFIC] 11:05:30 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T17:35:30.906Z - SOCKET_JOIN - Client -CJa6Txvr80BM4idAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T17:35:30.912Z - 📡 [TRAFFIC] 11:05:30 pm | GET /api/supplier/requests/6a1b1bcc3333566011c8a3b7
+2026-05-30T17:35:30.928Z - SOCKET_JOIN - Client -CJa6Txvr80BM4idAAAH -> admins_pool
+2026-05-30T17:35:30.932Z - SOCKET_JOIN - Client -CJa6Txvr80BM4idAAAH -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T17:35:30.933Z - SOCKET_JOIN - Client -CJa6Txvr80BM4idAAAH -> admins_pool
+2026-05-30T17:35:30.994Z - 📡 [TRAFFIC] 11:05:30 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T17:35:31.058Z - 📡 [TRAFFIC] 11:05:31 pm | GET /api/supplier/requests/6a1b1bcc3333566011c8a3b7
+2026-05-30T17:35:32.859Z - 📡 [TRAFFIC] 11:05:32 pm | PATCH /api/supplier/requests/6a1b1bcc3333566011c8a3b7/approve-final
+2026-05-30T17:35:33.599Z - 📡 [TRAFFIC] 11:05:33 pm | GET /api/supplier/requests
+2026-05-30T17:35:33.805Z - 📡 [TRAFFIC] 11:05:33 pm | GET /api/supplier/requests
+2026-05-30T17:35:33.928Z - 📡 [TRAFFIC] 11:05:33 pm | GET /api/supplier/requests
+2026-05-30T17:35:34.051Z - 📡 [TRAFFIC] 11:05:34 pm | GET /api/supplier/requests
+2026-05-30T17:35:37.064Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:35:37.071Z - SOCKET_JOIN - Client 3ykbQfm6fOw8k2QKAAAF -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:35:37.072Z - SOCKET_JOIN - Client 3ykbQfm6fOw8k2QKAAAF -> user_6a1b12cad7adf03d86736353
+2026-05-30T17:35:37.075Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/categories
+2026-05-30T17:35:37.078Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/categories?isActive=true
+2026-05-30T17:35:37.081Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/admin/config
+2026-05-30T17:35:37.090Z - 📡 [TRAFFIC] 11:05:37 pm | POST /api/auth/update-fcm-token
+2026-05-30T17:35:37.094Z - 📡 [TRAFFIC] 11:05:37 pm | POST /api/auth/update-fcm-token
+2026-05-30T17:35:37.129Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/categories
+2026-05-30T17:35:37.136Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T17:35:37.140Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T17:35:37.151Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/auth/cart/6a1b12cad7adf03d86736353
+2026-05-30T17:35:37.160Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/categories?isActive=true
+2026-05-30T17:35:37.162Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:35:37.188Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/admin/config
+2026-05-30T17:35:37.207Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/auth/profile/6a1b12cad7adf03d86736353
+2026-05-30T17:35:37.248Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/master-services?serviceType=individual&activeOnly=true
+2026-05-30T17:35:37.254Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/services?approvedOnly=true&serviceType=individual
+2026-05-30T17:35:37.292Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/auth/profile/6a1b12cad7adf03d86736353
+2026-05-30T17:35:37.767Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:35:37.910Z - 📡 [TRAFFIC] 11:05:37 pm | GET /api/geofence/check-availability?lat=22.69484&lng=75.86755649999999
+2026-05-30T17:36:06.132Z - 📡 [TRAFFIC] 11:06:06 pm | POST /api/auth/request-otp
+2026-05-30T17:36:08.265Z - 📡 [TRAFFIC] 11:06:08 pm | POST /api/auth/verify-otp
+2026-05-30T17:36:31.195Z - 📡 [TRAFFIC] 11:06:31 pm | GET /api/b2b-orders/supplier/6a1b12cad7adf03d86736353
+2026-05-30T17:36:31.198Z - 📡 [TRAFFIC] 11:06:31 pm | GET /api/b2b-orders/timeline
+2026-05-30T17:36:31.294Z - 📡 [TRAFFIC] 11:06:31 pm | GET /api/b2b-orders/timeline
+2026-05-30T17:36:31.450Z - 📡 [TRAFFIC] 11:06:31 pm | GET /api/b2b-orders/supplier/6a1b12cad7adf03d86736353
+2026-05-30T17:36:34.057Z - 📡 [TRAFFIC] 11:06:34 pm | GET /api/vendor-master-supplies?supplierId=SUP-5555
+[CONTROLLER_DEBUG] 2026-05-30T17:36:34.163Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:36:34.164Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:34.214Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+2026-05-30T17:36:34.216Z - 📡 [TRAFFIC] 11:06:34 pm | GET /api/vendor-master-supplies?supplierId=SUP-5555
+[CONTROLLER_DEBUG] 2026-05-30T17:36:34.332Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:36:34.332Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:34.394Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+2026-05-30T17:36:44.996Z - 📡 [TRAFFIC] 11:06:44 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:36:45.000Z - 📡 [TRAFFIC] 11:06:45 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:36:45.006Z - SOCKET_JOIN - Client fePDRopXOx7Z0nK3AAAL -> vendors_pool
+2026-05-30T17:36:45.009Z - 📡 [TRAFFIC] 11:06:45 pm | GET /api/admin/config
+2026-05-30T17:36:45.036Z - SOCKET_JOIN - Client fePDRopXOx7Z0nK3AAAL -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:36:45.037Z - SOCKET_JOIN - Client fePDRopXOx7Z0nK3AAAL -> vendors_pool
+2026-05-30T17:36:45.038Z - SOCKET_JOIN - Client fePDRopXOx7Z0nK3AAAL -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:36:45.147Z - 📡 [TRAFFIC] 11:06:45 pm | GET /api/admin/config
+2026-05-30T17:36:45.186Z - 📡 [TRAFFIC] 11:06:45 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.362Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.363Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.418Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.419Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.486Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.486Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.533Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:36:45.607Z - 📡 [TRAFFIC] 11:06:45 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.899Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.899Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.972Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:36:45.973Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:46.027Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:36:46.028Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:36:46.095Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:07.957Z - 📡 [TRAFFIC] 11:09:07 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:39:07.962Z - 📡 [TRAFFIC] 11:09:07 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:39:07.966Z - SOCKET_JOIN - Client fduAvPSJuuPFgrk_AAAN -> vendors_pool
+2026-05-30T17:39:07.968Z - 📡 [TRAFFIC] 11:09:07 pm | GET /api/admin/config
+2026-05-30T17:39:07.992Z - SOCKET_JOIN - Client fduAvPSJuuPFgrk_AAAN -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:39:07.992Z - SOCKET_JOIN - Client fduAvPSJuuPFgrk_AAAN -> vendors_pool
+2026-05-30T17:39:07.993Z - SOCKET_JOIN - Client fduAvPSJuuPFgrk_AAAN -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:39:08.022Z - 📡 [TRAFFIC] 11:09:08 pm | GET /api/admin/config
+2026-05-30T17:39:08.079Z - 📡 [TRAFFIC] 11:09:08 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.267Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.267Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.333Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.334Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.403Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.404Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:08.743Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:08.823Z - 📡 [TRAFFIC] 11:09:08 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.089Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.090Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.147Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.148Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.207Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.208Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:09.261Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:26.890Z - 📡 [TRAFFIC] 11:09:26 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:39:26.894Z - 📡 [TRAFFIC] 11:09:26 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:39:26.896Z - 📡 [TRAFFIC] 11:09:26 pm | GET /api/admin/config
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.192Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.193Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.269Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.270Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.323Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.324Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:27.387Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:33.459Z - SOCKET_JOIN - Client WsdpibOcZRq6DICBAAAP -> vendors_pool
+2026-05-30T17:39:33.461Z - 📡 [TRAFFIC] 11:09:33 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:39:33.465Z - 📡 [TRAFFIC] 11:09:33 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:39:33.470Z - 📡 [TRAFFIC] 11:09:33 pm | GET /api/admin/config
+2026-05-30T17:39:33.486Z - SOCKET_JOIN - Client WsdpibOcZRq6DICBAAAP -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:39:33.487Z - SOCKET_JOIN - Client WsdpibOcZRq6DICBAAAP -> vendors_pool
+2026-05-30T17:39:33.488Z - SOCKET_JOIN - Client WsdpibOcZRq6DICBAAAP -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:39:33.545Z - 📡 [TRAFFIC] 11:09:33 pm | GET /api/admin/config
+2026-05-30T17:39:33.593Z - 📡 [TRAFFIC] 11:09:33 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.771Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.771Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.832Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.833Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.897Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.898Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:33.960Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:34.015Z - 📡 [TRAFFIC] 11:09:34 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.311Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.312Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.371Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.371Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.431Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.432Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:34.491Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:55.570Z - 📡 [TRAFFIC] 11:09:55 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:39:55.574Z - 📡 [TRAFFIC] 11:09:55 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:39:55.577Z - SOCKET_JOIN - Client gZqPSZMGjqt3ufLgAAAR -> vendors_pool
+2026-05-30T17:39:55.579Z - 📡 [TRAFFIC] 11:09:55 pm | GET /api/admin/config
+2026-05-30T17:39:55.608Z - SOCKET_JOIN - Client gZqPSZMGjqt3ufLgAAAR -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:39:55.610Z - SOCKET_JOIN - Client gZqPSZMGjqt3ufLgAAAR -> vendors_pool
+2026-05-30T17:39:55.611Z - SOCKET_JOIN - Client gZqPSZMGjqt3ufLgAAAR -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:39:55.640Z - 📡 [TRAFFIC] 11:09:55 pm | GET /api/admin/config
+2026-05-30T17:39:55.692Z - 📡 [TRAFFIC] 11:09:55 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:39:55.881Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:55.882Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:55.942Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:55.943Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.007Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.008Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.087Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:39:56.164Z - 📡 [TRAFFIC] 11:09:56 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.478Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.479Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.532Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.533Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.591Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.591Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:39:56.659Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:40:13.651Z - 🚀 SERVER RESTARTED AT 2026-05-30T17:40:13.650Z ON PORT 5001
+2026-05-30T17:40:14.591Z - SOCKET_JOIN - Client xkizpnEAyhXx6-rvAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T17:40:14.599Z - 📡 [TRAFFIC] 11:10:14 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T17:40:14.612Z - 📡 [TRAFFIC] 11:10:14 pm | GET /api/supplier/requests
+2026-05-30T17:40:14.629Z - SOCKET_JOIN - Client xkizpnEAyhXx6-rvAAAF -> admins_pool
+2026-05-30T17:40:14.630Z - SOCKET_JOIN - Client xkizpnEAyhXx6-rvAAAF -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-30T17:40:14.630Z - SOCKET_JOIN - Client xkizpnEAyhXx6-rvAAAF -> admins_pool
+2026-05-30T17:40:14.940Z - SOCKET_JOIN - Client ri-f6hsqFxjIdsDRAAAH -> vendors_pool
+2026-05-30T17:40:14.955Z - 📡 [TRAFFIC] 11:10:14 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:40:14.963Z - 📡 [TRAFFIC] 11:10:14 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:40:14.968Z - 📡 [TRAFFIC] 11:10:14 pm | GET /api/admin/config
+2026-05-30T17:40:14.974Z - SOCKET_JOIN - Client ri-f6hsqFxjIdsDRAAAH -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:40:14.975Z - SOCKET_JOIN - Client ri-f6hsqFxjIdsDRAAAH -> vendors_pool
+2026-05-30T17:40:14.976Z - SOCKET_JOIN - Client ri-f6hsqFxjIdsDRAAAH -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:40:15.316Z - 📡 [TRAFFIC] 11:10:15 pm | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-30T17:40:15.491Z - 📡 [TRAFFIC] 11:10:15 pm | GET /api/admin/config
+2026-05-30T17:40:15.561Z - 📡 [TRAFFIC] 11:10:15 pm | GET /api/supplier/requests
+2026-05-30T17:40:15.599Z - 📡 [TRAFFIC] 11:10:15 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:40:15.734Z - 📡 [TRAFFIC] 11:10:15 pm | GET /api/supplier/requests
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.776Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.777Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.847Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.848Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+2026-05-30T17:40:15.855Z - 📡 [TRAFFIC] 11:10:15 pm | GET /api/supplier/requests
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.893Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.894Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:40:15.938Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:40:16.010Z - 📡 [TRAFFIC] 11:10:16 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.305Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.306Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.366Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.366Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.416Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.417Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:40:16.473Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:42:53.765Z - 📡 [TRAFFIC] 11:12:53 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:42:53.774Z - 📡 [TRAFFIC] 11:12:53 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:42:53.783Z - SOCKET_JOIN - Client zGA2h0MgJdh6NXq2AAAJ -> vendors_pool
+2026-05-30T17:42:53.787Z - 📡 [TRAFFIC] 11:12:53 pm | GET /api/admin/config
+2026-05-30T17:42:53.802Z - SOCKET_JOIN - Client zGA2h0MgJdh6NXq2AAAJ -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:42:53.803Z - SOCKET_JOIN - Client zGA2h0MgJdh6NXq2AAAJ -> vendors_pool
+2026-05-30T17:42:53.803Z - SOCKET_JOIN - Client zGA2h0MgJdh6NXq2AAAJ -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:42:53.865Z - 📡 [TRAFFIC] 11:12:53 pm | GET /api/admin/config
+2026-05-30T17:42:53.906Z - 📡 [TRAFFIC] 11:12:53 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.072Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.073Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.136Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.136Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.187Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.188Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.245Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:42:54.314Z - 📡 [TRAFFIC] 11:12:54 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.581Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.582Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.651Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.652Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.707Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.707Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:42:54.766Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:43:38.719Z - 📡 [TRAFFIC] 11:13:38 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:43:38.724Z - SOCKET_JOIN - Client qwKkLJywrCOmNNf-AAAL -> vendors_pool
+2026-05-30T17:43:38.750Z - 📡 [TRAFFIC] 11:13:38 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:43:38.763Z - 📡 [TRAFFIC] 11:13:38 pm | GET /api/admin/config
+2026-05-30T17:43:38.769Z - SOCKET_JOIN - Client qwKkLJywrCOmNNf-AAAL -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:43:38.771Z - SOCKET_JOIN - Client qwKkLJywrCOmNNf-AAAL -> vendors_pool
+2026-05-30T17:43:38.772Z - SOCKET_JOIN - Client qwKkLJywrCOmNNf-AAAL -> user_6a193fdc803aa37a203b26af
+2026-05-30T17:43:38.825Z - 📡 [TRAFFIC] 11:13:38 pm | GET /api/admin/config
+2026-05-30T17:43:38.861Z - 📡 [TRAFFIC] 11:13:38 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.011Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.012Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.066Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.067Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.130Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.131Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.181Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:43:39.242Z - 📡 [TRAFFIC] 11:13:39 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.503Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.504Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.565Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.566Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.649Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.650Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:43:39.711Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:46:30.287Z - 📡 [TRAFFIC] 11:16:30 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+2026-05-30T17:46:30.291Z - 📡 [TRAFFIC] 11:16:30 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+2026-05-30T17:46:30.296Z - 📡 [TRAFFIC] 11:16:30 pm | GET /api/admin/config
+2026-05-30T17:46:30.364Z - 📡 [TRAFFIC] 11:16:30 pm | GET /api/admin/config
+2026-05-30T17:46:30.402Z - 📡 [TRAFFIC] 11:16:30 pm | GET /api/b2b-orders/vendor/6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.559Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.560Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.609Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.611Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.666Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.666Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:30.720Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:46:30.792Z - 📡 [TRAFFIC] 11:16:30 pm | GET /api/vendor-master-supplies/live-catalog?vendorId=6a193fdc803aa37a203b26af
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.082Z - populateDeliveryFrequencies processing 3 items
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.084Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.140Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.140Z - supplyObj details: ID=6a1942c8803aa37a203b27ac, supplierId=SUP-8080, supplierFacilityName=shivam private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.190Z - found app: {"id":"6a194184803aa37a203b26f2","registeredBusinessName":"shivam private limited","deliveryFrequency":["Daily"]}
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.190Z - supplyObj details: ID=6a17e8608001b5f53d7e9be6, supplierId=SUP-6565, supplierFacilityName=abhishek private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:31.253Z - found app: {"id":"6a17ca36254a2de39748355a","registeredBusinessName":"abhishek private limited","deliveryFrequency":["Daily"]}
+2026-05-30T17:46:35.511Z - 📡 [TRAFFIC] 11:16:35 pm | GET /api/vendor-master-supplies?supplierId=SUP-5555
+[CONTROLLER_DEBUG] 2026-05-30T17:46:35.630Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:46:35.632Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:35.695Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+2026-05-30T17:46:35.699Z - 📡 [TRAFFIC] 11:16:35 pm | GET /api/vendor-master-supplies?supplierId=SUP-5555
+[CONTROLLER_DEBUG] 2026-05-30T17:46:35.802Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-30T17:46:35.803Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-30T17:46:35.850Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+2026-05-31T04:10:54.897Z - 📡 [TRAFFIC] 9:40:54 am | GET /api/vendor-master-supplies?supplierId=SUP-5555
+[CONTROLLER_DEBUG] 2026-05-31T04:11:01.638Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-31T04:11:01.640Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-31T04:11:01.681Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+2026-05-31T04:11:01.699Z - 📡 [TRAFFIC] 9:41:01 am | GET /api/vendor-master-supplies?supplierId=SUP-5555
+[CONTROLLER_DEBUG] 2026-05-31T04:11:01.778Z - populateDeliveryFrequencies processing 1 items
+[CONTROLLER_DEBUG] 2026-05-31T04:11:01.779Z - supplyObj details: ID=6a1b1fe5b4222bd64abf9040, supplierId=SUP-5555, supplierFacilityName=shivani private limited
+[CONTROLLER_DEBUG] 2026-05-31T04:11:01.831Z - found app: {"id":"6a1b1bcc3333566011c8a3b7","registeredBusinessName":"shivani private limited","deliveryFrequency":["Weekly"]}
+2026-05-31T04:14:09.514Z - 📡 [TRAFFIC] 9:44:09 am | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-31T04:14:09.522Z - SOCKET_JOIN - Client uHnUJ1zL5h6K5rwRAAAX -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-31T04:14:09.535Z - 📡 [TRAFFIC] 9:44:09 am | GET /api/supplier/requests
+2026-05-31T04:14:09.553Z - SOCKET_JOIN - Client uHnUJ1zL5h6K5rwRAAAX -> admins_pool
+2026-05-31T04:14:09.555Z - SOCKET_JOIN - Client uHnUJ1zL5h6K5rwRAAAX -> user_69f1d2bc2c76f5ab4ec82163
+2026-05-31T04:14:09.560Z - SOCKET_JOIN - Client uHnUJ1zL5h6K5rwRAAAX -> admins_pool
+2026-05-31T04:14:09.583Z - 📡 [TRAFFIC] 9:44:09 am | GET /api/notifications?userId=69f1d2bc2c76f5ab4ec82163&role=admin
+2026-05-31T04:14:10.834Z - 📡 [TRAFFIC] 9:44:10 am | GET /api/supplier/requests
+2026-05-31T04:14:10.967Z - 📡 [TRAFFIC] 9:44:10 am | GET /api/supplier/requests
+2026-05-31T04:14:11.103Z - 📡 [TRAFFIC] 9:44:11 am | GET /api/supplier/requests

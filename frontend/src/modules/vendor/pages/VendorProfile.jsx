@@ -108,6 +108,26 @@ const VendorProfile = () => {
 
             const updatedUser = await authApi.updateProfile(userId, payload);
             setUser(updatedUser);
+
+            // Sync updatedUser back to local storage cache to keep it fresh across pages
+            const rawStored = localStorage.getItem('user') || localStorage.getItem('vendorData') || localStorage.getItem('userData');
+            if (rawStored) {
+                try {
+                    const parsed = JSON.parse(rawStored);
+                    let merged;
+                    if (parsed.user) {
+                        merged = { ...parsed, user: { ...parsed.user, ...updatedUser } };
+                    } else {
+                        merged = { ...parsed, ...updatedUser };
+                    }
+                    localStorage.setItem('user', JSON.stringify(merged));
+                    localStorage.setItem('vendorData', JSON.stringify(merged));
+                    localStorage.setItem('userData', JSON.stringify(merged));
+                } catch (e) {
+                    console.error('LocalStorage sync error:', e);
+                }
+            }
+
             setIsEditModalOpen(false);
             toast.success('Profile updated successfully', { id: loadingToast });
         } catch (err) {

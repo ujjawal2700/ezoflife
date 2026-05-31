@@ -260,7 +260,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                             <item.icon size={16} className={`shrink-0 ${isActive ? "text-white" : "group-hover:text-slate-900 transition-colors"}`} />
                                             {(!isCollapsed || isMobileOpen) && (
                                                 <>
-                                                    <span className={`font-bold text-[11px] uppercase tracking-[0.1em] flex-1 text-left whitespace-nowrap overflow-hidden transition-all ${
+                                                    <span className={`font-bold text-[10px] uppercase tracking-[0.05em] flex-1 text-left whitespace-nowrap overflow-hidden transition-all ${
                                                         isActive ? "opacity-100" : "opacity-80 group-hover:opacity-100"
                                                     }`}>
                                                         {item.label}

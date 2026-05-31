@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { materialApi, b2bOrderApi, adminApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 import B2BInvoicePrint from '../components/B2BInvoicePrint';
 import { Printer, X, FileText } from 'lucide-react';
 
@@ -19,6 +20,15 @@ const MaterialRequestPage = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [invoiceSettings, setInvoiceSettings] = useState({});
     const [scale, setScale] = useState(1);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [imageIndex, setImageIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setImageIndex(prev => prev + 1);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
 
     const calculateScale = () => {
         const width = window.innerWidth;
@@ -192,7 +202,7 @@ const MaterialRequestPage = () => {
                             </div>
                         </header>
 
-                        <main className="max-w-xl mx-auto px-6 pt-2">
+                        <main className="max-w-2xl sm:max-w-3xl mx-auto px-4 sm:px-6 pt-2">
                             {activeTab === 'catalog' ? (
                                 <motion.div 
                                     initial={{ opacity: 0, y: 20 }}
@@ -200,42 +210,32 @@ const MaterialRequestPage = () => {
                                     className="space-y-6"
                                 >
                                     {/* Categories & Subcategories Filter */}
-                                    <div className="space-y-4 bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm">
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Category</span>
-                                            </div>
-                                            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                                {uniqueCategories.map((cat) => (
-                                                    <button 
-                                                        key={cat} 
-                                                        onClick={() => { 
-                                                            setSelectedCategory(cat); 
-                                                            setSelectedSubCategory(''); 
-                                                        }}
-                                                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${activeCategory === cat ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
-                                                    >
-                                                        {cat}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                    <div className="space-y-4 px-1">
+                                        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                            {uniqueCategories.map((cat) => (
+                                                <button 
+                                                    key={cat} 
+                                                    onClick={() => { 
+                                                        setSelectedCategory(cat); 
+                                                        setSelectedSubCategory(''); 
+                                                    }}
+                                                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${activeCategory === cat ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-100'}`}
+                                                >
+                                                    {cat}
+                                                </button>
+                                            ))}
                                         </div>
 
-                                        <div>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Sub Category</span>
-                                            </div>
-                                            <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                                {uniqueSubCategories.map((sub) => (
-                                                    <button 
-                                                        key={sub} 
-                                                        onClick={() => setSelectedSubCategory(sub)}
-                                                        className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${activeSubCategory === sub ? 'bg-primary text-white border-primary shadow-lg shadow-primary/10' : 'bg-slate-50 text-slate-500 border-slate-100 hover:bg-slate-100'}`}
-                                                    >
-                                                        {sub}
-                                                    </button>
-                                                ))}
-                                            </div>
+                                        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                            {uniqueSubCategories.map((sub) => (
+                                                <button 
+                                                    key={sub} 
+                                                    onClick={() => setSelectedSubCategory(sub)}
+                                                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all shrink-0 ${activeSubCategory === sub ? 'bg-primary text-white border-primary shadow-lg shadow-primary/10' : 'bg-white text-slate-500 border-slate-100 hover:bg-slate-100'}`}
+                                                >
+                                                    {sub}
+                                                </button>
+                                            ))}
                                         </div>
                                     </div>
 
@@ -247,59 +247,110 @@ const MaterialRequestPage = () => {
                                                 <p className="text-xs font-black text-slate-500 uppercase tracking-widest">No supplies found matching filters</p>
                                             </div>
                                         ) : (
-                                            filteredMaterials.map((item) => (
+                                        filteredMaterials.map((item) => {
+                                                const displayImage = item.images && item.images.length > 0 
+                                                    ? item.images[imageIndex % item.images.length] 
+                                                    : item.image;
+                                                return (
                                                 <motion.div 
                                                     key={item._id}
                                                     layout
-                                                    className="bg-white p-3 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 hover:border-primary/20 transition-all group"
+                                                    className="bg-white p-4.5 xs:p-5 sm:p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-4 sm:gap-6 hover:border-primary/20 transition-all group w-full"
                                                 >
-                                                    {/* Small Image */}
-                                                    <div className="w-14 h-14 rounded-2xl bg-slate-50 overflow-hidden shrink-0 border border-slate-50 shadow-inner flex items-center justify-center">
-                                                        {item.image ? (
-                                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
-                                                        ) : (
-                                                            <span className="material-symbols-outlined text-2xl text-slate-200">inventory_2</span>
+                                                    {/* Left: Large Image Container */}
+                                                    <div 
+                                                        onClick={() => navigate('/vendor/product-images', { state: { images: item.images?.length ? item.images : (item.image ? [item.image] : []), name: item.name } })}
+                                                        className="w-[150px] xs:w-[180px] sm:w-[220px] md:w-[260px] h-[180px] xs:h-[220px] sm:h-[260px] md:h-[300px] rounded-[2.2rem] bg-slate-50 overflow-hidden shrink-0 border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
+                                                    >
+                                                        <AnimatePresence initial={false}>
+                                                            {displayImage ? (
+                                                                <motion.img 
+                                                                    key={displayImage}
+                                                                    src={displayImage} 
+                                                                    alt={item.name} 
+                                                                    initial={{ x: '100%' }}
+                                                                    animate={{ x: 0 }}
+                                                                    exit={{ x: '-100%' }}
+                                                                    transition={{ type: "tween", duration: 0.5, ease: "easeInOut" }}
+                                                                    className="w-full h-full object-cover absolute top-0 left-0 hover:scale-105 transition-transform duration-500" 
+                                                                />
+                                                            ) : (
+                                                                <span className="material-symbols-outlined text-7xl xs:text-8xl sm:text-9xl md:text-[7rem] text-slate-200 z-10">inventory_2</span>
+                                                            )}
+                                                        </AnimatePresence>
+                                                        {item.images && item.images.length > 1 && (
+                                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm z-10">
+                                                                {item.images.map((_, idx) => (
+                                                                    <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${(imageIndex % item.images.length) === idx ? 'bg-primary scale-125' : 'bg-slate-300'}`} />
+                                                                ))}
+                                                            </div>
                                                         )}
                                                     </div>
                                                     
-                                                    {/* Row containing Name, Supplier and Price/Counter */}
-                                                    <div className="flex-1 min-w-0 flex items-center justify-between gap-4">
-                                                        {/* Left: Name and Supplier Details */}
-                                                        <div className="min-w-0 flex-1">
-                                                            <h3 className="text-xs font-black text-slate-900 truncate tracking-tight">{item.name}</h3>
-                                                            {/* Supplier Info */}
-                                                            <div className="flex items-center gap-1 mt-0.5 text-slate-400">
-                                                                <span className="material-symbols-outlined text-[12px]">store</span>
-                                                                <span className="text-[9px] font-bold uppercase tracking-wider truncate">{item.supplierFacilityName}</span>
+                                                    {/* Right: Details Column */}
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-between h-[180px] xs:h-[220px] sm:h-[260px] md:h-[300px] py-2 md:py-4">
+                                                        <div className="space-y-2.5 sm:space-y-4">
+                                                            {/* Subcategory & Delivery Info */}
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg font-bold text-[9px] sm:text-[11px] uppercase tracking-wider">
+                                                                    {item.subCategory}
+                                                                </span>
+                                                                {item.deliveryFrequency && (
+                                                                    <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg font-bold text-[9px] sm:text-[11px] uppercase tracking-wider">
+                                                                        {item.deliveryFrequency} Delivery
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            <p className="text-[8px] font-bold text-slate-400 uppercase mt-0.5">{item.stock} • {item.quantity}</p>
+
+                                                            {/* Title / Name */}
+                                                            <h3 className="text-sm xs:text-base sm:text-lg md:text-xl font-black text-slate-900 leading-snug tracking-tight line-clamp-2 md:line-clamp-3 uppercase">
+                                                                {item.name}
+                                                            </h3>
+
+                                                            {/* Supplier Info */}
+                                                            <div className="flex items-center gap-1.5 text-slate-400">
+                                                                <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">store</span>
+                                                                <span className="text-[10px] xs:text-xs sm:text-sm font-bold uppercase tracking-wider truncate max-w-[150px] sm:max-w-[250px]">
+                                                                    {item.supplierFacilityName}
+                                                                </span>
+                                                            </div>
+
+                                                            {/* Stock Info */}
+                                                            <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                                                Status: {item.stock || 'AVAILABLE'}
+                                                            </p>
                                                         </div>
 
-                                                        {/* Right: Price and Counter Button */}
-                                                        <div className="flex items-center gap-3 shrink-0">
-                                                            <p className="text-sm font-black text-slate-900">₹{item.price}</p>
+                                                        {/* Bottom Row: Price and Counter */}
+                                                        <div className="flex items-center justify-between gap-4 mt-2 sm:mt-4">
+                                                            <p className="text-base xs:text-lg sm:text-xl md:text-2xl font-black text-slate-900">
+                                                                ₹{item.price}
+                                                            </p>
                                                             
-                                                            <div className="flex items-center bg-slate-50 rounded-xl p-0.5 gap-2 border border-slate-100">
+                                                            <div className="flex items-center bg-slate-50 rounded-2xl p-1 gap-2.5 border border-slate-100 shrink-0">
                                                                 <button 
+                                                                    disabled={Number(item.price) === 0}
                                                                     onClick={() => updateQuantity(item._id, -1)}
-                                                                    className="w-7 h-7 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors"
+                                                                    className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-[14px]">remove</span>
+                                                                    <span className="material-symbols-outlined text-[16px] xs:text-[18px] sm:text-[20px]">remove</span>
                                                                 </button>
-                                                                <span className="text-xs font-black text-slate-900 w-3 text-center tabular-nums">
+                                                                <span className="text-xs xs:text-sm sm:text-base font-black text-slate-900 w-4 xs:w-6 text-center tabular-nums">
                                                                     {cart[item._id] || 0}
                                                                 </span>
                                                                 <button 
+                                                                    disabled={Number(item.price) === 0}
                                                                     onClick={() => updateQuantity(item._id, 1)}
-                                                                    className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors"
+                                                                    className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-[14px]">add</span>
+                                                                    <span className="material-symbols-outlined text-[16px] xs:text-[18px] sm:text-[20px]">add</span>
                                                                 </button>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </motion.div>
-                                            ))
+                                            );
+                                        })
                                         )}
                                     </div>
                                 </motion.div>
@@ -401,61 +452,14 @@ const MaterialRequestPage = () => {
                         initial={{ y: 100 }}
                         animate={{ y: 0 }}
                         exit={{ y: 100 }}
-                        className="fixed bottom-8 left-6 right-6 z-50"
+                        className="fixed bottom-24 right-6 z-50"
                     >
-                        <div className="max-w-md mx-auto bg-slate-900 p-4 rounded-[2rem] shadow-2xl shadow-slate-900/40 flex items-center justify-between gap-6">
-                            <div className="pl-2">
-                                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Total Request</p>
-                                <p className="text-xl font-black text-white tracking-tight">{totalItems} Items</p>
-                            </div>
-                            <button 
-                                onClick={async () => {
-                                    try {
-                                        // Robust location detection
-                                        const city = vendorData.shopDetails?.city || vendorData.address_city || vendorData.city || '';
-                                        const pincode = vendorData.shopDetails?.pincode || vendorData.address_pincode || vendorData.pincode || '';
-
-                                        const orderItems = Object.entries(cart)
-                                            .filter(([_, qty]) => qty > 0)
-                                            .map(([id, qty]) => {
-                                                const material = materials.find(m => m._id === id);
-                                                return {
-                                                    materialId: id,
-                                                    name: material.name,
-                                                    quantity: qty,
-                                                    price: material.price
-                                                };
-                                            });
-
-                                        const totalAmount = orderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-
-                                        const payload = {
-                                            vendorId,
-                                            items: orderItems,
-                                            totalAmount,
-                                            city: city === 'Unknown' ? '' : city,
-                                            pincode: pincode,
-                                            shippingAddress: `${city}, ${pincode}`
-                                        };
-
-                                        await b2bOrderApi.placeOrder(payload);
-                                        alert('Request submitted to Material Pool! Nearby suppliers will be notified.');
-                                        setCart({});
-                                        setActiveTab('requests'); // Switch to requests tab to see the new order
-                                        // Refresh orders
-                                        const newOrders = await b2bOrderApi.getVendorOrders(vendorId);
-                                        setVendorOrders(newOrders);
-                                    } catch (err) {
-                                        console.error('Submission Error:', err);
-                                        alert(err.message || 'Failed to place request');
-                                    }
-                                }}
-                                className="flex-1 h-14 bg-primary text-white rounded-[1.4rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:bg-white hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-3"
-                            >
-                                Submit Request
-                                <span className="material-symbols-outlined text-lg">send</span>
-                            </button>
-                        </div>
+                        <button 
+                            onClick={() => setShowReviewModal(true)}
+                            className="h-14 px-8 bg-slate-900 text-white rounded-[1.4rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/30 hover:bg-primary transition-all active:scale-95 flex items-center justify-center border border-white/10"
+                        >
+                            REVIEW AND PAY
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -513,6 +517,157 @@ const MaterialRequestPage = () => {
                                         <B2BInvoicePrint order={selectedOrder} settings={invoiceSettings} />
                                     </div>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Review & Pay Modal */}
+            <AnimatePresence>
+                {showReviewModal && (
+                    <div className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-10 sm:items-center">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowReviewModal(false)}
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto flex flex-col justify-between border border-slate-100"
+                        >
+                            <div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-black text-slate-950 uppercase tracking-tighter">Review Order</h3>
+                                    <button 
+                                        onClick={() => setShowReviewModal(false)}
+                                        className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+
+                                {/* Order Items list */}
+                                <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-1">
+                                    {Object.entries(cart)
+                                        .filter(([_, qty]) => qty > 0)
+                                        .map(([id, qty]) => {
+                                            const item = materials.find(m => m._id === id);
+                                            if (!item) return null;
+                                            return (
+                                                <div key={id} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100">
+                                                    <div className="min-w-0 flex-1 pr-3">
+                                                        <h4 className="text-xs font-black text-slate-900 truncate tracking-tight">{item.name}</h4>
+                                                        <div className="flex items-center gap-1.5 mt-1 text-slate-400">
+                                                            <span className="material-symbols-outlined text-[12px]">store</span>
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider truncate">{item.supplierFacilityName}</span>
+                                                        </div>
+                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Delivery: {item.deliveryFrequency || 'On-Demand'}</p>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <p className="text-xs font-black text-slate-900">₹{item.price * qty}</p>
+                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{qty} x ₹{item.price}</p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+
+                                {/* Address / Metadata */}
+                                <div className="mt-6 border-t border-slate-100 pt-6 space-y-4">
+                                    <div className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                        <span className="material-symbols-outlined text-primary text-lg">location_on</span>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Address</p>
+                                            <p className="text-[10px] font-black text-slate-900 truncate mt-0.5">
+                                                {vendorData.shopDetails?.address || vendorData.address || `${vendorData.shopDetails?.city || ''}, ${vendorData.shopDetails?.pincode || ''}`}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Order Value summary */}
+                                    <div className="bg-slate-900 text-white p-5 rounded-[2rem] space-y-2">
+                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40">
+                                            <p>Subtotal</p>
+                                            <p>₹{Object.entries(cart).reduce((acc, [id, qty]) => {
+                                                const m = materials.find(x => x._id === id);
+                                                return acc + ((m?.price || 0) * qty);
+                                            }, 0)}</p>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40">
+                                            <p>Delivery Charges</p>
+                                            <p>FREE</p>
+                                        </div>
+                                        <div className="h-px bg-white/10 my-2" />
+                                        <div className="flex justify-between items-center">
+                                            <p className="text-[11px] font-black uppercase tracking-widest text-primary">To Pay</p>
+                                            <p className="text-lg font-black tracking-tight">₹{Object.entries(cart).reduce((acc, [id, qty]) => {
+                                                const m = materials.find(x => x._id === id);
+                                                return acc + ((m?.price || 0) * qty);
+                                            }, 0)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mt-8">
+                                <button 
+                                    onClick={() => setShowReviewModal(false)}
+                                    className="py-4 bg-slate-50 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-100 hover:bg-slate-100 active:scale-95 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        const loadingToast = toast.loading('Placing B2B requests...');
+                                        try {
+                                            const city = vendorData.shopDetails?.city || vendorData.address_city || vendorData.city || '';
+                                            const pincode = vendorData.shopDetails?.pincode || vendorData.address_pincode || vendorData.pincode || '';
+
+                                            const orderItems = Object.entries(cart)
+                                                .filter(([_, qty]) => qty > 0)
+                                                .map(([id, qty]) => {
+                                                    const material = materials.find(m => m._id === id);
+                                                    return {
+                                                        materialId: id,
+                                                        name: material.name,
+                                                        quantity: qty,
+                                                        price: material.price
+                                                    };
+                                                });
+
+                                            const totalAmount = orderItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+
+                                            const payload = {
+                                                vendorId,
+                                                items: orderItems,
+                                                totalAmount,
+                                                city: city === 'Unknown' ? '' : city,
+                                                pincode: pincode,
+                                                shippingAddress: vendorData.shopDetails?.address || vendorData.address || `${city}, ${pincode}`
+                                            };
+
+                                            await b2bOrderApi.placeOrder(payload);
+                                            toast.success('Procurement request submitted!', { id: loadingToast });
+                                            setCart({});
+                                            setShowReviewModal(false);
+                                            setActiveTab('requests');
+                                            
+                                            const newOrders = await b2bOrderApi.getVendorOrders(vendorId);
+                                            setVendorOrders(newOrders);
+                                        } catch (err) {
+                                            console.error('Submission Error:', err);
+                                            toast.error(err.message || 'Failed to place requests', { id: loadingToast });
+                                        }
+                                    }}
+                                    className="py-4 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:bg-white hover:text-primary border border-primary active:scale-95 transition-all"
+                                >
+                                    Pay & Confirm
+                                </button>
                             </div>
                         </motion.div>
                     </div>

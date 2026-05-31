@@ -12,6 +12,7 @@ const SupplierProductSelectionPage = () => {
   const [masterProducts, setMasterProducts] = useState([]);
   const [editingItem, setEditingItem] = useState(null);
   const [formState, setFormState] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (editingItem) {
@@ -79,8 +80,55 @@ const SupplierProductSelectionPage = () => {
             wholesaleRate: product.wholesaleRate || 0,
             bulkDiscount: product.bulkDiscount || 0,
             bulkThreshold: product.bulkThreshold || 0,
-            movFreeDelivery: product.movFreeDelivery || 0
+            movFreeDelivery: product.movFreeDelivery || 0,
+            images: []
         }]);
+    }
+  };
+
+  const handleImageUpload = async (e, productName) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size exceeds 10MB limit');
+        return;
+    }
+
+    const currentItem = selectedItems.find(i => i.productName === productName);
+    if (currentItem && currentItem.images && currentItem.images.length >= 5) {
+        toast.error('Maximum 5 images allowed');
+        return;
+    }
+
+    setUploading(true);
+    const loadingToast = toast.loading('Uploading image...');
+    try {
+        const data = new FormData();
+        data.append('media', file);
+        const response = await fetch(`${BASE_URL}/media/upload`, {
+            method: 'POST',
+            body: data
+        });
+        const res = await response.json();
+        
+        if (res.fileUrl) {
+            setSelectedItems(selectedItems.map(item => {
+                if (item.productName === productName) {
+                    return { ...item, images: [...(item.images || []), res.fileUrl] };
+                }
+                return item;
+            }));
+            toast.success('Image uploaded successfully', { id: loadingToast });
+        } else {
+             toast.error('Upload failed', { id: loadingToast });
+        }
+    } catch (error) {
+        console.error('Upload Error:', error);
+        toast.error('File upload failed', { id: loadingToast });
+    } finally {
+        setUploading(false);
+        e.target.value = ''; // Reset input
     }
   };
 
@@ -152,6 +200,7 @@ const SupplierProductSelectionPage = () => {
                                     <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900 border-r border-slate-200">Bulk Discount & Threshold</th>
                                     <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900 border-r border-slate-200">Active</th>
                                     <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900 border-r border-slate-200">MOV for Free Delivery</th>
+                                    <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900 border-r border-slate-200">Images</th>
                                     <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-900 text-center w-24">Action</th>
                                 </tr>
                             </thead>
@@ -253,16 +302,51 @@ const SupplierProductSelectionPage = () => {
                                                          {movFreeDelivery === 0 || movFreeDelivery === '-' || movFreeDelivery === undefined || movFreeDelivery === null ? '—' : `₹${movFreeDelivery}`}
                                                      </span>
                                                  </td>
+                                                 <td className="px-5 py-3 border-r border-b border-slate-100 min-w-[120px]">
+                                                     {isSelected ? (
+                                                         <div className="flex flex-wrap gap-1">
+                                                             {(selectedData?.images || []).map((img, idx) => (
+                                                                 <img key={idx} src={img} alt="Product" className="w-8 h-8 object-cover rounded-md border border-slate-200" />
+                                                             ))}
+                                                             {(!selectedData?.images || selectedData.images.length < 5) && (
+                                                                 <span className="text-[10px] text-slate-400 font-bold self-center ml-1">
+                                                                     {selectedData?.images?.length || 0}/5
+                                                                 </span>
+                                                             )}
+                                                         </div>
+                                                     ) : (
+                                                         <span className="text-slate-300 text-[9px] font-bold uppercase tracking-wider">—</span>
+                                                     )}
+                                                 </td>
                                                 <td className="px-5 py-3 border-b border-slate-100 text-center" onClick={(e) => e.stopPropagation()}>
                                                     {isSelected ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setEditingItem(selectedData)}
-                                                            className="px-3 py-1.5 bg-slate-900 hover:bg-primary text-white hover:text-white rounded-lg font-black text-[9px] uppercase tracking-wider transition-colors"
-                                                            title="Edit Custom Pricing"
-                                                        >
-                                                            Edit
-                                                        </button>
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setEditingItem(selectedData)}
+                                                                className="px-2 py-1.5 bg-slate-900 hover:bg-primary text-white hover:text-white rounded-lg font-black text-[9px] uppercase tracking-wider transition-colors"
+                                                                title="Edit Custom Pricing"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <label 
+                                                                className={`flex items-center justify-center p-1.5 rounded-lg cursor-pointer transition-colors ${
+                                                                    (selectedData?.images?.length >= 5) || uploading
+                                                                        ? 'bg-slate-100 text-slate-400 pointer-events-none'
+                                                                        : 'bg-primary/10 text-primary hover:bg-primary hover:text-white'
+                                                                }`}
+                                                                title={(selectedData?.images?.length >= 5) ? "Max 5 images reached" : "Upload Image"}
+                                                            >
+                                                                <span className="material-symbols-outlined text-sm font-black">image</span>
+                                                                <input 
+                                                                    type="file" 
+                                                                    accept="image/*" 
+                                                                    className="hidden" 
+                                                                    onChange={(e) => handleImageUpload(e, product.materialName)}
+                                                                    disabled={selectedData?.images?.length >= 5 || uploading}
+                                                                />
+                                                            </label>
+                                                        </div>
                                                     ) : (
                                                         <span className="text-slate-300 text-[9px] font-bold uppercase tracking-wider">—</span>
                                                     )}

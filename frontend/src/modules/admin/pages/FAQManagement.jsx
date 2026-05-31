@@ -253,9 +253,6 @@ const FAQManagement = () => {
                             <div className="text-slate-300 hover:text-slate-600 transition-colors cursor-grab active:cursor-grabbing shrink-0 pt-2.5">
                                 <GripVertical size={18} />
                             </div>
-                            <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-primary/5 group-hover:text-primary transition-all shrink-0">
-                                <HelpCircle size={20} />
-                            </div>
                             <div className="flex-1 space-y-1 min-w-0">
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-slate-100 pb-3 mb-3">
                                     <div className="flex items-center gap-2 flex-wrap">
@@ -263,7 +260,6 @@ const FAQManagement = () => {
                                         <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${faq.targetRole === 'Customer' ? 'bg-blue-50 text-blue-600' : faq.targetRole === 'Vendor' ? 'bg-orange-50 text-orange-600' : faq.targetRole === 'Supplier' ? 'bg-purple-50 text-purple-600' : 'bg-slate-50 text-slate-500'}`}>
                                             {faq.targetRole || 'All'}
                                         </span>
-                                        <StatusBadge status={faq.isActive !== false ? 'Active' : 'Inactive'} />
                                     </div>
                                     <div className="flex items-center gap-3 self-end sm:self-auto">
                                         {faq.isActive !== false ? (

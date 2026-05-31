@@ -66,7 +66,8 @@ const supplierApplicationSchema = new mongoose.Schema({
         wholesaleRate: Number,
         bulkDiscount: Number,
         bulkThreshold: Number,
-        movFreeDelivery: Number
+        movFreeDelivery: Number,
+        images: [String]
     }],
 
     status: {
