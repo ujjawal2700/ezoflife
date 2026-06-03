@@ -281,8 +281,8 @@ const MaterialRequestPage = () => {
                                     className="space-y-6"
                                 >
                                     {/* Categories & Subcategories Filter */}
-                                    <div className="space-y-4 px-1">
-                                        <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                    <div className="space-y-1.5 px-1">
+                                        <div className="flex gap-2 overflow-x-auto pb-0.5 hide-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                                             {uniqueCategories.map((cat) => (
                                                 <button 
                                                     key={cat} 
@@ -326,12 +326,12 @@ const MaterialRequestPage = () => {
                                                 <motion.div 
                                                     key={item._id}
                                                     layout
-                                                    className="bg-white p-4.5 xs:p-5 sm:p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-4 sm:gap-6 hover:border-primary/20 transition-all group w-full"
+                                                    className="bg-white py-4.5 xs:py-5 sm:py-6 pr-4.5 xs:pr-5 sm:pr-6 pl-0 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-4 sm:gap-6 hover:border-primary/20 transition-all group w-full overflow-hidden"
                                                 >
                                                     {/* Left: Large Image Container */}
                                                     <div 
                                                         onClick={() => navigate('/vendor/product-images', { state: { images: item.images?.length ? item.images : (item.image ? [item.image] : []), name: item.name } })}
-                                                        className="w-[150px] xs:w-[180px] sm:w-[220px] md:w-[260px] h-[180px] xs:h-[220px] sm:h-[260px] md:h-[300px] rounded-[2.2rem] bg-slate-50 overflow-hidden shrink-0 border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
+                                                        className="w-[150px] xs:w-[180px] sm:w-[220px] md:w-[260px] h-[180px] xs:h-[220px] sm:h-[260px] md:h-[300px] rounded-r-[2.2rem] rounded-l-none bg-slate-50 overflow-hidden shrink-0 border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
                                                     >
                                                         <AnimatePresence initial={false}>
                                                             {displayImage ? (

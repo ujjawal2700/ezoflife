@@ -1011,7 +1011,6 @@ const WalkInOrderPage = () => {
 
                 {/* Customer Section */}
                 <section className="space-y-4">
-                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3D5AFE] ml-2">Customer Identification</h2>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Phone Input */}
@@ -1271,7 +1270,7 @@ const WalkInOrderPage = () => {
                             whileTap={{ scale: 0.98 }}
                             onClick={handleSendOtpInline}
                             disabled={isSendingOtp}
-                            className="w-full py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-none shadow-md flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+                            className="w-fit mx-auto px-8 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
                         >
                             {isSendingOtp ? (
                                 <motion.span 
@@ -1284,7 +1283,7 @@ const WalkInOrderPage = () => {
                             ) : (
                                 <>
                                     <span className="material-symbols-outlined text-sm">sms</span>
-                                    <span>Send Verification OTP</span>
+                                    <span>Send OTP</span>
                                 </>
                             )}
                         </motion.button>
@@ -1295,30 +1294,21 @@ const WalkInOrderPage = () => {
                         <motion.div 
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-none p-4 border border-slate-200 shadow-sm space-y-3"
+                            className="bg-white rounded-3xl p-3 border border-slate-200 shadow-sm w-fit mx-auto"
                         >
-                            <div className="flex items-center justify-between px-1">
-                                <span className="text-[9px] font-black text-[#3D5AFE] uppercase tracking-widest">OTP sent to +91 {customerPhone}</span>
-                                <button 
-                                    onClick={handleSendOtpInline}
-                                    className="text-[9px] font-black text-slate-400 hover:text-slate-900 uppercase tracking-widest"
-                                >
-                                    Resend
-                                </button>
-                            </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-2 items-center">
                                 <input 
                                     type="text"
-                                    placeholder="Enter 6-Digit OTP"
+                                    placeholder="ENTER OTP"
                                     value={otpValue}
                                     onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    className="flex-1 px-4 py-3 bg-slate-50 rounded-none text-xs font-bold text-slate-900 text-center tracking-[0.5em] focus:bg-white border-2 border-transparent focus:border-slate-100 transition-all outline-none"
+                                    className="w-[140px] px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold text-slate-900 text-center tracking-[0.5em] placeholder:tracking-widest focus:bg-white border-2 border-transparent focus:border-slate-100 transition-all outline-none uppercase"
                                 />
                                 <motion.button
                                     whileTap={{ scale: 0.98 }}
                                     onClick={handleVerifyOtpInline}
                                     disabled={isVerifyingOtp}
-                                    className="px-6 bg-[#3D5AFE] text-white font-black text-[10px] uppercase tracking-widest rounded-none shadow-md flex items-center justify-center gap-2 hover:bg-[#3D5AFE]/95 transition-colors"
+                                    className="px-5 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-md flex items-center justify-center hover:bg-slate-800 transition-colors"
                                 >
                                     {isVerifyingOtp ? (
                                         <motion.span 
@@ -1332,6 +1322,13 @@ const WalkInOrderPage = () => {
                                         'Verify'
                                     )}
                                 </motion.button>
+                                <button 
+                                    onClick={handleSendOtpInline}
+                                    className="text-slate-400 hover:text-slate-900 transition-colors p-2 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center"
+                                    title="Resend OTP"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">refresh</span>
+                                </button>
                             </div>
                         </motion.div>
                     )}
@@ -1362,13 +1359,11 @@ const WalkInOrderPage = () => {
 
                 {/* Service Selection */}
                 <section className={`space-y-4 transition-all duration-300 ${customerPhone.length !== 10 || tempName.trim().length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
-                    <div className="flex items-center justify-between px-2">
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3D5AFE]">Select Service</h2>
-                    </div>
 
-                    {/* Category Selection Row */}
-                    {uniqueCategories.length > 0 && (
-                        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-2 px-1">
+                    <div className="space-y-1.5">
+                        {/* Category Selection Row */}
+                        {uniqueCategories.length > 0 && (
+                            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5 px-1">
                             {uniqueCategories.map(cat => (
                                 <motion.button
                                     key={cat}
@@ -1389,7 +1384,7 @@ const WalkInOrderPage = () => {
                                 initial={{ opacity: 0, height: 0 }}
                                 animate={{ opacity: 1, height: 'auto' }}
                                 exit={{ opacity: 0, height: 0 }}
-                                className="flex gap-2 overflow-x-auto scrollbar-none pb-2 mt-2 px-1"
+                                className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5 px-1"
                             >
                                 {uniqueSubCategories.map(sub => (
                                     <button
@@ -1403,6 +1398,7 @@ const WalkInOrderPage = () => {
                             </motion.div>
                         )}
                     </AnimatePresence>
+                    </div>
                     
                     {/* Vertical list of service rows */}
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
