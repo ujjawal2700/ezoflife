@@ -573,7 +573,8 @@ export default function ServiceAreas() {
             { key: 'dynamicSurgeMultiplier',  label: 'Express (x)', color: 'text-amber-500' },
             { key: 'discountPriceMultiplier', label: 'Discount (x)', color: 'text-emerald-500' },
             { key: 'heritageMultiplier',      label: 'Heritage (x)', color: 'text-purple-500' },
-            { key: 'platformMultiplier',      label: 'Platform (x)', color: 'text-sky-500' },
+            { key: 'platformMultiplier',      label: 'Service Platform (x)', color: 'text-sky-500' },
+            { key: 'supplierPlatformMultiplier', label: 'Supplier Platform (x)', color: 'text-indigo-500' },
           ].map(({ key, label, color }) => (
             <div key={key} className="space-y-1">
               <label className={`text-[8px] font-black uppercase tracking-widest ${color}`}>{label}</label>
@@ -736,17 +737,17 @@ export default function ServiceAreas() {
         ]}
       />
 
-      <div className="flex gap-5 p-6 max-w-[1800px] mx-auto w-full" style={{ height: 'calc(100vh - 140px)' }}>
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 p-4 lg:p-6 max-w-[1800px] mx-auto w-full" style={{ height: 'calc(100dvh - 100px)' }}>
 
         {/* ─── Left sidebar ─────────────────────────────────────── */}
-        <div className="w-80 shrink-0 h-full">
+        <div className="w-full lg:w-80 shrink-0 h-[45%] lg:h-full order-2 lg:order-1">
           {mode === 'configure'     ? renderConfigurePanel()    :
            mode === 'edit-boundary' ? renderEditBoundaryPanel() :
                                      renderZoneListPanel()}
         </div>
 
         {/* ─── Map panel ────────────────────────────────────────── */}
-        <div className="flex-1 h-full bg-white rounded-sm border border-slate-200 shadow-sm overflow-hidden relative">
+        <div className="w-full lg:flex-1 h-[55%] lg:h-full bg-white rounded-sm border border-slate-200 shadow-sm overflow-hidden relative order-1 lg:order-2">
 
           {isLoaded ? (
             <GoogleMap
@@ -761,7 +762,7 @@ export default function ServiceAreas() {
                 onLoad={autocomplete => autocompleteRef.current = autocomplete}
                 onPlaceChanged={handlePlaceChanged}
               >
-                <div className="absolute top-4 left-4 z-[100] w-72">
+                <div className="absolute top-4 left-4 z-40 w-72">
                   <div className="relative">
                     <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
@@ -855,7 +856,7 @@ export default function ServiceAreas() {
 
           {/* ── Drawing hint overlay ─────────────────────────── */}
           {drawingMode && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
               <div className="flex items-center gap-4 bg-white/95 backdrop-blur-sm px-6 py-3.5 rounded-sm shadow-2xl border border-slate-200">
                 <div className="w-8 h-8 bg-blue-100 rounded-sm flex items-center justify-center">
                   <Plus size={16} className="text-blue-600" />
@@ -876,7 +877,7 @@ export default function ServiceAreas() {
 
           {/* ── Edit boundary hint overlay ───────────────────── */}
           {mode === 'edit-boundary' && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
               <div className="flex items-center gap-4 bg-blue-600/95 backdrop-blur-sm px-6 py-3.5 rounded-sm shadow-2xl border border-blue-500 text-white">
                 <div className="w-8 h-8 bg-blue-500 rounded-sm flex items-center justify-center">
                   <Edit2 size={16} className="text-white" />
@@ -889,23 +890,11 @@ export default function ServiceAreas() {
             </div>
           )}
 
-          {/* ── Status bar ───────────────────────────────────── */}
-          <div className="absolute top-4 right-4 z-[100]">
-            <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-sm border border-slate-200 shadow-xl flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Map Live</span>
-              </div>
-              <div className="w-px h-4 bg-slate-200" />
-              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                {areas.length} Zone{areas.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
+          {/* Status bar removed per user request */}
 
           {/* ── Empty state (no zones yet) ────────────────────── */}
           {!drawingMode && mode === null && areas.length === 0 && !loading && (
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100]">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
               <div className="bg-slate-900/90 backdrop-blur-xl px-8 py-5 rounded-sm border border-white/10 text-white shadow-2xl flex items-center gap-4 max-w-md">
                 <div className="w-10 h-10 bg-white/10 rounded-sm flex items-center justify-center shrink-0">
                   <Info size={20} className="text-blue-400" />

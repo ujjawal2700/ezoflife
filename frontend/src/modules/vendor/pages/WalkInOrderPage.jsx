@@ -59,10 +59,15 @@ const WalkInOrderPage = () => {
     const [selectedSubCategory, setSelectedSubCategory] = useState(null);
 
     // New Address & Maps states
+    const [savedCustomerAddress, setSavedCustomerAddress] = useState(null);
     const [enableDelivery, setEnableDelivery] = useState(false);
+    const [showLocateModal, setShowLocateModal] = useState(false);
     const [addressDetails, setAddressDetails] = useState({
+        type: 'HOME',
         flatNo: '',
         street: '',
+        floor: '',
+        landmark: '',
         city: '',
         state: '',
         pincode: '',
@@ -333,13 +338,7 @@ const WalkInOrderPage = () => {
         });
     }, [customerPhone]);
 
-    // Automatically reset verification status if name is edited
-    useEffect(() => {
-        setIsVerified(false);
-        setShowOtpField(false);
-        setOtpValue('');
-        setCustomerName('');
-    }, [tempName]);
+    // Automatically reset verification status if name is edited - REMOVED to prevent resetting when lookup auto-fills name.
 
     // Sync enableDelivery and addressDetails to checkout states
     useEffect(() => {
@@ -466,15 +465,69 @@ const WalkInOrderPage = () => {
             if (cleanVal.length === 10) {
                 try {
                     const lookupRes = await authApi.lookupPhone(cleanVal);
-                    if (lookupRes && lookupRes.displayName) {
+                    if (lookupRes && lookupRes.isRegistered) {
+                        const dispName = lookupRes.displayName || '';
+                        setTempName(dispName);
+                        setCustomerName(dispName);
+                        setIsVerified(true);
+                        
+                        let rawAddress = lookupRes.address || '';
+                        let cCity = lookupRes.city || '';
+                        let cState = lookupRes.state || '';
+                        let cPincode = lookupRes.pincode || '';
+                        let cFlatNo = '';
+                        let cStreet = rawAddress;
+
+                        // Try to parse rawAddress if it contains commas and city/pincode are missing
+                        if (rawAddress && (!cCity || !cPincode)) {
+                            const parts = rawAddress.split(',').map(s => s.trim());
+                            if (parts.length >= 3) {
+                                const lastPart = parts.pop();
+                                const pinMatch = lastPart.match(/\d{6}/);
+                                if (pinMatch) cPincode = pinMatch[0];
+                                
+                                cCity = parts.pop();
+                                cStreet = parts.join(', ');
+                            }
+                        } else if (rawAddress && cCity && cStreet.includes(cCity)) {
+                             // remove city and everything after it from street to avoid duplication
+                             const cityIdx = cStreet.lastIndexOf(cCity);
+                             if(cityIdx > 0) {
+                                 cStreet = cStreet.substring(0, cityIdx).replace(/,\s*$/, '').trim();
+                             }
+                        }
+                        
+                        // Attempt to extract flat number if there are still multiple parts
+                        const streetParts = cStreet.split(',');
+                        if (streetParts.length > 1 && streetParts[0].length < 20) {
+                            cFlatNo = streetParts[0].trim();
+                            cStreet = streetParts.slice(1).join(', ').trim();
+                        }
+
+                        setSavedCustomerAddress({
+                            flatNo: cFlatNo,
+                            street: cStreet,
+                            city: cCity,
+                            state: cState,
+                            pincode: cPincode,
+                            lat: lookupRes.lat,
+                            lng: lookupRes.lng
+                        });
+                        toast.success(`Welcome back, ${dispName || 'Customer'}!`);
+                    } else if (lookupRes && lookupRes.displayName) {
                         setTempName(lookupRes.displayName);
-                        toast.success(`Welcome back, ${lookupRes.displayName}!`);
+                        setIsVerified(false);
+                        setSavedCustomerAddress(null);
                     } else {
                         setTempName('');
+                        setIsVerified(false);
+                        setSavedCustomerAddress(null);
                     }
                 } catch (err) {
                     console.log('Customer not previously registered under this phone.');
                     setTempName('');
+                    setIsVerified(false);
+                    setSavedCustomerAddress(null);
                 }
             }
         }
@@ -683,9 +736,8 @@ const WalkInOrderPage = () => {
     const handleCollectAndPrint = async () => {
         if (!customerPhone || items.length === 0) return;
         
-        const isShiprocket = deliveryMethod === 'shiprocket';
-        if (isShiprocket && !deliveryAddress.trim()) {
-            toast.error('Please enter customer delivery address');
+        if (enableDelivery && !isAddressComplete) {
+            toast.error('Please complete the delivery address');
             return;
         }
         
@@ -699,15 +751,17 @@ const WalkInOrderPage = () => {
             const uniquePhotos = Array.from(new Set(allPhotos));
 
             const finalPrice = Math.max(0, total + (enableDelivery ? 10 : 0) + Math.round(total * 0.05) - discount);
+            const dropAddressStr = enableDelivery ? `${addressDetails.flatNo}, ${addressDetails.street}, ${addressDetails.city}, ${addressDetails.state} - ${addressDetails.pincode}` : 'Self Delivery / Customer';
 
             const orderData = {
                 customerPhone,
                 customerName,
                 vendorId,
                 orderType: 'Walk-In',
-                riderDropOff: isShiprocket,
-                dropAddress: isShiprocket ? deliveryAddress.trim() : 'Self Delivery / Customer',
-                deliveryTime: isShiprocket ? deliveryTime : 'N/A',
+                riderDropOff: enableDelivery,
+                dropAddress: dropAddressStr,
+                deliveryTime: enableDelivery ? deliveryTime : 'N/A',
+                addressDetails: enableDelivery ? addressDetails : null,
                 items: items.map(i => ({
                     serviceId: i.serviceId,
                     name: i.title,
@@ -748,9 +802,9 @@ const WalkInOrderPage = () => {
                         <motion.button 
                             whileTap={{ scale: 0.9 }} 
                             onClick={() => setShowReviewModal(false)} 
-                            className="w-10 h-10 rounded-none bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200/50 hover:bg-slate-200 transition-all shadow-sm"
+                            className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 shadow-sm transition-all"
                         >
-                            <span className="material-symbols-outlined text-base">arrow_back</span>
+                            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                         </motion.button>
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">
                             Review Details
@@ -872,28 +926,6 @@ const WalkInOrderPage = () => {
                                     </div>
                                 </div>
                                 
-                                {enableDelivery && (
-                                    <div className="grid grid-cols-2 gap-3 pt-2">
-                                        <motion.button 
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            type="button"
-                                            onClick={() => console.log('PAY ON VENDOR clicked')}
-                                            className="w-full bg-white/10 hover:bg-white/20 text-white border border-white/10 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest transition-all text-center"
-                                        >
-                                            PAY ON VENDOR
-                                        </motion.button>
-                                        <motion.button 
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            type="button"
-                                            onClick={() => console.log('PAY WITH SPINZYT clicked')}
-                                            className="w-full bg-white text-black hover:bg-slate-100 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-xl transition-all text-center"
-                                        >
-                                            PAY WITH SPINZYT
-                                        </motion.button>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -921,6 +953,46 @@ const WalkInOrderPage = () => {
                         })}
                     </div>
                 </main>
+
+                <div className="fixed bottom-[90px] left-0 right-0 p-4 z-50">
+                    <div className="max-w-md mx-auto">
+                        {enableDelivery ? (
+                            <div className="grid grid-cols-2 gap-3">
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="button"
+                                    onClick={handleCollectAndPrint}
+                                    disabled={isProcessing}
+                                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-2xl transition-all text-center"
+                                >
+                                    PAY ON VENDOR
+                                </motion.button>
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="button"
+                                    onClick={handleCollectAndPrint}
+                                    disabled={isProcessing}
+                                    className="w-full bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-2xl transition-all text-center"
+                                >
+                                    PAY WITH SPINZYT
+                                </motion.button>
+                            </div>
+                        ) : (
+                            <motion.button 
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="button"
+                                onClick={handleCollectAndPrint}
+                                disabled={isProcessing}
+                                className="w-full bg-slate-900 text-white hover:bg-slate-800 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all text-center"
+                            >
+                                SUBMIT
+                            </motion.button>
+                        )}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -929,8 +1001,8 @@ const WalkInOrderPage = () => {
         <div className="text-slate-900 min-h-[100dvh] pb-64 flex flex-col overflow-x-hidden font-sans">
             <main className="px-6 pt-2 space-y-6 flex-1">
                 <header className="flex items-center gap-3">
-                    <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-none bg-slate-100 flex items-center justify-center text-slate-900 border border-slate-200/50 hover:bg-slate-200 transition-all shadow-sm">
-                        <span className="material-symbols-outlined text-base">arrow_back</span>
+                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 shadow-sm transition-all">
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                     </button>
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">
                         take customer order here
@@ -952,196 +1024,140 @@ const WalkInOrderPage = () => {
                                 onChange={(e) => handlePhoneChange(e.target.value)}
                                 maxLength={10}
                                 disabled={isVerified}
-                                className={`w-full bg-white rounded-none pl-12 pr-4 py-3.5 text-xs font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none ${isVerified ? 'bg-slate-50 text-slate-500' : ''}`}
+                                className={`w-full bg-white rounded-xl pl-12 pr-4 py-3.5 text-xs font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none ${isVerified ? 'bg-slate-50 text-slate-500' : ''}`}
                             />
                         </div>
 
                         {/* Name Input */}
-                        <div className="relative group">
+                        <div className={`relative group transition-all duration-300 ${customerPhone.length !== 10 ? 'opacity-40 pointer-events-none' : ''}`}>
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">person</span>
                             <input 
                                 type="text"
                                 placeholder="Enter Customer Name"
                                 value={tempName}
-                                onChange={(e) => setTempName(e.target.value)}
-                                disabled={isVerified}
-                                className={`w-full bg-white rounded-none pl-12 pr-4 py-3.5 text-xs font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none ${isVerified ? 'bg-slate-50 text-slate-500' : ''}`}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                                    setTempName(val);
+                                }}
+                                disabled={isVerified || customerPhone.length !== 10}
+                                className={`w-full bg-white rounded-xl pl-12 pr-4 py-3.5 text-xs font-bold border border-slate-200 shadow-sm focus:ring-4 focus:ring-[#3D5AFE]/10 transition-all outline-none ${isVerified ? 'bg-slate-50 text-slate-500' : ''}`}
                             />
                         </div>
                     </div>
 
                     {/* Drop-off Delivery Toggle */}
-                    <div className="flex items-center justify-between bg-slate-50 p-4 border border-slate-200/60 rounded-none">
+                    <div className={`flex items-center justify-between bg-slate-50 p-4 border border-slate-200/60 rounded-xl transition-all duration-300 ${customerPhone.length !== 10 || tempName.trim().length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
                         <div className="space-y-0.5">
                             <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Drop-off Delivery</span>
                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Enable rider courier delivery to customer address</p>
                         </div>
                         <button
                             type="button"
-                            disabled={isVerified}
-                            onClick={() => setEnableDelivery(!enableDelivery)}
-                            className={`w-12 h-6 flex items-center p-1 cursor-pointer transition-all duration-300 border ${
+                            onClick={() => {
+                                if (!enableDelivery) {
+                                    setEnableDelivery(true);
+                                    if (savedCustomerAddress && (savedCustomerAddress.street || savedCustomerAddress.flatNo)) {
+                                        setAddressDetails(prev => ({
+                                            ...prev,
+                                            flatNo: savedCustomerAddress.flatNo || '',
+                                            street: savedCustomerAddress.street || '',
+                                            city: savedCustomerAddress.city || '',
+                                            state: savedCustomerAddress.state || '',
+                                            pincode: savedCustomerAddress.pincode || '',
+                                            lat: savedCustomerAddress.lat || 22.7196,
+                                            lng: savedCustomerAddress.lng || 75.8577
+                                        }));
+                                        toast.success("Delivery address auto-filled from customer profile!");
+                                    } else {
+                                        setShowLocateModal(true);
+                                    }
+                                } else {
+                                    setEnableDelivery(false);
+                                }
+                            }}
+                            className={`w-12 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 border ${
                                 enableDelivery ? 'bg-slate-950 border-slate-950 justify-end' : 'bg-slate-200 border-slate-300 justify-start'
-                            } ${isVerified ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            }`}
                         >
                             <motion.div 
                                 layout 
-                                className="w-4 h-4 bg-white"
+                                className="w-4 h-4 bg-white rounded-full"
                                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             />
                         </button>
                     </div>
 
-
-
-                    {/* Structured Address Form */}
+                    {/* Delivery Address Summary */}
                     {enableDelivery && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-white border border-slate-200 p-4 space-y-4 rounded-none"
+                            className="bg-slate-50 border border-slate-200 p-4 space-y-4 rounded-3xl"
                         >
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] font-black text-[#3D5AFE] uppercase tracking-widest">Delivery Address Details</span>
+                                <div className="flex flex-col">
+                                    <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Delivery Address</span>
+                                    <span className="text-[10px] font-bold text-slate-500 mt-1">
+                                        {isAddressComplete ? `${addressDetails.flatNo}, ${addressDetails.street}` : 'Please provide location details'}
+                                    </span>
+                                </div>
                                 <button
                                     type="button"
-                                    disabled={isVerified}
-                                    onClick={() => setShowMapModal(true)}
-                                    className="px-3 py-1.5 bg-slate-950 text-white font-black text-[9px] uppercase tracking-widest rounded-none hover:bg-slate-800 transition-colors flex items-center gap-1 disabled:opacity-50"
+                                    onClick={() => setShowLocateModal(true)}
+                                    className="w-8 h-8 bg-slate-200 text-slate-900 rounded-full hover:bg-slate-300 transition-colors flex items-center justify-center"
                                 >
-                                    <span className="material-symbols-outlined text-xs">map</span>
-                                    Locate on Map
+                                    <span className="material-symbols-outlined text-sm">visibility</span>
                                 </button>
                             </div>
 
-                            <div className="space-y-3">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Flat / House No / Floor</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Flat 402, 4th Floor"
-                                            value={addressDetails.flatNo}
-                                            onChange={(e) => setAddressDetails({ ...addressDetails, flatNo: e.target.value })}
-                                            disabled={isVerified}
-                                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                        />
+                            {/* Delivery Date & Time Selector - Shows inside the address block once address is complete */}
+                            {isAddressComplete && (
+                                <div className="border-t border-slate-200 pt-4 mt-3 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[9px] font-black text-[#3D5AFE] uppercase tracking-widest">Select Delivery Date & Time</span>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Street / Landmark / Area</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Near Apollo Hospital, Vijay Nagar"
-                                            value={addressDetails.street}
-                                            onChange={(e) => setAddressDetails({ ...addressDetails, street: e.target.value })}
-                                            disabled={isVerified}
-                                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                        />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Date</label>
+                                            <input
+                                                type="date"
+                                                value={deliveryDate}
+                                                onChange={(e) => setDeliveryDate(e.target.value)}
+                                                className="w-full bg-white border border-slate-200 px-3 py-2.5 text-xs font-bold focus:border-slate-300 transition-all outline-none rounded-xl"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Time</label>
+                                            <input
+                                                type="time"
+                                                value={deliveryTimeVal}
+                                                onChange={(e) => setDeliveryTimeVal(e.target.value)}
+                                                className="w-full bg-white border border-slate-200 px-3 py-2.5 text-xs font-bold focus:border-slate-300 transition-all outline-none rounded-xl"
+                                            />
+                                        </div>
                                     </div>
+                                    <div className="flex gap-2 mt-1">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => selectPreset('today')}
+                                            className="flex-1 py-1.5 text-[8px] font-black uppercase tracking-widest rounded bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all"
+                                        >
+                                            Today 8PM
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => selectPreset('tomorrow')}
+                                            className="flex-1 py-1.5 text-[8px] font-black uppercase tracking-widest rounded bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all"
+                                        >
+                                            Tomorrow 8PM
+                                        </button>
+                                    </div>
+                                    {/* Format Preview */}
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                                        Selected Schedule: <strong className="text-slate-800">{deliveryTime}</strong>
+                                    </p>
                                 </div>
-
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">City</label>
-                                        <input
-                                            type="text"
-                                            placeholder="City"
-                                            value={addressDetails.city}
-                                            onChange={(e) => setAddressDetails({ ...addressDetails, city: e.target.value })}
-                                            disabled={isVerified}
-                                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">State</label>
-                                        <input
-                                            type="text"
-                                            placeholder="State"
-                                            value={addressDetails.state}
-                                            onChange={(e) => setAddressDetails({ ...addressDetails, state: e.target.value })}
-                                            disabled={isVerified}
-                                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pincode</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Pincode"
-                                            value={addressDetails.pincode}
-                                            onChange={(e) => setAddressDetails({ ...addressDetails, pincode: e.target.value })}
-                                            disabled={isVerified}
-                                            className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Delivery Date & Time Selector - Shows inside the address block once address is complete */}
-                                {isAddressComplete && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="border-t border-slate-100 pt-4 mt-3 space-y-3"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[9px] font-black text-[#3D5AFE] uppercase tracking-widest">Select Delivery Date & Time</span>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Date</label>
-                                                <input
-                                                    type="date"
-                                                    value={deliveryDate}
-                                                    onChange={(e) => setDeliveryDate(e.target.value)}
-                                                    disabled={isVerified}
-                                                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                                />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Time</label>
-                                                <input
-                                                    type="time"
-                                                    value={deliveryTimeVal}
-                                                    onChange={(e) => setDeliveryTimeVal(e.target.value)}
-                                                    disabled={isVerified}
-                                                    className="w-full bg-slate-50 border border-slate-200 px-3 py-2.5 text-xs font-bold focus:bg-white transition-all outline-none rounded-none disabled:bg-slate-100 disabled:text-slate-500"
-                                                />
-                                            </div>
-                                        </div>
-                                        {/* Preset Buttons */}
-                                        <div className="flex flex-wrap gap-2 pt-1">
-                                            <button
-                                                type="button"
-                                                disabled={isVerified}
-                                                onClick={() => selectPreset('today')}
-                                                className="px-3 py-1.5 bg-slate-100 text-slate-900 border border-slate-200/50 hover:bg-slate-200 text-[8px] font-black uppercase tracking-widest rounded-none transition-colors"
-                                            >
-                                                Today, 8:00 PM
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={isVerified}
-                                                onClick={() => selectPreset('tomorrow')}
-                                                className="px-3 py-1.5 bg-slate-100 text-slate-900 border border-slate-200/50 hover:bg-slate-200 text-[8px] font-black uppercase tracking-widest rounded-none transition-colors"
-                                            >
-                                                Tomorrow, 6:00 PM
-                                            </button>
-                                            <button
-                                                type="button"
-                                                disabled={isVerified}
-                                                onClick={() => selectPreset('2days')}
-                                                className="px-3 py-1.5 bg-slate-100 text-slate-900 border border-slate-200/50 hover:bg-slate-200 text-[8px] font-black uppercase tracking-widest rounded-none transition-colors"
-                                            >
-                                                In 2 Days
-                                            </button>
-                                        </div>
-                                        {/* Format Preview */}
-                                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                                            Selected Schedule: <strong className="text-slate-800">{deliveryTime}</strong>
-                                        </p>
-                                    </motion.div>
-                                )}
-                            </div>
+                            )}
                         </motion.div>
                     )}
 
@@ -1345,7 +1361,7 @@ const WalkInOrderPage = () => {
                 </section>
 
                 {/* Service Selection */}
-                <section className="space-y-4">
+                <section className={`space-y-4 transition-all duration-300 ${customerPhone.length !== 10 || tempName.trim().length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3D5AFE]">Select Service</h2>
                     </div>
@@ -1519,70 +1535,7 @@ const WalkInOrderPage = () => {
                     )}
                 </section>
 
-                {/* Item List / Tagging */}
-                <section className="space-y-4">
-                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3D5AFE] ml-2">Active Order Queue ({items.length})</h2>
-                    <div className="space-y-3">
-                        <AnimatePresence mode="popLayout">
-                            {items.length > 0 ? items.map((item, idx) => (
-                                <motion.div
-                                    key={item.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: 20 }}
-                                    className="bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm flex items-center justify-between group"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-900 font-black text-xs">
-                                            #{idx + 1}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-black text-slate-800 leading-none mb-1">{item.quantity}x {item.title}</p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[9px] font-bold text-[#3D5AFE] uppercase tracking-widest">Tag: {item.tag}</span>
-                                                <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">₹{item.price} ea.</span>
-                                                {itemPhotos[item.serviceId]?.length > 0 && (
-                                                    <>
-                                                        <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                                                        <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
-                                                            <span className="material-symbols-outlined text-[10px]">image</span>
-                                                            {itemPhotos[item.serviceId].length} Photos
-                                                        </span>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button 
-                                            type="button"
-                                            onClick={() => setActivePhotoService({ id: item.serviceId, name: item.title })} 
-                                            className={`w-8 h-8 rounded-none border flex items-center justify-center transition-all ${itemPhotos[item.serviceId]?.length > 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-200 hover:text-slate-600'}`}
-                                            title="Photos (Optional)"
-                                        >
-                                            <span className="material-symbols-outlined text-base">add_a_photo</span>
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => removeItem(item.id)}
-                                            className="w-8 h-8 rounded-none bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white border border-rose-200/20 transition-all"
-                                        >
-                                            <span className="material-symbols-outlined text-sm">close</span>
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )) : (
-                                <div className="py-16 border-2 border-dashed border-slate-200 rounded-[2rem] flex flex-col items-center justify-center opacity-40">
-                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
-                                        <span className="material-symbols-outlined text-3xl">add_shopping_cart</span>
-                                    </div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest">Add items above to start</p>
-                                </div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                </section>
+                {/* Active Order Queue Removed per user request */}
             </main>
 
             {/* Sticky Order Action */}
@@ -1937,6 +1890,217 @@ const WalkInOrderPage = () => {
                                     </button>
                                 </div>
                             )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showLocateModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-[#f8f9fa] rounded-[2rem] p-6 w-full max-w-[360px] shadow-2xl relative overflow-hidden flex flex-col h-[520px]"
+                        >
+                            <div className="flex-1 overflow-y-auto hide-scrollbar -mx-2 px-2 pb-6 pt-2">
+                                <div className="mb-6">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setShowLocateModal(false)}
+                                        className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors mb-2 -ml-2 bg-slate-100 rounded-full"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                                    </button>
+                                    <h2 className="text-[40px] font-black uppercase tracking-tighter leading-[0.9] text-[#1a1f2b]">ADDRESS.</h2>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-3">Details for accurate delivery</p>
+                                </div>
+                                
+                                <div className="space-y-5 mt-8">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Search your location</label>
+                                        {isLoaded ? (
+                                            <Autocomplete
+                                                onLoad={ac => setAutocompleteInstance(ac)}
+                                                onPlaceChanged={async () => {
+                                                    if (!autocompleteInstance) return;
+                                                    const place = autocompleteInstance.getPlace();
+                                                    if (!place || !place.geometry) return;
+                                                    
+                                                    const lat = place.geometry.location.lat();
+                                                    const lng = place.geometry.location.lng();
+                                                    
+                                                    let street = '';
+                                                    let city = '';
+                                                    let state = '';
+                                                    let pincode = '';
+
+                                                    if (place.address_components) {
+                                                        const streetNumberComp = place.address_components.find(c => c.types.includes('street_number'));
+                                                        const routeComp = place.address_components.find(c => c.types.includes('route'));
+                                                        const sublocalityComp = place.address_components.find(c => c.types.includes('sublocality_level_1'));
+                                                        const neighborhoodComp = place.address_components.find(c => c.types.includes('neighborhood'));
+                                                        
+                                                        const parts = [
+                                                            streetNumberComp?.long_name,
+                                                            routeComp?.long_name,
+                                                            sublocalityComp?.long_name,
+                                                            neighborhoodComp?.long_name
+                                                        ].filter(Boolean);
+                                                        
+                                                        street = parts.join(', ') || place.name || '';
+                                                        
+                                                        const cityComp = place.address_components.find(c => c.types.includes('locality') || c.types.includes('administrative_area_level_2'));
+                                                        city = cityComp ? cityComp.long_name : '';
+                                                        
+                                                        const stateComp = place.address_components.find(c => c.types.includes('administrative_area_level_1'));
+                                                        state = stateComp ? stateComp.long_name : '';
+                                                        
+                                                        const pinComp = place.address_components.find(c => c.types.includes('postal_code'));
+                                                        pincode = pinComp ? pinComp.long_name : '';
+                                                    }
+                                                    
+                                                    setAddressDetails(prev => ({
+                                                        ...prev,
+                                                        street: street,
+                                                        city: city,
+                                                        state: state,
+                                                        pincode: pincode,
+                                                        lat,
+                                                        lng
+                                                    }));
+                                                }}
+                                            >
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Search for your house/building..." 
+                                                    className="w-full bg-[#111625] text-white px-5 py-4 rounded-[1.2rem] text-sm font-bold outline-none placeholder:text-slate-500 shadow-inner" 
+                                                />
+                                            </Autocomplete>
+                                        ) : (
+                                            <div className="w-full h-[52px] bg-slate-200 animate-pulse rounded-[1.2rem]" />
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <button 
+                                            type="button"
+                                            className={`flex-1 py-4 rounded-[1.2rem] flex flex-col items-center justify-center gap-1.5 transition-all ${addressDetails.type === 'HOME' ? 'bg-black text-white shadow-xl shadow-black/20' : 'bg-transparent border border-slate-200 text-[#a0aabf]'}`} 
+                                            onClick={() => setAddressDetails({...addressDetails, type: 'HOME'})}
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">lock</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Home</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            className={`flex-1 py-4 rounded-[1.2rem] flex flex-col items-center justify-center gap-1.5 transition-all ${addressDetails.type === 'OFFICE' ? 'bg-black text-white shadow-xl shadow-black/20' : 'bg-transparent border border-slate-200 text-[#a0aabf]'}`} 
+                                            onClick={() => setAddressDetails({...addressDetails, type: 'OFFICE'})}
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">work</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Office</span>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            className={`flex-1 py-4 rounded-[1.2rem] flex flex-col items-center justify-center gap-1.5 transition-all ${addressDetails.type === 'OTHER' ? 'bg-black text-white shadow-xl shadow-black/20' : 'bg-transparent border border-slate-200 text-[#a0aabf]'}`} 
+                                            onClick={() => setAddressDetails({...addressDetails, type: 'OTHER'})}
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">location_on</span>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Other</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Address Line 1</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Flat/House No, Building Name" 
+                                            value={addressDetails.flatNo || ''} 
+                                            onChange={(e) => setAddressDetails({...addressDetails, flatNo: e.target.value})} 
+                                            className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Address Line 2</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Street, Area Name" 
+                                            value={addressDetails.street || ''} 
+                                            onChange={(e) => setAddressDetails({...addressDetails, street: e.target.value})} 
+                                            className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Floor / Apt</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="e.g. 4th Floor" 
+                                                value={addressDetails.floor || ''} 
+                                                onChange={(e) => setAddressDetails({...addressDetails, floor: e.target.value})} 
+                                                className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Landmark</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Near Temple/Gym" 
+                                                value={addressDetails.landmark || ''} 
+                                                onChange={(e) => setAddressDetails({...addressDetails, landmark: e.target.value})} 
+                                                className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">Pincode</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="6-digit ZIP" 
+                                                value={addressDetails.pincode || ''} 
+                                                onChange={(e) => setAddressDetails({...addressDetails, pincode: e.target.value})} 
+                                                className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">City</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="City Name" 
+                                                value={addressDetails.city || ''} 
+                                                onChange={(e) => setAddressDetails({...addressDetails, city: e.target.value})} 
+                                                className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest ml-1">State</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="State Name" 
+                                            value={addressDetails.state || ''} 
+                                            onChange={(e) => setAddressDetails({...addressDetails, state: e.target.value})} 
+                                            className="w-full bg-[#f1f3f6] border border-slate-200/50 px-5 py-3.5 rounded-[1.2rem] text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-slate-300 transition-all outline-none" 
+                                        />
+                                    </div>
+
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4 pt-2 bg-[#f8f9fa] relative z-10">
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowLocateModal(false)} 
+                                    className="w-full py-4 bg-black text-white rounded-full text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-black/20"
+                                >
+                                    Save Address
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

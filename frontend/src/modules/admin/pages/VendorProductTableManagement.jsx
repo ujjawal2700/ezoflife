@@ -454,7 +454,7 @@ const VendorProductTableManagement = () => {
                         label: "Bulk Upload",
                         icon: Upload,
                         onClick: () => { resetBulkModal(); setIsBulkModalOpen(true); },
-                        variant: 'secondary'
+                        variant: 'primary'
                     },
                     {
                         label: "Add Supply Item",
@@ -471,40 +471,55 @@ const VendorProductTableManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
-                            <select
-                                value={filters.categoryId}
-                                onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-52 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Categories & Sub Cats</option>
-                                {categories.map(cat => (
-                                    <option key={cat._id} value={cat._id}>
-                                        {cat.mainCategory} — {cat.subCategory}
-                                    </option>
-                                ))}
-                            </select>
-                            <select
-                                value={filters.isActive}
-                                onChange={(e) => handleFilterChange('isActive', e.target.value)}
-                                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-28 uppercase tracking-wider cursor-pointer"
-                            >
-                                <option value="">All Status</option>
-                                <option value="y">Active (Y)</option>
-                                <option value="n">Inactive (N)</option>
-                            </select>
-                            {(filters.categoryId || filters.isActive !== '') && (
-                                <button 
-                                    onClick={() => {
-                                        const cleared = { categoryId: '', isActive: '' };
-                                        setFilters(cleared);
-                                        fetchSupplies(1, cleared);
-                                    }}
-                                    className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                        <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+                            <div className="w-full sm:w-auto">
+                                <select
+                                    value={filters.categoryId}
+                                    onChange={(e) => handleFilterChange('categoryId', e.target.value)}
+                                    className="w-full sm:w-52 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
                                 >
-                                    Reset
-                                </button>
-                            )}
+                                    <option value="">All Categories & Sub Cats</option>
+                                    {categories.map(cat => (
+                                        <option key={cat._id} value={cat._id}>
+                                            {cat.mainCategory} — {cat.subCategory}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2">
+                                <select
+                                    value={filters.isActive}
+                                    onChange={(e) => handleFilterChange('isActive', e.target.value)}
+                                    className="w-auto sm:w-28 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="y">Active (Y)</option>
+                                    <option value="n">Inactive (N)</option>
+                                </select>
+                                
+                                <div className="flex items-center gap-2">
+                                    {(filters.categoryId || filters.isActive !== '') && (
+                                        <button 
+                                            onClick={() => {
+                                                const cleared = { categoryId: '', isActive: '' };
+                                                setFilters(cleared);
+                                                fetchSupplies(1, cleared);
+                                            }}
+                                            className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                                        >
+                                            Reset
+                                        </button>
+                                    )}
+                                    <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block" />
+                                    <button 
+                                        onClick={handleDownload} 
+                                        className="p-1.5 sm:p-2 bg-slate-50 border border-slate-200 sm:border-transparent sm:bg-transparent text-slate-400 hover:text-slate-900 rounded-sm" 
+                                        title="Download Excel/CSV"
+                                    >
+                                        <Download size={14} />
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     }
                     columns={columns}
@@ -512,7 +527,6 @@ const VendorProductTableManagement = () => {
                     loading={loading}
                     pagination={pagination}
                     onPageChange={(newPage) => fetchSupplies(newPage)}
-                    onDownload={handleDownload}
                 />
             </div>
 

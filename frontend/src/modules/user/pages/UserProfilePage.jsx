@@ -22,6 +22,35 @@ const UserProfilePage = () => {
   });
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const userId = user._id || user.id;
+        if (userId) {
+          const freshUser = await authApi.getProfile(userId);
+          if (freshUser && (freshUser._id || freshUser.id)) {
+            localStorage.setItem('user', JSON.stringify(freshUser));
+            setUser(freshUser);
+            setFormData(prev => ({
+              ...prev,
+              displayName: freshUser.displayName || prev.displayName,
+              email: freshUser.email || prev.email,
+              phone: freshUser.phone || prev.phone,
+              image: freshUser.image || prev.image,
+              paymentDetails: {
+                upi: freshUser.paymentDetails?.upi || prev.paymentDetails?.upi || '',
+                card: freshUser.paymentDetails?.card || prev.paymentDetails?.card || ''
+              }
+            }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to sync profile on mount:', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -254,7 +283,11 @@ const UserProfilePage = () => {
                             <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded">Default</span>
                           )}
                         </div>
-                        <p className="text-[11px] font-bold text-slate-900 truncate leading-tight mt-1">{addr.address}</p>
+                        <p className="text-[11px] font-bold text-slate-900 truncate leading-tight mt-1">
+                          {addr.address}
+                          {addr.city && !addr.address.includes(addr.city) ? `, ${addr.city}` : ''}
+                          {addr.pincode && !addr.address.includes(addr.pincode) ? ` - ${addr.pincode}` : ''}
+                        </p>
                       </div>
                     </div>
                     {!addr.isDefault && (

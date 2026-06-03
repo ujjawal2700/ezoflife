@@ -639,6 +639,12 @@ export const updateOrderStatus = async (req, res) => {
             io.to(`user_${vendorId}`).emit('order_status_update', updatedOrder);
         }
 
+        // Notify customer specifically for real-time updates
+        if (updatedOrder.customer) {
+            const customerId = updatedOrder.customer._id || updatedOrder.customer;
+            io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
+        }
+
         res.status(200).json(updatedOrder);
     } catch (err) {
         console.error('Update Status Error:', err);
@@ -1079,6 +1085,7 @@ export const createWalkInOrder = async (req, res) => {
         // 1. Find or create a shadow user for this walk-in customer
         let customer = await User.findOne({ phone: new RegExp(customerPhone.slice(-10) + '$') });
         
+        let customerUpdated = false;
         if (!customer) {
             customer = new User({
                 displayName: customerName || `Walk-In (${customerPhone.slice(-4)})`,
@@ -1086,9 +1093,37 @@ export const createWalkInOrder = async (req, res) => {
                 role: 'Customer',
                 status: 'approved'
             });
-            await customer.save();
-        } else if (customerName) {
+            customerUpdated = true;
+        } else if (customerName && customer.displayName !== customerName) {
             customer.displayName = customerName;
+            customerUpdated = true;
+        }
+
+        if (riderDropOff && req.body.addressDetails && req.body.addressDetails.street) {
+            const addr = req.body.addressDetails;
+            const formattedAddress = `${addr.flatNo ? addr.flatNo + ', ' : ''}${addr.street}`;
+            customer.address = formattedAddress;
+            customer.location = { lat: addr.lat || 0, lng: addr.lng || 0 };
+            
+            // Avoid duplicates by checking if similar address already exists
+            const existingAddress = customer.addresses.find(a => a.address === formattedAddress);
+            if (!existingAddress) {
+                customer.addresses.push({
+                    type: 'Home',
+                    address: formattedAddress,
+                    city: addr.city || '',
+                    pincode: addr.pincode || '',
+                    location: {
+                        lat: addr.lat || 0,
+                        lng: addr.lng || 0
+                    },
+                    isDefault: customer.addresses.length === 0
+                });
+            }
+            customerUpdated = true;
+        }
+
+        if (customerUpdated) {
             await customer.save();
         }
 
@@ -1127,7 +1162,7 @@ export const createWalkInOrder = async (req, res) => {
         await newOrder.save();
         
         // Send automated welcome SMS + WhatsApp message containing the Spinzyt app download link
-        const welcomeMsg = `Welcome to Spinzyt! Your walk-in order ${newOrder.orderId} has been successfully created. You can track your order status in real-time by downloading the Spinzyt app: https://spinzyt.com/app`;
+        const welcomeMsg = `Thank u for taking our service if u have to see your service status plz download our app\nhttps://spinzyt.com/app`;
         await sendSMSMessage(customerPhone, welcomeMsg);
         await sendWhatsAppMessage(customerPhone, welcomeMsg);
         

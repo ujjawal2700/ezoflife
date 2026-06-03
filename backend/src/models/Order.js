@@ -186,11 +186,15 @@ const orderSchema = new mongoose.Schema({
     }
 }, { timestamps: true });
 
-// Pre-save hook to generate a unique readable order ID like #EZ-8291
+// Pre-save hook to generate a unique readable order ID like #ON-8291 or #WL-8291
 orderSchema.pre('save', async function(next) {
     if (!this.orderId) {
         const random = Math.floor(1000 + Math.random() * 9000);
-        this.orderId = `#EZ-${random}`;
+        if (this.orderType === 'Walk-In') {
+            this.orderId = `#WL-${random}`;
+        } else {
+            this.orderId = `#ON-${random}`;
+        }
     }
     next();
 });

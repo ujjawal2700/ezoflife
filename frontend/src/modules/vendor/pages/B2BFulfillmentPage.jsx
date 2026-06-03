@@ -21,7 +21,10 @@ const B2BFulfillmentPage = () => {
         id: m._id,
         title: m.name,
         price: m.price,
-        icon: m.icon || 'fluid_med'
+        icon: m.icon || 'fluid_med',
+        supplierId: m.supplierId,
+        movFreeDelivery: m.movFreeDelivery || 0,
+        deliveryCharges: m.deliveryCharges || 0
     })), [liveSupplies]);
 
     const fetchMaterials = async () => {
@@ -37,7 +40,40 @@ const B2BFulfillmentPage = () => {
         fetchMaterials();
     }, [vendorId]);
 
-    const total = cart.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 1)), 0);
+    const { itemSubtotal, totalDeliveryCharges, grandTotal, supplierTotals } = useMemo(() => {
+        let subTotal = 0;
+        const supplierGroups = {};
+
+        // Calculate item subtotal and group by supplier
+        cart.forEach(item => {
+            const itemTotal = (item.price || 0) * (item.quantity || 1);
+            subTotal += itemTotal;
+            
+            if (!supplierGroups[item.supplierId]) {
+                supplierGroups[item.supplierId] = {
+                    totalAmount: 0,
+                    movFreeDelivery: item.movFreeDelivery,
+                    deliveryCharges: item.deliveryCharges
+                };
+            }
+            supplierGroups[item.supplierId].totalAmount += itemTotal;
+        });
+
+        // Calculate delivery charges per supplier
+        let deliveryTotal = 0;
+        Object.values(supplierGroups).forEach(group => {
+            if (group.totalAmount < group.movFreeDelivery) {
+                deliveryTotal += group.deliveryCharges;
+            }
+        });
+
+        return {
+            itemSubtotal: subTotal,
+            totalDeliveryCharges: deliveryTotal,
+            grandTotal: subTotal + deliveryTotal,
+            supplierTotals: supplierGroups
+        };
+    }, [cart]);
 
     const addToCart = (item) => {
         setCart(prev => {
@@ -159,9 +195,16 @@ const B2BFulfillmentPage = () => {
                     <div className="max-w-2xl mx-auto flex items-center justify-between gap-6">
                         <div>
                             <p className="text-[8px] font-black uppercase tracking-widest text-on-surface-variant opacity-40 mb-1">Estimated Requisition</p>
-                            <p className="text-3xl font-black text-primary tracking-tighter leading-none">
-                                ₹{total}
-                            </p>
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-bold text-slate-500">Items: ₹{itemSubtotal}</span>
+                                    <span className="text-[10px] font-bold text-slate-500">+</span>
+                                    <span className="text-[10px] font-bold text-slate-500">Delivery: ₹{totalDeliveryCharges}</span>
+                                </div>
+                                <p className="text-3xl font-black text-primary tracking-tighter leading-none">
+                                    ₹{grandTotal}
+                                </p>
+                            </div>
                         </div>
                         <motion.button
                             whileTap={{ scale: 0.95 }}
@@ -211,7 +254,9 @@ const B2BFulfillmentPage = () => {
                                             price: item.price,
                                             quantity: item.quantity || 1
                                          })),
-                                        totalAmount: total,
+                                        totalAmount: grandTotal,
+                                        subTotal: itemSubtotal,
+                                        deliveryCharges: totalDeliveryCharges,
                                         shippingAddress: vendorData.address || vendorData.shopDetails?.address || vendorData.user?.shopDetails?.address,
                                         pincode: pincode,
                                         city: city

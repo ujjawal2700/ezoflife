@@ -143,7 +143,7 @@ export default function OnboardingApprovals() {
         date: new Date(v.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
         docs: v.documents && v.documents.length > 0 ? v.documents : [],
         phone: v.phone || '',
-        status: 'Pending'
+        status: v.status ? (v.status.charAt(0).toUpperCase() + v.status.slice(1)) : 'Pending'
       }));
   }, [rawUsers, activeTab]);
 
@@ -301,8 +301,14 @@ export default function OnboardingApprovals() {
                                     </div>
                                 </td>
                                 <td className="px-6 py-5 text-center">
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-100 whitespace-nowrap">
-                                        <Clock size={10} />
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${
+                                        req.status.toLowerCase() === 'approved'
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            : req.status.toLowerCase() === 'rejected'
+                                                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                                                : 'bg-amber-50 text-amber-600 border-amber-100'
+                                    }`}>
+                                        {req.status.toLowerCase() === 'approved' ? <CheckCircle2 size={10} /> : (req.status.toLowerCase() === 'rejected' ? <XCircle size={10} /> : <Clock size={10} />)}
                                         {req.status}
                                     </span>
                                 </td>

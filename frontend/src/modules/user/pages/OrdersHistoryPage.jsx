@@ -442,17 +442,19 @@ const OrdersHistoryPage = () => {
                       <div className="mb-5 px-1 relative">
                         <div className="flex justify-between text-[6px] text-slate-400 font-black uppercase tracking-widest mb-1.5 px-0.5">
                           <span className="text-primary">Order Placed</span>
-                          <span className={['Rider Assigned', 'Picked Up', 'At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Rider Assigned</span>
-                          <span className={['At Shop', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>In Progress</span>
-                          <span className={['Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Out for Delivery</span>
+                          <span className={['Assigned', 'Picked Up', 'In Progress', 'Ready', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Rider / Picked</span>
+                          <span className={['In Progress', 'Ready', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Processing</span>
+                          <span className={['Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Delivery</span>
                         </div>
                         <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: 
-                                order.status === 'Rider Assigned' ? '40%' : 
-                                order.status === 'Picked Up' || order.status === 'At Shop' || order.status === 'Processing' ? '70%' : 
-                                order.status === 'Out for Delivery' ? '100%' : 
+                                order.status === 'Assigned' ? '40%' : 
+                                order.status === 'Picked Up' ? '55%' :
+                                order.status === 'In Progress' ? '70%' : 
+                                order.status === 'Ready' ? '85%' :
+                                order.status === 'Out for Delivery' ? '95%' : 
                                 order.status === 'Delivered' ? '100%' : '15%'
                             }}
                             className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-1000" 
@@ -463,12 +465,8 @@ const OrdersHistoryPage = () => {
                       <div className="flex items-center gap-2">
                         <motion.button 
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => (order.status === 'Assigned' || order.status === 'Out for Delivery') && navigate(`/user/tracking/${order._id || order.id}`)}
-                          className={`flex-[1.5] py-3 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
-                            (order.status === 'Assigned' || order.status === 'Out for Delivery') 
-                            ? 'bg-slate-900 text-white shadow-lg' 
-                            : 'bg-slate-50 text-slate-300 cursor-not-allowed'
-                          }`}
+                          onClick={() => navigate(`/user/tracking/${order._id || order.id}`)}
+                          className="flex-[1.5] py-3 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-slate-900 text-white shadow-lg"
                         >
                           <span className="material-symbols-outlined text-[14px]">my_location</span>
                           Track

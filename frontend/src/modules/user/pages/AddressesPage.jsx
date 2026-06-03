@@ -388,6 +388,8 @@ const AddressesPage = () => {
                 <div className="mt-4 relative z-10 flex justify-between items-end gap-4">
                   <p className="text-sm font-bold text-on-surface-variant opacity-60 leading-tight max-w-[70%] line-clamp-2">
                     {addr.address}
+                    {addr.city && !addr.address.includes(addr.city) ? `, ${addr.city}` : ''}
+                    {addr.pincode && !addr.address.includes(addr.pincode) ? ` - ${addr.pincode}` : ''}
                   </p>
                   {!addr.isDefault ? (
                     <motion.button 

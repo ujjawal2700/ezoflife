@@ -10,6 +10,7 @@ const VendorMyServices = () => {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editMode, setEditMode] = useState(false);
     const [creating, setCreating] = useState(false);
     const [newService, setNewService] = useState({
         name: '',
@@ -171,6 +172,7 @@ const VendorMyServices = () => {
     }, [vendorId]);
 
     const toggleService = async (idx) => {
+        if (!editMode) return;
         const newServices = [...services];
         const target = newServices[idx];
         
@@ -249,51 +251,55 @@ const VendorMyServices = () => {
         setServices(newServices);
     };
 
-    const handleUpdate = async () => {
+    const handleSaveSingleRow = async (idx) => {
         if (!vendorId) return;
+        const targetService = services[idx];
 
         try {
             setLoading(true);
             const profile = await authApi.getProfile(vendorId);
             
-            const mappedServicesForProfile = services.map(s => ({
-                id: s._id || s.id,
-                name: s.name,
-                vendorRate: Number(s.basePrice),
-                adminRate: Number(s.basePrice),
-                status: s.approvalStatus === 'Approved' ? 'approved' : 'pending',
-                icon: s.icon,
-                active: s.active,
-                normalTime: s.normalTime || '',
-                expressTime: s.expressTime || ''
-            }));
+            let currentServices = profile.shopDetails?.services || [];
+            const sId = targetService._id || targetService.id;
+            const existingIdx = currentServices.findIndex(s => (s.id === sId || s._id === sId));
+            
+            const updatedServiceForProfile = {
+                id: sId,
+                name: targetService.name,
+                vendorRate: Number(targetService.basePrice),
+                adminRate: Number(targetService.basePrice),
+                status: targetService.approvalStatus === 'Approved' ? 'approved' : 'pending',
+                icon: targetService.icon,
+                active: targetService.active,
+                normalTime: targetService.normalTime || '',
+                expressTime: targetService.expressTime || ''
+            };
+
+            if (existingIdx !== -1) {
+                currentServices[existingIdx] = updatedServiceForProfile;
+            } else {
+                currentServices.push(updatedServiceForProfile);
+            }
 
             const updatedShopDetails = {
                 ...(profile.shopDetails || {}),
-                services: mappedServicesForProfile
+                services: currentServices
             };
+
             await authApi.updateProfile(vendorId, { shopDetails: updatedShopDetails });
 
-            const syncPromises = services.map(service => {
-                const sId = service._id || service.id;
-                if (service.vendorId || service.isMaster === false) {
-                    return serviceApi.update(sId, { 
-                        status: service.active ? 'Active' : 'Inactive',
-                        basePrice: Number(service.basePrice)
-                    });
-                }
-                return null;
-            }).filter(p => p !== null);
-
-            if (syncPromises.length > 0) {
-                await Promise.all(syncPromises);
+            if (targetService.vendorId || targetService.isMaster === false) {
+                await serviceApi.update(sId, { 
+                    status: targetService.active ? 'Active' : 'Inactive',
+                    basePrice: Number(targetService.basePrice)
+                });
             }
 
-            alert('Services updated successfully!');
+            toast.success(`${targetService.name} updated successfully!`);
             fetchConfig();
         } catch (error) {
-            console.error('Update Services Error:', error);
-            alert('Failed to update services');
+            console.error('Update Single Service Error:', error);
+            toast.error('Failed to update service');
         } finally {
             setLoading(false);
         }
@@ -307,16 +313,23 @@ const VendorMyServices = () => {
         >
             <main className="max-w-6xl mx-auto px-6 pt-2 space-y-6">
                 <header className="flex items-center justify-between">
-                    <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-slate-900 transition-colors">
-                        <span className="material-symbols-outlined text-sm">arrow_back</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest">Back</span>
+                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 shadow-sm transition-all">
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                     </button>
-                    <button 
-                        onClick={() => setShowAddModal(true)}
-                        className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-md shadow-primary/20 hover:scale-105 transition-all"
-                    >
-                        <span className="material-symbols-outlined">add</span>
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => setShowAddModal(true)}
+                            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
+                        >
+                            Create
+                        </button>
+                        <button 
+                            onClick={() => setEditMode(!editMode)}
+                            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
+                        >
+                            {editMode ? 'Cancel Edit' : 'Edit'}
+                        </button>
+                    </div>
                 </header>
 
                 <section className="space-y-6">
@@ -331,7 +344,8 @@ const VendorMyServices = () => {
                                 <table className="w-full text-left border-collapse min-w-[950px]">
                                     <thead>
                                         <tr className="border-b border-slate-100 bg-slate-50/50">
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Service / Item</th>
+                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Status</th>
+                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Service Name</th>
                                             <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Category</th>
                                             <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Sub Category</th>
                                             <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Base Price (₹)</th>
@@ -339,7 +353,9 @@ const VendorMyServices = () => {
                                             <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Essential Express</th>
                                             <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Normal</th>
                                             <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Express</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Status</th>
+                                            {editMode && (
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Action</th>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-50">
@@ -361,9 +377,27 @@ const VendorMyServices = () => {
                                             return (
                                                 <tr key={service.id || service._id} className="hover:bg-slate-50/50 transition-colors">
                                                     <td className="p-4">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {isPending ? (
+                                                                <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded uppercase tracking-wider">Awaiting Approval</span>
+                                                            ) : isRejected ? (
+                                                                <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded uppercase tracking-wider border border-rose-100">Rejected</span>
+                                                            ) : (
+                                                                <div 
+                                                                    onClick={() => toggleService(idx)}
+                                                                    className={`w-10 h-5 rounded-full relative transition-all duration-300 ${!editMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
+                                                                >
+                                                                    <motion.div 
+                                                                        animate={{ x: service.active ? 22 : 2 }}
+                                                                        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4">
                                                         <div className="flex flex-col gap-1">
                                                             <div className="flex items-center gap-3">
-                                                                <span className="material-symbols-outlined text-slate-400 text-lg">{service.icon}</span>
                                                                 <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{service.name}</span>
                                                             </div>
                                                             {service.adminMessage && (
@@ -388,32 +422,24 @@ const VendorMyServices = () => {
                                                             type="number"
                                                             value={service.basePrice || 0}
                                                             onChange={(e) => updatePrice(idx, e.target.value)}
-                                                            className="w-full px-3 py-2 bg-slate-50 rounded-xl text-xs font-black text-slate-900 border border-slate-200 outline-none focus:bg-white focus:border-slate-300 transition-all"
+                                                            disabled={!editMode}
+                                                            className={`w-full px-3 py-2 rounded-xl text-xs font-black text-slate-900 border outline-none transition-all ${!editMode ? 'bg-transparent border-transparent' : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-slate-300'}`}
                                                         />
                                                     </td>
                                                     <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseNormal}</td>
                                                     <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseExpress}</td>
                                                     <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageNormal}</td>
                                                     <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageExpress}</td>
-                                                    <td className="p-4">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            {isPending ? (
-                                                                <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded uppercase tracking-wider">Awaiting Approval</span>
-                                                            ) : isRejected ? (
-                                                                <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded uppercase tracking-wider border border-rose-100">Rejected</span>
-                                                            ) : (
-                                                                <div 
-                                                                    onClick={() => toggleService(idx)}
-                                                                    className={`w-10 h-5 rounded-full relative transition-all duration-300 cursor-pointer ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
-                                                                >
-                                                                    <motion.div 
-                                                                        animate={{ x: service.active ? 22 : 2 }}
-                                                                        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
+                                                    {editMode && (
+                                                        <td className="p-4 text-center">
+                                                            <button 
+                                                                onClick={() => handleSaveSingleRow(idx)}
+                                                                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md shadow-slate-900/10 active:scale-95"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             );
                                         })}
@@ -423,14 +449,6 @@ const VendorMyServices = () => {
                         </div>
                     )}
 
-                    {!loading && services.length > 0 && (
-                        <button 
-                            onClick={handleUpdate}
-                            className="w-full py-5 rounded-[2.5rem] bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-[0.98] transition-all"
-                        >
-                            Save Rate Card Changes
-                        </button>
-                    )}
                 </section>
             </main>
 

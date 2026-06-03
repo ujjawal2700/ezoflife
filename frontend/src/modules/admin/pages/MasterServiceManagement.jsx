@@ -374,7 +374,7 @@ const MasterServiceManagement = () => {
                         label: "Bulk Upload",
                         icon: Download,
                         onClick: () => toast.success('SKU Excel Mapping Tool Initiated'),
-                        variant: 'secondary'
+                        variant: 'primary'
                     },
                     {
                         label: "Add New Service",

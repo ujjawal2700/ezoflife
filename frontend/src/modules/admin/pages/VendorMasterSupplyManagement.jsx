@@ -375,6 +375,15 @@ const VendorMasterSupplyManagement = () => {
 
     const columns = useMemo(() => [
         {
+            header: 'Zone',
+            key: 'zoneName',
+            render: (val) => (
+                <span className="font-bold text-slate-700 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-sm tabular-nums text-[10px] whitespace-nowrap">
+                    {val || '—'}
+                </span>
+            )
+        },
+        {
             header: 'SKU ID (PK)',
             key: 'skuId',
             render: (val) => (
@@ -493,6 +502,15 @@ const VendorMasterSupplyManagement = () => {
             )
         },
         {
+            header: 'Platform Aggregator',
+            key: 'platformMultiplier',
+            render: (val) => (
+                <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm tabular-nums text-[10px] whitespace-nowrap">
+                    {val ? `${val}x` : '1.0x'}
+                </span>
+            )
+        },
+        {
             header: 'Actions',
             key: 'actions',
             align: 'right',
@@ -500,9 +518,6 @@ const VendorMasterSupplyManagement = () => {
                 <div className="flex items-center justify-end gap-2">
                     <button onClick={() => handleOpenModal(row)} className="p-2 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-slate-900 transition-all">
                         <Edit2 size={13} />
-                    </button>
-                    <button onClick={() => handleDelete(row._id)} className="p-2 hover:bg-red-50 rounded-sm text-slate-400 hover:text-red-600 transition-all">
-                        <X size={13} />
                     </button>
                 </div>
             )
@@ -525,12 +540,12 @@ const VendorMasterSupplyManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex flex-col gap-2 w-full">
-                            <div className="flex items-center w-full">
+                        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto ml-auto">
+                            <div className="flex items-center w-full md:w-auto">
                                 <select
                                     value={filters.categoryId}
                                     onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full uppercase tracking-wider cursor-pointer"
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-56 lg:w-64 uppercase tracking-wider cursor-pointer"
                                 >
                                     <option value="">All Categories & Sub Cats</option>
                                     {categories.map(cat => (
@@ -540,11 +555,11 @@ const VendorMasterSupplyManagement = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div className="flex items-center gap-2 w-full">
+                            <div className="flex items-center gap-2 w-full md:w-auto">
                                 <select
                                     value={filters.isActive}
                                     onChange={(e) => handleFilterChange('isActive', e.target.value)}
-                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-28 uppercase tracking-wider cursor-pointer"
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-28 uppercase tracking-wider cursor-pointer flex-1 md:flex-none"
                                 >
                                     <option value="">All Status</option>
                                     <option value="y">Active (Y)</option>
@@ -557,14 +572,14 @@ const VendorMasterSupplyManagement = () => {
                                             setFilters(cleared);
                                             fetchSupplies(1, cleared);
                                         }}
-                                        className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white"
+                                        className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white shrink-0"
                                     >
                                         Reset
                                     </button>
                                 )}
                                 <button 
                                     onClick={handleDownload}
-                                    className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm border border-slate-200 bg-white flex items-center justify-center h-8 w-8 ml-auto"
+                                    className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm border border-slate-200 bg-white flex items-center justify-center h-[28px] w-[28px] ml-auto md:ml-0 shrink-0"
                                     title="Download Excel/CSV"
                                 >
                                     <Download size={14} />

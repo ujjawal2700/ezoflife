@@ -16,8 +16,8 @@ export const getPendingApprovals = async (req, res) => {
 
         const userQuery = {
             $or: [
-                { status: 'pending', role: 'Vendor' },
-                { onboardingStage: { $in: ['INITIAL_REVIEW', 'SERVICE_SELECTION', 'FINAL_REVIEW'] } }
+                { role: 'Vendor' },
+                { onboardingStage: { $in: ['INITIAL_REVIEW', 'SERVICE_SELECTION', 'FINAL_REVIEW', 'COMPLETED'] } }
             ]
         };
 

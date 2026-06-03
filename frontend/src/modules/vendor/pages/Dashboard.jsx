@@ -748,21 +748,20 @@ const Dashboard = () => {
                                 
                                 <div className="grid grid-cols-2 gap-1.5">
                                     {[
-                                        { label: 'New Request', value: newRequestsCount, icon: 'notifications_active' },
-                                        { label: 'Upcoming Pickups (Next 6-8 hrs.)', value: upcomingPickupsCount, icon: 'schedule' },
-                                        { label: 'Active orders', value: activeOrdersCount, icon: 'motion_photos_on' },
-                                        { label: 'Business booked today', value: `₹${businessBookedToday.toLocaleString()}`, icon: 'payments' },
-                                        { label: 'Total Payouts received', value: `₹${totalPayoutsReceivedYesterday.toLocaleString()}`, icon: 'account_balance_wallet' },
-                                        { label: 'Ready for delivery', value: readyForDeliveryCount, icon: 'local_shipping' },
+                                        { label: 'New Request', value: newRequestsCount },
+                                        { label: 'Upcoming Pickups (Next 6-8 hrs.)', value: upcomingPickupsCount, highlight: upcomingPickupsCount > 0 },
+                                        { label: 'Active orders', value: activeOrdersCount },
+                                        { label: 'Business booked today', value: `₹${businessBookedToday.toLocaleString()}` },
+                                        { label: 'Total Payouts received', value: `₹${totalPayoutsReceivedYesterday.toLocaleString()}` },
+                                        { label: 'Ready for delivery', value: readyForDeliveryCount },
                                     ].map((stat, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-1.5 px-2 rounded-xl bg-neutral-900/60 border border-neutral-800/40 min-h-[36px] hover:bg-neutral-800/50 transition-colors">
+                                        <div key={idx} className={`flex items-center justify-between p-1.5 px-2 rounded-xl border min-h-[36px] transition-colors ${stat.highlight ? 'bg-red-500/20 border-red-500/50 hover:bg-red-500/30' : 'bg-neutral-900/60 border-neutral-800/40 hover:bg-neutral-800/50'}`}>
                                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                                <span className="material-symbols-outlined text-[13px] text-white/70 shrink-0">{stat.icon}</span>
-                                                <span className="text-[8px] font-black text-neutral-300 uppercase tracking-tight leading-tight line-clamp-2">
+                                                <span className={`text-[8px] font-black uppercase tracking-tight leading-tight line-clamp-2 ${stat.highlight ? 'text-red-400' : 'text-neutral-300'}`}>
                                                     {stat.label}
                                                 </span>
                                             </div>
-                                            <span className="text-[10px] font-black text-white shrink-0 ml-1.5">
+                                            <span className={`text-[10px] font-black shrink-0 ml-1.5 ${stat.highlight ? 'text-red-500' : 'text-white'}`}>
                                                 {stat.value}
                                             </span>
                                         </div>

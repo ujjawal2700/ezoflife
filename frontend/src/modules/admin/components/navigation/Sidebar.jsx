@@ -88,8 +88,8 @@ const navItems = [
                 subItems: [
                     { label: 'Category Management', path: '/admin/vendor-supply-pricing/categories' },
                     { label: 'Product Table', path: '/admin/vendor-supply-pricing/products' },
-                    { label: 'Master Supplies Table', path: '/admin/vendor-supply-pricing/supplies' },
-                    { label: 'Supplier Service Zone', path: '/admin/vendor-supply-pricing/zones' }
+                    { label: 'Supplier Service Zone', path: '/admin/vendor-supply-pricing/zones' },
+                    { label: 'Master Supplies Table', path: '/admin/vendor-supply-pricing/supplies' }
                 ]
             },
 

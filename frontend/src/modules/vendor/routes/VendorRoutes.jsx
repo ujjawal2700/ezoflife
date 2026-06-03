@@ -35,6 +35,7 @@ import CreateJobRequisition from '../pages/CreateJobRequisition';
 import VendorMyServices from '../pages/VendorMyServices';
 import VendorReports from '../pages/VendorReports';
 import VendorProductImages from '../pages/VendorProductImages';
+import VendorCartDetailsPage from '../pages/VendorCartDetailsPage';
 
 // Profile sub-pages
 import EditProfile from '../pages/EditProfile';
@@ -79,6 +80,7 @@ const VendorRoutes = () => {
         <Route path="/promotions" element={<PromotionManagerPage />} />
         <Route path="/fulfillment" element={<B2BFulfillmentPage />} />
         <Route path="/material-request" element={<MaterialRequestPage />} />
+        <Route path="/cart-details" element={<VendorCartDetailsPage />} />
         <Route path="/labor-request" element={<LaborRequestPage />} />
         <Route path="/labor-request/create" element={<CreateJobRequisition />} />
         <Route path="/material-orders" element={<B2BOrderHistory />} />

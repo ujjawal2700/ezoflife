@@ -1,6 +1,8 @@
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
 import SupplierApplication from '../models/SupplierApplication.js';
+import SupplierServiceZone from '../models/SupplierServiceZone.js';
+import ServiceArea from '../models/ServiceArea.js';
 import fs from 'fs';
 
 const logToFile = (msg) => {
@@ -40,12 +42,29 @@ const populateDeliveryFrequencies = async (supplies) => {
     const transformed = [];
     for (const supply of supplies) {
         const supplyObj = supply.toObject();
+        supplyObj.zoneName = '-';
+        
         logToFile(`supplyObj details: ID=${supplyObj._id}, supplierId=${supplyObj.supplierId}, supplierFacilityName=${supplyObj.supplierFacilityName}`);
-        if (supplyObj.supplierId && supplyObj.supplierId !== '-' && supplyObj.supplierFacilityName && supplyObj.supplierFacilityName !== '-') {
-            const app = await SupplierApplication.findOne({ registeredBusinessName: supplyObj.supplierFacilityName });
-            logToFile(`found app: ${app ? JSON.stringify({ id: app._id, registeredBusinessName: app.registeredBusinessName, deliveryFrequency: app.deliveryFrequency }) : 'null'}`);
-            if (app && app.deliveryFrequency && app.deliveryFrequency.length > 0) {
-                supplyObj.deliveryFrequency = app.deliveryFrequency.join(', ');
+        if (supplyObj.supplierId && supplyObj.supplierId !== '-') {
+            const zone = await SupplierServiceZone.findOne({ supplierId: supplyObj.supplierId });
+            if (zone) {
+                supplyObj.zoneName = zone.zoneName;
+                const serviceArea = await ServiceArea.findOne({ areaName: zone.zoneName });
+                if (serviceArea) {
+                    supplyObj.platformMultiplier = serviceArea.platformMultiplier || 1.0;
+                } else {
+                    supplyObj.platformMultiplier = 1.0;
+                }
+            } else {
+                supplyObj.platformMultiplier = 1.0;
+            }
+
+            if (supplyObj.supplierFacilityName && supplyObj.supplierFacilityName !== '-') {
+                const app = await SupplierApplication.findOne({ registeredBusinessName: supplyObj.supplierFacilityName });
+                logToFile(`found app: ${app ? JSON.stringify({ id: app._id, registeredBusinessName: app.registeredBusinessName, deliveryFrequency: app.deliveryFrequency }) : 'null'}`);
+                if (app && app.deliveryFrequency && app.deliveryFrequency.length > 0) {
+                    supplyObj.deliveryFrequency = app.deliveryFrequency.join(', ');
+                }
             }
         }
         transformed.push(supplyObj);
@@ -339,6 +358,8 @@ export const vendorMasterSupplyController = {
             const vLat = Number(vendor.location?.lat || 0);
             const vLng = Number(vendor.location?.lng || 0);
 
+            let supplierPlatformMultiplier = 1.0;
+
             if (vLat && vLng) {
                 const ServiceArea = (await import('../models/ServiceArea.js')).default;
                 const serviceArea = await ServiceArea.findOne({
@@ -354,6 +375,7 @@ export const vendorMasterSupplyController = {
                 });
 
                 if (serviceArea && serviceArea.pincodes && serviceArea.pincodes.length > 0) {
+                    supplierPlatformMultiplier = serviceArea.supplierPlatformMultiplier || 1.0;
                     serviceArea.pincodes.forEach(pin => {
                         if (!matchingPincodes.includes(pin)) {
                             matchingPincodes.push(pin);
@@ -373,8 +395,15 @@ export const vendorMasterSupplyController = {
                 isActive: true
             });
 
-            // Extract supplierIds
+            // Extract supplierIds and map their delivery settings
             const supplierIds = zones.map(z => z.supplierId);
+            const supplierZoneMap = {};
+            zones.forEach(z => {
+                supplierZoneMap[z.supplierId] = {
+                    minOrderValue: z.minOrderValue || 0,
+                    deliveryCharges: z.deliveryCharges || 0
+                };
+            });
 
             // 4. Find all active supplies in VendorMasterSupply belonging to these suppliers
             const query = {
@@ -404,7 +433,7 @@ export const vendorMasterSupplyController = {
                 return {
                     _id: item._id,
                     name: item.materialName,
-                    price: item.wholesaleRate,
+                    price: item.wholesaleRate * supplierPlatformMultiplier,
                     category: item.categoryId?.mainCategory || 'Other',
                     subCategory: item.categoryId?.subCategory || 'General',
                     brand: item.brand || 'Generic',
@@ -414,7 +443,9 @@ export const vendorMasterSupplyController = {
                     stock: 'Available',
                     image: null,
                     images: item.images || [],
-                    deliveryFrequency: item.deliveryFrequency || 'On-Demand'
+                    deliveryFrequency: item.deliveryFrequency || 'On-Demand',
+                    movFreeDelivery: supplierZoneMap[item.supplierId]?.minOrderValue || 0,
+                    deliveryCharges: supplierZoneMap[item.supplierId]?.deliveryCharges || 0
                 };
             });
 

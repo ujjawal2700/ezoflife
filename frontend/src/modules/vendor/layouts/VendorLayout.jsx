@@ -102,7 +102,7 @@ const VendorLayout = () => {
         }
     };
 
-    const hideNavRoutes = ['/vendor/auth', '/vendor/otp', '/vendor/register', '/vendor/upload-documents', '/vendor/approval-pending'];
+    const hideNavRoutes = ['/vendor/auth', '/vendor/otp', '/vendor/register', '/vendor/upload-documents', '/vendor/approval-pending', '/vendor/cart-details'];
     const showNav = !hideNavRoutes.includes(currentPath);
 
     const hideHeaderRoutes = [

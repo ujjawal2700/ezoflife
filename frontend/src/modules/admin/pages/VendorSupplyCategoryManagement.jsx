@@ -339,7 +339,7 @@ const VendorSupplyCategoryManagement = () => {
                         label: "Bulk Upload",
                         icon: Upload,
                         onClick: () => { resetBulkModal(); setIsBulkModalOpen(true); },
-                        variant: 'secondary'
+                        variant: 'primary'
                     },
                     {
                         label: "Add Category",

@@ -912,7 +912,17 @@ export const lookupCustomerByPhone = async (req, res) => {
         if (!customer) {
             return res.status(404).json({ message: 'Customer not found' });
         }
-        res.status(200).json({ displayName: customer.displayName || '' });
+        let defAddr = customer.addresses && customer.addresses.length > 0 ? customer.addresses[0] : null;
+        res.status(200).json({ 
+            displayName: customer.displayName || '',
+            address: defAddr ? defAddr.address : (customer.address || ''),
+            city: defAddr ? defAddr.city : (customer.city || ''),
+            state: customer.state || '', // User model doesn't store state in addresses array by default
+            pincode: defAddr ? defAddr.pincode : (customer.pincode || ''),
+            lat: defAddr ? defAddr.location?.lat : (customer.location?.lat || null),
+            lng: defAddr ? defAddr.location?.lng : (customer.location?.lng || null),
+            isRegistered: true
+        });
     } catch (err) {
         console.error('Lookup Phone Error:', err);
         res.status(500).json({ message: 'Error looking up customer' });

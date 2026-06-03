@@ -65,6 +65,10 @@ const serviceAreaSchema = new mongoose.Schema({
         type: Number,
         default: 1.0
     },
+    supplierPlatformMultiplier: {
+        type: Number,
+        default: 1.0
+    },
     freeDeliveryThreshold: {
         type: Number,
         default: 500
