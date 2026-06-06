@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { materialApi, b2bOrderApi, adminApi } from '../../../lib/api';
@@ -19,6 +20,7 @@ const MaterialRequestPage = () => {
     
     const [showInvoice, setShowInvoice] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [chatModal, setChatModal] = useState({ isOpen: false, order: null, step: 'select', selectedProduct: null, message: '' });
     
 
     useEffect(() => {
@@ -273,6 +275,32 @@ const MaterialRequestPage = () => {
                             </div>
                         </header>
 
+                        {/* Cart Icon inside Vendor Header via Portal */}
+                        {document.getElementById('vendor-header-cart-portal') && createPortal(
+                            <button 
+                                onClick={() => {
+                                    if (totalItems > 0) {
+                                        navigate('/vendor/cart-details', { state: { cart, materials, vendorData } });
+                                    } else {
+                                        toast.error('Your cart is empty');
+                                    }
+                                }}
+                                className="relative w-9 h-9 flex items-center justify-center hover:bg-slate-100 rounded-full transition-colors shrink-0 mr-1"
+                            >
+                                <span className="material-symbols-outlined text-slate-700 text-[22px]">shopping_cart</span>
+                                {totalItems > 0 && (
+                                    <motion.span 
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white rounded-full text-[9px] font-black flex items-center justify-center border border-white shadow-sm"
+                                    >
+                                        {totalItems}
+                                    </motion.span>
+                                )}
+                            </button>,
+                            document.getElementById('vendor-header-cart-portal')
+                        )}
+
                         <main className="max-w-2xl sm:max-w-3xl mx-auto px-4 sm:px-6 pt-2">
                             {activeTab === 'catalog' ? (
                                 <motion.div 
@@ -492,11 +520,11 @@ const MaterialRequestPage = () => {
                                                     <div className="flex items-center gap-1.5">
                                                         {order.supplier && (
                                                             <button 
-                                                                onClick={() => window.open(`tel:${order.supplier.phone}`)}
-                                                                className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all"
-                                                                title="Call Supplier"
+                                                                onClick={() => setChatModal({ isOpen: true, order: order, step: 'select', selectedProduct: null, message: '' })}
+                                                                className="w-7 h-7 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all"
+                                                                title="Chat with Supplier"
                                                             >
-                                                                <span className="material-symbols-outlined text-[16px]">call</span>
+                                                                <span className="material-symbols-outlined text-[16px]">chat</span>
                                                             </button>
                                                         )}
                                                         {order.status === 'Delivered' && (
@@ -629,6 +657,151 @@ const MaterialRequestPage = () => {
                                     </div>
                                 </div>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Chat Product Selection / WhatsApp Interface Modal */}
+            <AnimatePresence>
+                {chatModal.isOpen && chatModal.order && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setChatModal({ ...chatModal, isOpen: false })}
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className={`${chatModal.step === 'select' ? 'bg-[#F8FAFC]' : 'bg-[#ece5dd]'} w-full max-w-md rounded-[2rem] overflow-hidden relative z-10 shadow-2xl flex flex-col ${chatModal.step === 'select' ? 'max-h-[70vh]' : 'h-[80vh] sm:h-[600px]'}`}
+                        >
+                            {chatModal.step === 'select' ? (
+                                <>
+                                    {/* Selection Window Header */}
+                                    <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-100">
+                                        <div>
+                                            <h3 className="font-black text-lg text-slate-900 tracking-tight">Select Product</h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">To initiate query</p>
+                                        </div>
+                                        <button onClick={() => setChatModal({ ...chatModal, isOpen: false })} className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors">
+                                            <span className="material-symbols-outlined text-lg">close</span>
+                                        </button>
+                                    </div>
+                                    {/* Selection Window Body */}
+                                    <div className="flex-1 overflow-y-auto p-6 space-y-3">
+                                        {chatModal.order.items.map((item, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setChatModal({ 
+                                                    ...chatModal, 
+                                                    step: 'chat', 
+                                                    selectedProduct: item, 
+                                                    message: `Hi, I have a query regarding ${item.name} from Order #${chatModal.order.b2bOrderId}.` 
+                                                })}
+                                                className="w-full bg-white p-4 rounded-[1.5rem] shadow-sm flex items-center gap-4 active:scale-[0.98] transition-all text-left border border-slate-100 hover:border-primary/30 group"
+                                            >
+                                                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100 group-hover:bg-primary/5 transition-colors">
+                                                    <span className="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">inventory_2</span>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h4 className="font-black text-sm text-slate-900 line-clamp-1">{item.name}</h4>
+                                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Quantity: {item.quantity}</p>
+                                                </div>
+                                                <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-primary group-hover:text-white transition-colors">
+                                                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Premium Header */}
+                                    <div className="bg-white px-6 py-4 flex items-center gap-4 border-b border-slate-100 z-20">
+                                        <button onClick={() => setChatModal({ ...chatModal, step: 'select', selectedProduct: null, message: '' })} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors text-slate-500">
+                                            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+                                        </button>
+                                        <div className="w-10 h-10 bg-slate-900 text-white rounded-[1rem] flex items-center justify-center shrink-0 shadow-lg shadow-slate-900/20">
+                                            <span className="material-symbols-outlined text-[18px]">support_agent</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-black text-[15px] text-slate-900 truncate tracking-tight">{chatModal.order.supplier?.displayName || 'Supplier'}</h3>
+                                            <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Body Area */}
+                                    <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+                                        <div className="flex flex-col min-h-full">
+                                            <div className="flex justify-center mb-8">
+                                                <span className="bg-white border border-slate-200 text-slate-400 text-[9px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm">
+                                                    Conversation Started
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="flex justify-end mb-6">
+                                                <div className="bg-slate-900 text-white p-4 rounded-[1.5rem] rounded-tr-sm shadow-xl shadow-slate-900/10 max-w-[85%] relative">
+                                                    <div className="mb-3 pb-3 border-b border-white/10">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/50 mb-1.5">Regarding Product</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 bg-white/10">
+                                                                <span className="material-symbols-outlined text-[12px]">inventory_2</span>
+                                                            </div>
+                                                            <p className="text-xs font-bold truncate">{chatModal.selectedProduct?.name}</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[13px] leading-relaxed pr-10 font-medium">{chatModal.message}</p>
+                                                    <div className="absolute bottom-3 right-3 flex items-center gap-1">
+                                                        <span className="text-[9px] font-bold text-white/40">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="mt-auto pt-4">
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 pl-1">Suggested Queries</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {['When will it be delivered?', 'Can I change quantity?', 'Product is damaged'].map((chip, idx) => (
+                                                        <button 
+                                                            key={idx}
+                                                            onClick={() => setChatModal({ ...chatModal, message: `${chatModal.message} ${chip}` })}
+                                                            className="bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[11px] font-bold shadow-sm hover:border-slate-900 hover:text-slate-900 transition-all active:scale-95"
+                                                        >
+                                                            {chip}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Input Footer */}
+                                    <div className="bg-white p-4 border-t border-slate-100">
+                                        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 p-1.5 rounded-[1.5rem] focus-within:border-slate-900 focus-within:bg-white focus-within:shadow-md transition-all">
+                                            <div className="flex-1 px-4 py-2 flex items-center">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Type your message..." 
+                                                    className="w-full bg-transparent outline-none text-[13px] font-medium text-slate-900"
+                                                    value={chatModal.message}
+                                                    onChange={(e) => setChatModal({ ...chatModal, message: e.target.value })}
+                                                />
+                                            </div>
+                                            <button 
+                                                onClick={() => {
+                                                    const text = encodeURIComponent(chatModal.message);
+                                                    window.open(`https://wa.me/${chatModal.order.supplier.phone?.replace(/\D/g, '')}?text=${text}`);
+                                                    setChatModal({ ...chatModal, isOpen: false });
+                                                }}
+                                                className="w-10 h-10 rounded-[1rem] bg-slate-900 text-white flex items-center justify-center shadow-lg hover:shadow-xl active:scale-95 transition-all shrink-0"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">send</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </motion.div>
                     </div>
                 )}

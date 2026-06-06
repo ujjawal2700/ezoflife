@@ -63,7 +63,7 @@ const WalkInOrderPage = () => {
     const [enableDelivery, setEnableDelivery] = useState(false);
     const [showLocateModal, setShowLocateModal] = useState(false);
     const [addressDetails, setAddressDetails] = useState({
-        type: 'HOME',
+        type: '',
         flatNo: '',
         street: '',
         floor: '',
@@ -92,6 +92,14 @@ const WalkInOrderPage = () => {
     // Delivery date and time custom states
     const [deliveryDate, setDeliveryDate] = useState(getTomorrowDateString());
     const [deliveryTimeVal, setDeliveryTimeVal] = useState('18:00');
+
+    // Manual Quantity Input states
+    const [manualQtyService, setManualQtyService] = useState(null);
+    const [manualQtyInput, setManualQtyInput] = useState('');
+
+    // Mock Logistic Fee states
+    const [isCalculatingFee, setIsCalculatingFee] = useState(false);
+    const [calculatedLogisticFee, setCalculatedLogisticFee] = useState(0);
 
     const isAddressComplete = useMemo(() => {
         return !!(
@@ -691,6 +699,44 @@ const WalkInOrderPage = () => {
         }
     };
 
+    const setServiceQty = (service, newQty) => {
+        const serviceId = service.serviceId;
+        const currentItems = [...items];
+        const existingIndex = currentItems.findIndex(item => item.serviceId === serviceId);
+
+        if (newQty <= 0) {
+            if (existingIndex > -1) {
+                setItems(currentItems.filter(item => item.serviceId !== serviceId));
+                setItemPhotos(prev => {
+                    const { [serviceId]: _, ...rest } = prev;
+                    return rest;
+                });
+                toast.success(`Removed ${service.title} from queue`);
+            }
+            return;
+        }
+
+        if (existingIndex > -1) {
+            currentItems[existingIndex].quantity = newQty;
+            setItems(currentItems);
+            toast.success(`Updated quantity of ${service.title}`);
+        } else {
+            const newItem = {
+                serviceId: serviceId,
+                title: service.title,
+                price: service.price,
+                icon: service.icon,
+                category: service.category,
+                subCategory: service.subCategory,
+                id: Date.now(),
+                quantity: newQty,
+                tag: `T-${Math.floor(1000 + Math.random() * 9000)}`
+            };
+            setItems([...currentItems, newItem]);
+            toast.success(`Added ${service.title} with quantity ${newQty}`);
+        }
+    };
+
     useEffect(() => {
         if (selectedService) {
             const qty = getServiceQty(selectedService.serviceId);
@@ -750,7 +796,7 @@ const WalkInOrderPage = () => {
             });
             const uniquePhotos = Array.from(new Set(allPhotos));
 
-            const finalPrice = Math.max(0, total + (enableDelivery ? 10 : 0) + Math.round(total * 0.05) - discount);
+            const finalPrice = Math.max(0, total + (enableDelivery ? calculatedLogisticFee : 0) + Math.round(total * 0.05) - discount);
             const dropAddressStr = enableDelivery ? `${addressDetails.flatNo}, ${addressDetails.street}, ${addressDetails.city}, ${addressDetails.state} - ${addressDetails.pincode}` : 'Self Delivery / Customer';
 
             const orderData = {
@@ -772,7 +818,8 @@ const WalkInOrderPage = () => {
                 totalAmount: finalPrice,
                 status: 'In Progress',
                 customerPhotos: uniquePhotos,
-                deliveryCharge: enableDelivery ? 10 : 0,
+                deliveryCharge: enableDelivery ? calculatedLogisticFee : 0,
+                logisticPaymentStatus: enableDelivery ? 'Paid Online' : 'N/A',
                 discountAmount: discount,
                 promoApplied: isPromoApplied ? promoCode : null
             };
@@ -907,12 +954,18 @@ const WalkInOrderPage = () => {
                                     </div>
                                     <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                                         <span>Logistic Fee</span>
-                                        <span className="text-white">₹{enableDelivery ? '10' : '0'}</span>
+                                        <span className="text-white">₹{enableDelivery ? calculatedLogisticFee : '0'}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                                         <span>GST</span>
                                         <span className="text-white">₹{Math.round(total * 0.05)}</span>
                                     </div>
+                                    {isPromoApplied && (
+                                        <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-emerald-400">
+                                            <span>Discount ({promoCode})</span>
+                                            <span>-₹{discount}</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -921,7 +974,7 @@ const WalkInOrderPage = () => {
                                     <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Total Payable Amount</p>
                                     <div className="flex items-baseline gap-2">
                                         <p className="text-3xl font-black tracking-tighter text-white">
-                                            ₹{(total + (enableDelivery ? 10 : 0) + Math.round(total * 0.05)).toFixed(0)}
+                                            ₹{(total + (enableDelivery ? calculatedLogisticFee : 0) + Math.round(total * 0.05) - discount).toFixed(0)}
                                         </p>
                                     </div>
                                 </div>
@@ -957,6 +1010,25 @@ const WalkInOrderPage = () => {
                 <div className="fixed bottom-[90px] left-0 right-0 p-4 z-50">
                     <div className="max-w-md mx-auto">
                         {enableDelivery ? (
+                            <div className="grid grid-cols-1 gap-3">
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="button"
+                                    onClick={() => {
+                                        toast.loading('Simulating Payment Gateway for Logistic Fee...', { duration: 2000 });
+                                        setTimeout(() => {
+                                            handleCollectAndPrint();
+                                        }, 2000);
+                                    }}
+                                    disabled={isProcessing}
+                                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all text-center flex flex-col items-center justify-center gap-0.5"
+                                >
+                                    <span>PAY NOW LOGISTIC FEE ONLY</span>
+                                    <span className="text-[8px] text-white/60">₹{calculatedLogisticFee} to Book Service</span>
+                                </motion.button>
+                            </div>
+                        ) : (
                             <div className="grid grid-cols-2 gap-3">
                                 <motion.button 
                                     whileHover={{ scale: 1.02 }}
@@ -979,17 +1051,6 @@ const WalkInOrderPage = () => {
                                     PAY WITH SPINZYT
                                 </motion.button>
                             </div>
-                        ) : (
-                            <motion.button 
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                type="button"
-                                onClick={handleCollectAndPrint}
-                                disabled={isProcessing}
-                                className="w-full bg-slate-900 text-white hover:bg-slate-800 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all text-center"
-                            >
-                                SUBMIT
-                            </motion.button>
                         )}
                     </div>
                 </div>
@@ -1406,11 +1467,11 @@ const WalkInOrderPage = () => {
                             const isSelected = selectedService?.serviceId === s.serviceId;
                             const qty = getServiceQty(s.serviceId);
                             return (
-                                <motion.button
+                                <motion.div
                                     key={s.serviceId}
                                     whileTap={{ scale: 0.98 }}
                                     onClick={() => setSelectedService(s)}
-                                    className={`w-full flex items-center justify-between p-3.5 rounded-[1.5rem] border transition-all duration-500 text-left ${isSelected ? 'bg-slate-900 text-white border-slate-900 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 text-slate-700 hover:border-slate-300 shadow-sm'}`}
+                                    className={`w-full cursor-pointer flex items-center justify-between p-3.5 rounded-[1.5rem] border transition-all duration-500 text-left ${isSelected ? 'bg-slate-900 text-white border-slate-900 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 text-slate-700 hover:border-slate-300 shadow-sm'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-[#73e0c9]/20 text-[#73e0c9]' : 'bg-slate-50 text-slate-400'}`}>
@@ -1437,7 +1498,16 @@ const WalkInOrderPage = () => {
                                             >
                                                 <span className="material-symbols-outlined text-[12px] font-black">remove</span>
                                             </button>
-                                            <span className={`text-[9px] font-black px-1.5 min-w-[20px] text-center ${qty > 0 ? (isSelected ? 'text-white' : 'text-slate-900') : 'text-slate-400'}`}>
+                                            <span 
+                                                className={`text-[9px] font-black px-1.5 min-w-[20px] text-center ${qty > 0 ? (isSelected ? 'text-white cursor-pointer hover:bg-white/10 rounded' : 'text-slate-900 cursor-pointer hover:bg-slate-200 rounded') : 'text-slate-400'}`}
+                                                onClick={(e) => {
+                                                    if (qty > 0) {
+                                                        e.stopPropagation();
+                                                        setManualQtyService(s);
+                                                        setManualQtyInput(qty.toString());
+                                                    }
+                                                }}
+                                            >
                                                 {qty}
                                             </span>
                                             <button 
@@ -1469,7 +1539,7 @@ const WalkInOrderPage = () => {
                                             </button>
                                         )}
                                     </div>
-                                </motion.button>
+                                </motion.div>
                             );
                         }) : (
                             <div className="w-full py-10 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">No Services Found...</div>
@@ -1492,7 +1562,17 @@ const WalkInOrderPage = () => {
                                     >
                                         -
                                     </button>
-                                    <span className="text-sm font-black w-6 text-center">{quantity}</span>
+                                    <span 
+                                        className="text-sm font-black w-8 text-center cursor-pointer hover:bg-slate-200 rounded py-1"
+                                        onClick={() => {
+                                            if (quantity > 0) {
+                                                setManualQtyService(selectedService);
+                                                setManualQtyInput(quantity.toString());
+                                            }
+                                        }}
+                                    >
+                                        {quantity}
+                                    </span>
                                     <button 
                                         onClick={() => updateServiceQty(selectedService, 1)}
                                         className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-900 font-bold text-sm"
@@ -2091,10 +2171,93 @@ const WalkInOrderPage = () => {
                             <div className="mt-4 pt-2 bg-[#f8f9fa] relative z-10">
                                 <button 
                                     type="button"
-                                    onClick={() => setShowLocateModal(false)} 
-                                    className="w-full py-4 bg-black text-white rounded-full text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-black/20"
+                                    disabled={isCalculatingFee}
+                                    onClick={() => {
+                                        if (!addressDetails.type) {
+                                            toast.error('Please select an address type (Home, Office, Other)');
+                                            return;
+                                        }
+                                        if (!addressDetails.flatNo?.trim()) {
+                                            toast.error('Please enter Address Line 1');
+                                            return;
+                                        }
+                                        
+                                        // Mock Logistic Fee API Simulation
+                                        setIsCalculatingFee(true);
+                                        const mockLoadingToast = toast.loading('Calculating Logistic Fee...');
+                                        
+                                        setTimeout(() => {
+                                            // Dummy logic: Base 40 + Random up to 50
+                                            const dummyFee = Math.floor(40 + Math.random() * 50);
+                                            setCalculatedLogisticFee(dummyFee);
+                                            setIsCalculatingFee(false);
+                                            toast.dismiss(mockLoadingToast);
+                                            toast.success(`Fee Calculated: ₹${dummyFee}`);
+                                            setShowLocateModal(false);
+                                        }, 1500);
+                                    }} 
+                                    className={`w-full py-4 rounded-full text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-black/20 ${addressDetails.type && addressDetails.flatNo?.trim() && !isCalculatingFee ? 'bg-black text-white' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
                                 >
-                                    Save Address
+                                    {isCalculatingFee ? 'CALCULATING...' : 'Save Address'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+            <AnimatePresence>
+                {manualQtyService && (
+                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setManualQtyService(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative bg-white rounded-3xl p-6 shadow-2xl w-full max-w-xs z-10 flex flex-col gap-4 items-center"
+                        >
+                            <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900">
+                                <span className="material-symbols-outlined">edit_square</span>
+                            </div>
+                            <div className="text-center">
+                                <h3 className="text-sm font-black uppercase tracking-tight text-slate-900">{manualQtyService.title}</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Enter Quantity (1-99)</p>
+                            </div>
+                            <input
+                                type="number"
+                                min="1"
+                                max="99"
+                                value={manualQtyInput}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    if(val === '' || (parseInt(val) >= 1 && parseInt(val) <= 99)) {
+                                        setManualQtyInput(val);
+                                    }
+                                }}
+                                className="w-full text-center text-2xl font-black text-slate-900 bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 focus:outline-none focus:border-slate-900 focus:bg-white transition-all"
+                                autoFocus
+                            />
+                            <div className="flex w-full gap-3 mt-2">
+                                <button 
+                                    onClick={() => setManualQtyService(null)}
+                                    className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-500 font-black text-[10px] uppercase tracking-widest hover:bg-slate-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        const newQ = parseInt(manualQtyInput);
+                                        if(newQ >= 1 && newQ <= 99) {
+                                            setServiceQty(manualQtyService, newQ);
+                                        }
+                                        setManualQtyService(null);
+                                    }}
+                                    className="flex-1 py-3 rounded-xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-800"
+                                >
+                                    Save
                                 </button>
                             </div>
                         </motion.div>

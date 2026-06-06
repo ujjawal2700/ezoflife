@@ -92,29 +92,26 @@ const VendorMasterSupplyManagement = () => {
             toast.error('No master supplies available to download');
             return;
         }
-        const headers = [
-            'SKU ID', 'Category ID', 'HSN Code', 'GST (%)', 'Brand', 
-            'Material Name', 'Quantity', 'Wholesale Rate (INR)', 
-            'Bulk Discount (%)', 'Bulk Threshold', 'Active', 
-            'Delivery Frequency', 'MOV for Free Delivery', 
-            'Supplier ID', 'Supplier Facility Name'
-        ];
-        const rows = supplies.map(item => [
-            item.skuId || '—',
-            item.categoryId?.excelCategoryId || '—',
-            item.hsnCode || '',
-            item.gst || 0,
-            item.brand || '',
-            item.materialName || '',
-            item.quantity || '',
-            item.wholesaleRate || 0,
-            item.bulkDiscount || 0,
-            item.bulkThreshold || 0,
-            item.isActive || 'y',
-            item.deliveryFrequency || '',
-            item.movFreeDelivery || 0,
-            item.supplierId || '',
-            item.supplierFacilityName || ''
+        const headers = ['Zone', 'SKU ID', 'Category ID', 'HSN Code', 'GST', 'Brand', 'Material Name', 'Quantity', 'Wholesale Rate', 'Bulk Discount (%)', 'Bulk Threshold', 'Active', 'Delivery Frequency', 'MOV Free Delivery', 'Supplier ID', 'Supplier Facility Name', 'Platform Aggregator', 'Platform Fee Calc.'];
+        const rows = supplies.map(s => [
+            s.zoneName || '—',
+            s.skuId || '—',
+            s.categoryId?.excelCategoryId || '—',
+            s.hsnCode || '-',
+            s.gst || 18,
+            s.brand || 'Generic',
+            s.materialName || '',
+            s.quantity || '',
+            s.wholesaleRate || 0,
+            s.bulkDiscount || 0,
+            s.bulkThreshold || 0,
+            s.isActive || 'y',
+            s.deliveryFrequency || '-',
+            s.movFreeDelivery || 0,
+            s.supplierId || '-',
+            s.supplierFacilityName || '-',
+            s.supplierPlatformMultiplier || 1.0,
+            ((s.wholesaleRate || 0) + ((s.wholesaleRate || 0) * (s.gst || 18) / 100)) * (s.supplierPlatformMultiplier || 1.0)
         ]);
 
         const csvRows = [
@@ -503,12 +500,34 @@ const VendorMasterSupplyManagement = () => {
         },
         {
             header: 'Platform Aggregator',
-            key: 'platformMultiplier',
+            key: 'supplierPlatformMultiplier',
             render: (val) => (
                 <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm tabular-nums text-[10px] whitespace-nowrap">
                     {val ? `${val}x` : '1.0x'}
                 </span>
             )
+        },
+        {
+            header: 'Platform Fee Calc.',
+            key: 'calculatedFee',
+            render: (val, row) => {
+                const price = parseFloat(row.wholesaleRate) || 0;
+                const gstPercent = parseFloat(row.gst) || 18;
+                const gstAmt = price * (gstPercent / 100);
+                const total = price + gstAmt;
+                const multiplier = parseFloat(row.supplierPlatformMultiplier) || 1.0;
+                const finalAmt = total * multiplier;
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black text-slate-900 tabular-nums text-[11px]">
+                            ₹{finalAmt.toFixed(2)}
+                        </span>
+                        <span className="text-slate-400 font-bold text-[8px]">
+                            (₹{total.toFixed(2)} × {multiplier}x)
+                        </span>
+                    </div>
+                );
+            }
         },
         {
             header: 'Actions',

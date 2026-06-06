@@ -33,6 +33,8 @@ const VendorHeader = () => {
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
 
+          <div id="vendor-header-cart-portal"></div>
+
           {/* 4. Profile Icon */}
           <motion.div 
             onClick={handleProfileClick}

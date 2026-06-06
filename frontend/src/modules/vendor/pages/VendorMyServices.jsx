@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { authApi, serviceApi, promotionApi, BASE_URL } from '../../../lib/api';
 import VendorHeader from '../components/VendorHeader';
+import Lottie from 'lottie-react';
+import spinLogoAnimation from '../../../assets/spin_logo_text.json';
 
 const VendorMyServices = () => {
     const navigate = useNavigate();
@@ -160,7 +162,9 @@ const VendorMyServices = () => {
         } catch (error) {
             console.error('Error fetching services:', error);
         } finally {
-            setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+            }, 5000);
         }
     };
 
@@ -312,144 +316,208 @@ const VendorMyServices = () => {
             className="text-slate-900 min-h-screen pb-40 font-sans"
         >
             <main className="max-w-6xl mx-auto px-6 pt-2 space-y-6">
-                <header className="flex items-center justify-between">
-                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 shadow-sm transition-all">
-                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setShowAddModal(true)}
-                            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
-                        >
-                            Create
-                        </button>
-                        <button 
-                            onClick={() => setEditMode(!editMode)}
-                            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
-                        >
-                            {editMode ? 'Cancel Edit' : 'Edit'}
-                        </button>
-                    </div>
-                </header>
-
-                <section className="space-y-6">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Catalog...</p>
-                        </div>
-                    ) : (
-                        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse min-w-[950px]">
-                                    <thead>
-                                        <tr className="border-b border-slate-100 bg-slate-50/50">
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Status</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Service Name</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Category</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Sub Category</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Base Price (₹)</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Essential Normal</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Essential Express</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Normal</th>
-                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Express</th>
-                                            {editMode && (
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Action</th>
-                                            )}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-50">
-                                        {services.map((service, idx) => {
-                                            const pricingInfo = service.pricingInfo || {};
-                                            const areaMultiplier = pricingInfo.areaMultiplier !== undefined ? pricingInfo.areaMultiplier : 1;
-                                            const surgeMultiplier = pricingInfo.surgeMultiplier !== undefined ? pricingInfo.surgeMultiplier : 1;
-                                            const heritageMultiplier = pricingInfo.heritageMultiplier !== undefined ? pricingInfo.heritageMultiplier : 1;
-
-                                            const basePrice = service.basePrice || 0;
-                                            const baseNormal = Math.round(basePrice * areaMultiplier);
-                                            const baseExpress = Math.round(basePrice * areaMultiplier * surgeMultiplier);
-                                            const heritageNormal = Math.round(basePrice * areaMultiplier * heritageMultiplier);
-                                            const heritageExpress = Math.round(basePrice * areaMultiplier * heritageMultiplier * surgeMultiplier);
-                                            
-                                            const isPending = service.approvalStatus === 'Pending';
-                                            const isRejected = service.approvalStatus === 'Rejected';
-
-                                            return (
-                                                <tr key={service.id || service._id} className="hover:bg-slate-50/50 transition-colors">
-                                                    <td className="p-4">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            {isPending ? (
-                                                                <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded uppercase tracking-wider">Awaiting Approval</span>
-                                                            ) : isRejected ? (
-                                                                <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded uppercase tracking-wider border border-rose-100">Rejected</span>
-                                                            ) : (
-                                                                <div 
-                                                                    onClick={() => toggleService(idx)}
-                                                                    className={`w-10 h-5 rounded-full relative transition-all duration-300 ${!editMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
-                                                                >
-                                                                    <motion.div 
-                                                                        animate={{ x: service.active ? 22 : 2 }}
-                                                                        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{service.name}</span>
-                                                            </div>
-                                                            {service.adminMessage && (
-                                                                <div className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-sm w-fit mt-1 border ${
-                                                                    isRejected 
-                                                                        ? 'bg-rose-50 text-rose-500 border-rose-100' 
-                                                                        : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                                }`}>
-                                                                    Msg: {service.adminMessage}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
-                                                        {service.category}
-                                                    </td>
-                                                    <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
-                                                        {service.subCategory}
-                                                    </td>
-                                                    <td className="p-4">
-                                                        <input 
-                                                            type="number"
-                                                            value={service.basePrice || 0}
-                                                            onChange={(e) => updatePrice(idx, e.target.value)}
-                                                            disabled={!editMode}
-                                                            className={`w-full px-3 py-2 rounded-xl text-xs font-black text-slate-900 border outline-none transition-all ${!editMode ? 'bg-transparent border-transparent' : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-slate-300'}`}
-                                                        />
-                                                    </td>
-                                                    <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseNormal}</td>
-                                                    <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseExpress}</td>
-                                                    <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageNormal}</td>
-                                                    <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageExpress}</td>
-                                                    {editMode && (
-                                                        <td className="p-4 text-center">
-                                                            <button 
-                                                                onClick={() => handleSaveSingleRow(idx)}
-                                                                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md shadow-slate-900/10 active:scale-95"
-                                                            >
-                                                                Save
-                                                            </button>
-                                                        </td>
-                                                    )}
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                {loading ? (
+                    <>
+                        <header className="flex items-center justify-between">
+                            <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse"></div>
+                            <div className="flex items-center gap-3">
+                                <div className="w-[80px] h-10 rounded-xl bg-slate-200 animate-pulse"></div>
+                                <div className="w-[80px] h-10 rounded-xl bg-slate-200 animate-pulse"></div>
                             </div>
-                        </div>
-                    )}
+                        </header>
+                        <section className="space-y-6">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[950px]">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                                <th className="p-4 w-28"><div className="h-3 w-16 bg-slate-200 rounded mx-auto"></div></th>
+                                                <th className="p-4"><div className="h-3 w-24 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4 w-28"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4"><div className="h-3 w-24 bg-slate-200 rounded ml-auto"></div></th>
+                                                <th className="p-4"><div className="h-3 w-24 bg-slate-200 rounded ml-auto"></div></th>
+                                                <th className="p-4"><div className="h-3 w-24 bg-slate-200 rounded ml-auto"></div></th>
+                                                <th className="p-4"><div className="h-3 w-24 bg-slate-200 rounded ml-auto"></div></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {[...Array(6)].map((_, i) => (
+                                                <tr key={i} className="animate-pulse">
+                                                    <td className="p-4">
+                                                        <div className="w-10 h-5 rounded-full bg-slate-200 mx-auto"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="w-32 h-3 bg-slate-200 rounded"></div>
+                                                            <div className="w-20 h-2 bg-slate-100 rounded"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-24 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-24 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-full h-8 bg-slate-100 rounded-xl"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-12 h-3 bg-slate-100 rounded ml-auto"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-12 h-3 bg-slate-100 rounded ml-auto"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-12 h-3 bg-slate-100 rounded ml-auto"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-12 h-3 bg-slate-100 rounded ml-auto"></div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                ) : (
+                    <>
+                        <header className="flex items-center justify-between">
+                            <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 shadow-sm transition-all">
+                                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                            </button>
+                            <div className="flex items-center gap-3">
+                                <button 
+                                    onClick={() => setShowAddModal(true)}
+                                    className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    Create
+                                </button>
+                                <button 
+                                    onClick={() => setEditMode(!editMode)}
+                                    className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
+                                >
+                                    {editMode ? 'Cancel Edit' : 'Edit'}
+                                </button>
+                            </div>
+                        </header>
 
-                </section>
+                        <section className="space-y-6">
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[950px]">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Status</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Service Name</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Category</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Sub Category</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Base Price (₹)</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Essential Normal</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Essential Express</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Normal</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Express</th>
+                                                {editMode && (
+                                                    <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Action</th>
+                                                )}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {services.map((service, idx) => {
+                                                const pricingInfo = service.pricingInfo || {};
+                                                const areaMultiplier = pricingInfo.areaMultiplier !== undefined ? pricingInfo.areaMultiplier : 1;
+                                                const surgeMultiplier = pricingInfo.surgeMultiplier !== undefined ? pricingInfo.surgeMultiplier : 1;
+                                                const heritageMultiplier = pricingInfo.heritageMultiplier !== undefined ? pricingInfo.heritageMultiplier : 1;
+
+                                                const basePrice = service.basePrice || 0;
+                                                const baseNormal = Math.round(basePrice * areaMultiplier);
+                                                const baseExpress = Math.round(basePrice * areaMultiplier * surgeMultiplier);
+                                                const heritageNormal = Math.round(basePrice * areaMultiplier * heritageMultiplier);
+                                                const heritageExpress = Math.round(basePrice * areaMultiplier * heritageMultiplier * surgeMultiplier);
+                                                
+                                                const isPending = service.approvalStatus === 'Pending';
+                                                const isRejected = service.approvalStatus === 'Rejected';
+
+                                                return (
+                                                    <tr key={service.id || service._id} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="p-4">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                {isPending ? (
+                                                                    <span className="text-[8px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded uppercase tracking-wider">Awaiting Approval</span>
+                                                                ) : isRejected ? (
+                                                                    <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded uppercase tracking-wider border border-rose-100">Rejected</span>
+                                                                ) : (
+                                                                    <div 
+                                                                        onClick={() => toggleService(idx)}
+                                                                        className={`w-10 h-5 rounded-full relative transition-all duration-300 ${!editMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
+                                                                    >
+                                                                        <motion.div 
+                                                                            animate={{ x: service.active ? 22 : 2 }}
+                                                                            className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{service.name}</span>
+                                                                </div>
+                                                                {service.adminMessage && (
+                                                                    <div className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-sm w-fit mt-1 border ${
+                                                                        isRejected 
+                                                                            ? 'bg-rose-50 text-rose-500 border-rose-100' 
+                                                                            : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                    }`}>
+                                                                        Msg: {service.adminMessage}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                            {service.category}
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                            {service.subCategory}
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <input 
+                                                                type="number"
+                                                                value={service.basePrice || 0}
+                                                                onChange={(e) => updatePrice(idx, e.target.value)}
+                                                                disabled={!editMode}
+                                                                className={`w-full px-3 py-2 rounded-xl text-xs font-black text-slate-900 border outline-none transition-all ${!editMode ? 'bg-transparent border-transparent' : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-slate-300'}`}
+                                                            />
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseNormal}</td>
+                                                        <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseExpress}</td>
+                                                        <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageNormal}</td>
+                                                        <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageExpress}</td>
+                                                        {editMode && (
+                                                            <td className="p-4 text-center">
+                                                                <button 
+                                                                    onClick={() => handleSaveSingleRow(idx)}
+                                                                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md shadow-slate-900/10 active:scale-95"
+                                                                >
+                                                                    Save
+                                                                </button>
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    </>
+                )}
+
             </main>
 
             <AnimatePresence>

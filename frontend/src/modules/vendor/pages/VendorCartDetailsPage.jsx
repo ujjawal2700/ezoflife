@@ -14,9 +14,10 @@ const VendorCartDetailsPage = () => {
     const [promoCode, setPromoCode] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // Calculate cart totals (copied from MaterialRequestPage logic)
-    const { itemSubtotal, totalDeliveryCharges, grandTotal, orderItems } = useMemo(() => {
+    const { itemSubtotal, totalGst, totalDeliveryCharges, grandTotal, totalPlatformFee, payableToSupplier, orderItems, groupedCarts } = useMemo(() => {
         let subTotal = 0;
+        let gstTotal = 0;
+        let platformFeeTotal = 0;
         const supplierGroups = {};
         const items = [];
 
@@ -24,43 +25,80 @@ const VendorCartDetailsPage = () => {
             if (qty > 0) {
                 const item = materials.find(m => m._id === id);
                 if (item) {
-                    const itemTotal = (item.price || 0) * qty;
-                    subTotal += itemTotal;
+                    const finalPrice = item.price || 0;
+                    const wholesaleRate = item.wholesaleRate || finalPrice;
+                    const gstPercent = item.gst || 18;
+                    const gstAmount = (wholesaleRate * gstPercent) / 100;
+                    const basePriceWithGst = wholesaleRate + gstAmount;
                     
-                    items.push({
+                    const itemWholesaleTotal = wholesaleRate * qty;
+                    const itemGstTotal = gstAmount * qty;
+                    const itemPlatformFee = (finalPrice - basePriceWithGst) * qty;
+                    const itemTotalFinal = finalPrice * qty;
+                    
+                    subTotal += itemWholesaleTotal;
+                    gstTotal += itemGstTotal;
+                    platformFeeTotal += itemPlatformFee;
+                    
+                    const itemData = {
                         materialId: id,
                         name: item.name,
                         quantity: qty,
-                        price: item.price,
+                        price: finalPrice, // this goes to backend
+                        wholesaleRate: wholesaleRate,
+                        basePrice: basePriceWithGst,
+                        supplierPlatformMultiplier: item.supplierPlatformMultiplier || 1.0,
                         image: item.images?.[0] || null,
                         supplierFacilityName: item.supplierFacilityName,
                         deliveryFrequency: item.deliveryFrequency
-                    });
+                    };
+                    
+                    items.push(itemData);
                     
                     if (!supplierGroups[item.supplierId]) {
                         supplierGroups[item.supplierId] = {
+                            supplierId: item.supplierId,
+                            supplierName: item.supplierFacilityName || 'Unknown Supplier',
+                            items: [],
+                            subTotal: 0,
+                            gstTotal: 0,
                             totalAmount: 0,
                             movFreeDelivery: item.movFreeDelivery || 0,
-                            deliveryCharges: item.deliveryCharges || 0
+                            deliveryCharges: item.deliveryCharges || 0,
+                            payableToSupplier: 0
                         };
                     }
-                    supplierGroups[item.supplierId].totalAmount += itemTotal;
+                    supplierGroups[item.supplierId].items.push(itemData);
+                    supplierGroups[item.supplierId].subTotal += itemWholesaleTotal;
+                    supplierGroups[item.supplierId].gstTotal += itemGstTotal;
+                    supplierGroups[item.supplierId].totalAmount += itemTotalFinal;
                 }
             }
         });
 
         let deliveryTotal = 0;
         Object.values(supplierGroups).forEach(group => {
+            let deliveryFee = 0;
             if (group.totalAmount < group.movFreeDelivery) {
+                deliveryFee = group.deliveryCharges;
                 deliveryTotal += group.deliveryCharges;
             }
+            group.deliveryCharges = deliveryFee;
+            group.payableToSupplier = group.subTotal + group.gstTotal + deliveryFee;
         });
+
+        const payableToSupplier = subTotal + gstTotal + deliveryTotal;
+        const calculatedGrandTotal = subTotal + gstTotal + platformFeeTotal + deliveryTotal;
 
         return {
             itemSubtotal: subTotal,
+            totalGst: gstTotal,
             totalDeliveryCharges: deliveryTotal,
-            grandTotal: subTotal + deliveryTotal,
-            orderItems: items
+            grandTotal: calculatedGrandTotal,
+            payableToSupplier: payableToSupplier,
+            totalPlatformFee: platformFeeTotal,
+            orderItems: items,
+            groupedCarts: Object.values(supplierGroups)
         };
     }, [cart, materials]);
 
@@ -90,7 +128,7 @@ const VendorCartDetailsPage = () => {
             const payload = {
                 vendorId: vendorData._id || vendorData.id,
                 items: orderItems,
-                totalAmount: grandTotal,
+                totalAmount: payableToSupplier,
                 subTotal: itemSubtotal,
                 deliveryCharges: totalDeliveryCharges,
                 city: city === 'Unknown' ? '' : city,
@@ -131,47 +169,63 @@ const VendorCartDetailsPage = () => {
 
             <motion.main className="max-w-md mx-auto px-6 pb-36 w-full flex-1 overflow-y-auto hide-scrollbar pt-[84px]">
                 <div className="flex flex-col gap-4">
-                    {/* ORDER SUMMARY BOX */}
-                    <div className="bg-[#0b0f19] text-white rounded-[2rem] p-6 shadow-2xl relative overflow-hidden group">
-                        <div className="absolute right-0 top-0 p-6 opacity-[0.03] rotate-12 pointer-events-none">
-                            <span className="material-symbols-outlined text-[80px]">receipt_long</span>
-                        </div>
-                        
-                        <div className="flex items-center justify-between mb-6 relative z-10">
-                            <h2 className="text-xl font-black uppercase tracking-tighter leading-none text-white">Order Summary</h2>
-                        </div>
-
-
-                        
-                        <div className="space-y-3 relative z-10">
-                            <div className="grid grid-cols-2 gap-x-6 gap-y-3 px-1">
-                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40">
+                    {/* SUPPLIER-WISE CARTS */}
+                    {groupedCarts.map((group, idx) => (
+                        <div key={idx} className="bg-[#0b0f19] text-white rounded-[2rem] p-6 shadow-2xl relative overflow-hidden mb-4 group">
+                            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-white/10">
+                                <span className="material-symbols-outlined text-white/40">storefront</span>
+                                <h3 className="text-xs font-black text-white uppercase tracking-widest truncate">From: {group.supplierName}</h3>
+                            </div>
+                            
+                            {/* Items List */}
+                            <div className="space-y-3 mb-6">
+                                {group.items.map((item, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative">
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover opacity-80" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-white/30 text-sm">inventory_2</span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-black text-[11px] text-white uppercase tracking-tight truncate">{item.name}</h4>
+                                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">₹{item.wholesaleRate} × {item.quantity}</p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <p className="text-xs font-black text-white">₹{(item.wholesaleRate * item.quantity).toFixed(2)}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            
+                            {/* Supplier Summary */}
+                            <div className="bg-white/5 border border-white/10 p-4 rounded-3xl space-y-2">
+                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
                                     <span>Subtotal</span>
-                                    <span className="text-white">₹{itemSubtotal}</span>
+                                    <span className="text-white">₹{group.subTotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40">
-                                    <span>GST</span>
-                                    <span className="text-white">Included</span>
+                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
+                                    <span>GST Amount</span>
+                                    <span className="text-white">₹{group.gstTotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/40">
-                                    <span>Delivery Charges</span>
-                                    <span className="text-white">{totalDeliveryCharges === 0 ? 'FREE' : `₹${totalDeliveryCharges}`}</span>
+                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
+                                    <span>Delivery</span>
+                                    <span className="text-white">{group.deliveryCharges === 0 ? 'FREE' : `₹${group.deliveryCharges.toFixed(2)}`}</span>
+                                </div>
+                                <div className="pt-3 mt-3 border-t border-white/10 flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white">Supplier Total</span>
+                                    <span className="text-lg font-black text-white">₹{group.payableToSupplier.toFixed(2)}</span>
                                 </div>
                             </div>
-
-
                         </div>
-                        
-                        <div className="mt-6 pt-5 border-t border-white/10 flex flex-col gap-1 relative z-10">
-                            <p className="text-[8px] font-black uppercase tracking-widest text-emerald-400 leading-relaxed">This amount payable to supplier for your product</p>
-                            <div className="flex items-baseline gap-2 mt-1">
-                                <p className="text-3xl font-black tracking-tighter text-white">₹{grandTotal}</p>
-                            </div>
-                        </div>
-                    </div>
+                    ))}
 
                     {/* PLATFORM PAYMENT BOX */}
-                    <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+                    <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-xl relative overflow-hidden mt-2">
+                        <div className="absolute right-0 top-0 p-6 opacity-5 rotate-12 pointer-events-none text-slate-900">
+                            <span className="material-symbols-outlined text-[80px]">receipt_long</span>
+                        </div>
                         <div className="flex flex-col gap-4 relative z-10">
                             <p className="text-[10px] font-black uppercase tracking-widest text-rose-500 leading-relaxed">
                                 If you have to confirm this order please pay platform fee
@@ -179,8 +233,9 @@ const VendorCartDetailsPage = () => {
                             
                             <div className="flex items-center justify-between mt-2 pt-4 border-t border-slate-100">
                                 <div className="flex flex-col">
-                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Platform Fee</p>
-                                    <p className="text-3xl font-black tracking-tighter text-slate-900">₹49</p>
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Payable</p>
+                                    <p className="text-3xl font-black tracking-tighter text-slate-900">₹{grandTotal.toFixed(2)}</p>
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">Incl. ₹{totalPlatformFee.toFixed(2)} Platform Fee</p>
                                 </div>
                                 <motion.button 
                                     whileHover={{ scale: 1.02 }}
@@ -194,57 +249,58 @@ const VendorCartDetailsPage = () => {
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="mt-8 space-y-4">
-                    <div className="flex items-center justify-between px-2">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Services Review</p>
-                        <button 
-                            onClick={() => navigate(-1)}
-                            className="flex items-center gap-1.5 text-[9px] font-black text-slate-900 uppercase bg-white border border-slate-200 px-4 py-2 rounded-full hover:bg-slate-50 transition-all shadow-sm active:scale-95"
-                        >
-                            <span className="material-symbols-outlined text-[12px] font-bold">edit</span>
-                            EDIT
-                        </button>
-                    </div>
+                    {/* SERVICES REVIEW */}
+                    <div className="mt-8 space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Services Review</p>
+                            <button 
+                                onClick={() => navigate(-1)}
+                                className="flex items-center gap-1.5 text-[9px] font-black text-slate-900 uppercase bg-white border border-slate-200 px-4 py-2 rounded-full hover:bg-slate-50 transition-all shadow-sm active:scale-95"
+                            >
+                                <span className="material-symbols-outlined text-[12px] font-bold">edit</span>
+                                EDIT
+                            </button>
+                        </div>
 
-                    <div className="space-y-3">
-                        {orderItems.map((item, idx) => (
-                            <div key={idx} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-slate-200 shadow-sm relative overflow-hidden">
-                                <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
-                                    {item.image ? (
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="material-symbols-outlined text-slate-300">inventory_2</span>
-                                    )}
-                                </div>
+                        <div className="space-y-3">
+                            {orderItems.map((item, idx) => (
+                                <div key={idx} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-slate-200 shadow-sm relative overflow-hidden">
+                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="material-symbols-outlined text-slate-300">inventory_2</span>
+                                        )}
+                                    </div>
 
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div className="flex flex-col gap-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-black text-[11px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
-                                                <span className="text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-100">
-                                                    {item.deliveryFrequency || 'Normal'}
-                                                </span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex flex-col gap-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="font-black text-[11px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
+                                                    <span className="text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-100">
+                                                        {item.deliveryFrequency || 'Normal'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.supplierFacilityName}</p>
                                             </div>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.supplierFacilityName}</p>
-                                        </div>
-                                        <div className="flex flex-col items-end shrink-0">
-                                            <p className="text-sm font-black text-slate-900 tracking-tighter">
-                                                ₹{item.price * item.quantity}
-                                            </p>
+                                            <div className="flex flex-col items-end shrink-0">
+                                                <p className="text-sm font-black text-slate-900 tracking-tighter">
+                                                    ₹{item.wholesaleRate * item.quantity}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="flex items-center gap-3 shrink-0 pl-2">
-                                    <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
-                                        <span className="text-[11px] font-black text-slate-900">Qty: {item.quantity}</span>
+                                    <div className="flex items-center gap-3 shrink-0 pl-2">
+                                        <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
+                                            <span className="text-[11px] font-black text-slate-900">Qty: {item.quantity}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
 

@@ -110,9 +110,9 @@ const VendorSupport = () => {
     };
 
     return (
-        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-body relative">
+        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-body relative -mt-4">
             {/* Header */}
-            <header className="px-6 pt-6 flex items-center mb-8">
+            <header className="px-6 flex items-center mb-6 max-w-2xl mx-auto w-full mt-0">
                 <div className="flex items-center gap-4">
                     <motion.button
                         whileTap={{ scale: 0.9 }}
@@ -123,7 +123,6 @@ const VendorSupport = () => {
                     </motion.button>
                     <div>
                         <h1 className="text-2xl font-black tracking-tighter leading-none">Help Center</h1>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">FAQs & Support Hub</p>
                     </div>
                 </div>
             </header>

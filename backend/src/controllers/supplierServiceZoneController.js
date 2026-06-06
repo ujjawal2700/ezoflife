@@ -23,6 +23,7 @@ export const supplierServiceZoneController = {
                 pincodes: Array.isArray(pincodes) ? pincodes : [],
                 deliveryCharges: Number(deliveryCharges) || 0,
                 minOrderValue: Number(minOrderValue) || 0,
+                supplierPlatformMultiplier: Number(req.body.supplierPlatformMultiplier) || 0,
                 isActive: isActive !== undefined ? isActive : true
             });
 
@@ -177,6 +178,7 @@ export const supplierServiceZoneController = {
                         pincodes: pincodeArr,
                         deliveryCharges: Number(zoneData.deliveryCharges) || 0,
                         minOrderValue: Number(zoneData.minOrderValue) || 0,
+                        supplierPlatformMultiplier: Number(zoneData.supplierPlatformMultiplier) || 0,
                         isActive: zoneData.isActive !== undefined ? zoneData.isActive : true
                     });
 

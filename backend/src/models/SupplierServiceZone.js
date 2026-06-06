@@ -30,6 +30,10 @@ const supplierServiceZoneSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    supplierPlatformMultiplier: {
+        type: Number,
+        default: 0
+    },
     isActive: {
         type: Boolean,
         default: true

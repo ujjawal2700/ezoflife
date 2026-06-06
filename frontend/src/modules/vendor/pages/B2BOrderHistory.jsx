@@ -41,7 +41,9 @@ const B2BOrderHistory = () => {
         } catch (err) {
             console.error('Fetch B2B Orders Error:', err);
         } finally {
-            setLoading(false);
+            setTimeout(() => {
+                setLoading(false);
+            }, 5000);
         }
     };
 
@@ -162,9 +164,33 @@ const B2BOrderHistory = () => {
 
                 <div className="space-y-4">
                     {loading ? (
-                        <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-40">
-                            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            <p className="text-[10px] font-black uppercase tracking-widest">Fetching Order History...</p>
+                        <div className="space-y-6">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="bg-white rounded-[2.5rem] p-7 border border-slate-100 shadow-sm relative overflow-hidden animate-pulse">
+                                    <div className="flex justify-between items-start gap-4 mb-6">
+                                        <div className="flex items-start gap-4 flex-1">
+                                            <div className="w-14 h-14 rounded-2xl bg-slate-100 shrink-0"></div>
+                                            <div className="flex flex-col gap-2 flex-1 pt-1">
+                                                <div className="w-24 h-2 bg-slate-200 rounded"></div>
+                                                <div className="w-48 h-4 bg-slate-200 rounded"></div>
+                                                <div className="w-32 h-2 bg-slate-100 rounded"></div>
+                                            </div>
+                                        </div>
+                                        <div className="w-20 h-6 bg-slate-200 rounded-full shrink-0"></div>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <div className="bg-slate-50 rounded-3xl p-5 space-y-4 border border-slate-100">
+                                            <div className="flex justify-between items-center"><div className="w-32 h-2 bg-slate-200 rounded"></div><div className="w-12 h-2 bg-slate-200 rounded"></div></div>
+                                            <div className="flex justify-between items-center"><div className="w-24 h-2 bg-slate-200 rounded"></div><div className="w-12 h-2 bg-slate-200 rounded"></div></div>
+                                            <div className="pt-3 border-t border-slate-200 flex justify-between items-center"><div className="w-24 h-2 bg-slate-300 rounded"></div><div className="w-20 h-4 bg-slate-300 rounded"></div></div>
+                                        </div>
+                                        <div className="flex items-center justify-between pt-4 border-t border-slate-50 gap-4">
+                                            <div className="w-24 h-2 bg-slate-200 rounded"></div>
+                                            <div className="w-10 h-10 bg-slate-100 rounded-full"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     ) : orders.length > 0 ? (
                         <AnimatePresence>

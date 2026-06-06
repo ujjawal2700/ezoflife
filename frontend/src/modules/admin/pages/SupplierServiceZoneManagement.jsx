@@ -21,6 +21,7 @@ const SupplierServiceZoneManagement = () => {
         pincodes: '',
         deliveryCharges: '0',
         minOrderValue: '0',
+        supplierPlatformMultiplier: '1.0',
         isActive: true
     });
 
@@ -70,7 +71,7 @@ const SupplierServiceZoneManagement = () => {
             toast.error('No service zones available to download');
             return;
         }
-        const headers = ['Zone ID', 'Zone Name', 'Supplier ID', 'Pincodes', 'Delivery Charges (INR)', 'Min Order Value (INR)', 'Status'];
+        const headers = ['Zone ID', 'Zone Name', 'Supplier ID', 'Pincodes', 'Delivery Charges (INR)', 'Min Order Value (INR)', 'Platform Aggregator (x)', 'Status'];
         const rows = zones.map(z => [
             z.zoneId || '—',
             z.zoneName || '',
@@ -78,6 +79,7 @@ const SupplierServiceZoneManagement = () => {
             Array.isArray(z.pincodes) ? z.pincodes.join('; ') : '',
             z.deliveryCharges || 0,
             z.minOrderValue || 0,
+            z.supplierPlatformMultiplier || 1.0,
             z.isActive ? 'Active' : 'Inactive'
         ]);
 
@@ -99,11 +101,11 @@ const SupplierServiceZoneManagement = () => {
 
     // Download a sample template the user can fill and re-upload
     const handleDownloadTemplate = () => {
-        const headers = ['zoneName', 'supplierId', 'pincodes', 'deliveryCharges', 'minOrderValue', 'isActive'];
+        const headers = ['zoneName', 'supplierId', 'pincodes', 'deliveryCharges', 'minOrderValue', 'supplierPlatformMultiplier', 'isActive'];
         const sample = [
-            ['North Zone', 'SUP-001', '452001,452010', '50', '300', 'TRUE'],
-            ['South Zone', 'SUP-002', '452005,452015', '40', '250', 'TRUE'],
-            ['West Zone', 'SUP-001', '452020', '0', '500', 'FALSE']
+            ['North Zone', 'SUP-001', '452001,452010', '50', '300', '1.0', 'TRUE'],
+            ['South Zone', 'SUP-002', '452005,452015', '40', '250', '1.05', 'TRUE'],
+            ['West Zone', 'SUP-001', '452020', '0', '500', '1.1', 'FALSE']
         ];
         const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
         const wb = XLSX.utils.book_new();
@@ -142,6 +144,7 @@ const SupplierServiceZoneManagement = () => {
                     const pincodesRaw = row['pincodes'] || row['Pincodes'] || row['pincode'] || '';
                     const deliveryCharges = row['deliveryCharges'] || row['Delivery Charges'] || 0;
                     const minOrderValue = row['minOrderValue'] || row['Min Order Value'] || 0;
+                    const supplierPlatformMultiplier = row['supplierPlatformMultiplier'] || row['Platform Aggregator'] || 1.0;
                     const activeRaw = row['isActive'] ?? row['Is Active'] ?? row['status'] ?? row['Status'] ?? 'TRUE';
                     const isActive = typeof activeRaw === 'boolean'
                         ? activeRaw
@@ -156,6 +159,7 @@ const SupplierServiceZoneManagement = () => {
                         pincodes: String(pincodesRaw).split(',').map(p => p.trim()).filter(Boolean),
                         deliveryCharges: Number(deliveryCharges) || 0,
                         minOrderValue: Number(minOrderValue) || 0,
+                        supplierPlatformMultiplier: Number(supplierPlatformMultiplier) || 1.0,
                         isActive,
                         _valid: !!String(zoneName).trim() && String(pincodesRaw).trim().length > 0
                     };
@@ -234,6 +238,7 @@ const SupplierServiceZoneManagement = () => {
                 pincodes: Array.isArray(zone.pincodes) ? zone.pincodes.join(', ') : '',
                 deliveryCharges: String(zone.deliveryCharges || 0),
                 minOrderValue: String(zone.minOrderValue || 0),
+                supplierPlatformMultiplier: String(zone.supplierPlatformMultiplier || 1.0),
                 isActive: zone.isActive !== undefined ? zone.isActive : true
             });
         } else {
@@ -244,6 +249,7 @@ const SupplierServiceZoneManagement = () => {
                 pincodes: '',
                 deliveryCharges: '0',
                 minOrderValue: '0',
+                supplierPlatformMultiplier: '0',
                 isActive: true
             });
         }
@@ -258,7 +264,8 @@ const SupplierServiceZoneManagement = () => {
                 ...formData,
                 pincodes: pincodesArr,
                 deliveryCharges: Number(formData.deliveryCharges) || 0,
-                minOrderValue: Number(formData.minOrderValue) || 0
+                minOrderValue: Number(formData.minOrderValue) || 0,
+                supplierPlatformMultiplier: Number(formData.supplierPlatformMultiplier) || 0
             };
             if (editingZone) {
                 await supplierServiceZoneApi.update(editingZone._id, payload);
@@ -317,6 +324,15 @@ const SupplierServiceZoneManagement = () => {
                         </span>
                     ))}
                 </div>
+            )
+        },
+        {
+            header: 'Platform Aggregator',
+            key: 'supplierPlatformMultiplier',
+            render: (val) => (
+                <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm tabular-nums text-[11px] whitespace-nowrap">
+                    {val ? `${val}` : '0'}
+                </span>
             )
         },
         {
@@ -512,6 +528,20 @@ const SupplierServiceZoneManagement = () => {
                                 </div>
 
                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Platform Aggregator (Multiplier)</label>
+                                    <input 
+                                        required
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={formData.supplierPlatformMultiplier}
+                                        onChange={e => setFormData({...formData, supplierPlatformMultiplier: e.target.value})}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        placeholder="e.g. 1.0 or 1.05"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Status</label>
                                     <select
                                         value={formData.isActive}
@@ -572,7 +602,7 @@ const SupplierServiceZoneManagement = () => {
                                 <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-sm px-5 py-4">
                                     <div>
                                         <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Download Template</p>
-                                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">Fill columns: zoneName, supplierId, pincodes, deliveryCharges, minOrderValue, isActive</p>
+                                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">Fill columns: zoneName, supplierId, pincodes, deliveryCharges, minOrderValue, supplierPlatformMultiplier, isActive</p>
                                     </div>
                                     <button
                                         onClick={handleDownloadTemplate}
@@ -637,6 +667,7 @@ const SupplierServiceZoneManagement = () => {
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Pincodes</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Delivery Charges</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Min Order Value</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Platform Agg.</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Active</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
                                                         </tr>
@@ -653,6 +684,7 @@ const SupplierServiceZoneManagement = () => {
                                                                 <td className="px-4 py-2 text-slate-500">{row.pincodes.join(', ') || <span className="text-rose-400">—</span>}</td>
                                                                 <td className="px-4 py-2 text-slate-500">₹{row.deliveryCharges}</td>
                                                                 <td className="px-4 py-2 text-slate-500">₹{row.minOrderValue}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.supplierPlatformMultiplier}x</td>
                                                                 <td className="px-4 py-2">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.isActive ? 'Yes' : 'No'}

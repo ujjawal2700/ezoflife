@@ -49,14 +49,9 @@ const populateDeliveryFrequencies = async (supplies) => {
             const zone = await SupplierServiceZone.findOne({ supplierId: supplyObj.supplierId });
             if (zone) {
                 supplyObj.zoneName = zone.zoneName;
-                const serviceArea = await ServiceArea.findOne({ areaName: zone.zoneName });
-                if (serviceArea) {
-                    supplyObj.platformMultiplier = serviceArea.platformMultiplier || 1.0;
-                } else {
-                    supplyObj.platformMultiplier = 1.0;
-                }
+                supplyObj.supplierPlatformMultiplier = zone.supplierPlatformMultiplier || 0;
             } else {
-                supplyObj.platformMultiplier = 1.0;
+                supplyObj.supplierPlatformMultiplier = 0;
             }
 
             if (supplyObj.supplierFacilityName && supplyObj.supplierFacilityName !== '-') {
@@ -358,8 +353,6 @@ export const vendorMasterSupplyController = {
             const vLat = Number(vendor.location?.lat || 0);
             const vLng = Number(vendor.location?.lng || 0);
 
-            let supplierPlatformMultiplier = 1.0;
-
             if (vLat && vLng) {
                 const ServiceArea = (await import('../models/ServiceArea.js')).default;
                 const serviceArea = await ServiceArea.findOne({
@@ -375,7 +368,6 @@ export const vendorMasterSupplyController = {
                 });
 
                 if (serviceArea && serviceArea.pincodes && serviceArea.pincodes.length > 0) {
-                    supplierPlatformMultiplier = serviceArea.supplierPlatformMultiplier || 1.0;
                     serviceArea.pincodes.forEach(pin => {
                         if (!matchingPincodes.includes(pin)) {
                             matchingPincodes.push(pin);
@@ -430,10 +422,20 @@ export const vendorMasterSupplyController = {
             // Format items to match frontend expectation
             const formatted = populated.map(item => {
                 const supplierUserObj = supplierUserMap[item.supplierId];
+                const gst = item.gst || 18;
+                const basePrice = item.wholesaleRate + (item.wholesaleRate * gst / 100);
+                const itemMultiplier = item.supplierPlatformMultiplier || 0;
+                const platformFeeAmount = basePrice * itemMultiplier;
+                const finalPrice = basePrice + platformFeeAmount;
+                
                 return {
                     _id: item._id,
                     name: item.materialName,
-                    price: item.wholesaleRate * supplierPlatformMultiplier,
+                    price: finalPrice,
+                    basePrice: basePrice,
+                    wholesaleRate: item.wholesaleRate,
+                    gst: gst,
+                    supplierPlatformMultiplier: itemMultiplier,
                     category: item.categoryId?.mainCategory || 'Other',
                     subCategory: item.categoryId?.subCategory || 'General',
                     brand: item.brand || 'Generic',
@@ -445,7 +447,9 @@ export const vendorMasterSupplyController = {
                     images: item.images || [],
                     deliveryFrequency: item.deliveryFrequency || 'On-Demand',
                     movFreeDelivery: supplierZoneMap[item.supplierId]?.minOrderValue || 0,
-                    deliveryCharges: supplierZoneMap[item.supplierId]?.deliveryCharges || 0
+                    deliveryCharges: supplierZoneMap[item.supplierId]?.deliveryCharges || 0,
+                    bulkDiscount: item.bulkDiscount || 0,
+                    bulkThreshold: item.bulkThreshold || 0
                 };
             });
 
