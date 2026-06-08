@@ -12,6 +12,8 @@ import DataGrid from '../components/tables/DataGrid';
 const VendorMasterSupplyManagement = () => {
     const [supplies, setSupplies] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [uniqueSuppliers, setUniqueSuppliers] = useState([]);
+    const [uniqueFrequencies, setUniqueFrequencies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
@@ -37,7 +39,10 @@ const VendorMasterSupplyManagement = () => {
     const [filters, setFilters] = useState({
         materialName: '',
         categoryId: '',
-        isActive: ''
+        isActive: '',
+        supplierId: '',
+        deliveryFrequency: '',
+        wholesaleRate: ''
     });
 
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
@@ -264,8 +269,22 @@ const VendorMasterSupplyManagement = () => {
 
     useEffect(() => {
         fetchCategories();
+        fetchUniqueFilters();
         fetchSupplies(1);
     }, []);
+
+    const fetchUniqueFilters = async () => {
+        try {
+            const data = await vendorMasterSupplyApi.getUniqueFilters();
+            if (data) {
+                setUniqueSuppliers(data.supplierIds || []);
+                setUniqueFrequencies(data.deliveryFrequencies || []);
+            }
+        } catch (err) {
+            console.error('Failed to load unique filters', err);
+            toast.error('Filter data load failed. Please refresh the page.');
+        }
+    };
 
     const handleOpenModal = (supply = null) => {
         if (supply) {
@@ -463,7 +482,7 @@ const VendorMasterSupplyManagement = () => {
             header: 'Active',
             key: 'isActive',
             render: (val) => (
-                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${val === 'y' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${val === 'y' ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
                     {val || 'y'}
                 </span>
             )
@@ -502,7 +521,7 @@ const VendorMasterSupplyManagement = () => {
             header: 'Platform Aggregator',
             key: 'supplierPlatformMultiplier',
             render: (val) => (
-                <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm tabular-nums text-[10px] whitespace-nowrap">
+                <span className="font-bold text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-sm tabular-nums text-[10px] whitespace-nowrap">
                     {val ? `${val}x` : '1.0x'}
                 </span>
             )
@@ -559,19 +578,56 @@ const VendorMasterSupplyManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto ml-auto">
+                        <div className="flex flex-col md:flex-row gap-2 w-full ml-auto flex-wrap justify-end">
                             <div className="flex items-center w-full md:w-auto">
                                 <select
                                     value={filters.categoryId}
                                     onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-56 lg:w-64 uppercase tracking-wider cursor-pointer"
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-48 uppercase tracking-wider cursor-pointer"
                                 >
-                                    <option value="">All Categories & Sub Cats</option>
+                                    <option value="">All Categories</option>
                                     {categories.map(cat => (
                                         <option key={cat._id} value={cat._id}>
                                             {cat.mainCategory} — {cat.subCategory}
                                         </option>
                                     ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center w-full md:w-auto">
+                                <select
+                                    value={filters.supplierId}
+                                    onChange={(e) => handleFilterChange('supplierId', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-32 uppercase tracking-wider cursor-pointer"
+                                >
+                                    <option value="">All Suppliers</option>
+                                    {uniqueSuppliers.map(sup => (
+                                        <option key={sup} value={sup}>{sup}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center w-full md:w-auto">
+                                <select
+                                    value={filters.deliveryFrequency}
+                                    onChange={(e) => handleFilterChange('deliveryFrequency', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-36 uppercase tracking-wider cursor-pointer"
+                                >
+                                    <option value="">All Frequencies</option>
+                                    {uniqueFrequencies.map(freq => (
+                                        <option key={freq} value={freq}>{freq}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex items-center w-full md:w-auto">
+                                <select
+                                    value={filters.wholesaleRate}
+                                    onChange={(e) => handleFilterChange('wholesaleRate', e.target.value)}
+                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full md:w-32 uppercase tracking-wider cursor-pointer"
+                                >
+                                    <option value="">All Rates</option>
+                                    <option value="0-500">₹0 - ₹500</option>
+                                    <option value="500-1000">₹500 - ₹1000</option>
+                                    <option value="1000-5000">₹1000 - ₹5000</option>
+                                    <option value="5000+">₹5000+</option>
                                 </select>
                             </div>
                             <div className="flex items-center gap-2 w-full md:w-auto">
@@ -584,10 +640,10 @@ const VendorMasterSupplyManagement = () => {
                                     <option value="y">Active (Y)</option>
                                     <option value="n">Inactive (N)</option>
                                 </select>
-                                {(filters.categoryId || filters.isActive !== '') && (
+                                {(filters.categoryId || filters.isActive !== '' || filters.supplierId !== '' || filters.deliveryFrequency !== '' || filters.wholesaleRate !== '') && (
                                     <button 
                                         onClick={() => {
-                                            const cleared = { categoryId: '', isActive: '' };
+                                            const cleared = { categoryId: '', isActive: '', supplierId: '', deliveryFrequency: '', wholesaleRate: '' };
                                             setFilters(cleared);
                                             fetchSupplies(1, cleared);
                                         }}

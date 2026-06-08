@@ -9,6 +9,7 @@ router.get('/supplier/:supplierId', b2bController.getSupplierOrders);
 router.get('/vendor/:vendorId', b2bController.getVendorOrders);
 router.patch('/:id/status', b2bController.updateB2BStatus);
 router.post('/bulk-status-update', b2bController.bulkUpdateB2BStatus);
+router.post('/verify-platform-fee', b2bController.verifyPlatformFeePayment);
 router.post('/initiate-payment', b2bController.initiateB2BPayment);
 router.post('/verify-payment', b2bController.verifyB2BPayment);
 router.get('/admin/escrow', verifyAdmin, b2bController.getAdminEscrowOrders);

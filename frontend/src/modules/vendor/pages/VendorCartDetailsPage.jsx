@@ -17,7 +17,6 @@ const VendorCartDetailsPage = () => {
     const { itemSubtotal, totalGst, totalDeliveryCharges, grandTotal, totalPlatformFee, payableToSupplier, orderItems, groupedCarts } = useMemo(() => {
         let subTotal = 0;
         let gstTotal = 0;
-        let platformFeeTotal = 0;
         const supplierGroups = {};
         const items = [];
 
@@ -38,7 +37,6 @@ const VendorCartDetailsPage = () => {
                     
                     subTotal += itemWholesaleTotal;
                     gstTotal += itemGstTotal;
-                    platformFeeTotal += itemPlatformFee;
                     
                     const itemData = {
                         materialId: id,
@@ -63,8 +61,11 @@ const VendorCartDetailsPage = () => {
                             subTotal: 0,
                             gstTotal: 0,
                             totalAmount: 0,
+                            platformFeeRaw: 0,
                             movFreeDelivery: item.movFreeDelivery || 0,
                             deliveryCharges: item.deliveryCharges || 0,
+                            minSupplierPlatformFee: item.minSupplierPlatformFee || 0,
+                            maxSupplierPlatformFee: item.maxSupplierPlatformFee !== undefined ? item.maxSupplierPlatformFee : null,
                             payableToSupplier: 0
                         };
                     }
@@ -72,11 +73,13 @@ const VendorCartDetailsPage = () => {
                     supplierGroups[item.supplierId].subTotal += itemWholesaleTotal;
                     supplierGroups[item.supplierId].gstTotal += itemGstTotal;
                     supplierGroups[item.supplierId].totalAmount += itemTotalFinal;
+                    supplierGroups[item.supplierId].platformFeeRaw += itemPlatformFee;
                 }
             }
         });
 
         let deliveryTotal = 0;
+        let finalPlatformFeeTotal = 0;
         Object.values(supplierGroups).forEach(group => {
             let deliveryFee = 0;
             if (group.totalAmount < group.movFreeDelivery) {
@@ -85,10 +88,22 @@ const VendorCartDetailsPage = () => {
             }
             group.deliveryCharges = deliveryFee;
             group.payableToSupplier = group.subTotal + group.gstTotal + deliveryFee;
+
+            let clampedFee = group.platformFeeRaw;
+            if (group.minSupplierPlatformFee && clampedFee < group.minSupplierPlatformFee) {
+                clampedFee = group.minSupplierPlatformFee;
+            }
+            if (group.maxSupplierPlatformFee !== null && group.maxSupplierPlatformFee !== undefined) {
+                if (clampedFee > group.maxSupplierPlatformFee) {
+                    clampedFee = group.maxSupplierPlatformFee;
+                }
+            }
+            group.platformFeeFinal = clampedFee;
+            finalPlatformFeeTotal += clampedFee;
         });
 
         const payableToSupplier = subTotal + gstTotal + deliveryTotal;
-        const calculatedGrandTotal = subTotal + gstTotal + platformFeeTotal + deliveryTotal;
+        const calculatedGrandTotal = subTotal + gstTotal + finalPlatformFeeTotal + deliveryTotal;
 
         return {
             itemSubtotal: subTotal,
@@ -96,7 +111,7 @@ const VendorCartDetailsPage = () => {
             totalDeliveryCharges: deliveryTotal,
             grandTotal: calculatedGrandTotal,
             payableToSupplier: payableToSupplier,
-            totalPlatformFee: platformFeeTotal,
+            totalPlatformFee: finalPlatformFeeTotal,
             orderItems: items,
             groupedCarts: Object.values(supplierGroups)
         };
@@ -121,6 +136,16 @@ const VendorCartDetailsPage = () => {
     const pincode = vendorData.shopDetails?.pincode || vendorData.address_pincode || vendorData.pincode || '';
     const shippingAddress = vendorData.shopDetails?.address || vendorData.address || `${city}, ${pincode}`;
 
+    const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
     const handlePlaceOrder = async () => {
         const loadingToast = toast.loading('Placing B2B requests...');
         setLoading(true);
@@ -129,6 +154,7 @@ const VendorCartDetailsPage = () => {
                 vendorId: vendorData._id || vendorData.id,
                 items: orderItems,
                 totalAmount: payableToSupplier,
+                totalPlatformFee: totalPlatformFee,
                 subTotal: itemSubtotal,
                 deliveryCharges: totalDeliveryCharges,
                 city: city === 'Unknown' ? '' : city,
@@ -136,13 +162,71 @@ const VendorCartDetailsPage = () => {
                 shippingAddress: shippingAddress
             };
 
-            await b2bOrderApi.placeOrder(payload);
-            toast.success('Procurement request submitted!', { id: loadingToast });
-            navigate('/vendor/material-request', { replace: true, state: { resetCart: true } });
+            const response = await b2bOrderApi.placeOrder(payload);
+            
+            if (response.razorpayOrderId && response.platformFeeAmount > 0) {
+                toast.loading('Opening payment gateway...', { id: loadingToast });
+                
+                const isScriptLoaded = await loadRazorpayScript();
+                if (!isScriptLoaded) {
+                    toast.error('Failed to load payment gateway', { id: loadingToast });
+                    setLoading(false);
+                    return;
+                }
+
+                const options = {
+                    key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+                    amount: Math.round(response.platformFeeAmount * 100),
+                    currency: 'INR',
+                    name: 'SPINZYT',
+                    description: 'B2B Platform Fee',
+                    order_id: response.razorpayOrderId,
+                    handler: async function (paymentResponse) {
+                        toast.loading('Verifying payment...', { id: loadingToast });
+                        try {
+                            const orderIds = response.orders.map(o => o._id);
+                            await b2bOrderApi.verifyPlatformFeePayment({
+                                razorpay_order_id: paymentResponse.razorpay_order_id,
+                                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                                razorpay_signature: paymentResponse.razorpay_signature,
+                                orderIds: orderIds
+                            });
+                            toast.success('Order confirmed successfully!', { id: loadingToast });
+                            navigate('/vendor/material-request', { replace: true, state: { resetCart: true } });
+                        } catch (err) {
+                            console.error('Payment Verification Error:', err);
+                            toast.error('Payment verified but order confirmation failed', { id: loadingToast });
+                        }
+                    },
+                    prefill: {
+                        name: vendorData.displayName || vendorData.name || '',
+                        email: vendorData.email || '',
+                        contact: vendorData.phone || ''
+                    },
+                    theme: {
+                        color: '#0f172a'
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            toast.error('Payment cancelled. Order saved as Submitted.', { id: loadingToast });
+                            setLoading(false);
+                            // We can navigate back or let them stay. If they stay, they might click PAY NOW again, creating DUPLICATE orders!
+                            // So we navigate away with reset cart, they can find the submitted order in their history.
+                            navigate('/vendor/material-request', { replace: true, state: { resetCart: true } });
+                        }
+                    }
+                };
+
+                const rzp = new window.Razorpay(options);
+                rzp.open();
+                
+            } else {
+                toast.success('Procurement request submitted and confirmed!', { id: loadingToast });
+                navigate('/vendor/material-request', { replace: true, state: { resetCart: true } });
+            }
         } catch (err) {
             console.error('Submission Error:', err);
             toast.error(err.message || 'Failed to place requests', { id: loadingToast });
-        } finally {
             setLoading(false);
         }
     };
@@ -234,8 +318,8 @@ const VendorCartDetailsPage = () => {
                             <div className="flex items-center justify-between mt-2 pt-4 border-t border-slate-100">
                                 <div className="flex flex-col">
                                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Total Payable</p>
-                                    <p className="text-3xl font-black tracking-tighter text-slate-900">₹{grandTotal.toFixed(2)}</p>
-                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">Incl. ₹{totalPlatformFee.toFixed(2)} Platform Fee</p>
+                                    <p className="text-3xl font-black tracking-tighter text-slate-900">₹{totalPlatformFee.toFixed(2)}</p>
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1">Only Platform Fee</p>
                                 </div>
                                 <motion.button 
                                     whileHover={{ scale: 1.02 }}

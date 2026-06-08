@@ -5,6 +5,7 @@ import { verifyAdmin } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 router.get('/', vendorMasterSupplyController.getAll);
+router.get('/unique-filters', vendorMasterSupplyController.getUniqueFilters);
 router.get('/live-catalog', vendorMasterSupplyController.getLiveCatalog);
 
 // Admin-only modification routes

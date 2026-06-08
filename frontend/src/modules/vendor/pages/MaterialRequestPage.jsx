@@ -14,7 +14,10 @@ const MaterialRequestPage = () => {
     const [materials, setMaterials] = useState([]);
     const [vendorOrders, setVendorOrders] = useState([]);
     const [activeTab, setActiveTab] = useState('catalog'); // 'catalog' or 'requests'
-    const [cart, setCart] = useState({});
+    const [cart, setCart] = useState(() => {
+        const saved = sessionStorage.getItem('vendorB2BCart');
+        return saved ? JSON.parse(saved) : {};
+    });
     const [selectedCategory, setSelectedCategory] = useState('');
     const [selectedSubCategory, setSelectedSubCategory] = useState('');
     
@@ -22,10 +25,18 @@ const MaterialRequestPage = () => {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [chatModal, setChatModal] = useState({ isOpen: false, order: null, step: 'select', selectedProduct: null, message: '' });
     
+    const [orderChatMessages, setOrderChatMessages] = useState([]);
+    const [chatLoading, setChatLoading] = useState(false);
+    const messagesEndRef = React.useRef(null);
+    const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    useEffect(() => {
+        sessionStorage.setItem('vendorB2BCart', JSON.stringify(cart));
+    }, [cart]);
 
     useEffect(() => {
         if (location.state?.resetCart) {
             setCart({});
+            sessionStorage.removeItem('vendorB2BCart');
             setActiveTab('requests');
             // Clear router state to avoid loop
             window.history.replaceState({}, document.title);
@@ -99,6 +110,38 @@ const MaterialRequestPage = () => {
         fetchData();
         fetchInvoiceSettings();
     }, [vendorId]);
+
+    const fetchChatMessages = async () => {
+        if (!chatModal.order?.supplier?._id || !chatModal.selectedProduct || !vendorId) return;
+        const productId = chatModal.selectedProduct.materialId || chatModal.selectedProduct._id;
+        try {
+            setChatLoading(true);
+            const res = await fetch(`${BASE_URL}/vendor-product-queries/chat/${vendorId}/${chatModal.order.supplier._id}?productId=${productId}`);
+            if (res.ok) {
+                const data = await res.json();
+                setOrderChatMessages(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch chat messages:", err);
+        } finally {
+            setChatLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (chatModal.isOpen && chatModal.step === 'chat') {
+            fetchChatMessages();
+        } else {
+            setOrderChatMessages([]);
+            setChatModal(prev => ({ ...prev, message: '' }));
+        }
+    }, [chatModal.isOpen, chatModal.step, chatModal.selectedProduct]);
+
+    useEffect(() => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [orderChatMessages, chatModal.step]);
 
     const fetchInvoiceSettings = async () => {
         try {
@@ -180,10 +223,11 @@ const MaterialRequestPage = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'Accepted': return 'bg-emerald-500 text-white';
-            case 'Open': return 'bg-sky-500 text-white';
-            case 'Locked': return 'bg-amber-500 text-white';
-            case 'Delivered': return 'bg-indigo-500 text-white';
+            case 'Submitted': return 'bg-amber-500 text-white';
+            case 'Confirmed': return 'bg-sky-500 text-white';
+            case 'Out for Delivery': return 'bg-purple-500 text-white';
+            case 'Delivered': return 'bg-emerald-500 text-white';
+            case 'Cancelled': return 'bg-red-500 text-white';
             default: return 'bg-slate-500 text-white';
         }
     };
@@ -597,7 +641,7 @@ const MaterialRequestPage = () => {
                             onClick={() => navigate('/vendor/cart-details', { state: { cart, materials, vendorData } })}
                             className="h-14 px-8 bg-[#0b0f19] text-white rounded-[1.4rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/30 hover:bg-primary transition-all active:scale-95 flex items-center justify-center border border-white/10"
                         >
-                            REVIEW AND PAY - ₹{grandTotal}
+                            REVIEW CART
                         </button>
                     </motion.div>
                 )}
@@ -741,38 +785,43 @@ const MaterialRequestPage = () => {
                                                 </span>
                                             </div>
                                             
-                                            <div className="flex justify-end mb-6">
-                                                <div className="bg-slate-900 text-white p-4 rounded-[1.5rem] rounded-tr-sm shadow-xl shadow-slate-900/10 max-w-[85%] relative">
-                                                    <div className="mb-3 pb-3 border-b border-white/10">
-                                                        <p className="text-[8px] font-black uppercase tracking-widest text-white/50 mb-1.5">Regarding Product</p>
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 bg-white/10">
-                                                                <span className="material-symbols-outlined text-[12px]">inventory_2</span>
+                                            {chatLoading ? (
+                                                <div className="flex items-center justify-center my-4">
+                                                    <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+                                                </div>
+                                            ) : (
+                                                orderChatMessages.map((msg, idx) => {
+                                                    const isVendor = msg.sender === 'Vendor';
+                                                    return (
+                                                        <div key={msg._id || idx} className={`flex mb-4 ${isVendor ? 'justify-end' : 'justify-start'}`}>
+                                                            <div className={`p-4 rounded-[1.5rem] shadow-sm max-w-[85%] relative ${
+                                                                isVendor 
+                                                                ? 'bg-slate-900 text-white rounded-tr-sm shadow-slate-900/10' 
+                                                                : 'bg-white text-slate-900 rounded-tl-sm border border-slate-100'
+                                                            }`}>
+                                                                {idx === 0 && (
+                                                                    <div className={`mb-3 pb-3 border-b ${isVendor ? 'border-white/10' : 'border-slate-100'}`}>
+                                                                        <p className={`text-[8px] font-black uppercase tracking-widest mb-1.5 ${isVendor ? 'text-white/50' : 'text-slate-400'}`}>Regarding Product</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${isVendor ? 'bg-white/10' : 'bg-slate-50'}`}>
+                                                                                <span className="material-symbols-outlined text-[12px]">inventory_2</span>
+                                                                            </div>
+                                                                            <p className="text-xs font-bold truncate">{chatModal.selectedProduct?.name}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                <p className="text-[13px] leading-relaxed pr-10 font-medium">{msg.message}</p>
+                                                                <div className="absolute bottom-3 right-3 flex items-center gap-1">
+                                                                    <span className={`text-[9px] font-bold ${isVendor ? 'text-white/40' : 'text-slate-400'}`}>
+                                                                        {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <p className="text-xs font-bold truncate">{chatModal.selectedProduct?.name}</p>
                                                         </div>
-                                                    </div>
-                                                    <p className="text-[13px] leading-relaxed pr-10 font-medium">{chatModal.message}</p>
-                                                    <div className="absolute bottom-3 right-3 flex items-center gap-1">
-                                                        <span className="text-[9px] font-bold text-white/40">{new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="mt-auto pt-4">
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3 pl-1">Suggested Queries</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {['When will it be delivered?', 'Can I change quantity?', 'Product is damaged'].map((chip, idx) => (
-                                                        <button 
-                                                            key={idx}
-                                                            onClick={() => setChatModal({ ...chatModal, message: `${chatModal.message} ${chip}` })}
-                                                            className="bg-white border border-slate-200 text-slate-600 px-4 py-2.5 rounded-xl text-[11px] font-bold shadow-sm hover:border-slate-900 hover:text-slate-900 transition-all active:scale-95"
-                                                        >
-                                                            {chip}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                                    );
+                                                })
+                                            )}
+                                            <div ref={messagesEndRef} />
                                         </div>
                                     </div>
 
@@ -786,15 +835,39 @@ const MaterialRequestPage = () => {
                                                     className="w-full bg-transparent outline-none text-[13px] font-medium text-slate-900"
                                                     value={chatModal.message}
                                                     onChange={(e) => setChatModal({ ...chatModal, message: e.target.value })}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && chatModal.message.trim()) {
+                                                            document.getElementById('send-msg-btn').click();
+                                                        }
+                                                    }}
                                                 />
                                             </div>
                                             <button 
-                                                onClick={() => {
-                                                    const text = encodeURIComponent(chatModal.message);
-                                                    window.open(`https://wa.me/${chatModal.order.supplier.phone?.replace(/\D/g, '')}?text=${text}`);
-                                                    setChatModal({ ...chatModal, isOpen: false });
+                                                id="send-msg-btn"
+                                                disabled={!chatModal.message.trim()}
+                                                onClick={async () => {
+                                                    if (!chatModal.message.trim()) return;
+                                                    try {
+                                                        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+                                                        await fetch(`${BASE_URL}/vendor-product-queries/message`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                vendorId: vendorId,
+                                                                supplierId: chatModal.order.supplier._id,
+                                                                productId: chatModal.selectedProduct.materialId || chatModal.selectedProduct._id,
+                                                                b2bOrderId: chatModal.order._id,
+                                                                message: chatModal.message,
+                                                                sender: 'Vendor'
+                                                            })
+                                                        });
+                                                        setChatModal({ ...chatModal, message: '' });
+                                                        fetchChatMessages();
+                                                    } catch (err) {
+                                                        console.error("Failed to save chat", err);
+                                                    }
                                                 }}
-                                                className="w-10 h-10 rounded-[1rem] bg-slate-900 text-white flex items-center justify-center shadow-lg hover:shadow-xl active:scale-95 transition-all shrink-0"
+                                                className="w-10 h-10 rounded-[1rem] bg-slate-900 text-white flex items-center justify-center shadow-lg hover:shadow-xl active:scale-95 transition-all shrink-0 disabled:opacity-50"
                                             >
                                                 <span className="material-symbols-outlined text-[18px]">send</span>
                                             </button>

@@ -36,6 +36,8 @@ import VendorMyServices from '../pages/VendorMyServices';
 import VendorReports from '../pages/VendorReports';
 import VendorProductImages from '../pages/VendorProductImages';
 import VendorCartDetailsPage from '../pages/VendorCartDetailsPage';
+import VendorProductQueries from '../pages/VendorProductQueries';
+import VendorProductQueryChat from '../pages/VendorProductQueryChat';
 
 // Profile sub-pages
 import EditProfile from '../pages/EditProfile';
@@ -87,6 +89,8 @@ const VendorRoutes = () => {
         <Route path="/reviews" element={<VendorReviews />} />
         <Route path="/jobs" element={<JobManagerPage />} />
         <Route path="/product-images" element={<VendorProductImages />} />
+        <Route path="/product-queries" element={<VendorProductQueries />} />
+        <Route path="/product-queries/:supplierId" element={<VendorProductQueryChat />} />
         
         {/* Profile Sub-pages */}
         <Route path="/edit-profile" element={<EditProfile />} />

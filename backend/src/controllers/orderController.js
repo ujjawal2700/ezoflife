@@ -306,6 +306,21 @@ export const createOrder = async (req, res) => {
             return { ...item, pricing };
         });
 
+        const activeMinPlatformFee = req.body.minPlatformFee || 0;
+        const activeMaxPlatformFee = req.body.maxPlatformFee || null;
+
+        if (activeMinPlatformFee > 0 && finalPriceBreakdown.platformFee < activeMinPlatformFee) {
+            const diff = activeMinPlatformFee - finalPriceBreakdown.platformFee;
+            finalPriceBreakdown.platformFee = activeMinPlatformFee;
+            totalCalculatedV += diff;
+        }
+
+        if (activeMaxPlatformFee !== null && activeMaxPlatformFee > 0 && finalPriceBreakdown.platformFee > activeMaxPlatformFee) {
+            const diff = finalPriceBreakdown.platformFee - activeMaxPlatformFee;
+            finalPriceBreakdown.platformFee = activeMaxPlatformFee;
+            totalCalculatedV -= diff;
+        }
+
         // --- DROP-OFF CALCULATION ---
         const itemIds = items.map(i => i.serviceId);
         const [masterSvcs, customSvcs] = await Promise.all([

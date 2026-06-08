@@ -420,7 +420,7 @@ const VendorProductTableManagement = () => {
             header: 'Active',
             key: 'isActive',
             render: (val) => (
-                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${val === 'y' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase ${val === 'y' ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
                     {val || 'y'}
                 </span>
             )

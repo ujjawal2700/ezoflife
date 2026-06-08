@@ -9,6 +9,8 @@ export const useLocationStore = create(
       pricingFactor: 1, // Default multiplier
       allowDiscount: false, // Defaults to false
       platformMultiplier: 0, // Default platform fee multiplier
+      minPlatformFee: 0,
+      maxPlatformFee: null,
       expressMultiplier: 1, // Default express multiplier
       heritageMultiplier: 1, // Default heritage multiplier
       permissionStatus: 'prompt', // 'prompt', 'granted', 'denied'
@@ -21,6 +23,8 @@ export const useLocationStore = create(
         pricingFactor: data.pricingFactor || 1,
         allowDiscount: data.allowDiscount !== false,
         platformMultiplier: data.platformMultiplier !== undefined ? data.platformMultiplier : 0,
+        minPlatformFee: data.minPlatformFee !== undefined ? data.minPlatformFee : 0,
+        maxPlatformFee: data.maxPlatformFee !== undefined ? data.maxPlatformFee : null,
         expressMultiplier: data.expressMultiplier !== undefined ? data.expressMultiplier : 1,
         heritageMultiplier: data.heritageMultiplier !== undefined ? data.heritageMultiplier : 1
       }),
@@ -28,7 +32,7 @@ export const useLocationStore = create(
       setPromptOpen: (isOpen) => set({ isPromptOpen: isOpen }),
       setPickerOpen: (isOpen) => set({ isPickerOpen: isOpen }),
 
-      clearLocation: () => set({ location: null, zone: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1, permissionStatus: 'prompt' }),
+      clearLocation: () => set({ location: null, zone: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1, permissionStatus: 'prompt' }),
     }),
     {
       name: 'ez-location-storage',

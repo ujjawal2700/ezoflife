@@ -149,13 +149,14 @@ const UserProfilePage = () => {
             useLocationStore.getState().setZoneData({
               name: zoneInfo.name,
               pricingFactor: zoneInfo.pricingFactor,
-              allowDiscount: zoneInfo.allowDiscount,
               platformMultiplier: zoneInfo.platformMultiplier,
+              minPlatformFee: zoneInfo.minPlatformFee,
+              maxPlatformFee: zoneInfo.maxPlatformFee,
               expressMultiplier: zoneInfo.expressMultiplier,
               heritageMultiplier: zoneInfo.heritageMultiplier
             });
           } else {
-            useLocationStore.getState().setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+            useLocationStore.getState().setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1 });
           }
         } catch (zoneErr) {
           console.error('[Geofence] Error checking availability during default set:', zoneErr);

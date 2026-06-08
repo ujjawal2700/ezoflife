@@ -45,6 +45,7 @@ import supplierRoutes from './src/routes/supplierRoutes.js';
 import geofenceRoutes from './src/routes/geofenceRoutes.js';
 import areaOverrideRoutes from './src/routes/areaOverrideRoutes.js';
 import masterPricingRoutes from './src/routes/masterPricingRoutes.js';
+import vendorProductQueryRoutes from './src/routes/vendorProductQueryRoutes.js';
 
 
 import SystemConfig from './src/models/SystemConfig.js';
@@ -154,6 +155,7 @@ app.use('/api/supplier-service-zones', supplierServiceZoneRoutes);
 app.use('/api/geofence', geofenceRoutes);
 app.use('/api/area-overrides', verifyAdmin, areaOverrideRoutes);
 app.use('/api/master-pricing', masterPricingRoutes);
+app.use('/api/vendor-product-queries', vendorProductQueryRoutes);
 
 // Labor Routes
 app.post('/api/labor/add', verifyAdmin, addSpecialist);

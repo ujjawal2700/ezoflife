@@ -60,7 +60,10 @@ export const createServiceArea = async (req, res) => {
             heritageMultiplier,
             isActive,
             pincodes,
-            allowDiscount
+            allowDiscount,
+            platformMultiplier,
+            minPlatformFee,
+            maxPlatformFee
         } = req.body;
 
         // Validation
@@ -89,7 +92,10 @@ export const createServiceArea = async (req, res) => {
             isActive: isActive !== undefined ? isActive : true,
             pincodes: pincodes || [],
             excelFenceId: nextId,
-            allowDiscount: allowDiscount !== undefined ? allowDiscount : true
+            allowDiscount: allowDiscount !== undefined ? allowDiscount : true,
+            platformMultiplier: platformMultiplier || 1.0,
+            minPlatformFee: minPlatformFee || 0,
+            maxPlatformFee: maxPlatformFee || null
         });
 
         await newArea.save();
@@ -256,7 +262,9 @@ export const checkLocationAvailability = async (req, res) => {
             allowDiscount: area.allowDiscount !== false,
             platformMultiplier: area.platformMultiplier !== undefined ? area.platformMultiplier : 0,
             expressMultiplier: area.dynamicSurgeMultiplier !== undefined ? area.dynamicSurgeMultiplier : 1.0,
-            heritageMultiplier: area.heritageMultiplier !== undefined ? area.heritageMultiplier : 1.0
+            heritageMultiplier: area.heritageMultiplier !== undefined ? area.heritageMultiplier : 1.0,
+            minPlatformFee: area.minPlatformFee || 0,
+            maxPlatformFee: area.maxPlatformFee || null
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

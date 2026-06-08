@@ -345,7 +345,7 @@ const MasterServiceManagement = () => {
             header: 'Status',
             key: 'curr_ind',
             render: (val) => (
-                <span className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest ${val === 'y' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
+                <span className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest ${val === 'y' ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
                     {val || 'y'}
                 </span>
             )

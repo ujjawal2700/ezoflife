@@ -73,6 +73,8 @@ const ServiceGeofenceTable = () => {
             'Heritage Multiplier',
             'Discount Multiplier',
             'Platform Multiplier',
+            'Min Platform Fee',
+            'Max Platform Fee',
             'Free Delivery Threshold',
             'Minimum Order Value',
             'Show Discount',
@@ -102,6 +104,8 @@ const ServiceGeofenceTable = () => {
                 `${area.heritageMultiplier || 1.0}x`,
                 `${area.discountPriceMultiplier || 1.0}x`,
                 `${area.platformMultiplier || 1.0}x`,
+                `₹${area.minPlatformFee || 0}`,
+                area.maxPlatformFee ? `₹${area.maxPlatformFee}` : 'No Limit',
                 `₹${area.freeDeliveryThreshold || 0}`,
                 `₹${area.minimumOrderValue || 0}`,
                 area.allowDiscount !== false ? 'Yes' : 'No',
@@ -178,13 +182,15 @@ const ServiceGeofenceTable = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     areaName: editingArea.areaName,
-                    dynamicSurgeMultiplier: editingArea.dynamicSurgeMultiplier,
-                    basePriceMultiplier: editingArea.basePriceMultiplier,
-                    discountPriceMultiplier: editingArea.discountPriceMultiplier,
-                    heritageMultiplier: editingArea.heritageMultiplier,
+                    dynamicSurgeMultiplier: editingArea.dynamicSurgeMultiplier === '' ? 1.0 : Number(editingArea.dynamicSurgeMultiplier),
+                    basePriceMultiplier: editingArea.basePriceMultiplier === '' ? 1.0 : Number(editingArea.basePriceMultiplier),
+                    discountPriceMultiplier: editingArea.discountPriceMultiplier === '' ? 1.0 : Number(editingArea.discountPriceMultiplier),
+                    heritageMultiplier: editingArea.heritageMultiplier === '' ? 1.0 : Number(editingArea.heritageMultiplier),
                     allowDiscount: editingArea.allowDiscount !== false,
-                    platformMultiplier: editingArea.platformMultiplier,
-                    freeDeliveryThreshold: editingArea.freeDeliveryThreshold
+                    platformMultiplier: editingArea.platformMultiplier === '' ? 1.0 : Number(editingArea.platformMultiplier),
+                    minPlatformFee: editingArea.minPlatformFee === '' ? 0 : Number(editingArea.minPlatformFee),
+                    maxPlatformFee: editingArea.maxPlatformFee === '' || editingArea.maxPlatformFee === null ? null : Number(editingArea.maxPlatformFee),
+                    freeDeliveryThreshold: editingArea.freeDeliveryThreshold === '' ? 0 : Number(editingArea.freeDeliveryThreshold)
                 })
             });
             if (res.ok) {
@@ -227,7 +233,6 @@ const ServiceGeofenceTable = () => {
             key: 'boundary',
             render: (val) => (
                 <div className="flex items-center gap-1.5 text-slate-500 font-bold">
-                    <MapPin size={10} className="text-slate-300" />
                     <span className="text-[10px] bg-slate-50 px-2 py-0.5 rounded-sm border border-slate-100 uppercase tracking-tighter">
                         Polygon [{val?.coordinates[0]?.length || 0} Points]
                     </span>
@@ -251,8 +256,7 @@ const ServiceGeofenceTable = () => {
             header: 'Base Mult.',
             key: 'basePriceMultiplier',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-blue-600 font-bold">
-                    <Percent size={10} className="text-blue-400" />
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
                     <span>{val || 1.0}x</span>
                 </div>
             )
@@ -261,8 +265,7 @@ const ServiceGeofenceTable = () => {
             header: 'Express Mult.',
             key: 'dynamicSurgeMultiplier',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-amber-600 font-bold">
-                    <Zap size={10} className="text-amber-400" />
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
                     <span>{val || 1.0}x</span>
                 </div>
             )
@@ -271,8 +274,7 @@ const ServiceGeofenceTable = () => {
             header: 'Heritage Mult.',
             key: 'heritageMultiplier',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-purple-600 font-bold">
-                    <ShieldCheck size={10} className="text-purple-400" />
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
                     <span>{val || 1.0}x</span>
                 </div>
             )
@@ -281,8 +283,7 @@ const ServiceGeofenceTable = () => {
             header: 'Disc. Mult.',
             key: 'discountPriceMultiplier',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
-                    <Percent size={10} className="text-emerald-400" />
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
                     <span>{val || 1.0}x</span>
                 </div>
             )
@@ -293,7 +294,7 @@ const ServiceGeofenceTable = () => {
             render: (val) => {
                 const displayVal = val !== false;
                 return (
-                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${displayVal ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${displayVal ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
                         {displayVal ? 'Y' : 'N'}
                     </span>
                 );
@@ -303,7 +304,7 @@ const ServiceGeofenceTable = () => {
             header: 'Status',
             key: 'isActive',
             render: (val) => (
-                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${val ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
                     {val ? 'Active' : 'Inactive'}
                 </span>
             )
@@ -312,9 +313,26 @@ const ServiceGeofenceTable = () => {
             header: 'Platform Mult.',
             key: 'platformMultiplier',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-blue-600 font-bold">
-                    <TrendingUp size={10} className="text-blue-400" />
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
                     <span>{val || 1.0}x</span>
+                </div>
+            )
+        },
+        {
+            header: 'Min Plat. Fee',
+            key: 'minPlatformFee',
+            render: (val) => (
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
+                    <span>₹{val || 0}</span>
+                </div>
+            )
+        },
+        {
+            header: 'Max Plat. Fee',
+            key: 'maxPlatformFee',
+            render: (val) => (
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
+                    <span>{val ? `₹${val}` : 'No Limit'}</span>
                 </div>
             )
         },
@@ -322,8 +340,7 @@ const ServiceGeofenceTable = () => {
             header: 'Free Delivery Threshold',
             key: 'freeDeliveryThreshold',
             render: (val) => (
-                <div className="flex items-center gap-1.5 text-rose-600 font-bold">
-                    <Truck size={10} className="text-rose-400" />
+                <div className="flex items-center gap-1.5 text-slate-900 font-bold">
                     <span>₹{val || 0}</span>
                 </div>
             )
@@ -336,7 +353,7 @@ const ServiceGeofenceTable = () => {
                 <div className="flex items-center justify-end gap-2">
                     <button
                         onClick={() => setEditingArea(row)}
-                        className="p-2 hover:bg-blue-50 rounded-lg text-blue-400 hover:text-blue-600 transition-all"
+                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-all"
                     >
                         <Edit2 size={14} />
                     </button>
@@ -476,8 +493,8 @@ const ServiceGeofenceTable = () => {
                                     </label>
                                     <input
                                         type="number" step="0.1"
-                                        value={editingArea.dynamicSurgeMultiplier}
-                                        onChange={(e) => setEditingArea({ ...editingArea, dynamicSurgeMultiplier: parseFloat(e.target.value) })}
+                                        value={editingArea.dynamicSurgeMultiplier ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, dynamicSurgeMultiplier: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -489,8 +506,8 @@ const ServiceGeofenceTable = () => {
                                     </label>
                                     <input
                                         type="number" step="0.1"
-                                        value={editingArea.basePriceMultiplier}
-                                        onChange={(e) => setEditingArea({ ...editingArea, basePriceMultiplier: parseFloat(e.target.value) })}
+                                        value={editingArea.basePriceMultiplier ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, basePriceMultiplier: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -502,8 +519,8 @@ const ServiceGeofenceTable = () => {
                                     </label>
                                     <input
                                         type="number" step="0.1"
-                                        value={editingArea.discountPriceMultiplier}
-                                        onChange={(e) => setEditingArea({ ...editingArea, discountPriceMultiplier: parseFloat(e.target.value) })}
+                                        value={editingArea.discountPriceMultiplier ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, discountPriceMultiplier: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -537,8 +554,8 @@ const ServiceGeofenceTable = () => {
                                     </label>
                                     <input
                                         type="number" step="0.1"
-                                        value={editingArea.heritageMultiplier || 1.0}
-                                        onChange={(e) => setEditingArea({ ...editingArea, heritageMultiplier: parseFloat(e.target.value) })}
+                                        value={editingArea.heritageMultiplier ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, heritageMultiplier: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -550,8 +567,34 @@ const ServiceGeofenceTable = () => {
                                     </label>
                                     <input
                                         type="number" step="0.1"
-                                        value={editingArea.platformMultiplier || 1.0}
-                                        onChange={(e) => setEditingArea({ ...editingArea, platformMultiplier: parseFloat(e.target.value) })}
+                                        value={editingArea.platformMultiplier ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, platformMultiplier: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                    />
+                                </div>
+
+                                {/* Min Platform Fee */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
+                                        <TrendingUp size={10} className="text-indigo-500" /> Min Platform Fee (₹)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={editingArea.minPlatformFee ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, minPlatformFee: e.target.value })}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                    />
+                                </div>
+
+                                {/* Max Platform Fee */}
+                                <div className="space-y-1.5 col-span-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1 flex items-center gap-1.5">
+                                        <TrendingUp size={10} className="text-rose-500" /> Max Platform Fee (₹)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        value={editingArea.maxPlatformFee ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, maxPlatformFee: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>
@@ -563,8 +606,8 @@ const ServiceGeofenceTable = () => {
                                     </label>
                                     <input
                                         type="number"
-                                        value={editingArea.freeDeliveryThreshold || 500}
-                                        onChange={(e) => setEditingArea({ ...editingArea, freeDeliveryThreshold: parseFloat(e.target.value) })}
+                                        value={editingArea.freeDeliveryThreshold ?? ''}
+                                        onChange={(e) => setEditingArea({ ...editingArea, freeDeliveryThreshold: e.target.value })}
                                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                     />
                                 </div>

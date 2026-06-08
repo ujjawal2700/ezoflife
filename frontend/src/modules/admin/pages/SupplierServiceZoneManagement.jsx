@@ -22,6 +22,8 @@ const SupplierServiceZoneManagement = () => {
         deliveryCharges: '0',
         minOrderValue: '0',
         supplierPlatformMultiplier: '1.0',
+        minSupplierPlatformFee: '0',
+        maxSupplierPlatformFee: '',
         isActive: true
     });
 
@@ -71,7 +73,7 @@ const SupplierServiceZoneManagement = () => {
             toast.error('No service zones available to download');
             return;
         }
-        const headers = ['Zone ID', 'Zone Name', 'Supplier ID', 'Pincodes', 'Delivery Charges (INR)', 'Min Order Value (INR)', 'Platform Aggregator (x)', 'Status'];
+        const headers = ['Zone ID', 'Zone Name', 'Supplier ID', 'Pincodes', 'Delivery Charges (INR)', 'Min Order Value (INR)', 'Platform Aggregator (x)', 'Min Platform Fee', 'Max Platform Fee', 'Status'];
         const rows = zones.map(z => [
             z.zoneId || '—',
             z.zoneName || '',
@@ -80,6 +82,8 @@ const SupplierServiceZoneManagement = () => {
             z.deliveryCharges || 0,
             z.minOrderValue || 0,
             z.supplierPlatformMultiplier || 1.0,
+            z.minSupplierPlatformFee || 0,
+            z.maxSupplierPlatformFee || '',
             z.isActive ? 'Active' : 'Inactive'
         ]);
 
@@ -101,11 +105,11 @@ const SupplierServiceZoneManagement = () => {
 
     // Download a sample template the user can fill and re-upload
     const handleDownloadTemplate = () => {
-        const headers = ['zoneName', 'supplierId', 'pincodes', 'deliveryCharges', 'minOrderValue', 'supplierPlatformMultiplier', 'isActive'];
+        const headers = ['zoneName', 'supplierId', 'pincodes', 'deliveryCharges', 'minOrderValue', 'supplierPlatformMultiplier', 'minSupplierPlatformFee', 'maxSupplierPlatformFee', 'isActive'];
         const sample = [
-            ['North Zone', 'SUP-001', '452001,452010', '50', '300', '1.0', 'TRUE'],
-            ['South Zone', 'SUP-002', '452005,452015', '40', '250', '1.05', 'TRUE'],
-            ['West Zone', 'SUP-001', '452020', '0', '500', '1.1', 'FALSE']
+            ['North Zone', 'SUP-001', '452001,452010', '50', '300', '1.0', '10', '50', 'TRUE'],
+            ['South Zone', 'SUP-002', '452005,452015', '40', '250', '1.05', '0', '', 'TRUE'],
+            ['West Zone', 'SUP-001', '452020', '0', '500', '1.1', '5', '100', 'FALSE']
         ];
         const ws = XLSX.utils.aoa_to_sheet([headers, ...sample]);
         const wb = XLSX.utils.book_new();
@@ -145,6 +149,8 @@ const SupplierServiceZoneManagement = () => {
                     const deliveryCharges = row['deliveryCharges'] || row['Delivery Charges'] || 0;
                     const minOrderValue = row['minOrderValue'] || row['Min Order Value'] || 0;
                     const supplierPlatformMultiplier = row['supplierPlatformMultiplier'] || row['Platform Aggregator'] || 1.0;
+                    const minSupplierPlatformFee = row['minSupplierPlatformFee'] || row['Min Platform Fee'] || 0;
+                    const maxSupplierPlatformFee = row['maxSupplierPlatformFee'] || row['Max Platform Fee'] || '';
                     const activeRaw = row['isActive'] ?? row['Is Active'] ?? row['status'] ?? row['Status'] ?? 'TRUE';
                     const isActive = typeof activeRaw === 'boolean'
                         ? activeRaw
@@ -160,6 +166,8 @@ const SupplierServiceZoneManagement = () => {
                         deliveryCharges: Number(deliveryCharges) || 0,
                         minOrderValue: Number(minOrderValue) || 0,
                         supplierPlatformMultiplier: Number(supplierPlatformMultiplier) || 1.0,
+                        minSupplierPlatformFee: Number(minSupplierPlatformFee) || 0,
+                        maxSupplierPlatformFee: maxSupplierPlatformFee ? Number(maxSupplierPlatformFee) : null,
                         isActive,
                         _valid: !!String(zoneName).trim() && String(pincodesRaw).trim().length > 0
                     };
@@ -239,6 +247,8 @@ const SupplierServiceZoneManagement = () => {
                 deliveryCharges: String(zone.deliveryCharges || 0),
                 minOrderValue: String(zone.minOrderValue || 0),
                 supplierPlatformMultiplier: String(zone.supplierPlatformMultiplier || 1.0),
+                minSupplierPlatformFee: String(zone.minSupplierPlatformFee || 0),
+                maxSupplierPlatformFee: zone.maxSupplierPlatformFee !== null && zone.maxSupplierPlatformFee !== undefined ? String(zone.maxSupplierPlatformFee) : '',
                 isActive: zone.isActive !== undefined ? zone.isActive : true
             });
         } else {
@@ -250,6 +260,8 @@ const SupplierServiceZoneManagement = () => {
                 deliveryCharges: '0',
                 minOrderValue: '0',
                 supplierPlatformMultiplier: '0',
+                minSupplierPlatformFee: '0',
+                maxSupplierPlatformFee: '',
                 isActive: true
             });
         }
@@ -265,7 +277,9 @@ const SupplierServiceZoneManagement = () => {
                 pincodes: pincodesArr,
                 deliveryCharges: Number(formData.deliveryCharges) || 0,
                 minOrderValue: Number(formData.minOrderValue) || 0,
-                supplierPlatformMultiplier: Number(formData.supplierPlatformMultiplier) || 0
+                supplierPlatformMultiplier: Number(formData.supplierPlatformMultiplier) || 0,
+                minSupplierPlatformFee: Number(formData.minSupplierPlatformFee) || 0,
+                maxSupplierPlatformFee: formData.maxSupplierPlatformFee ? Number(formData.maxSupplierPlatformFee) : null
             };
             if (editingZone) {
                 await supplierServiceZoneApi.update(editingZone._id, payload);
@@ -330,8 +344,26 @@ const SupplierServiceZoneManagement = () => {
             header: 'Platform Aggregator',
             key: 'supplierPlatformMultiplier',
             render: (val) => (
-                <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-sm tabular-nums text-[11px] whitespace-nowrap">
+                <span className="font-bold text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-sm tabular-nums text-[11px] whitespace-nowrap">
                     {val ? `${val}` : '0'}
+                </span>
+            )
+        },
+        {
+            header: 'Min Fee',
+            key: 'minSupplierPlatformFee',
+            render: (val) => (
+                <span className="font-bold text-slate-600 tabular-nums text-[11px]">
+                    ₹{val || 0}
+                </span>
+            )
+        },
+        {
+            header: 'Max Fee',
+            key: 'maxSupplierPlatformFee',
+            render: (val) => (
+                <span className="font-bold text-slate-600 tabular-nums text-[11px]">
+                    {val !== null && val !== undefined && val !== '' ? `₹${val}` : 'No Limit'}
                 </span>
             )
         },
@@ -343,9 +375,6 @@ const SupplierServiceZoneManagement = () => {
                 <div className="flex items-center justify-end gap-2">
                     <button onClick={() => handleOpenModal(row)} className="p-2 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-slate-900 transition-all">
                         <Edit2 size={14} />
-                    </button>
-                    <button onClick={() => handleDelete(row._id)} className="p-2 hover:bg-red-50 rounded-sm text-slate-400 hover:text-red-600 transition-all">
-                        <X size={14} />
                     </button>
                 </div>
             )
@@ -439,124 +468,152 @@ const SupplierServiceZoneManagement = () => {
                             initial={{ scale: 0.95, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-md bg-white rounded-sm p-10 shadow-2xl space-y-6 border border-slate-200"
+                            className="relative w-full max-w-2xl bg-white rounded-sm p-8 shadow-2xl flex flex-col max-h-[90vh] border border-slate-200"
                         >
-                            <div className="flex justify-between items-center mb-4">
+                            <div className="flex justify-between items-center mb-6 shrink-0 border-b border-slate-100 pb-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center rounded-sm">
+                                    <div className="w-10 h-10 bg-slate-900 text-white flex items-center justify-center rounded-sm shadow-md">
                                         <PlusCircle size={18} />
                                     </div>
                                     <div>
-                                        <h3 className="text-[12px] font-black text-slate-900 uppercase tracking-widest">{editingZone ? 'Update Details' : 'New Service Zone'}</h3>
+                                        <h3 className="text-[14px] font-black text-slate-900 uppercase tracking-widest">{editingZone ? 'Update Details' : 'New Service Zone'}</h3>
                                         {!editingZone && (
                                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] mt-1">ID auto-generated on save</p>
                                         )}
                                     </div>
                                 </div>
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-50 rounded-full text-slate-400">
+                                <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-sm text-slate-400 transition-colors">
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="space-y-4">
-                                {editingZone && (
-                                    <div className="space-y-1.5">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone ID (Auto-generated)</label>
-                                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
-                                            {formData.zoneId || 'Auto-generated'}
+                            <div className="overflow-y-auto pr-2 pb-4 space-y-4 custom-scrollbar flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {editingZone && (
+                                        <div className="space-y-1.5 md:col-span-2">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone ID (Auto-generated)</label>
+                                            <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
+                                                {formData.zoneId || 'Auto-generated'}
+                                            </div>
                                         </div>
+                                    )}
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Zone Name</label>
+                                        <input 
+                                            required
+                                            value={formData.zoneName}
+                                            onChange={e => setFormData({...formData, zoneName: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. North Zone"
+                                        />
                                     </div>
-                                )}
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone Name</label>
-                                    <input 
-                                        required
-                                        value={formData.zoneName}
-                                        onChange={e => setFormData({...formData, zoneName: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. North Zone"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Supplier ID</label>
+                                        <input 
+                                            required
+                                            value={formData.supplierId}
+                                            onChange={e => setFormData({...formData, supplierId: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. SUP-001"
+                                        />
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Supplier ID</label>
-                                    <input 
-                                        required
-                                        value={formData.supplierId}
-                                        onChange={e => setFormData({...formData, supplierId: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. SUP-001"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5 md:col-span-2">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Pincodes (Comma separated)</label>
+                                        <input 
+                                            required
+                                            value={formData.pincodes}
+                                            onChange={e => setFormData({...formData, pincodes: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. 452001, 452010"
+                                        />
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Pincodes (Comma separated)</label>
-                                    <input 
-                                        required
-                                        value={formData.pincodes}
-                                        onChange={e => setFormData({...formData, pincodes: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. 452001, 452010"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Delivery Charges (₹)</label>
+                                        <input 
+                                            required
+                                            type="number"
+                                            min="0"
+                                            value={formData.deliveryCharges}
+                                            onChange={e => setFormData({...formData, deliveryCharges: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. 50"
+                                        />
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Delivery Charges (₹)</label>
-                                    <input 
-                                        required
-                                        type="number"
-                                        min="0"
-                                        value={formData.deliveryCharges}
-                                        onChange={e => setFormData({...formData, deliveryCharges: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. 50"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Min Order Value (₹)</label>
+                                        <input 
+                                            required
+                                            type="number"
+                                            min="0"
+                                            value={formData.minOrderValue}
+                                            onChange={e => setFormData({...formData, minOrderValue: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. 200"
+                                        />
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Min Order Value (₹)</label>
-                                    <input 
-                                        required
-                                        type="number"
-                                        min="0"
-                                        value={formData.minOrderValue}
-                                        onChange={e => setFormData({...formData, minOrderValue: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. 200"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Platform Aggregator (Multiplier)</label>
+                                        <input 
+                                            required
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={formData.supplierPlatformMultiplier}
+                                            onChange={e => setFormData({...formData, supplierPlatformMultiplier: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. 1.0 or 1.05"
+                                        />
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Platform Aggregator (Multiplier)</label>
-                                    <input 
-                                        required
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        value={formData.supplierPlatformMultiplier}
-                                        onChange={e => setFormData({...formData, supplierPlatformMultiplier: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
-                                        placeholder="e.g. 1.0 or 1.05"
-                                    />
-                                </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Min Platform Fee (₹)</label>
+                                        <input 
+                                            type="number"
+                                            min="0"
+                                            value={formData.minSupplierPlatformFee}
+                                            onChange={e => setFormData({...formData, minSupplierPlatformFee: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="e.g. 10"
+                                        />
+                                    </div>
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Status</label>
-                                    <select
-                                        value={formData.isActive}
-                                        onChange={e => setFormData({...formData, isActive: e.target.value === 'true'})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
-                                    >
-                                        <option value="true">Active</option>
-                                        <option value="false">Inactive</option>
-                                    </select>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Max Platform Fee (₹)</label>
+                                        <input 
+                                            type="number"
+                                            min="0"
+                                            value={formData.maxSupplierPlatformFee}
+                                            onChange={e => setFormData({...formData, maxSupplierPlatformFee: e.target.value})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            placeholder="Leave empty for No Limit"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1">Status</label>
+                                        <select
+                                            value={formData.isActive}
+                                            onChange={e => setFormData({...formData, isActive: e.target.value === 'true'})}
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                        >
+                                            <option value="true">Active</option>
+                                            <option value="false">Inactive</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
-                            <button className="w-full bg-slate-900 text-white py-4 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:bg-black transition-all">
-                                Save
-                            </button>
+                            <div className="pt-4 border-t border-slate-100 mt-2 shrink-0">
+                                <button className="w-full bg-slate-900 text-white py-4 rounded-sm font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-900/10 hover:bg-black transition-all">
+                                    Save Changes
+                                </button>
+                            </div>
                         </motion.form>
                     </div>
                 )}
@@ -668,6 +725,8 @@ const SupplierServiceZoneManagement = () => {
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Delivery Charges</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Min Order Value</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Platform Agg.</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Min Fee</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Max Fee</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Active</th>
                                                             <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
                                                         </tr>
@@ -685,6 +744,8 @@ const SupplierServiceZoneManagement = () => {
                                                                 <td className="px-4 py-2 text-slate-500">₹{row.deliveryCharges}</td>
                                                                 <td className="px-4 py-2 text-slate-500">₹{row.minOrderValue}</td>
                                                                 <td className="px-4 py-2 text-slate-500">{row.supplierPlatformMultiplier}x</td>
+                                                                <td className="px-4 py-2 text-slate-500">₹{row.minSupplierPlatformFee}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.maxSupplierPlatformFee !== null ? `₹${row.maxSupplierPlatformFee}` : 'No Limit'}</td>
                                                                 <td className="px-4 py-2">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.isActive ? 'Yes' : 'No'}

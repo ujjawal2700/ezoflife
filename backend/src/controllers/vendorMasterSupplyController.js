@@ -50,8 +50,12 @@ const populateDeliveryFrequencies = async (supplies) => {
             if (zone) {
                 supplyObj.zoneName = zone.zoneName;
                 supplyObj.supplierPlatformMultiplier = zone.supplierPlatformMultiplier || 0;
+                supplyObj.minSupplierPlatformFee = zone.minSupplierPlatformFee || 0;
+                supplyObj.maxSupplierPlatformFee = zone.maxSupplierPlatformFee || null;
             } else {
                 supplyObj.supplierPlatformMultiplier = 0;
+                supplyObj.minSupplierPlatformFee = 0;
+                supplyObj.maxSupplierPlatformFee = null;
             }
 
             if (supplyObj.supplierFacilityName && supplyObj.supplierFacilityName !== '-') {
@@ -115,9 +119,30 @@ export const vendorMasterSupplyController = {
         }
     },
 
+    getUniqueFilters: async (req, res) => {
+        try {
+            const supplierIds = await VendorMasterSupply.distinct('supplierId');
+            const dbDeliveryFrequencies = await VendorMasterSupply.distinct('deliveryFrequency');
+            const appDeliveryFrequencies = await SupplierApplication.distinct('deliveryFrequency');
+            
+            const allFrequencies = [...new Set([...dbDeliveryFrequencies, ...appDeliveryFrequencies])];
+            
+            const cleanSupplierIds = supplierIds.filter(id => id && id !== '-');
+            const cleanDeliveryFrequencies = allFrequencies.filter(df => df && df !== '-');
+
+            return res.json({
+                supplierIds: cleanSupplierIds.sort(),
+                deliveryFrequencies: cleanDeliveryFrequencies.sort()
+            });
+        } catch (error) {
+            console.error('Get Unique Filters Error:', error);
+            res.status(500).json({ message: 'Failed to fetch unique filters', error: error.message });
+        }
+    },
+
     getAll: async (req, res) => {
         try {
-            const { page, limit, materialName, categoryId, isActive, brand, supplierId, isTemplate } = req.query;
+            const { page, limit, materialName, categoryId, isActive, brand, supplierId, isTemplate, deliveryFrequency, wholesaleRate } = req.query;
             
             let query = {};
             if (materialName) {
@@ -139,10 +164,34 @@ export const vendorMasterSupplyController = {
             if (isActive !== undefined && isActive !== '') {
                 query.isActive = isActive;
             }
+            if (deliveryFrequency) {
+                const matchingApps = await SupplierApplication.find({
+                    deliveryFrequency: { $regex: deliveryFrequency, $options: 'i' }
+                });
+                const appNames = matchingApps.map(app => app.registeredBusinessName);
+                
+                query.$or = [
+                    { deliveryFrequency: { $regex: deliveryFrequency, $options: 'i' } },
+                    { supplierFacilityName: { $in: appNames } }
+                ];
+            }
+            if (wholesaleRate) {
+                if (wholesaleRate.includes('-')) {
+                    const [min, max] = wholesaleRate.split('-');
+                    query.wholesaleRate = { $gte: Number(min), $lte: Number(max) };
+                } else if (wholesaleRate.includes('+')) {
+                    const min = wholesaleRate.replace('+', '');
+                    query.wholesaleRate = { $gte: Number(min) };
+                } else {
+                    query.wholesaleRate = Number(wholesaleRate);
+                }
+            }
             if (isTemplate === 'y') {
                 query.supplierId = '-';
             } else if (isTemplate === 'n') {
-                query.supplierId = { $ne: '-' };
+                if (!supplierId) {
+                    query.supplierId = { $ne: '-' };
+                }
             }
 
             if (page && limit) {
@@ -393,7 +442,9 @@ export const vendorMasterSupplyController = {
             zones.forEach(z => {
                 supplierZoneMap[z.supplierId] = {
                     minOrderValue: z.minOrderValue || 0,
-                    deliveryCharges: z.deliveryCharges || 0
+                    deliveryCharges: z.deliveryCharges || 0,
+                    minSupplierPlatformFee: z.minSupplierPlatformFee || 0,
+                    maxSupplierPlatformFee: z.maxSupplierPlatformFee || null
                 };
             });
 
@@ -436,6 +487,8 @@ export const vendorMasterSupplyController = {
                     wholesaleRate: item.wholesaleRate,
                     gst: gst,
                     supplierPlatformMultiplier: itemMultiplier,
+                    minSupplierPlatformFee: supplierZoneMap[item.supplierId]?.minSupplierPlatformFee || 0,
+                    maxSupplierPlatformFee: supplierZoneMap[item.supplierId]?.maxSupplierPlatformFee || null,
                     category: item.categoryId?.mainCategory || 'Other',
                     subCategory: item.categoryId?.subCategory || 'General',
                     brand: item.brand || 'Generic',

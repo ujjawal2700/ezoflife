@@ -21,8 +21,8 @@ const b2bOrderSchema = new mongoose.Schema({
     ],
     status: {
         type: String,
-        enum: ['Open', 'Locked', 'Pending', 'Accepted', 'Dispatched', 'Delivered', 'Cancelled', 'Settled'],
-        default: 'Open'
+        enum: ['Submitted', 'Confirmed', 'Out for Delivery', 'Delivered', 'Cancelled'],
+        default: 'Submitted'
     },
     cycleId: {
         type: String,
@@ -51,6 +51,15 @@ const b2bOrderSchema = new mongoose.Schema({
     totalAmount: {
         type: Number,
         required: true
+    },
+    platformFee: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    razorpayOrderId: {
+        type: String,
+        required: false
     },
     paymentStatus: {
         type: String,

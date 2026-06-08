@@ -244,6 +244,10 @@ export const vendorMasterSupplyApi = {
         const res = await fetch(`${BASE_URL}/vendor-master-supplies?${queryParams}`);
         return res.json();
     },
+    getUniqueFilters: async () => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies/unique-filters`);
+        return res.json();
+    },
     getPaginated: async (page = 1, limit = 10, filters = {}) => {
         const queryParams = new URLSearchParams({
             page,
@@ -732,6 +736,19 @@ export const b2bOrderApi = {
             return await response.json();
         } catch (error) {
             console.error('Verify B2B Payment Error:', error);
+            throw error;
+        }
+    },
+    verifyPlatformFeePayment: async (paymentData) => {
+        try {
+            const response = await fetch(`${BASE_URL}/b2b-orders/verify-platform-fee`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(paymentData)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Verify Platform Fee Payment Error:', error);
             throw error;
         }
     },

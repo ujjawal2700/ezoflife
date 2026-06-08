@@ -387,8 +387,10 @@ const CartPage = () => {
     });
   };
 
-  const { pricingFactor, zone, allowDiscount, platformMultiplier: zonePlatformMultiplier, expressMultiplier: zoneExpressMultiplier, heritageMultiplier: zoneHeritageMultiplier } = useLocationStore();
+  const { pricingFactor, zone, allowDiscount, platformMultiplier: zonePlatformMultiplier, minPlatformFee: zoneMinPlatformFee, maxPlatformFee: zoneMaxPlatformFee, expressMultiplier: zoneExpressMultiplier, heritageMultiplier: zoneHeritageMultiplier } = useLocationStore();
   const activePlatformMultiplier = zone ? (zonePlatformMultiplier !== undefined ? zonePlatformMultiplier : 0) : 0;
+  const activeMinPlatformFee = zone ? (zoneMinPlatformFee || 0) : 0;
+  const activeMaxPlatformFee = zone ? (zoneMaxPlatformFee || null) : null;
   const activeExpressMultiplier = zone ? (zoneExpressMultiplier !== undefined ? zoneExpressMultiplier : expressMultiplier) : expressMultiplier;
   const activeHeritageMultiplier = zone ? (zoneHeritageMultiplier !== undefined ? zoneHeritageMultiplier : 1) : 1;
 
@@ -410,13 +412,22 @@ const CartPage = () => {
   const currentExpressMultiplier = isExpress ? activeExpressMultiplier : 1;
   
   const V_Items = useMemo(() => {
-    return cartItems.reduce((acc, item) => {
-        const itemBase = getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier;
-        const expressSurcharge = itemBase * (currentExpressMultiplier - 1);
-        const platformFee = itemBase * activePlatformMultiplier;
-        return acc + itemBase + expressSurcharge + platformFee;
+    const totalBase = cartItems.reduce((acc, item) => {
+        return acc + (getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier);
     }, 0);
-  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, activePlatformMultiplier]);
+    
+    const expressSurcharge = totalBase * (currentExpressMultiplier - 1);
+    
+    let platformFee = totalBase * activePlatformMultiplier;
+    if (activeMinPlatformFee > 0 && platformFee < activeMinPlatformFee) {
+        platformFee = activeMinPlatformFee;
+    }
+    if (activeMaxPlatformFee > 0 && platformFee > activeMaxPlatformFee) {
+        platformFee = activeMaxPlatformFee;
+    }
+    
+    return totalBase + expressSurcharge + platformFee;
+  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, activePlatformMultiplier, activeMinPlatformFee, activeMaxPlatformFee]);
 
   const V = V_Items + normalLogisticsConfig;
   const taxAmount = useMemo(() => {
@@ -452,7 +463,14 @@ const CartPage = () => {
     
     // Additive logic breakdown based on Base Price
     const expressSurcharge = baseWithArea * (currentExpressMultiplier - 1);
-    const platformFee = baseWithArea * activePlatformMultiplier;
+    
+    let platformFee = baseWithArea * activePlatformMultiplier;
+    if (activeMinPlatformFee > 0 && platformFee < activeMinPlatformFee) {
+        platformFee = activeMinPlatformFee;
+    }
+    if (activeMaxPlatformFee > 0 && platformFee > activeMaxPlatformFee) {
+        platformFee = activeMaxPlatformFee;
+    }
     
     return {
         baseWithArea,
@@ -461,7 +479,7 @@ const CartPage = () => {
         logisticsFee: normalLogisticsConfig,
         gstAmount: taxAmount
     };
-  }, [cartItems, quantities, areaMultiplier, activePlatformMultiplier, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
+  }, [cartItems, quantities, areaMultiplier, activePlatformMultiplier, activeMinPlatformFee, activeMaxPlatformFee, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
 
   const subtotal = priceBreakdown.baseWithArea;
 
@@ -618,6 +636,8 @@ const CartPage = () => {
         deliveryCharge: normalLogisticsConfig,
         areaMultiplier: areaMultiplier,
         platformMultiplier: activePlatformMultiplier,
+        minPlatformFee: activeMinPlatformFee,
+        maxPlatformFee: activeMaxPlatformFee,
         expressMultiplier: activeExpressMultiplier,
         heritageMultiplier: activeHeritageMultiplier,
         selectedTier: selectedTier,

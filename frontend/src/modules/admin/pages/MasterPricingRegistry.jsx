@@ -274,7 +274,7 @@ const MasterPricingRegistry = () => {
             header: 'SKU',
             key: 'serviceId',
             render: (val) => (
-                <span className="text-[8px] text-blue-500 font-black tracking-widest uppercase">{val?.skuId || 'NO-SKU'}</span>
+                <span className="text-[8px] text-slate-900 font-black tracking-widest uppercase">{val?.skuId || 'NO-SKU'}</span>
             )
         },
         {
@@ -309,8 +309,8 @@ const MasterPricingRegistry = () => {
             header: 'Base Mult.',
             key: 'fenceId',
             render: (val) => (
-                <div className="flex items-center gap-1 text-blue-600 font-bold text-[9px]">
-                    <Percent size={8} className="text-blue-400" />
+                <div className="flex items-center gap-1 text-slate-900 font-bold text-[9px]">
+                    <Percent size={8} className="text-slate-500" />
                     <span>{val?.basePriceMultiplier || 1.0}x</span>
                 </div>
             )
@@ -319,8 +319,8 @@ const MasterPricingRegistry = () => {
             header: 'Heritage Mult.',
             key: 'fenceId',
             render: (val) => (
-                <div className="flex items-center gap-1 text-purple-600 font-bold text-[9px]">
-                    <ShieldCheck size={8} className="text-purple-400" />
+                <div className="flex items-center gap-1 text-slate-900 font-bold text-[9px]">
+                    <ShieldCheck size={8} className="text-slate-500" />
                     <span>{val?.heritageMultiplier || 1.0}x</span>
                 </div>
             )
@@ -329,8 +329,8 @@ const MasterPricingRegistry = () => {
             header: 'Express Mult.',
             key: 'fenceId',
             render: (val) => (
-                <div className="flex items-center gap-1 text-amber-600 font-bold text-[9px]">
-                    <Zap size={8} className="text-amber-400" />
+                <div className="flex items-center gap-1 text-slate-900 font-bold text-[9px]">
+                    <Zap size={8} className="text-slate-500" />
                     <span>{val?.dynamicSurgeMultiplier || 1.0}x</span>
                 </div>
             )
@@ -339,8 +339,8 @@ const MasterPricingRegistry = () => {
             header: 'Disc. Mult.',
             key: 'fenceId',
             render: (val) => (
-                <div className="flex items-center gap-1 text-emerald-600 font-bold text-[9px]">
-                    <Percent size={8} className="text-emerald-400" />
+                <div className="flex items-center gap-1 text-slate-900 font-bold text-[9px]">
+                    <Percent size={8} className="text-slate-500" />
                     <span>{val?.discountPriceMultiplier || 1.0}x</span>
                 </div>
             )
@@ -387,8 +387,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalBase * baseMult * expressMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-amber-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-amber-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -405,8 +405,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + gst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-amber-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-amber-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }
@@ -421,8 +421,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalBase * baseMult * heritageMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-purple-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -439,8 +439,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + hGst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-purple-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }
@@ -456,8 +456,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalBase * baseMult * heritageMult * expressMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-rose-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-rose-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -475,8 +475,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + hGst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-rose-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-rose-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }
@@ -491,8 +491,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalDiscounted * baseMult * discMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-emerald-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -509,8 +509,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + gst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-emerald-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }
@@ -526,8 +526,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalDiscounted * baseMult * discMult * expressMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-emerald-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -545,8 +545,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + gst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-emerald-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-emerald-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }
@@ -562,8 +562,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalDiscounted * baseMult * heritageMult * discMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-purple-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -581,8 +581,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + hGst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-purple-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-purple-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }
@@ -599,8 +599,8 @@ const MasterPricingRegistry = () => {
                 const priceBeforeTax = Math.round(globalDiscounted * baseMult * heritageMult * discMult * expressMult);
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-rose-600 text-[11px]">₹{priceBeforeTax}</span>
-                        <span className="text-[8px] text-rose-400 font-bold uppercase tracking-widest">Excl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{priceBeforeTax}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Excl. GST</span>
                     </div>
                 );
             }
@@ -619,8 +619,8 @@ const MasterPricingRegistry = () => {
                 const final = Math.round(priceBeforeTax * (1 + hGst / 100));
                 return (
                     <div className="flex flex-col">
-                        <span className="font-black text-rose-600 text-[11px]">₹{final}</span>
-                        <span className="text-[8px] text-rose-400 font-bold uppercase tracking-widest">Incl. GST</span>
+                        <span className="font-black text-slate-900 text-[11px]">₹{final}</span>
+                        <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Incl. GST</span>
                     </div>
                 );
             }

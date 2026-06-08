@@ -27,12 +27,14 @@ const HomePage = () => {
             pricingFactor: zoneInfo.pricingFactor, 
             allowDiscount: zoneInfo.allowDiscount,
             platformMultiplier: zoneInfo.platformMultiplier,
+            minPlatformFee: zoneInfo.minPlatformFee,
+            maxPlatformFee: zoneInfo.maxPlatformFee,
             expressMultiplier: zoneInfo.expressMultiplier,
             heritageMultiplier: zoneInfo.heritageMultiplier
           });
           console.log(`[Geofence] Zone matches: ${zoneInfo.name} (Multiplier: ${zoneInfo.pricingFactor}x, Discount Allowed: ${zoneInfo.allowDiscount}, Express Multiplier: ${zoneInfo.expressMultiplier}x, Heritage Multiplier: ${zoneInfo.heritageMultiplier}x)`);
         } else {
-          setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+          setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1 });
           console.log('[Geofence] Address not in any service zone, using default pricing.');
         }
       }
@@ -228,11 +230,13 @@ const HomePage = () => {
               pricingFactor: zoneInfo.pricingFactor, 
               allowDiscount: zoneInfo.allowDiscount,
               platformMultiplier: zoneInfo.platformMultiplier,
+              minPlatformFee: zoneInfo.minPlatformFee,
+              maxPlatformFee: zoneInfo.maxPlatformFee,
               expressMultiplier: zoneInfo.expressMultiplier,
               heritageMultiplier: zoneInfo.heritageMultiplier
             });
           } else {
-            setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+            setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1 });
           }
         } catch (err) {
           console.error('Silent zone check failed:', err);
@@ -240,7 +244,7 @@ const HomePage = () => {
       };
       recheckZone();
     } else {
-      setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, expressMultiplier: 1, heritageMultiplier: 1 });
+      setZoneData({ name: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1 });
     }
   }, [location, pickupAddress, setZoneData]);
 

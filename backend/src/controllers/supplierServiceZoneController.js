@@ -24,6 +24,8 @@ export const supplierServiceZoneController = {
                 deliveryCharges: Number(deliveryCharges) || 0,
                 minOrderValue: Number(minOrderValue) || 0,
                 supplierPlatformMultiplier: Number(req.body.supplierPlatformMultiplier) || 0,
+                minSupplierPlatformFee: Number(req.body.minSupplierPlatformFee) || 0,
+                maxSupplierPlatformFee: req.body.maxSupplierPlatformFee ? Number(req.body.maxSupplierPlatformFee) : null,
                 isActive: isActive !== undefined ? isActive : true
             });
 
@@ -179,6 +181,8 @@ export const supplierServiceZoneController = {
                         deliveryCharges: Number(zoneData.deliveryCharges) || 0,
                         minOrderValue: Number(zoneData.minOrderValue) || 0,
                         supplierPlatformMultiplier: Number(zoneData.supplierPlatformMultiplier) || 0,
+                        minSupplierPlatformFee: Number(zoneData.minSupplierPlatformFee) || 0,
+                        maxSupplierPlatformFee: zoneData.maxSupplierPlatformFee ? Number(zoneData.maxSupplierPlatformFee) : null,
                         isActive: zoneData.isActive !== undefined ? zoneData.isActive : true
                     });
 

@@ -34,6 +34,14 @@ const supplierServiceZoneSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    minSupplierPlatformFee: {
+        type: Number,
+        default: 0
+    },
+    maxSupplierPlatformFee: {
+        type: Number,
+        default: null
+    },
     isActive: {
         type: Boolean,
         default: true

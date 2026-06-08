@@ -76,6 +76,14 @@ const serviceAreaSchema = new mongoose.Schema({
     allowDiscount: {
         type: Boolean,
         default: true
+    },
+    minPlatformFee: {
+        type: Number,
+        default: 0
+    },
+    maxPlatformFee: {
+        type: Number,
+        default: null
     }
 }, { timestamps: true });
 

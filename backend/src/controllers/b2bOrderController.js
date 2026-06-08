@@ -16,7 +16,7 @@ export const placeB2BOrder = async (req, res) => {
     console.log('\n🚨 [B2B_ORDER_INCOMING] ----------------------------------------');
     console.log('📦 Body:', JSON.stringify(req.body, null, 2));
     try {
-        const { vendorId, items, shippingAddress, totalAmount } = req.body;
+        const { vendorId, items, shippingAddress, totalAmount, totalPlatformFee } = req.body;
         
         // 0. Fetch Vendor to get fallback location info
         const vendor = await User.findById(vendorId);
@@ -113,100 +113,121 @@ export const placeB2BOrder = async (req, res) => {
 
             const groupTotal = groupItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-            // Check if there is an existing open order for this vendor + supplier in this cycle
-            let order = await B2BOrder.findOne({
+            // Create new order (No aggregation for Upfront payment flow)
+            console.log(`✨ [B2B_CHECKOUT] Creating new order for supplier ${sId}`);
+            let order = new B2BOrder({
                 vendor: vendorId,
-                supplier: supplierObjectId,
+                supplier: supplierObjectId, // PRE-ASSIGNED!
+                items: groupItems,
+                totalAmount: groupTotal,
+                platformFee: 0, // We will assign the total platform fee to the first order later
+                shippingAddress,
+                pincode,
+                city: city?.trim(),
+                status: 'Submitted',
                 cycleId: groupCycleId,
-                status: 'Open'
+                deliveryDay: groupDeliveryDay,
+                deliveryDate: groupDeliveryDate,
+                paymentStatus: 'Pending',
+                escrowStatus: 'Held'
             });
-
-            if (order) {
-                console.log(`🔄 [B2B_AGGREGATION] Aggregating items for supplier ${sId} into existing order ${order.b2bOrderId}`);
-                groupItems.forEach(newItem => {
-                    const existingItem = order.items.find(i => i.materialId?.toString() === newItem.materialId?.toString());
-                    if (existingItem) {
-                        existingItem.quantity += newItem.quantity;
-                    } else {
-                        order.items.push(newItem);
-                    }
-                });
-                order.totalAmount += Number(groupTotal);
-                order.shippingAddress = shippingAddress;
-                await order.save();
-            } else {
-                console.log(`✨ [B2B_AGGREGATION] Creating new order for supplier ${sId}`);
-                order = new B2BOrder({
-                    vendor: vendorId,
-                    supplier: supplierObjectId, // PRE-ASSIGNED!
-                    items: groupItems,
-                    totalAmount: groupTotal,
-                    shippingAddress,
-                    pincode,
-                    city: city?.trim(),
-                    status: 'Open',
-                    cycleId: groupCycleId,
-                    deliveryDay: groupDeliveryDay,
-                    deliveryDate: groupDeliveryDate,
-                    paymentStatus: 'Pending',
-                    escrowStatus: 'Held'
-                });
-                await order.save();
-            }
+            await order.save();
             createdOrders.push(order);
         }
 
-        // 4. Send Push Notification to regional Suppliers
-        const supplierMatch = [];
-        if (pincode) {
-            supplierMatch.push({ 'supplierDetails.pincode': pincode });
-            supplierMatch.push({ pincode: pincode });
-        }
-        if (city) {
-            supplierMatch.push({ 'supplierDetails.city': new RegExp(city, 'i') });
-            supplierMatch.push({ city: new RegExp(city, 'i') });
-        }
+        // Assign platform fee and create Razorpay Order
+        let rzpOrder = null;
+        if (createdOrders.length > 0) {
+            createdOrders[0].platformFee = totalPlatformFee || 0;
+            await createdOrders[0].save();
 
-        try {
-            const regionalSuppliers = await User.find({
-                role: 'Supplier',
-                status: 'approved',
-                $or: supplierMatch,
-                fcmToken: { $exists: true, $ne: '' }
-            });
-
-            if (regionalSuppliers.length > 0 && createdOrders.length > 0) {
-                const tokens = regionalSuppliers.map(s => s.fcmToken);
-                const firstOrder = createdOrders[0];
-                const notificationMessage = {
-                    notification: {
-                        title: 'New B2B Order Request',
-                        body: `New B2B order requests are available in your region. Accept them now!`
-                    },
-                    data: {
-                        type: 'NEW_B2B_ORDER',
-                        orderId: firstOrder._id.toString()
-                    },
-                    tokens: tokens
+            if (totalPlatformFee > 0) {
+                const options = {
+                    amount: Math.round(totalPlatformFee * 100), // In paise
+                    currency: 'INR',
+                    receipt: `receipt_b2b_${Date.now()}`,
+                    notes: { vendorId: vendorId.toString(), type: 'B2B_PLATFORM_FEE' }
                 };
-
-                const response = await admin.messaging().sendMulticast(notificationMessage);
-                console.log(`🚀 [FCM_PUSH] B2B Request Sent to ${response.successCount} regional suppliers.`);
+                rzpOrder = await razorpay.orders.create(options);
+                
+                // Save razorpay order ID to all created orders
+                for (let order of createdOrders) {
+                    order.razorpayOrderId = rzpOrder.id;
+                    await order.save();
+                }
+            } else {
+                // If no platform fee, automatically confirm
+                for (let order of createdOrders) {
+                    order.status = 'Confirmed';
+                    order.paymentStatus = 'Paid';
+                    await order.save();
+                }
             }
-        } catch (pushErr) {
-            console.error('❌ [FCM_PUSH] Regional Supplier Notification Error:', pushErr.message);
         }
-        
+
         res.status(201).json({ 
-            message: createdOrders.length > 1 
-                ? 'Your order was split by supplier and placed successfully!' 
-                : 'Order created for the upcoming delivery cycle!',
-            orders: createdOrders
+            message: 'Orders submitted successfully!',
+            orders: createdOrders,
+            razorpayOrderId: rzpOrder ? rzpOrder.id : null,
+            platformFeeAmount: totalPlatformFee || 0
         });
 
     } catch (err) {
         console.error('💥 [B2B_AGGREGATION_ERROR]:', err);
         res.status(500).json({ message: 'Internal server error while placing order', error: err.message });
+    }
+};
+
+// Verify Platform Fee Payment and Confirm Order
+
+export const verifyPlatformFeePayment = async (req, res) => {
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderIds } = req.body;
+        
+        const hmac = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder');
+        hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
+        const generated_signature = hmac.digest('hex');
+
+        if (generated_signature !== razorpay_signature) {
+            return res.status(400).json({ message: 'Invalid payment signature' });
+        }
+
+        // Update all orders to Confirmed
+        const orders = await B2BOrder.find({ _id: { $in: orderIds } });
+        
+        for (let order of orders) {
+            order.status = 'Confirmed';
+            order.paymentStatus = 'Paid';
+            await order.save();
+            
+            // Notify supplier if pre-assigned
+            if (order.supplier) {
+                try {
+                    const supplier = await User.findById(order.supplier);
+                    if (supplier && supplier.fcmToken) {
+                        const notificationMessage = {
+                            notification: {
+                                title: 'New Confirmed B2B Order',
+                                body: `A vendor has placed and confirmed a new order with you.`
+                            },
+                            data: {
+                                type: 'NEW_B2B_ORDER',
+                                orderId: order._id.toString()
+                            },
+                            token: supplier.fcmToken
+                        };
+                        await admin.messaging().send(notificationMessage);
+                    }
+                } catch (pushErr) {
+                    console.error('❌ [FCM_PUSH] Supplier Notification Error:', pushErr.message);
+                }
+            }
+        }
+
+        res.json({ message: 'Payment verified and orders confirmed successfully', orders });
+    } catch (error) {
+        console.error('💥 [VERIFY_PAYMENT_ERROR]:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 
@@ -254,11 +275,12 @@ export const getSupplierOrders = async (req, res) => {
 
         // Find orders assigned to them OR pending orders in their region with no supplier yet
         const orders = await B2BOrder.find({
+            status: { $ne: 'Submitted' }, // Hide unpaid orders
             $or: [
                 { supplier: supplierId }, // Already claimed
                 { 
                     supplier: null, 
-                    status: { $in: ['Open', 'Locked', 'Pending'] },
+                    status: { $in: ['Open', 'Locked', 'Pending', 'Confirmed'] },
                     $or: regionalQuery.length > 0 ? regionalQuery : [{ _id: null }] // Match nothing if no location
                 }
             ]
