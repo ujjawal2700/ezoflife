@@ -28,7 +28,8 @@ const ShopDetails = () => {
     const [address, setAddress] = useState('');
     const [location, setLocation] = useState(defaultCenter);
     const [masterServices, setMasterServices] = useState([]);
-    const [selectedServices, setSelectedServices] = useState([]); // [{id, vendorRate}]
+    const [selectedServices, setSelectedServices] = useState([]); // [{id}]
+    const [pricingMap, setPricingMap] = useState({});
     const [bankDetails, setBankDetails] = useState({
         accountHolderName: '',
         accountNumber: '',
@@ -72,18 +73,47 @@ const ShopDetails = () => {
             if (exists) return prev.filter(s => s.id !== service._id);
             return [...prev, { 
                 id: service._id, 
-                vendorRate: service.basePrice, 
                 name: service.name, 
-                icon: service.icon
+                icon: service.icon,
+                status: 'pending'
             }];
         });
     };
 
-    const updateVendorRate = (id, rate) => {
-        setSelectedServices(prev => prev.map(s => s.id === id ? { ...s, vendorRate: parseFloat(rate) || 0, status: 'pending' } : s));
-    };
-
-    // Removed updateServiceTime function as it's no longer needed during registration
+    useEffect(() => {
+        if (location && location.lat && location.lng) {
+            const fetchPricing = async () => {
+                try {
+                    const geoRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/geofence/check-availability?lat=${location.lat}&lng=${location.lng}`);
+                    if (geoRes.ok) {
+                        const geoData = await geoRes.json();
+                        if (geoData.available && geoData.areaId) {
+                            const pricingRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/master-pricing?fenceId=${geoData.areaId}&limit=10000`);
+                            if (pricingRes.ok) {
+                                const pData = await pricingRes.json();
+                                const pMap = {};
+                                (pData.data || []).forEach(item => {
+                                    if (item.serviceId) {
+                                        pMap[item.serviceId._id] = {
+                                            areaMultiplier: item.areaMultiplier || 1,
+                                            surgeMultiplier: item.surgeMultiplier || 1,
+                                            heritageMultiplier: item.heritageMultiplier || 1
+                                        };
+                                    }
+                                });
+                                setPricingMap(pMap);
+                            }
+                        } else {
+                            setPricingMap({});
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error fetching zone pricing', e);
+                }
+            };
+            fetchPricing();
+        }
+    }, [location.lat, location.lng]);
 
     useEffect(() => {
         if (vendorId) {
@@ -527,9 +557,15 @@ const ShopDetails = () => {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Master Rate:</span>
-                                                    <span className="text-[10px] font-black text-slate-600">₹{service.basePrice}</span>
+                                                <div className="flex flex-col gap-1 mt-2">
+                                                    <div className="flex justify-between items-center bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Normal (Essential):</span>
+                                                        <span className="text-[11px] font-black text-slate-700">₹{Math.round((service.basePrice || 0) * (pricingMap[service._id]?.areaMultiplier || 1))}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center bg-slate-50 px-2 py-1.5 rounded-lg border border-slate-100">
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Express (Essential):</span>
+                                                        <span className="text-[11px] font-black text-slate-700">₹{Math.round((service.basePrice || 0) * (pricingMap[service._id]?.areaMultiplier || 1) * (pricingMap[service._id]?.surgeMultiplier || 1))}</span>
+                                                    </div>
                                                 </div>
                                                 
                                                 {selected?.status === 'rejected' && selected.rejectionReason && (
@@ -541,28 +577,11 @@ const ShopDetails = () => {
                                                     </div>
                                                 )}
                                             </div>
-                                            {selected && (
-                                                <motion.div 
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    className="w-32"
-                                                >
-                                                    <div className="space-y-1">
-                                                        <label className="text-[9px] font-black text-primary uppercase tracking-widest pl-1">Rate (₹)</label>
-                                                        <div className={`flex items-center bg-white border rounded-xl px-3 py-2.5 focus-within:ring-2 ring-primary/10 ${selected.status === 'rejected' ? 'border-rose-200' : 'border-primary/20'}`}>
-                                                            <span className="text-[11px] font-black text-primary/40 mr-1">₹</span>
-                                                            <input 
-                                                                type="number"
-                                                                value={selected.vendorRate}
-                                                                onChange={(e) => updateVendorRate(service._id, e.target.value)}
-                                                                className="w-full bg-transparent border-none focus:ring-0 p-0 text-sm font-black text-slate-800 placeholder:text-slate-300"
-                                                                placeholder="0"
-                                                                autoFocus
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </motion.div>
-                                             )}
+                                            {selected && selected.status === 'approved' && (
+                                                <div className="ml-4 w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                                                    <span className="material-symbols-outlined text-sm">verified</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );

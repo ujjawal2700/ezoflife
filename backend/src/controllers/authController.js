@@ -679,6 +679,18 @@ export const updateUserProfile = async (req, res) => {
             }
         }
 
+        if (updates.location) {
+            console.log(`\n\x1b[36m📍 [ADDRESS UPDATE] Customer/Vendor Role: ${user.role} | Phone: ${user.phone}\x1b[0m`);
+            console.log(`\x1b[33m   Coordinates Received (Default):\x1b[0m`, updates.location);
+        }
+        if (updates.addresses && Array.isArray(updates.addresses)) {
+            updates.addresses.forEach((addr, idx) => {
+                if (addr.location) {
+                    console.log(`\x1b[33m   Address [${idx}] (${addr.type}) Coordinates:\x1b[0m`, addr.location);
+                }
+            });
+        }
+
         await user.save();
         res.status(200).json(user);
     } catch (err) {

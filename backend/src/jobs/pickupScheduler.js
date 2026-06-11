@@ -9,6 +9,9 @@ import Notification from '../models/Notification.js';
  * Runs every 5 minutes to check for orders that need Shiprocket pickup requests.
  */
 export const initPickupScheduler = () => {
+    // Temporarily disabled as per user request
+    console.log('⏸️ [SCHEDULER] Automatic pickup scheduler is currently paused.');
+    return;
     // Run every 5 minutes
     cron.schedule('*/5 * * * *', async () => {
         console.log('⏰ [SCHEDULER] Checking for scheduled pickups...');

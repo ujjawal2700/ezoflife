@@ -6,6 +6,8 @@ import { authApi, geofenceApi } from '../../../lib/api';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import { locationService } from '../../../lib/locationService';
 
+const defaultCenter = { lat: 22.7196, lng: 75.8577 }; // Indore as default
+
 const UserProfilePage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
@@ -102,7 +104,7 @@ const UserProfilePage = () => {
         address: targetAddress.address,
         city: targetAddress.city || '',
         pincode: targetAddress.pincode || '',
-        location: targetAddress.location || { lat: 0, lng: 0 }
+        location: (targetAddress.location && targetAddress.location.lat !== 0) ? targetAddress.location : defaultCenter
       });
 
       localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -122,6 +124,23 @@ const UserProfilePage = () => {
         } catch (e) {
           console.error('[Geocoding] Error during default address change:', e);
         }
+      }
+
+      if (!finalLat && !finalLng && targetAddress.pincode) {
+        try {
+          const coords = await locationService.geocodeAddress(targetAddress.pincode + ", India");
+          if (coords) {
+            finalLat = coords.lat;
+            finalLng = coords.lng;
+          }
+        } catch (e) {
+          console.error('[Geocoding] Pincode sync failed:', e);
+        }
+      }
+
+      if (!finalLat && !finalLng) {
+        finalLat = defaultCenter.lat;
+        finalLng = defaultCenter.lng;
       }
 
       useLocationStore.getState().setLocation({

@@ -15,7 +15,7 @@ export default function Orders() {
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const tabs = useMemo(() => ['All', 'Pending', 'In Progress', 'Delivered', 'Cancelled'], []);
+  const tabs = useMemo(() => ['All', 'Placed', 'Processing', 'Delivered', 'Cancelled'], []);
 
   const fetchAllOrders = async () => {
     try {
@@ -42,7 +42,7 @@ export default function Orders() {
   };
 
   const handleUpdateStatus = async (id, currentStatus) => {
-      const nextStatuses = ['Pending', 'Assigned', 'In Progress', 'Ready', 'Delivered', 'Cancelled'];
+      const nextStatuses = ['ORDER_PLACED', 'PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'];
       const newStatus = window.prompt(`Update status for order ${id}. Choices: ${nextStatuses.join(', ')}`, currentStatus);
       
       if (newStatus && nextStatuses.includes(newStatus)) {
@@ -122,7 +122,11 @@ export default function Orders() {
 
   const filteredOrders = useMemo(() => {
     if (activeTab === 'All') return allOrders;
-    return allOrders.filter(order => order.status === activeTab);
+    if (activeTab === 'Placed') return allOrders.filter(o => o.status === 'ORDER_PLACED');
+    if (activeTab === 'Processing') return allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(o.status));
+    if (activeTab === 'Delivered') return allOrders.filter(o => o.status === 'DELIVERED');
+    if (activeTab === 'Cancelled') return allOrders.filter(o => o.status === 'CANCELLED');
+    return allOrders;
   }, [activeTab, allOrders]);
 
   const orderColumns = useMemo(() => [

@@ -80,10 +80,16 @@ const VendorReports = () => {
         if (barMap[date] !== undefined) barMap[date]++;
         if (areaMap[date] !== undefined) areaMap[date] += (order.totalAmount || 0);
         
-        const status = (order.status || 'pending').toLowerCase();
-        statusMap[status] = (statusMap[status] || 0) + 1;
+        const status = order.status || 'ORDER_PLACED';
+        let group = 'pending';
+        if (['ORDER_PLACED', 'PICKUP_ASSIGNED', 'PICKUP_IN_PROGRESS'].includes(status)) group = 'pending';
+        else if (status === 'CANCELLED') group = 'cancelled';
+        else if (status === 'DELIVERED') group = 'completed';
+        else group = 'processing';
         
-        if (status === 'completed') revenue += (order.totalAmount || 0);
+        statusMap[group] = (statusMap[group] || 0) + 1;
+        
+        if (group === 'completed') revenue += (order.totalAmount || 0);
     });
 
     return {

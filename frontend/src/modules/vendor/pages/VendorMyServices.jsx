@@ -60,7 +60,8 @@ const VendorMyServices = () => {
                             itemName: ms.itemName,
                             category: ms.categoryId?.mainCategory || 'Laundry',
                             subCategory: ms.categoryId?.subCategory || 'General',
-                            icon: ms.icon || 'local_laundry_service'
+                            icon: ms.icon || 'local_laundry_service',
+                            basePrice: ms.basePrice
                         };
                     });
                 }
@@ -122,7 +123,7 @@ const VendorMyServices = () => {
                     isFromRegistration: true,
                     approvalStatus: 'Approved',
                     active: s.active ?? true,
-                    basePrice: s.basePrice || s.vendorRate || 0,
+                    basePrice: msInfo.basePrice || s.basePrice || s.vendorRate || 0,
                     name: resolvedName,
                     category: resolvedCategory,
                     subCategory: resolvedSubCategory,
@@ -149,7 +150,7 @@ const VendorMyServices = () => {
                     approvalStatus: s.approvalStatus || 'Pending',
                     adminMessage: s.adminMessage || '',
                     active: s.status === 'Active',
-                    basePrice: s.basePrice || 0,
+                    basePrice: msInfo.basePrice || s.basePrice || 0,
                     name: resolvedName,
                     category: resolvedCategory,
                     subCategory: resolvedSubCategory,
@@ -175,7 +176,7 @@ const VendorMyServices = () => {
         }
     }, [vendorId]);
 
-    const toggleService = async (idx) => {
+    const toggleService = (idx) => {
         if (!editMode) return;
         const newServices = [...services];
         const target = newServices[idx];
@@ -190,21 +191,10 @@ const VendorMyServices = () => {
         setServices(newServices);
 
         if (newStatus === false) {
-            toast('If you make this service inactive, you will not receive notifications for this service from the customer side.', {
+            toast('If you save this service as inactive, you will not receive notifications for it.', {
                 icon: '⚠️',
-                duration: 6000
+                duration: 4000
             });
-        }
-
-        const sId = target._id || target.id;
-        try {
-            if (!target.isFromRegistration) {
-                await serviceApi.update(sId, { 
-                    status: newStatus ? 'Active' : 'Inactive'
-                });
-            }
-        } catch (err) {
-            console.error(`Failed to sync ${target.name}:`, err);
         }
     };
 
@@ -255,35 +245,47 @@ const VendorMyServices = () => {
         setServices(newServices);
     };
 
-    const handleSaveSingleRow = async (idx) => {
+    const handleGlobalSave = async () => {
         if (!vendorId) return;
-        const targetService = services[idx];
-
+        
         try {
             setLoading(true);
             const profile = await authApi.getProfile(vendorId);
             
             let currentServices = profile.shopDetails?.services || [];
-            const sId = targetService._id || targetService.id;
-            const existingIdx = currentServices.findIndex(s => (s.id === sId || s._id === sId));
-            
-            const updatedServiceForProfile = {
-                id: sId,
-                name: targetService.name,
-                vendorRate: Number(targetService.basePrice),
-                adminRate: Number(targetService.basePrice),
-                status: targetService.approvalStatus === 'Approved' ? 'approved' : 'pending',
-                icon: targetService.icon,
-                active: targetService.active,
-                normalTime: targetService.normalTime || '',
-                expressTime: targetService.expressTime || ''
-            };
+            const customServiceUpdates = [];
 
-            if (existingIdx !== -1) {
-                currentServices[existingIdx] = updatedServiceForProfile;
-            } else {
-                currentServices.push(updatedServiceForProfile);
-            }
+            services.forEach(targetService => {
+                const sId = targetService._id || targetService.id;
+                const existingIdx = currentServices.findIndex(s => (s.id === sId || s._id === sId));
+                
+                const updatedServiceForProfile = {
+                    id: sId,
+                    name: targetService.name,
+                    vendorRate: Number(targetService.basePrice),
+                    adminRate: Number(targetService.basePrice),
+                    status: targetService.approvalStatus === 'Approved' ? 'approved' : 'pending',
+                    icon: targetService.icon,
+                    active: targetService.active,
+                    normalTime: targetService.normalTime || '',
+                    expressTime: targetService.expressTime || ''
+                };
+
+                if (existingIdx !== -1) {
+                    currentServices[existingIdx] = updatedServiceForProfile;
+                } else {
+                    currentServices.push(updatedServiceForProfile);
+                }
+
+                if (targetService.vendorId || targetService.isMaster === false) {
+                    customServiceUpdates.push(
+                        serviceApi.update(sId, { 
+                            status: targetService.active ? 'Active' : 'Inactive',
+                            basePrice: Number(targetService.basePrice)
+                        })
+                    );
+                }
+            });
 
             const updatedShopDetails = {
                 ...(profile.shopDetails || {}),
@@ -292,18 +294,16 @@ const VendorMyServices = () => {
 
             await authApi.updateProfile(vendorId, { shopDetails: updatedShopDetails });
 
-            if (targetService.vendorId || targetService.isMaster === false) {
-                await serviceApi.update(sId, { 
-                    status: targetService.active ? 'Active' : 'Inactive',
-                    basePrice: Number(targetService.basePrice)
-                });
+            if (customServiceUpdates.length > 0) {
+                await Promise.all(customServiceUpdates);
             }
 
-            toast.success(`${targetService.name} updated successfully!`);
+            toast.success('Services updated successfully!');
+            setEditMode(false);
             fetchConfig();
         } catch (error) {
-            console.error('Update Single Service Error:', error);
-            toast.error('Failed to update service');
+            console.error('Update Services Error:', error);
+            toast.error('Failed to update services');
         } finally {
             setLoading(false);
         }
@@ -397,10 +397,10 @@ const VendorMyServices = () => {
                                     Create
                                 </button>
                                 <button 
-                                    onClick={() => setEditMode(!editMode)}
+                                    onClick={() => editMode ? handleGlobalSave() : setEditMode(true)}
                                     className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
                                 >
-                                    {editMode ? 'Cancel Edit' : 'Edit'}
+                                    {editMode ? 'Save' : 'Edit'}
                                 </button>
                             </div>
                         </header>
@@ -420,9 +420,6 @@ const VendorMyServices = () => {
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Essential Express</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Normal</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-right">Heritage Express</th>
-                                                {editMode && (
-                                                    <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Action</th>
-                                                )}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
@@ -485,28 +482,14 @@ const VendorMyServices = () => {
                                                             {service.subCategory}
                                                         </td>
                                                         <td className="p-4">
-                                                            <input 
-                                                                type="number"
-                                                                value={service.basePrice || 0}
-                                                                onChange={(e) => updatePrice(idx, e.target.value)}
-                                                                disabled={!editMode}
-                                                                className={`w-full px-3 py-2 rounded-xl text-xs font-black text-slate-900 border outline-none transition-all ${!editMode ? 'bg-transparent border-transparent' : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-slate-300'}`}
-                                                            />
+                                                            <div className="text-xs font-black text-slate-900 bg-slate-50 px-3 py-2 rounded-xl inline-block border border-slate-100">
+                                                                ₹{service.basePrice || 0}
+                                                            </div>
                                                         </td>
                                                         <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseNormal}</td>
                                                         <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{baseExpress}</td>
                                                         <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageNormal}</td>
                                                         <td className="p-4 text-xs font-bold text-slate-700 text-right">₹{heritageExpress}</td>
-                                                        {editMode && (
-                                                            <td className="p-4 text-center">
-                                                                <button 
-                                                                    onClick={() => handleSaveSingleRow(idx)}
-                                                                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-md shadow-slate-900/10 active:scale-95"
-                                                                >
-                                                                    Save
-                                                                </button>
-                                                            </td>
-                                                        )}
                                                     </tr>
                                                 );
                                             })}

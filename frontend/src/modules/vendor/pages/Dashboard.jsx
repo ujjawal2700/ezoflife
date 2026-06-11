@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import VendorHeader from '../components/VendorHeader';
 import { orderApi, authApi, vendorPaymentApi } from '../../../lib/api';
@@ -25,152 +25,128 @@ const IncomingTimer = ({ duration, onExpire }) => {
     );
 };
 
-const PoolOrderCard = ({ order, onAccept, acceptingId, onReject }) => {
-    const calculateTimeLeft = () => {
-        const created = new Date(order.createdAt).getTime();
-        const now = new Date().getTime();
-        const diff = Math.floor((created + 60 * 60 * 1000 - now) / 1000);
-        return Math.max(0, diff);
-    };
+const PoolOrderCard = ({ order, onAccept, acceptingId }) => {
+    // Determine Vendor Rate
+    const platformFee = order.priceBreakdown?.platformFee || 0;
+    const logisticsFee = order.priceBreakdown?.logisticsFee || 0;
+    const approxEarnings = (order.totalAmount - platformFee - logisticsFee).toFixed(0);
 
-    const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
-
-    useEffect(() => {
-        if (timeLeft <= 0) {
-            onReject(order._id);
-            return;
-        }
-        const timer = setInterval(() => {
-            const next = calculateTimeLeft();
-            setTimeLeft(next);
-            if (next <= 0) {
-                clearInterval(timer);
-                onReject(order._id);
-            }
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [order.createdAt]);
-
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    const totalArticles = order.items?.reduce((acc, item) => acc + (item.quantity || 1), 0) || 0;
-    const approxEarnings = (order.totalAmount * 0.85).toFixed(0); // Assuming 15% commission
+    const isDropoffSame = !order.dropAddress || order.dropAddress === order.pickupAddress;
 
     return (
         <motion.div 
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, x: -100 }}
-            className="w-[340px] bg-white text-slate-900 rounded-[2.8rem] p-7 space-y-5 border border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.05)] relative overflow-hidden shrink-0 group"
+            className="w-[340px] bg-white text-slate-900 rounded-[2rem] p-4 border border-slate-200 shadow-sm shrink-0 flex flex-col gap-3"
         >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 opacity-50"></div>
-            
-            {/* Header: ID & Live Timer */}
-            <div className="flex justify-between items-center relative z-10">
-                <span className="text-[10px] font-black bg-slate-900 text-white px-3.5 py-2 rounded-xl uppercase tracking-widest shadow-md">
+            {/* Row 1: Delivery Mode (Left) | Order ID (Right) */}
+            <div className="flex justify-between items-center">
+                <div className="text-[10px] font-black uppercase tracking-widest text-slate-800">
+                    {order.deliveryMode === 'Express' ? 'EXPRESS' : 'NORMAL'}
+                </div>
+                <span className="text-[10px] font-black bg-black text-white px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
                     {order.orderId}
                 </span>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors ${timeLeft < 300 ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                    <span className={`w-2 h-2 rounded-full ${timeLeft < 300 ? 'bg-rose-500 animate-ping' : 'bg-slate-300'}`}></span>
-                    <p className="text-[10px] font-black uppercase tracking-widest tabular-nums">{formatTime(timeLeft)}</p>
-                </div>
             </div>
 
-            {/* Customer & Badges */}
-            <div className="relative z-10">
-                <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-xl font-black tracking-tight text-slate-900 truncate flex-1">
-                        {order.customer?.displayName || 'Premium User'}
-                    </h4>
-                    <div className="flex gap-1.5">
-                        <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${order.tier === 'Heritage' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
-                            {order.tier || 'Essential'}
+            {/* Row 2: Service Tier (Left) | Distance (Right) */}
+            <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 border border-slate-300 px-2 py-0.5 rounded-md">
+                    {order.tier || 'Essential'}
+                </span>
+                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">explore</span>
+                    {order.distance} KM
+                </span>
+            </div>
+
+            {/* Row 3: Service Names (Left) | Earnings (Right) */}
+            <div className="flex justify-between items-start px-1 border-b border-slate-100 pb-2">
+                <div className="flex-1 flex flex-wrap gap-1">
+                    {order.items?.map((item, idx) => (
+                        <span key={idx} className="text-[10px] font-bold text-slate-700">
+                            {item.name} × {item.quantity}{idx < (order.items?.length || 0) - 1 ? ',' : ''}
                         </span>
-                        {order.deliveryMode === 'Express' && (
-                            <span className="px-2.5 py-1 bg-primary text-white rounded-lg text-[8px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-                                ⚡ Express
-                            </span>
-                        )}
-                    </div>
+                    ))}
                 </div>
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px] text-primary">location_on</span>
-                    {order.distance} KM • {order.pickupAddress?.split(',')[0]}
-                </p>
+                <div className="text-right ml-2">
+                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Rate</p>
+                    <p className="text-lg font-black text-black tracking-tight leading-none mt-0.5">₹{approxEarnings}</p>
+                </div>
             </div>
 
-            {/* Details: Time & Breakdown */}
-            <div className="space-y-4 relative z-10">
-                <div className="bg-slate-50 p-4 rounded-[1.8rem] border border-slate-100">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-primary shadow-sm">
-                            <span className="material-symbols-outlined text-[18px]">schedule</span>
-                        </div>
-                        <div>
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Pickup Slot</p>
-                            <p className="text-[11px] font-black text-slate-900 mt-0.5">{order.pickupSlot?.date} | {order.pickupSlot?.time}</p>
-                        </div>
-                    </div>
-                    
-                    <div className="pt-3 border-t border-slate-200/50">
-                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-[14px]">inventory_2</span>
-                            Items ({totalArticles})
+            {/* Logistics Breakdown */}
+            <div className="space-y-2.5">
+                {/* Row 4 & 5: Pickup */}
+                <div>
+                    <div className="flex items-start gap-1.5 mb-0.5">
+                        <span className="material-symbols-outlined text-[12px] text-slate-600 mt-0.5">location_on</span>
+                        <p className="text-[10px] font-bold text-slate-800 leading-tight flex-1">
+                            {order.pickupAddress}
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                            {order.items?.map((item, idx) => (
-                                <span key={idx} className="bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 text-[9px] font-black text-slate-700 uppercase">
-                                    {item.name} × {item.quantity}
-                                </span>
-                            ))}
-                        </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 pl-4">
+                        <span className="material-symbols-outlined text-[10px] text-slate-500">schedule</span>
+                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                            {order.pickupSlot?.date} | {order.pickupSlot?.time}
+                        </p>
                     </div>
                 </div>
 
-                {/* Notes */}
-                {order.notes && (
-                    <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100 flex gap-3">
-                        <span className="material-symbols-outlined text-amber-500 text-lg">sticky_note_2</span>
-                        <p className="text-[10px] font-bold text-amber-800 leading-relaxed italic">"{order.notes}"</p>
+                <div className="border-t border-slate-100 ml-4"></div>
+
+                {/* Row 6: Drop-off */}
+                <div className="flex justify-between items-center pl-4">
+                    <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[12px] text-slate-600">pin_drop</span>
+                        <p className="text-[10px] font-bold text-slate-800">
+                            {isDropoffSame ? 'Same as Pickup' : order.dropAddress?.split(',')[0]}
+                        </p>
                     </div>
-                )}
+                    {order.deliverySlot && order.deliverySlot.date && (
+                        <div className="flex items-center gap-1 ml-auto">
+                            <span className="material-symbols-outlined text-[10px] text-slate-500">schedule</span>
+                            <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest text-right">
+                                {order.deliverySlot.date} {order.deliverySlot.time ? `| ${order.deliverySlot.time}` : ''}
+                            </p>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* Earnings & Footer */}
-            <div className="pt-2 relative z-10">
-                <div className="flex items-center justify-between bg-slate-900 p-5 rounded-[2rem] shadow-xl shadow-slate-900/10">
-                    <div>
-                        <p className="text-[9px] font-black text-primary uppercase tracking-widest leading-none">Approx Earnings</p>
-                        <p className="text-2xl font-black text-white tracking-tighter mt-1.5">₹{approxEarnings}</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[9px] font-black text-white/30 uppercase tracking-widest leading-none">Order Value</p>
-                        <p className="text-xs font-black text-white/40 line-through mt-1.5">₹{order.totalAmount}</p>
-                    </div>
+            {/* Row 7: Images */}
+            {order.customerPhotos && order.customerPhotos.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar pt-2 border-t border-slate-100">
+                    {order.customerPhotos.map((img, idx) => (
+                        <img 
+                            key={idx} 
+                            src={img.url || img} 
+                            alt={`Item ${idx}`}
+                            className="w-10 h-10 object-cover rounded-md border border-slate-300 shadow-sm"
+                        />
+                    ))}
                 </div>
+            )}
 
-                {/* Action Buttons */}
-                <div className="flex gap-3 mt-5">
-                    <button 
-                        onClick={() => onAccept(order._id)}
-                        disabled={acceptingId === order._id}
-                        className={`flex-[2.5] py-5 rounded-[1.6rem] font-black text-[11px] uppercase tracking-widest shadow-xl transition-all ${
-                            acceptingId === order._id ? 'bg-slate-100 text-slate-400' : 'bg-primary text-white hover:scale-[1.02] active:scale-[0.98]'
-                        }`}
-                    >
-                        {acceptingId === order._id ? 'Validating...' : 'Accept Order'}
-                    </button>
-                    <button 
-                        onClick={() => onReject(order._id)}
-                        className="flex-1 py-5 rounded-[1.6rem] font-black text-[11px] uppercase tracking-widest bg-slate-100 text-slate-500 hover:bg-slate-200"
-                    >
-                        Ignore
-                    </button>
-                </div>
+            {/* Row 8: Action Button */}
+            <div className="flex justify-end pt-2 mt-auto">
+                <button 
+                    onClick={() => onAccept(order._id)}
+                    disabled={acceptingId === order._id}
+                    className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${
+                        acceptingId === order._id ? 'bg-slate-200 text-slate-500' : 'bg-black text-white hover:bg-slate-800 shadow-md'
+                    }`}
+                >
+                    {acceptingId === order._id ? (
+                        <>
+                            <span className="material-symbols-outlined text-[12px] animate-spin">refresh</span>
+                            Processing
+                        </>
+                    ) : (
+                        'Accept'
+                    )}
+                </button>
             </div>
         </motion.div>
     );
@@ -248,11 +224,11 @@ const isUpcomingPickup = (dateStr, timeStr) => {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('Available');
+    const location = useLocation();
+    const [activeTab, setActiveTab] = useState(location.state?.initialTab || 'Available');
     const [isOnline, setIsOnline] = useState(true);
     const [allOrders, setAllOrders] = useState([]);
     const [poolOrders, setPoolOrders] = useState([]);
-    const [incomingOrder, setIncomingOrder] = useState(null);
     const [ignoredOrders, setIgnoredOrders] = useState(() => {
         const saved = localStorage.getItem('ignored_orders');
         return saved ? JSON.parse(saved) : [];
@@ -265,7 +241,9 @@ const Dashboard = () => {
 
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [showDateFilter, setShowDateFilter] = useState(false);
     const [selectedOrderForDetails, setSelectedOrderForDetails] = useState(null);
+    const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
     const vendorData = JSON.parse(vendorDataRaw);
@@ -364,7 +342,6 @@ const Dashboard = () => {
 
         socket.on('new_order_available', (data) => {
             console.log('🔔 [SOCKET] New order received real-time:', data);
-            setIncomingOrder(data);
             fetchPoolOrders(); 
         });
 
@@ -380,8 +357,8 @@ const Dashboard = () => {
     const categorizedOrders = useMemo(() => {
         return {
             'Available': [], // Pool orders are handled separately via poolOrders state
-            'In Progress': allOrders.filter(o => ['Assigned', 'Picked Up', 'In Progress'].includes(o.status)),
-            'Ready': allOrders.filter(o => ['Ready', 'Out for Delivery', 'Delivered'].includes(o.status))
+            'In Progress': allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING'].includes(o.status)),
+            'Ready': allOrders.filter(o => ['READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status))
         };
     }, [allOrders]);
 
@@ -406,19 +383,19 @@ const Dashboard = () => {
     }, [poolOrders]);
 
     const upcomingPickupsCount = useMemo(() => {
-        return allOrders.filter(o => o.status === 'Assigned' && isUpcomingPickup(o.pickupSlot?.date, o.pickupSlot?.time)).length;
+        return allOrders.filter(o => o.status === 'PICKUP_ASSIGNED' && isUpcomingPickup(o.pickupSlot?.date, o.pickupSlot?.time)).length;
     }, [allOrders]);
 
     const activeOrdersCount = useMemo(() => {
         return allOrders.filter(o => 
-            ['Assigned', 'Picked Up', 'In Progress'].includes(o.status) && 
+            ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING'].includes(o.status) && 
             (isToday(o.updatedAt) || isToday(o.createdAt))
         ).length;
     }, [allOrders]);
 
     const businessBookedToday = useMemo(() => {
         return allOrders
-            .filter(o => (isToday(o.updatedAt) || isToday(o.createdAt)) && o.status !== 'Cancelled')
+            .filter(o => (isToday(o.updatedAt) || isToday(o.createdAt)) && o.status !== 'CANCELLED')
             .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
     }, [allOrders]);
 
@@ -430,14 +407,14 @@ const Dashboard = () => {
     }, [payoutHistory]);
 
     const readyForDeliveryCount = useMemo(() => {
-        return allOrders.filter(o => o.status === 'Ready').length;
+        return allOrders.filter(o => o.status === 'READY_FOR_DISPATCH').length;
     }, [allOrders]);
 
     const [selectedOrderForReady, setSelectedOrderForReady] = useState(null);
 
     const markAsReady = async (order) => {
         try {
-            await orderApi.updateOrderStatus(order._id, 'Ready');
+            await orderApi.updateOrderStatus(order._id, 'READY_FOR_DISPATCH');
             fetchOrders(); // Refresh
             setSelectedOrderForReady(null);
             alert(`Order ${order.orderId} marked as READY. Return rider notified!`);
@@ -448,7 +425,7 @@ const Dashboard = () => {
 
     const startProcessing = async (order) => {
         try {
-            await orderApi.updateOrderStatus(order._id, 'In Progress');
+            await orderApi.updateOrderStatus(order._id, 'PROCESSING');
             fetchOrders();
         } catch (err) {
             alert('Error starting process');
@@ -477,166 +454,7 @@ const Dashboard = () => {
         >
 
 
-            {/* 🚀 PREMIUM INCOMING ORDER REQUEST MODAL */}
-            <AnimatePresence>
-                {incomingOrder && (
-                    <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-xl">
-                        <motion.div 
-                            initial={{ scale: 0.8, opacity: 0, y: 100 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.8, opacity: 0, y: 100 }}
-                            className="bg-white w-full max-w-lg rounded-[3.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.3)] relative flex flex-col max-h-[90vh] overflow-hidden"
-                        >
-                            {/* Animated Background Decor */}
-                            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl -mr-24 -mt-24 animate-pulse pointer-events-none"></div>
-                            
-                            {/* Scrollable Content Container */}
-                            <div className="flex-1 overflow-y-auto p-9 pb-4 hide-scrollbar">
-                                <div className="flex justify-between items-start mb-8 relative z-10">
-                                    <div className="space-y-1.5">
-                                        <div className="flex gap-2">
-                                            <span className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">
-                                                {incomingOrder.displayId || incomingOrder.orderId}
-                                            </span>
-                                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 rounded-xl border border-rose-500/20">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                                                <IncomingTimer duration={30} onExpire={() => {
-                                                    handleIgnoreOrder(incomingOrder.orderId);
-                                                    setIncomingOrder(null);
-                                                }} />
-                                            </div>
-                                        </div>
-                                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter mt-4 leading-none">New Request</h3>
-                                    </div>
-                                    <div className="flex flex-col gap-3">
-                                        <button 
-                                            onClick={() => setIncomingOrder(null)}
-                                            className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all shadow-sm"
-                                        >
-                                            <span className="material-symbols-outlined text-2xl font-black">close</span>
-                                        </button>
-                                        <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                                            <span className="material-symbols-outlined text-3xl">notifications_active</span>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div className="space-y-6 relative z-10">
-                                    {/* Core Details Card */}
-                                    <div className="bg-slate-50 p-7 rounded-[2.8rem] border border-slate-100 shadow-sm space-y-5">
-                                        <div className="flex justify-between items-start">
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customer & Pickup</p>
-                                                <h4 className="text-xl font-black text-slate-900 mt-1 truncate">{incomingOrder.customerName || 'Rahul Sharma'}</h4>
-                                                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-sm text-primary">distance</span>
-                                                    {incomingOrder.distance} KM • Vijay Nagar, Indore
-                                                </p>
-                                            </div>
-                                            <div className="flex flex-col gap-1.5 items-end">
-                                                <span className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${incomingOrder.tier === 'Heritage' ? 'bg-amber-100 text-amber-600 border border-amber-200' : 'bg-slate-200 text-slate-500'}`}>
-                                                    {incomingOrder.tier || 'Heritage'}
-                                                </span>
-                                                {incomingOrder.deliveryMode === 'Express' && (
-                                                    <span className="px-3 py-1.5 bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-                                                        ⚡ Express
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Pickup Slot */}
-                                        <div className="flex items-center gap-4 py-4 border-y border-slate-200/50">
-                                            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-primary shadow-sm">
-                                                <span className="material-symbols-outlined text-[22px]">schedule</span>
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time Slot</p>
-                                                <p className="text-sm font-black text-slate-900 mt-0.5">Today, 5:00 PM - 6:00 PM</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Articles & Photos */}
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                    <span className="material-symbols-outlined text-sm">inventory_2</span>
-                                                    Articles ({incomingOrder.items?.reduce((a,c) => a + c.quantity, 0) || 6})
-                                                </p>
-                                                <div className="flex -space-x-2">
-                                                    {[1,2,3].map(i => (
-                                                        <div key={i} className="w-8 h-8 rounded-lg border-2 border-white bg-slate-200 flex items-center justify-center text-slate-400 overflow-hidden">
-                                                            <span className="material-symbols-outlined text-sm">image</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-wrap gap-2.5">
-                                                {incomingOrder.items?.map((item, idx) => (
-                                                    <span key={idx} className="bg-white px-3.5 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-800 uppercase tracking-tight shadow-sm">
-                                                        {item.name} × {item.quantity}
-                                                    </span>
-                                                ))}
-                                                {!incomingOrder.items && ['Shirt × 3', 'Pant × 2', 'Blanket × 1'].map((item, idx) => (
-                                                    <span key={idx} className="bg-white px-3.5 py-2 rounded-xl border border-slate-200 text-[11px] font-black text-slate-800 uppercase tracking-tight shadow-sm">
-                                                        {item}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Customer Notes */}
-                                        {(incomingOrder.notes || true) && (
-                                            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100/50 flex gap-4">
-                                                <span className="material-symbols-outlined text-amber-500 text-2xl">sticky_note_2</span>
-                                                <p className="text-[11px] font-bold text-amber-800 leading-relaxed italic">
-                                                    "{incomingOrder.notes || "Handle clothes carefully, urgent delivery needed."}"
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Earnings Section */}
-                                    <div className="flex items-center justify-between bg-slate-900 p-7 rounded-[2.5rem] shadow-[0_20px_40px_rgba(0,0,0,0.2)] border border-slate-800">
-                                        <div>
-                                            <p className="text-[11px] font-black text-primary uppercase tracking-widest leading-none">Approx Earnings</p>
-                                            <p className="text-4xl font-black text-white tracking-tighter mt-2">₹{(incomingOrder.totalAmount * 0.85 || 420).toFixed(0)}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none">Order Value</p>
-                                            <p className="text-base font-black text-white/40 line-through mt-1">₹{incomingOrder.totalAmount || 499}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Sticky Footer for Actions */}
-                            <div className="px-9 pb-9 pt-4 bg-white/80 backdrop-blur-md border-t border-slate-50 relative z-20">
-                                <div className="flex gap-4">
-                                    <button 
-                                        onClick={() => {
-                                            handleVendorAccept(incomingOrder.orderId);
-                                            setIncomingOrder(null);
-                                        }}
-                                        className="flex-[2.5] py-6 rounded-[2rem] bg-primary text-white font-black text-[13px] uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(61,90,254,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
-                                    >
-                                        Accept Order
-                                    </button>
-                                    <button 
-                                        onClick={() => {
-                                            handleIgnoreOrder(incomingOrder.orderId);
-                                            setIncomingOrder(null);
-                                        }}
-                                        className="flex-1 py-6 rounded-[2rem] bg-slate-100 text-slate-500 font-black text-[13px] uppercase tracking-[0.2em] hover:bg-slate-200 transition-all"
-                                    >
-                                        Reject
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
 
             {/* Confirmation Modal for Mark as Ready */}
             <AnimatePresence>
@@ -816,48 +634,103 @@ const Dashboard = () => {
                                     // 2. IN PROGRESS & COMPLETED TABS
                                     <>
                                         {activeTab === 'Completed' && (
-                                            <div className="flex gap-3 mb-6 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-                                                <div className="flex-1 space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Start Date</label>
-                                                    <input 
-                                                        type="date" 
-                                                        value={startDate}
-                                                        onChange={e => setStartDate(e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none"
-                                                    />
-                                                </div>
-                                                <div className="flex-1 space-y-1">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">End Date</label>
-                                                    <input 
-                                                        type="date" 
-                                                        value={endDate}
-                                                        onChange={e => setEndDate(e.target.value)}
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none"
-                                                    />
-                                                </div>
-                                                {(startDate || endDate) && (
-                                                    <div className="flex items-end">
-                                                        <button 
-                                                            onClick={() => { setStartDate(''); setEndDate(''); }}
-                                                            className="h-[42px] px-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-all"
+                                            <div className="mb-6">
+                                                <motion.button
+                                                    onClick={() => setShowDateFilter(!showDateFilter)}
+                                                    className={`w-full py-2.5 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all mb-3 ${
+                                                        showDateFilter || startDate || endDate
+                                                            ? 'bg-primary text-white shadow-lg'
+                                                            : 'bg-white text-slate-900 border border-slate-200'
+                                                    }`}
+                                                >
+                                                    <span className="material-symbols-outlined text-xs">calendar_month</span>
+                                                    {startDate || endDate ? 'Date Filter Active' : 'Filter By Date'}
+                                                    <span className="material-symbols-outlined text-xs transition-transform duration-300" style={{ transform: showDateFilter ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                                                </motion.button>
+                                                <AnimatePresence>
+                                                    {showDateFilter && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            className="overflow-hidden"
                                                         >
-                                                            Clear
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                            <div className="flex gap-3 bg-white p-4 rounded-3xl border border-slate-100 shadow-sm mt-2">
+                                                                <div className="flex-1 space-y-1">
+                                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Start Date</label>
+                                                                    <input 
+                                                                        type={startDate ? "date" : "text"}
+                                                                        placeholder="DD/MM/YYYY"
+                                                                        onFocus={(e) => e.target.type = 'date'}
+                                                                        onBlur={(e) => !startDate && (e.target.type = 'text')}
+                                                                        value={startDate}
+                                                                        onChange={e => setStartDate(e.target.value)}
+                                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex-1 space-y-1">
+                                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">End Date</label>
+                                                                    <input 
+                                                                        type={endDate ? "date" : "text"}
+                                                                        placeholder="DD/MM/YYYY"
+                                                                        onFocus={(e) => e.target.type = 'date'}
+                                                                        onBlur={(e) => !endDate && (e.target.type = 'text')}
+                                                                        value={endDate}
+                                                                        onChange={e => setEndDate(e.target.value)}
+                                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none"
+                                                                    />
+                                                                </div>
+                                                                {(startDate || endDate) && (
+                                                                    <div className="flex items-end">
+                                                                        <button 
+                                                                            onClick={() => { setStartDate(''); setEndDate(''); }}
+                                                                            className="h-[42px] px-4 bg-rose-50 text-rose-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition-all"
+                                                                        >
+                                                                            Clear
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
                                         )}
                                         {(activeTab === 'In Progress' ? (categorizedOrders['In Progress'] || []) : displayCompletedOrders).length > 0 ? (
                                             (activeTab === 'In Progress' ? (categorizedOrders['In Progress'] || []) : displayCompletedOrders).map((order) => {
                                                 const getFriendlyStatus = (status) => {
-                                                    if (status === 'Assigned') return 'Awaiting Pickup';
-                                                    if (status === 'Picked Up') return 'Awaiting Articles';
-                                                    if (status === 'In Progress') return 'Work In Progress';
-                                                    if (status === 'Ready') return 'Marked as Ready';
+                                                    if (status === 'ORDER_PLACED') return 'New Order';
+                                                    if (['PICKUP_ASSIGNED', 'RIDER_ARRIVING'].includes(status)) return 'Awaiting Pickup';
+                                                    if (status === 'IN_TRANSIT') return 'In Transit';
+                                                    if (status === 'RECEIVED_BY_VENDOR') return 'Sorting';
+                                                    if (status === 'PROCESSING') return 'In Progress';
+                                                    if (status === 'READY_FOR_DISPATCH') return 'Ready to Ship';
+                                                    if (status === 'OUT_FOR_DELIVERY') return 'Dispatched';
+                                                    if (status === 'DELIVERED') return 'Completed';
                                                     return status;
                                                 };
 
                                                 const posessionTime = Math.floor((new Date() - new Date(order.updatedAt)) / (1000 * 60));
+
+                                                const getDropoffInfo = () => {
+                                                    let targetDate = order.deliveryTriggerTime ? new Date(order.deliveryTriggerTime) : new Date(new Date(order.createdAt).getTime() + 48 * 60 * 60 * 1000);
+                                                    const msDiff = targetDate.getTime() - new Date().getTime();
+                                                    const hoursRemaining = msDiff / (1000 * 60 * 60);
+
+                                                    if (hoursRemaining > 0 && hoursRemaining <= 12) {
+                                                        const h = Math.floor(hoursRemaining);
+                                                        const m = Math.floor((hoursRemaining - h) * 60);
+                                                        return { text: `${h}h ${m}m left`, countdown: true };
+                                                    } else if (hoursRemaining < 0) {
+                                                        return { text: `OVERDUE`, countdown: true };
+                                                    } else {
+                                                        if (order.deliverySlot?.date && order.deliverySlot?.time) {
+                                                            return { text: `${order.deliverySlot.date} ${order.deliverySlot.time.split('-')[0]}`, countdown: false };
+                                                        }
+                                                        return { text: `${targetDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`, countdown: false };
+                                                    }
+                                                };
+                                                const dropoffInfo = getDropoffInfo();
 
                                                 return (
                                                     <motion.div 
@@ -868,54 +741,108 @@ const Dashboard = () => {
                                                         exit={{ opacity: 0, scale: 0.95 }}
                                                         className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3 relative overflow-hidden group"
                                                     >
-                                                        {/* 1) Date & 2) Order ID */}
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                                                                {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                                                            </span>
+                                                        {/* Order ID */}
+                                                        <div className={`flex items-center ${activeTab !== 'Completed' ? 'justify-start' : 'justify-end'}`}>
                                                             <span className="bg-slate-900 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
                                                                 #{order.orderId}
                                                             </span>
                                                         </div>
 
-                                                        {/* 3) Current Status */}
-                                                        <div className="flex items-center gap-2">
-                                                            <div className={`w-2 h-2 rounded-full animate-pulse ${
-                                                                order.status === 'In Progress' ? 'bg-blue-500' : (order.status === 'Ready' ? 'bg-emerald-500' : 'bg-amber-500')
-                                                            }`}></div>
-                                                            <h4 className={`text-[11px] font-black uppercase tracking-tight ${
-                                                                order.status === 'In Progress' ? 'text-blue-600' : (order.status === 'Ready' ? 'text-emerald-600' : 'text-amber-600')
-                                                            }`}>
-                                                                {getFriendlyStatus(order.status)}
-                                                            </h4>
+                                                        {/* Order Received Date & Time */}
+                                                        <div className="flex items-center justify-between mt-2">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date & Time Received</span>
+                                                            <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 flex items-center gap-1.5">
+                                                                <span className="material-symbols-outlined text-[10px] text-slate-400">schedule</span>
+                                                                {new Date(order.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
                                                         </div>
 
-                                                        {/* 4) Article Possession & 5) Details Button */}
-                                                        <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className="material-symbols-outlined text-[14px] text-slate-400">timer</span>
-                                                                <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">
-                                                                    Possession: <span className="text-slate-900 font-black">{posessionTime}m</span>
-                                                                </p>
+                                                        {/* Elapsed Time */}
+                                                        <div className="flex items-center justify-between mt-1">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time Elapsed</span>
+                                                            <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 flex items-center gap-1.5">
+                                                                <span className="material-symbols-outlined text-[10px] text-slate-400">timer</span>
+                                                                {(() => {
+                                                                    const end = order.status === 'DELIVERED' || order.status === 'READY_FOR_DISPATCH' ? new Date(order.updatedAt) : new Date();
+                                                                    const timeTakenMs = end - new Date(order.createdAt);
+                                                                    const hours = Math.floor(timeTakenMs / (1000 * 60 * 60));
+                                                                    const minutes = Math.floor((timeTakenMs % (1000 * 60 * 60)) / (1000 * 60));
+                                                                    return `${hours}h ${minutes}m`;
+                                                                })()}
+                                                            </span>
+                                                        </div>
+
+                                                        {/* Total Amount (Right Aligned for Completed Tab only) */}
+                                                        {activeTab === 'Completed' && (
+                                                            <div className="flex items-center justify-end mt-1">
+                                                                <span className="text-[12px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
+                                                                    ₹{order.totalAmount || 0}
+                                                                </span>
                                                             </div>
-                                                            <div className="flex gap-2">
+                                                        )}
+
+                                                        {/* Actions for Completed Tab */}
+                                                        {activeTab === 'Completed' && (
+                                                            <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100">
                                                                 <button 
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        setSelectedOrderForDetails(order);
+                                                                        // Future: handle invoice download
+                                                                        alert('Invoice will be downloaded shortly.');
                                                                     }}
-                                                                    className="px-3 py-1.5 bg-slate-50 text-slate-500 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all"
+                                                                    className="w-full py-2 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
                                                                 >
-                                                                    Details
+                                                                    <span className="material-symbols-outlined text-[14px]">download</span>
+                                                                    Download Invoice
                                                                 </button>
+                                                                
                                                                 <button 
-                                                                    onClick={() => navigate(`/vendor/order/${order._id}`)}
-                                                                    className="w-7 h-7 bg-primary/10 text-primary rounded-lg flex items-center justify-center hover:bg-primary hover:text-white transition-all"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
+                                                                    }}
+                                                                    className="w-full py-2 bg-white text-black border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                                                                    <span className="material-symbols-outlined text-[14px] transition-transform duration-300" style={{ transform: expandedOrderId === order._id ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                                                                    Article Detail
                                                                 </button>
                                                             </div>
-                                                        </div>
+                                                        )}
+
+                                                        {/* Expanded Article Details */}
+                                                        {activeTab === 'Completed' && expandedOrderId === order._id && (
+                                                            <motion.div 
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                className="overflow-hidden mt-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2"
+                                                            >
+                                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Services / Items</p>
+                                                                {order.items?.map((item, idx) => (
+                                                                    <div key={idx} className="flex items-center justify-between py-1.5 border-b border-slate-200/50 last:border-0">
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-[10px] font-bold text-slate-800">{item.name}</span>
+                                                                        </div>
+                                                                        <span className="text-[10px] font-black text-slate-600 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">Qty: {item.quantity || 1}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </motion.div>
+                                                        )}
+
+                                                        {/* Bottom Row for In Progress Tab: Amount & More Button */}
+                                                        {activeTab !== 'Completed' && (
+                                                            <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-50">
+                                                                <span className="text-[13px] font-black text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                                                    ₹{order.totalAmount || 0}
+                                                                </span>
+                                                                <button 
+                                                                    onClick={() => navigate(`/vendor/order/${order._id}`)}
+                                                                    className="px-5 py-2 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md shadow-slate-900/20"
+                                                                >
+                                                                    More
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </motion.div>
                                                 );
                                             })

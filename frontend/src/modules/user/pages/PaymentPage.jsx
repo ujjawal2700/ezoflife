@@ -25,8 +25,8 @@ const PaymentSelectionPage = () => {
     }
   }, [orderId]);
 
-  const amount = order ? (order.advanceAmount || order.totalAmount) : initialAmount;
-  const isPartial = order && order.advanceAmount && order.advanceAmount < order.totalAmount;
+  const amount = order ? order.totalAmount : initialAmount;
+  const isPartial = false;
 
   const taxBreakdown = React.useMemo(() => {
     if (!order || !order.items) {
@@ -110,7 +110,7 @@ const PaymentSelectionPage = () => {
             Payment <br/><span className="text-primary tracking-tighter">Gateway</span>
           </h1>
           <p className="text-xs font-bold text-on-surface-variant opacity-60 leading-relaxed max-w-[280px]">
-            {isPartial ? `Pay advance of ₹${amount.toFixed(0)} to confirm your order.` : 'Your transition to freshness is almost complete.'}
+            Your transition to freshness is almost complete.
           </p>
         </motion.section>
 
@@ -127,7 +127,7 @@ const PaymentSelectionPage = () => {
           >
             <div className="z-10">
               <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-3 opacity-60">
-                {isPartial ? 'Advance Amount' : 'Amount to Pay'}
+                Amount to Pay
               </p>
               <p className="text-5xl font-black text-on-surface tracking-tighter leading-none">₹{amount.toFixed(0)}</p>
             </div>
@@ -144,8 +144,7 @@ const PaymentSelectionPage = () => {
           >
             {[
               { label: 'Order Total', value: `₹${(order?.totalAmount || initialAmount).toFixed(0)}`, color: 'on-surface-variant' },
-              { label: 'Paid Now', value: `₹${amount.toFixed(0)}`, color: 'primary' },
-              { label: 'Remaining', value: isPartial ? `₹${(order.dueAmount).toFixed(0)}` : '₹0', color: isPartial ? 'tertiary' : 'on-surface' }
+              { label: 'Paid Now', value: `₹${amount.toFixed(0)}`, color: 'primary' }
             ].map((item, idx) => (
               <div key={idx} className="flex justify-between items-center group/line">
                 <span className="text-[10px] font-black text-on-surface-variant opacity-60 uppercase tracking-widest">{item.label}</span>
@@ -156,7 +155,7 @@ const PaymentSelectionPage = () => {
             ))}
             <div className="h-px bg-outline-variant/5 my-2"></div>
             <p className="text-[9px] font-bold text-slate-400 italic uppercase tracking-widest leading-relaxed">
-                {isPartial ? 'Pay advance to initiate pickup. Balance will be due after service completion.' : 'Full payment required for this service tier.'}
+                Full payment required for this service tier.
             </p>
           </motion.div>
         </motion.div>

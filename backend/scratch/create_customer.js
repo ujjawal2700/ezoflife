@@ -10,7 +10,7 @@ async function run() {
         await mongoose.connect(MONGO_URI);
         console.log('Connected to MongoDB');
         
-        const phone = '5555555555';
+        const phone = '7623212121';
         const role = 'Customer';
         const otp = '123456';
         const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now

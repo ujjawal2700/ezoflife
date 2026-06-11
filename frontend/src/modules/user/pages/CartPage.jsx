@@ -178,7 +178,6 @@ const CartPage = () => {
   const [expressMultiplier, setExpressMultiplier] = useState(1);
   const [platformMultiplier, setPlatformMultiplier] = useState(1);
   const [gstPercent, setGstPercent] = useState(18);
-  const [advanceConfigPerc, setAdvanceConfigPerc] = useState(100);
   const [normalLogisticsConfig, setNormalLogisticsConfig] = useState(0);
   
   useEffect(() => {
@@ -191,8 +190,6 @@ const CartPage = () => {
             if (platMult) setPlatformMultiplier(Number(platMult.value));
             const gst = configs.find(c => c.key === 'gst_percent');
             if (gst) setGstPercent(Number(gst.value));
-            const advance = configs.find(c => c.key === 'advance_percentage');
-            if (advance) setAdvanceConfigPerc(Number(advance.value));
             const normalFee = configs.find(c => c.key === 'normal_logistics_fee');
             if (normalFee) setNormalLogisticsConfig(Number(normalFee.value));
         } catch (err) {
@@ -215,7 +212,11 @@ const CartPage = () => {
     const saved = localStorage.getItem('order_photos');
     return saved ? JSON.parse(saved) : [];
   });
-  const [selectedTier] = useState(() => localStorage.getItem('selected_tier') || 'Essential');
+  const [selectedTier] = useState(() => {
+    const saved = localStorage.getItem('selected_tier');
+    if (saved === 'Essential' || saved === 'Heritage') return saved;
+    return 'Essential'; // fallback to Essential instead of showing invalid tier
+  });
   const fileInputRef = useRef(null);
 
   const availableDates = useMemo(() => {
@@ -537,9 +538,7 @@ const CartPage = () => {
         }
       }
 
-      const advanceAmount = Math.round(finalTotal * (advanceConfigPerc / 100));
-
-      if (paymentMethod === 'Online' && advanceAmount > 0) {
+      if (paymentMethod === 'Online' && finalTotal > 0) {
         const loadScript = (src) => {
           return new Promise((resolve) => {
             const script = document.createElement('script');
@@ -557,7 +556,7 @@ const CartPage = () => {
         }
 
         const rzpOrder = await orderApi.createRazorpayOrder({
-          amount: advanceAmount
+          amount: Math.round(finalTotal)
         });
 
         console.log('📦 [CART] Razorpay Order received from backend:', rzpOrder);
@@ -573,7 +572,7 @@ const CartPage = () => {
           amount: rzpOrder.amount,
           currency: rzpOrder.currency,
           name: 'EzOfLife',
-          description: `Advance Payment`,
+          description: `Full Payment`,
           order_id: rzpOrder.id,
           handler: async function (response) {
             await finalizeOrder(userId, response.razorpay_payment_id, 'Online');
@@ -654,13 +653,8 @@ const CartPage = () => {
         localStorage.removeItem('order_notes');
         localStorage.removeItem('item_photos');
         
-        if (method === 'Online') {
-          // Go to Confirmation (Review) page first for Online success
-          navigate('/user/confirmation', { state: { order: response } });
-        } else {
-          // Go directly to tracking for COD
-          navigate(`/user/tracking/${response._id}`);
-        }
+        // Go directly to tracking for both Online and COD
+        navigate(`/user/tracking/${response._id}`);
       }
     } catch (err) {
       alert('Error finalizing order');
@@ -929,9 +923,6 @@ const CartPage = () => {
                 <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Total Payable Amount</p>
                 <div className="flex items-baseline gap-2">
                     <p className="text-3xl font-black tracking-tighter text-white">₹{finalTotal.toFixed(0)}</p>
-                    {paymentMethod === 'Online' && advanceConfigPerc < 100 && (
-                      <p className="text-[7px] font-black text-emerald-400 uppercase">₹{(finalTotal * (advanceConfigPerc/100)).toFixed(0)} Pay Now</p>
-                    )}
                 </div>
               </div>
               

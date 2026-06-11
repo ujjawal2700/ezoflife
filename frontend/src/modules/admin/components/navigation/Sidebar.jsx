@@ -142,11 +142,7 @@ const navItems = [
             { icon: Star, label: 'Ranking Engine', path: '/admin/vendor-ranking' },
         ]
     },
-    {
-        group: 'Core Assets', items: [
-            { icon: Layers, label: 'Material Catalog', path: '/admin/materials' },
-        ]
-    },
+
     {
         group: 'Settings', items: [
             { icon: Settings, label: 'Settings', path: '/admin/settings' },

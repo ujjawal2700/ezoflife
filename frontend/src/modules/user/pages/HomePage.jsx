@@ -67,7 +67,11 @@ const HomePage = () => {
   // Removed misplaced useEffect hook to avoid accessing pickupAddress before initialization.
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTier, setSelectedTier] = useState(() => localStorage.getItem('selected_tier')); 
+  const [selectedTier, setSelectedTier] = useState(() => {
+    const saved = localStorage.getItem('selected_tier');
+    if (saved === 'Essential' || saved === 'Heritage') return saved;
+    return null;
+  }); 
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
@@ -307,7 +311,14 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    localStorage.setItem('selected_tier', selectedTier);
+    if (selectedTier) {
+      localStorage.setItem('selected_tier', selectedTier);
+    } else {
+      localStorage.removeItem('selected_tier');
+    }
+  }, [selectedTier]);
+
+  useEffect(() => {
     localStorage.setItem('is_express', isExpress);
     localStorage.setItem('pickup_date', selectedPickup);
     localStorage.setItem('pickup_time', pickupTime);
@@ -341,7 +352,9 @@ const HomePage = () => {
                 const cart = await authApi.getDraftCart(userId);
                 if (cart && Object.keys(cart).length > 0) {
                     if (cart.selectedQuantities) setSelectedQuantities(cart.selectedQuantities);
-                    if (cart.selectedTier) setSelectedTier(cart.selectedTier);
+                    if (cart.selectedTier && (cart.selectedTier === 'Essential' || cart.selectedTier === 'Heritage')) {
+                        setSelectedTier(cart.selectedTier);
+                    }
                     if (cart.isExpress !== undefined) setIsExpress(cart.isExpress);
                     if (cart.pickup) {
                         setSelectedPickup(cart.pickup.date || '');
@@ -602,6 +615,10 @@ const HomePage = () => {
   }, [services, selectedTier, searchQuery, selectedCategory, selectedSubCategory, showMoreServices]);
 
   const updateQuantity = (id, delta) => {
+    if (delta > 0 && !selectedTier) {
+      toast.error('Please select a tier (ESSENTIAL or HERITAGE) first');
+      return;
+    }
     if (delta > 0 && !isLogisticsValid) {
       toast.error('Please select Pickup and Drop-off details first');
       setShowSlotPicker(true);
@@ -671,6 +688,10 @@ const HomePage = () => {
 
 
   const handleCartClick = () => {
+    if (!selectedTier) {
+      toast.error('Please select a tier (ESSENTIAL or HERITAGE) first');
+      return;
+    }
     if (Object.keys(selectedQuantities).length === 0) {
       toast.error('Please select at least one service');
       return;
@@ -913,7 +934,7 @@ const HomePage = () => {
         </div>
 
         {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Full Visibility */}
-        <div className="transition-all duration-500 opacity-100">
+        <div className={`transition-all duration-500 ${!selectedTier ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
           <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2 bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100' : 'relative z-[90] px-1 py-2'} transition-all duration-500`}>
             <div className="max-w-5xl mx-auto w-full space-y-1">
               {/* MINI CATEGORIES */}
@@ -1048,10 +1069,10 @@ const HomePage = () => {
               )}
             </div>
           </section>
-        </div>
-        {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
-            <div className="flex justify-center mt-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
+          {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
+            <div className="flex justify-center mt-6 mb-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
           )}
+        </div>
 
 
 

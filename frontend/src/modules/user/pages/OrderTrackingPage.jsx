@@ -5,7 +5,9 @@ import gsap from 'gsap';
 import { orderApi, logisticsApi } from '../../../lib/api';
 import socket from '../../../lib/socket';
 import { toast } from 'react-hot-toast';
-import { GoogleMap, useJsApiLoader, Marker, Polyline } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from '@react-google-maps/api';
+import FindingVendorScreen from '../components/FindingVendorScreen';
+import UserHeader from '../components/UserHeader';
 
 const mapContainerStyle = {
   width: '100%',
@@ -32,6 +34,7 @@ const OrderTrackingPage = () => {
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    version: '3.64',
     libraries: ['drawing', 'places', 'geometry']
   });
 
@@ -55,7 +58,7 @@ const OrderTrackingPage = () => {
 
   const handleRequestHandshake = async () => {
     try {
-        const phase = order.status === 'Assigned' ? 'Collection' : 'Completion';
+        const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING') ? 'Collection' : 'Completion';
         toast.loading(`Requesting ${phase} Handshake...`, { id: 'handshake' });
         await logisticsApi.requestHandshake(id, phase);
         toast.success('Rider received OTP on SMS!', { id: 'handshake' });
@@ -69,7 +72,7 @@ const OrderTrackingPage = () => {
     if (handshakeOtp.length !== 4) return toast.error('Enter 4-digit OTP');
     try {
         setVerifying(true);
-        const phase = order.status === 'Assigned' ? 'Collection' : 'Completion';
+        const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING') ? 'Collection' : 'Completion';
         const res = await logisticsApi.verifyHandshake(id, phase, handshakeOtp);
         toast.success(res.message);
         setIsHandshakeModalOpen(false);
@@ -115,12 +118,62 @@ const OrderTrackingPage = () => {
   }, [riderLocation, order]);
 
   const path = useMemo(() => {
-    if (!riderLocation?.lat || !order?.pickupLocation?.lat) return [];
-    return [
-        { lat: riderLocation.lat, lng: riderLocation.lng },
-        { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }
-    ];
+    if (!riderLocation?.lat) return [];
+    
+    // Delivery phase
+    if (['OUT_FOR_DELIVERY'].includes(order?.status) && order?.pickupLocation?.lat) {
+        return [
+            { lat: riderLocation.lat, lng: riderLocation.lng },
+            { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }
+        ];
+    }
+    
+    // Pickup phase
+    if (['PICKUP_ASSIGNED', 'RIDER_ARRIVING'].includes(order?.status) && order?.pickupLocation?.lat) {
+        return [
+            { lat: riderLocation.lat, lng: riderLocation.lng },
+            { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }
+        ];
+    }
+
+    // In Transit phase
+    if (['IN_TRANSIT'].includes(order?.status) && order?.vendor) {
+        const vendorLat = order.vendor.location?.lat || (order.pickupLocation?.lat ? order.pickupLocation.lat + 0.005 : 0);
+        const vendorLng = order.vendor.location?.lng || (order.pickupLocation?.lng ? order.pickupLocation.lng + 0.005 : 0);
+        if (vendorLat !== 0) {
+            return [
+                { lat: riderLocation.lat, lng: riderLocation.lng },
+                { lat: vendorLat, lng: vendorLng }
+            ];
+        }
+    }
+
+    return [];
   }, [riderLocation, order]);
+
+  const [directionsResponse, setDirectionsResponse] = useState(null);
+
+  useEffect(() => {
+    if (!isLoaded || !window.google) return;
+    
+    if (path.length === 2) {
+      const directionsService = new window.google.maps.DirectionsService();
+      directionsService.route(
+        {
+          origin: path[0],
+          destination: path[1],
+          travelMode: window.google.maps.TravelMode.DRIVING
+        },
+        (result, status) => {
+          if (status === window.google.maps.DirectionsStatus.OK) {
+            setDirectionsResponse(result);
+          }
+        }
+      );
+    } else {
+      setDirectionsResponse(null);
+    }
+  }, [isLoaded, path]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -136,147 +189,183 @@ const OrderTrackingPage = () => {
   }), []);
 
   const timelineSteps = useMemo(() => {
-    const status = order?.status || 'Pending';
+    const status = order?.status || 'ORDER_PLACED';
     const steps = [
-      { label: 'Order Placed', time: 'Received', icon: 'check_circle', status: 'pending', stepNum: 'Step 1 of 4' },
-      { label: 'Rider Assigned', time: 'Pending', icon: 'electric_moped', status: 'pending', stepNum: 'Step 2 of 4' },
-      { label: 'Service In Progress', time: 'In Shop', icon: 'local_laundry_service', status: 'pending', stepNum: 'Step 3 of 4' },
-      { label: 'Out for Delivery', time: 'Final Leg', icon: 'handshake', status: 'pending', stepNum: 'Step 4 of 4' }
+      { label: 'Placed', time: 'Received', icon: 'check_circle', status: 'pending', stepNum: 'Step 1 of 8' },
+      { label: 'Rider Assigned', time: 'Pending', icon: 'electric_moped', status: 'pending', stepNum: 'Step 2 of 8' },
+      { label: 'Rider Arriving', time: 'Pending', icon: 'location_on', status: 'pending', stepNum: 'Step 3 of 8' },
+      { label: 'In Transit', time: 'Pending', icon: 'local_shipping', status: 'pending', stepNum: 'Step 4 of 8' },
+      { label: 'Processing', time: 'In Shop', icon: 'local_laundry_service', status: 'pending', stepNum: 'Step 5 of 8' },
+      { label: 'Ready', time: 'Pending', icon: 'inventory_2', status: 'pending', stepNum: 'Step 6 of 8' },
+      { label: 'Out for Delivery', time: 'Final Leg', icon: 'handshake', status: 'pending', stepNum: 'Step 7 of 8' },
+      { label: 'Delivered', time: 'Completed', icon: 'check', status: 'pending', stepNum: 'Step 8 of 8' }
     ];
 
-    // Status Mapping Logic
-    steps[0].status = 'completed'; // Order is always placed if we are here
+    const statusOrder = [
+        'ORDER_PLACED', 
+        'PICKUP_ASSIGNED', 
+        'RIDER_ARRIVING', 
+        'IN_TRANSIT', 
+        'RECEIVED_BY_VENDOR', 
+        'PROCESSING', 
+        'READY_FOR_DISPATCH', 
+        'OUT_FOR_DELIVERY', 
+        'DELIVERED'
+    ];
     
-    if (['Pending', 'Confirmed'].includes(status)) {
-        steps[0].status = 'active';
-    }
+    const currentIndex = statusOrder.indexOf(status);
 
-    if (status === 'Assigned' || status === 'Rider Assigned') {
-      steps[0].status = 'completed';
-      steps[1].status = 'active';
-    }
+    if (currentIndex >= 0) steps[0].status = currentIndex === 0 ? 'active' : 'completed';
+    if (currentIndex >= 1) steps[1].status = currentIndex === 1 ? 'active' : 'completed';
+    if (currentIndex >= 2) steps[2].status = currentIndex === 2 ? 'active' : 'completed';
+    if (currentIndex >= 3) steps[3].status = currentIndex === 3 ? 'active' : 'completed';
+    if (currentIndex >= 4) steps[4].status = (currentIndex === 4 || currentIndex === 5) ? 'active' : 'completed';
+    if (currentIndex >= 6) steps[5].status = currentIndex === 6 ? 'active' : 'completed';
+    if (currentIndex >= 7) steps[6].status = currentIndex === 7 ? 'active' : 'completed';
+    if (currentIndex >= 8) steps[7].status = currentIndex === 8 ? 'active' : 'completed';
 
-    if (['Picked Up', 'At Shop', 'In Progress', 'Processing'].includes(status)) {
-      steps[0].status = 'completed';
-      steps[1].status = 'completed';
-      steps[2].status = 'active';
-    }
-
-    if (status === 'Ready' || status === 'Out for Delivery') {
-      steps[0].status = 'completed';
-      steps[1].status = 'completed';
-      steps[2].status = 'completed';
-      steps[3].status = 'active';
-    }
-
-    if (status === 'Payment Pending' || status === 'Delivered') {
+    if (status === 'CANCELLED') {
       steps.forEach(s => s.status = 'completed');
     }
 
     return steps;
   }, [order]);
 
+  if (order?.status === 'ORDER_PLACED') {
+      return <FindingVendorScreen order={order} onBack={() => navigate('/user/home')} />;
+  }
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-background text-on-background min-h-[100dvh] flex flex-col"
+      className="bg-transparent text-on-background min-h-[100dvh] flex flex-col -mb-32 pb-32"
     >
       {/* Header */}
-      <header className="fixed top-0 z-50 bg-white/70 backdrop-blur-xl w-full flex justify-between items-center px-6 py-4 border-b border-outline-variant/10">
-        <div className="flex items-center gap-4">
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate('/user/home')}
-            className="material-symbols-outlined text-on-surface-variant"
-          >
-            arrow_back
-          </motion.button>
-          <h1 className="font-headline font-black text-xl text-primary tracking-tighter">Order {order?.orderId || `#${id?.slice(-6) || '......'}`}</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => fetchOrder(true)}
-            className={`material-symbols-outlined p-2.5 bg-surface-container-low rounded-full text-primary transition-all ${refreshing ? 'animate-spin' : ''}`}
-            disabled={refreshing}
-          >
-            refresh
-          </button>
-          <button 
-            onClick={() => navigate('/user/notifications')}
-            className="material-symbols-outlined p-2.5 bg-surface-container-low rounded-full text-primary"
-          >
-            notifications
-          </button>
-          <div className="w-10 h-10 rounded-full bg-primary-container overflow-hidden border-2 border-white shadow-sm">
-            <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1p7APs6JFSwjyHDasWjzWEXhUFLgeNDv9tSakP3bwMduoW7-t8RPNtifrzxcmh8EfjGiQsfovNBz_iB5f5OS2M24dCfKfqL-sBNd3JyZygtbUox3v3CrFSWlP9VmaGLix217O80RYzeb2b_boPw-VnuXF_nJON0ipIhT9zqDEHZlK_wWiTgoysxNeCyr67hOeQLpN5ArZMYDyqq_l35IqBHW6Y4Ylp1j_EBoNRyBLnB0PJsdJBRbyjppfuJwFaov3DW4laxdkOsg" alt="User" />
-          </div>
-        </div>
-      </header>
+      <div className="fixed top-0 w-full z-50">
+          <UserHeader title={`Order ${order?.orderId || '#' + (id?.slice(-6) || '......')}`} showBack={true} onBack={() => navigate('/user/home')} />
+      </div>
 
       <motion.main 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-grow pt-16 pb-36 px-6 max-w-5xl mx-auto w-full space-y-8"
+        className="flex-grow pt-16 pb-6 px-6 max-w-5xl mx-auto w-full space-y-8"
       >
         {/* Map Section */}
         <motion.section 
           variants={itemVariants}
-          className="relative w-full h-[380px] md:h-[450px] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 bg-surface-container-high group"
+          className="relative w-full h-[380px] md:h-[450px] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 bg-surface-container-high group [&_.gm-style_iframe]:outline-none [&_.gm-style]:!outline-none [&>div]:!outline-none"
         >
           <div className="w-full h-full bg-slate-200">
             {isLoaded ? (
                 <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
+                    mapContainerClassName="w-full h-full focus:outline-none !outline-none border-none !ring-0"
                     center={mapCenter}
                     zoom={15}
                     options={{
                         disableDefaultUI: true,
+                        gestureHandling: "greedy",
                         styles: [
                             {
-                                "featureType": "all",
-                                "elementType": "labels.text.fill",
-                                "stylers": [{ "color": "#7c93a3" }, { "lightness": "-10" }]
+                                "featureType": "administrative",
+                                "stylers": [{ "visibility": "off" }]
                             },
                             {
-                                "featureType": "administrative.country",
+                                "featureType": "poi",
+                                "stylers": [{ "visibility": "off" }]
+                            },
+                            {
+                                "featureType": "transit",
+                                "stylers": [{ "visibility": "off" }]
+                            },
+                            {
+                                "featureType": "road",
                                 "elementType": "geometry",
-                                "stylers": [{ "visibility": "on" }]
+                                "stylers": [{ "color": "#ffffff" }]
+                            },
+                            {
+                                "featureType": "water",
+                                "elementType": "geometry",
+                                "stylers": [{ "color": "#b0d0ff" }]
+                            },
+                            {
+                                "featureType": "landscape",
+                                "elementType": "geometry",
+                                "stylers": [{ "color": "#e8eaed" }]
                             }
                         ]
                     }}
                 >
-                    {riderLocation && (
+                    {/* Customer Location */}
+                    {order?.pickupLocation?.lat && (
+                        <Marker 
+                            position={{ lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }}
+                            icon={{
+                                url: 'https://cdn-icons-png.flaticon.com/512/25/25694.png',
+                                scaledSize: new window.google.maps.Size(32, 32)
+                            }}
+                            label={{ text: "Customer", className: "mt-8 bg-white px-2 py-1 rounded shadow text-xs font-bold" }}
+                        />
+                    )}
+
+                    {/* Vendor Location */}
+                    {order?.vendor && (
+                        <Marker 
+                            position={{ 
+                                lat: order.vendor.location?.lat || (order.pickupLocation?.lat ? order.pickupLocation.lat + 0.005 : 0), 
+                                lng: order.vendor.location?.lng || (order.pickupLocation?.lng ? order.pickupLocation.lng + 0.005 : 0) 
+                            }}
+                            icon={{
+                                url: 'https://cdn-icons-png.flaticon.com/512/2821/2821805.png',
+                                scaledSize: new window.google.maps.Size(32, 32)
+                            }}
+                            label={{ text: "Shop", className: "mt-8 bg-white px-2 py-1 rounded shadow text-xs font-bold" }}
+                        />
+                    )}
+
+                    {/* Rider Location */}
+                    {riderLocation?.lat && (
                         <Marker 
                             position={{ lat: riderLocation.lat, lng: riderLocation.lng }}
                             icon={{
                                 url: 'https://cdn-icons-png.flaticon.com/512/3198/3198336.png',
-                                scaledSize: new window.google.maps.Size(40, 40)
+                                scaledSize: new window.google.maps.Size(48, 48)
                             }}
                         />
                     )}
 
-                    {order?.pickupLocation && (
-                        <Marker 
-                            position={{ lat: order.pickupLocation.lat, lng: order.pickupLocation.lng }}
-                            label="Pickup"
-                        />
-                    )}
-
-                    {path.length > 0 && (
+                    {/* Route from Customer to Vendor (always shown if both exist) */}
+                    {!directionsResponse && order?.pickupLocation?.lat && order?.vendor?.location?.lat && (
                         <Polyline 
-                            path={path}
+                            path={[
+                                { lat: order.pickupLocation.lat, lng: order.pickupLocation.lng },
+                                { lat: order.vendor.location.lat, lng: order.vendor.location.lng }
+                            ]}
                             options={{
-                                strokeColor: "#5b4ae3",
-                                strokeOpacity: 0.8,
-                                strokeWeight: 4,
+                                strokeColor: "#94a3b8",
+                                strokeOpacity: 0.5,
+                                strokeWeight: 3,
                                 icons: [{
-                                    icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 },
+                                    icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 3 },
                                     offset: '0',
                                     repeat: '20px'
                                 }]
+                            }}
+                        />
+                    )}
+
+                    {/* Active Route via Directions API */}
+                    {directionsResponse && (
+                        <DirectionsRenderer 
+                            options={{
+                                directions: directionsResponse,
+                                suppressMarkers: true,
+                                polylineOptions: {
+                                    strokeColor: "#2563eb", // thick blue line
+                                    strokeWeight: 5,
+                                    strokeOpacity: 0.9
+                                }
                             }}
                         />
                     )}
@@ -287,335 +376,215 @@ const OrderTrackingPage = () => {
                 </div>
             )}
           </div>
-          
-          {/* Rider Overlay Card */}
-          <motion.div 
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 1 }}
-            className="absolute bottom-6 left-6 right-6 glass-effect p-5 rounded-[2rem] flex items-center justify-between border border-white/40 shadow-2xl"
-          >
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <img className="w-14 h-14 rounded-full border-2 border-primary-container object-cover shadow-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrN5YW63I8izRD-Niwm8BJbeJytTIKirCpOi_nLy2ou1CUdHPCydM0EBXMx6X4qMhr33uet0O9nb00EJm_bjZQAUDGLEfRgQxC4S4s8_SeRw41Q_gRimQXYU-zieqyxXBRSEiUvwC4JmXDoYatZT2oJTXrvvxrncJiLkzbW_pPRnOXI6l24gBrSYo2rvw8tGXvnye4L2Jd-Lymp0NLDDWtelTfo6WK2oBe0xXInzcuLBZ4tGnlgy3zrgXstf-H3ThZc5RFMOsuFfs" alt="Rider" />
-                <motion.div 
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute -bottom-1 -right-1 bg-primary text-on-primary rounded-full p-1 shadow-lg"
-                >
-                  <span className="material-symbols-outlined text-[10px]" style={{ fontVariationSettings: "'FILL' 1" }}>electric_moped</span>
-                </motion.div>
-              </div>
-              <div>
-                <p className="text-[9px] text-on-surface-variant uppercase tracking-[0.2em] font-black opacity-60">Fleet Partner</p>
-                <h3 className="font-black text-md text-on-surface">{order?.rider?.displayName || 'Assigning Rider...'}</h3>
-                <div className="flex items-center gap-1 text-primary">
-                  <span className="material-symbols-outlined text-xs" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="text-xs font-black">4.9 • Nearby Zone</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
         </motion.section>
 
-        {/* Status Timeline */}
-        <motion.section variants={itemVariants} className="bg-white rounded-[2.5rem] p-8 border border-outline-variant/10 shadow-sm relative overflow-hidden">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="font-headline font-black text-2xl text-primary tracking-tighter leading-none mb-2">Live Updates</h2>
-              <p className="text-xs font-bold text-on-surface-variant opacity-60 uppercase tracking-widest">Estimated delivery: 12:45 PM</p>
-            </div>
-            <button 
-              onClick={() => navigate('/user/chat/SZ-8821')}
-              className="text-primary font-black text-[10px] uppercase tracking-widest bg-primary/5 px-4 py-2 rounded-full flex items-center gap-2 hover:bg-primary/10 transition-colors"
-            >
-              Help
-              <span className="material-symbols-outlined text-xs">support_agent</span>
-            </button>
-          </div>
-
-          {/* Timeline Wrapper */}
-          <div className="relative flex justify-between items-start px-2">
-            {/* Base Progress Line */}
-            <div className="absolute h-[2px] left-10 right-10 bg-surface-container-highest top-6 -translate-y-1/2 rounded-full overflow-hidden">
-              <motion.div 
-                initial={{ width: 0 }}
-                animate={{ 
-                  width: `${(() => {
-                    const completedSteps = timelineSteps.filter(s => s.status === 'completed').length;
-                    if (completedSteps === 0) return 0;
-                    if (completedSteps === 5) return 100;
-                    return (completedSteps / 4) * 100; // 4 gaps for 5 steps
-                  })()}%` 
-                }}
-                transition={{ duration: 1.5, ease: "easeOut", delay: 1.2 }}
-                className="h-full bg-primary relative"
-              >
-                <motion.div 
-                   animate={{ x: ['-100%', '100%'] }}
-                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                   className="absolute inset-0 bg-white/30 skew-x-12"
-                />
-              </motion.div>
-            </div>
-
-            {/* Steps */}
-            {timelineSteps.map((step, idx) => (
-              <div key={idx} className="relative flex flex-col items-center gap-4 z-10 w-16">
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2 * idx, type: "spring" }}
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-colors border-2 ${
-                    step.status === 'completed' ? 'bg-primary text-on-primary border-primary' : 
-                    step.status === 'active' ? 'bg-white text-primary border-primary animate-pulse' : 
-                    'bg-surface-container-low text-on-surface-variant border-transparent'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: step.status !== 'pending' ? "'FILL' 1" : "'FILL' 0" }}>
-                    {step.icon}
-                  </span>
-                </motion.div>
-                <div className="text-center">
-                  <p className="text-[7px] font-black text-primary uppercase tracking-widest opacity-50 block mb-1">{step.stepNum}</p>
-                  <p className={`font-black text-[10px] uppercase tracking-tighter leading-tight ${step.status === 'pending' ? 'text-on-surface-variant opacity-40' : 'text-on-surface'}`}>
-                    {step.label}
-                  </p>
-                  <p className="text-[9px] font-bold text-on-surface-variant opacity-60 mt-0.5">{step.time}</p>
-                </div>
-
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Articles List with Photos (Always Visible for Active Order) */}
-        <motion.section variants={itemVariants} className="bg-white rounded-[2.5rem] p-8 border border-outline-variant/10 shadow-sm space-y-6">
-            <div className="flex justify-between items-center">
-                <h3 className="font-headline font-black text-xl text-primary tracking-tighter uppercase">Order Articles</h3>
-                <span className="material-symbols-outlined text-primary">inventory_2</span>
-            </div>
-            
-            <div className="space-y-6">
-              {order?.items?.map((item, idx) => (
-                <div key={idx} className="space-y-3">
-                  <div className="flex justify-between items-center px-2">
-                    <p className="font-black text-slate-900 uppercase tracking-tight text-sm">
-                      {item.name} <span className="text-slate-400 ml-2">x{item.quantity}</span>
-                    </p>
-                    {item.photos?.length > 0 && (
-                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-3 py-1 rounded-full">
-                        {item.photos.length} Verification Photos
-                      </span>
-                    )}
+        {/* Combined Delivery Partner & Timeline Section */}
+        <div className="flex flex-col gap-10">
+          {/* Delivery Partner Info */}
+          {['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'OUT_FOR_DELIVERY'].includes(order?.status) && (order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff || order?.rider) : order?.rider) && (
+              <motion.section variants={itemVariants} className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-slate-600">two_wheeler</span>
+                      </div>
+                      <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Delivery Partner</p>
+                          <h3 className="text-sm font-black text-slate-900 uppercase">{order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.displayName || order?.rider?.displayName || 'Unknown') : (order?.rider?.displayName || 'Unknown')}</h3>
+                          <p className="text-xs font-bold text-slate-500 mt-0.5">{order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.phone || order?.rider?.phone || 'N/A') : (order?.rider?.phone || 'N/A')}</p>
+                      </div>
                   </div>
+                  <a href={`tel:${order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.phone || order?.rider?.phone) : order?.rider?.phone}`} className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-black transition-colors shrink-0 shadow-lg shadow-slate-900/10">
+                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
+                  </a>
+              </motion.section>
+          )}
 
-                  {item.photos?.length > 0 ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {item.photos.map((photo, pIdx) => (
-                        <motion.div 
-                          key={pIdx}
-                          whileHover={{ scale: 1.02 }}
-                          className="aspect-square rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden relative group cursor-pointer"
-                        >
-                          <img 
-                            src={photo} 
-                            className="w-full h-full object-cover"
-                            alt={`${item.name} photo ${pIdx + 1}`}
-                          />
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">No photos uploaded for this item</p>
-                    </div>
-                  )}
+          {/* Status Timeline - No Box Styling */}
+          <motion.section variants={itemVariants} className="relative">
+            {/* Timeline Wrapper */}
+            <div className="overflow-x-auto no-scrollbar py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="relative flex items-start min-w-max gap-8">
+                {/* Base Progress Line */}
+              <div className="absolute h-[3px] left-8 right-8 bg-slate-200/50 top-6 -translate-y-1/2 overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ 
+                    width: `${(() => {
+                      const activeIndex = timelineSteps.findIndex(s => s.status === 'active');
+                      if (activeIndex === -1 && timelineSteps[7].status === 'completed') return 100;
+                      if (activeIndex === -1) return 0;
+                      return (activeIndex / 7) * 100;
+                    })()}%` 
+                  }}
+                  transition={{ duration: 1.5, ease: "easeOut", delay: 1.2 }}
+                  className="h-full bg-slate-900 relative"
+                />
+              </div>
+
+              {/* Steps */}
+              {timelineSteps.map((step, idx) => (
+                <div key={idx} className="relative flex flex-col items-center gap-3 z-10 w-16">
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2 * idx, type: "spring" }}
+                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${
+                      step.status === 'completed' ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : 
+                      step.status === 'active' ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20 scale-110' : 
+                      'bg-white text-slate-300 border-slate-200/60'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-lg">
+                      {step.status === 'completed' ? 'check' : step.icon}
+                    </span>
+                  </motion.div>
+                  <div className="text-center">
+                    <p className={`font-black text-[9px] uppercase tracking-widest leading-tight ${
+                        step.status === 'active' ? 'text-slate-900' : 
+                        step.status === 'completed' ? 'text-slate-900' : 
+                        'text-slate-400'
+                    }`}>
+                      {step.label}
+                    </p>
+                  </div>
                 </div>
               ))}
-            </div>
-        </motion.section>
-
-        {/* Pickup Verification (Phase 1: Customer enters OTP from Rider) */}
-        {order?.status === 'Assigned' && (
-          <motion.section 
-            variants={itemVariants}
-            className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl"
-          >
-            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/20 blur-3xl -mr-24 -mt-24"></div>
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex-1 space-y-2 text-center md:text-left">
-                <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                    <span className="material-symbols-outlined text-amber-400 animate-pulse">lock</span>
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60">Secure Handover</p>
-                </div>
-                <h2 className="text-3xl font-black tracking-tighter uppercase leading-none">Confirm Pickup</h2>
-                <p className="text-xs font-bold opacity-60 leading-relaxed max-w-md">
-                   The rider has arrived. Please ask them for the 4-digit verification code and enter it here to start the processing.
-                </p>
               </div>
-              
-              <button 
-                onClick={handleRequestHandshake}
-                className="w-full md:w-auto bg-primary text-white px-10 py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all border border-white/10"
-              >
-                Verify Pickup
-              </button>
             </div>
           </motion.section>
-        )}
+        </div>
 
-        {/* Delivery Verification (Phase 3: Customer enters OTP from Rider) */}
-        {order?.status === 'Out for Delivery' && (
-          <motion.section 
-            variants={itemVariants}
-            className="space-y-6"
-          >
-            {/* Final Verification Card */}
-            <div className="bg-primary rounded-[2.5rem] p-8 text-on-primary relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-3xl -mr-24 -mt-24"></div>
-              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex-1 space-y-2 text-center md:text-left">
-                  <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                      <span className="material-symbols-outlined text-amber-300 animate-pulse">verified_user</span>
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em]">Final Handshake Protocol</p>
-                  </div>
-                  <h2 className="text-3xl font-black tracking-tighter uppercase leading-none">Confirm Delivery</h2>
-                  <p className="text-xs font-bold opacity-80 leading-relaxed max-w-md">
-                     Rider is arriving. Please verify your items and enter the 4-digit code provided by the rider.
-                  </p>
+        {/* ORDER SUMMARY */}
+        <motion.section variants={itemVariants} className="flex flex-col gap-6 -mt-4">
+            <h3 className="font-black text-slate-900 text-xl uppercase tracking-tighter ml-1">Order Summary</h3>
+            
+            <div className="flex flex-col gap-4">
+                {order?.items?.map((item, idx) => (
+                    <div key={idx} className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col gap-5">
+                        {/* Row 1: Item Name & Quantity */}
+                        <div className="flex justify-between items-center">
+                            <p className="font-black text-slate-900 text-base uppercase tracking-tight">{item.name}</p>
+                            <p className="font-black text-slate-900 text-sm uppercase bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100">
+                                {item.quantity} {item.unit ? item.unit.replace('PER_', '') : 'ITEM'}
+                            </p>
+                        </div>
+                        
+                        {/* Row 2: Delivery Mode & Tier */}
+                        <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em] sm:tracking-[0.2em] px-1">
+                            <div className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-sm">local_shipping</span>
+                                <p>{order?.deliveryMode || 'Normal'} Delivery</p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-sm">diamond</span>
+                                <p>{item.tier || order?.items?.[0]?.tier || 'Essential'} Care</p>
+                            </div>
+                        </div>
+
+                        {/* Row 3: Images */}
+                        {item.photos?.length > 0 ? (
+                            <div className={`grid gap-3 ${item.photos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                {item.photos.map((photo, pIdx) => (
+                                    <div 
+                                        key={pIdx} 
+                                        className={`w-full ${item.photos.length === 1 ? 'h-48' : 'h-32'} rounded-[1.5rem] bg-slate-50 overflow-hidden border border-slate-100 cursor-pointer`}
+                                    >
+                                        <img src={photo} alt={`${item.name} photo ${pIdx + 1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="w-full h-32 rounded-[1.5rem] bg-slate-50 overflow-hidden flex flex-col items-center justify-center border border-dashed border-slate-200 gap-2">
+                                <span className="material-symbols-outlined text-slate-300 text-3xl">no_photography</span>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">No photos</p>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            {/* Total Amount Box */}
+            <div className="flex justify-between items-center bg-white border border-slate-100 shadow-sm rounded-[1.5rem] p-5 mt-4">
+                <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Total Amount</p>
+                <p className="font-black text-slate-900 text-3xl tracking-tighter">₹{order?.totalAmount}</p>
+            </div>
+
+            {/* Simple OTP Verification Box */}
+            {['RIDER_ARRIVING', 'OUT_FOR_DELIVERY'].includes(order?.status) && (
+                <div className="bg-slate-50 border border-slate-200 rounded-[2rem] p-5 flex flex-col gap-4 mt-2">
+                    {!isHandshakeModalOpen ? (
+                        <>
+                            <p className="text-sm font-black text-slate-900 uppercase tracking-tight text-left">
+                                Click verify button for verifying the {order.status === 'OUT_FOR_DELIVERY' ? 'delivery' : 'order'}
+                            </p>
+                            <div className="flex justify-end w-full">
+                                <button 
+                                    onClick={handleRequestHandshake}
+                                    className="bg-slate-900 text-white px-8 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest shadow-md hover:bg-black active:scale-95 transition-all"
+                                >
+                                    Verify
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center gap-4 py-2">
+                            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Enter 4-digit code</p>
+                            <div className="flex justify-center gap-2">
+                                {[0, 1, 2, 3].map((i) => (
+                                    <input
+                                        key={i}
+                                        type="text"
+                                        maxLength="1"
+                                        autoFocus={i === 0}
+                                        value={handshakeOtp[i] || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val && !/^\d+$/.test(val)) return;
+                                            const newOtp = handshakeOtp.split('');
+                                            newOtp[i] = val;
+                                            setHandshakeOtp(newOtp.join(''));
+                                            if (val && i < 3) {
+                                                const next = e.target.nextElementSibling;
+                                                if (next) next.focus();
+                                            }
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Backspace' && !handshakeOtp[i] && i > 0) {
+                                                const prev = e.target.previousElementSibling;
+                                                if (prev) prev.focus();
+                                            }
+                                        }}
+                                        className="w-10 h-12 bg-white border border-slate-200 rounded-xl text-center text-xl font-black text-slate-900 focus:border-slate-900 focus:ring-2 focus:ring-slate-900/10 transition-all outline-none"
+                                    />
+                                ))}
+                            </div>
+                            <div className="flex w-full gap-2 mt-2">
+                                <button 
+                                    onClick={() => !verifying && setIsHandshakeModalOpen(false)}
+                                    className="flex-1 bg-slate-200 text-slate-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-300 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleVerifyHandshake}
+                                    disabled={handshakeOtp.length !== 4 || verifying}
+                                    className="flex-[2] bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                                >
+                                    {verifying ? (
+                                        <div className="w-3 h-3 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
+                                    ) : 'Verify Code'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
-                
-                <button 
-                    onClick={handleRequestHandshake}
-                    className="w-full md:w-auto bg-white text-primary px-10 py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-black/10 hover:scale-105 active:scale-95 transition-all"
-                >
-                    Verify Delivery
-                </button>
-              </div>
-            </div>
-
-          </motion.section>
-        )}
-
-        {/* Info Cards Bento */}
-        <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-outline-variant/10 shadow-sm flex flex-col justify-between group">
-            <div>
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-60">Order Status</span>
-              <h3 className="font-headline font-black text-2xl text-primary tracking-tighter mt-2 leading-none uppercase">
-                {order?.status === 'Payment Pending' ? 'Service Completed' : order?.status}
-              </h3>
-            </div>
-            <div className="mt-10 flex gap-8">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-on-surface-variant opacity-50 uppercase tracking-widest">Articles</span>
-                <span className="font-headline font-black text-xl text-on-surface leading-none mt-1">{order?.items?.length || 0} Items</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-on-surface-variant opacity-50 uppercase tracking-widest">Total</span>
-                <span className="font-headline font-black text-xl text-on-surface leading-none mt-1">₹{order?.totalAmount?.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className={`${order?.status === 'Delivered' ? 'bg-emerald-500' : 'bg-primary'} p-8 rounded-[2.5rem] text-on-primary flex flex-col justify-between relative overflow-hidden shadow-xl shadow-primary/20`}>
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
-            <div className="relative z-10">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-60">
-                {order?.status === 'Delivered' ? 'Service Completed' : 'Logistics Address'}
-              </span>
-              <h3 className="font-headline font-black text-xl mt-3 leading-tight tracking-tight">
-                {order?.status === 'Delivered' ? 'Your garments are home!' : (order?.pickupAddress || order?.address || 'Searching location...')}
-              </h3>
-            </div>
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="mt-10 relative z-10 cursor-pointer">
-              {order?.status === 'Delivered' ? (
-                <button 
-                  onClick={() => navigate(`/user/feedback?orderId=${order._id}&vendorId=${order.vendor?._id || order.vendor}`)}
-                  className="w-full bg-white text-emerald-600 py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-black/10 flex items-center justify-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  Rate Your Experience
-                </button>
-              ) : (
-                <button className="w-full bg-white text-primary py-4.5 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-black/10">
-                  Modify Drop-off
-                </button>
-              )}
-            </motion.div>
-          </div>
+            )}
         </motion.section>
+
+
       </motion.main>
 
-      {/* Handshake Verification Modal */}
-      <AnimatePresence>
-        {isHandshakeModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => !verifying && setIsHandshakeModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-            />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 relative z-10 shadow-2xl text-center"
-            >
-              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="material-symbols-outlined text-4xl text-primary animate-bounce">lock_open</span>
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase mb-2">Secure Handover</h3>
-              <p className="text-sm font-bold text-slate-500 mb-8">Enter the 4-digit code provided by the rider to verify.</p>
-              
-              <div className="flex justify-center gap-3 mb-10">
-                {[0, 1, 2, 3].map((i) => (
-                  <input
-                    key={i}
-                    type="text"
-                    maxLength="1"
-                    value={handshakeOtp[i] || ''}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        if (val && !/^\d+$/.test(val)) return;
-                        const newOtp = handshakeOtp.split('');
-                        newOtp[i] = val;
-                        setHandshakeOtp(newOtp.join(''));
-                        // Auto focus next
-                        if (val && i < 3) {
-                            const next = e.target.nextElementSibling;
-                            if (next) next.focus();
-                        }
-                    }}
-                    className="w-12 h-16 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center text-2xl font-black text-slate-900 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10 transition-all outline-none"
-                  />
-                ))}
-              </div>
 
-              <div className="flex flex-col gap-3">
-                <button 
-                  onClick={handleVerifyHandshake}
-                  disabled={handshakeOtp.length !== 4 || verifying}
-                  className="w-full bg-primary text-on-primary py-5 rounded-3xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
-                >
-                  {verifying ? (
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : 'Verify & Continue'}
-                </button>
-                <button 
-                   onClick={() => !verifying && setIsHandshakeModalOpen(false)}
-                   className="text-[10px] font-black text-slate-400 uppercase tracking-widest py-2"
-                >
-                    Cancel Handshake
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 };

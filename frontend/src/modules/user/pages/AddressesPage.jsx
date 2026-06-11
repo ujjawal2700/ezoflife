@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { Autocomplete } from '@react-google-maps/api';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import { locationService } from '../../../lib/locationService';
+const defaultCenter = { lat: 22.7196, lng: 75.8577 }; // Indore as default
 
 const AddressesPage = () => {
   const navigate = useNavigate();
@@ -79,8 +80,25 @@ const AddressesPage = () => {
           finalLng = coords.lng;
         }
       } catch (e) {
-        console.error('[Geocoding] Error during default address sync:', e);
+        console.error('[Geocoding] Full address sync failed:', e);
       }
+    }
+
+    if (!finalLat && !finalLng && targetAddress.pincode) {
+      try {
+        const coords = await locationService.geocodeAddress(targetAddress.pincode + ", India");
+        if (coords) {
+          finalLat = coords.lat;
+          finalLng = coords.lng;
+        }
+      } catch (e) {
+        console.error('[Geocoding] Pincode sync failed:', e);
+      }
+    }
+
+    if (!finalLat && !finalLng) {
+      finalLat = defaultCenter.lat;
+      finalLng = defaultCenter.lng;
     }
 
     useLocationStore.getState().setLocation({
@@ -153,12 +171,38 @@ const AddressesPage = () => {
           return true;
         });
       
+      let finalLocation = (formData.location && formData.location.lat !== 0) ? formData.location : null;
+
+      if (!finalLocation && fullAddressString) {
+        try {
+          const coords = await locationService.geocodeAddress(fullAddressString);
+          if (coords) {
+            finalLocation = coords;
+          }
+        } catch (e) {
+          console.error('[Geocoding] Full address failed:', e);
+        }
+      }
+
+      if (!finalLocation && formData.pincode) {
+        try {
+          const coords = await locationService.geocodeAddress(formData.pincode + ", India");
+          if (coords) {
+            finalLocation = coords;
+          }
+        } catch (e) {
+          console.error('[Geocoding] Pincode fallback failed:', e);
+        }
+      }
+
+      finalLocation = finalLocation || defaultCenter;
+
       const newAddrObj = {
         type: newType,
         address: fullAddressString,
         city: formData.city || '',
         pincode: formData.pincode || '',
-        location: formData.location || { lat: 0, lng: 0 },
+        location: finalLocation,
         isDefault: editingAddress ? editingAddress.isDefault : updatedList.length === 0
       };
 
@@ -176,7 +220,7 @@ const AddressesPage = () => {
             address: fullAddressString, 
             city: formData.city || '', 
             pincode: formData.pincode || '', 
-            location: formData.location || { lat: 0, lng: 0 }
+            location: finalLocation
         } : {})
       });
 
@@ -247,7 +291,7 @@ const AddressesPage = () => {
         address: targetAddress.address,
         city: targetAddress.city || '',
         pincode: targetAddress.pincode || '',
-        location: targetAddress.location || { lat: 0, lng: 0 }
+        location: (targetAddress.location && targetAddress.location.lat !== 0) ? targetAddress.location : defaultCenter
       });
 
       const mergedUser = { ...user, ...updatedUser };
@@ -545,9 +589,9 @@ const AddressesPage = () => {
 
                 <button 
                   onClick={handleSaveAddress}
-                  className="w-full py-6 bg-primary text-on-primary rounded-[2rem] text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary/30 mt-4 active:scale-95 transition-transform"
+                  className="w-full bg-black text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/20 hover:shadow-black/30 transition-all active:scale-[0.98] mt-2"
                 >
-                  {editingAddress ? 'Continue Updates' : 'Secure Location'}
+                  {editingAddress ? 'Continue Updates' : 'Save Address'}
                 </button>
               </div>
             </motion.div>

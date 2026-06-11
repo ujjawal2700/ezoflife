@@ -161,7 +161,7 @@ const userSchema = new mongoose.Schema({
     // DRAFT CART FOR PERSISTENCE
     draftCart: {
         selectedQuantities: { type: Map, of: Number, default: {} },
-        selectedTier: { type: String, default: 'Standard' },
+        selectedTier: { type: String, default: null },
         isExpress: { type: Boolean, default: false },
         pickup: {
             date: { type: String, default: '' },

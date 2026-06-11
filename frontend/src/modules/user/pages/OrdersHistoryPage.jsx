@@ -13,6 +13,8 @@ const OrdersHistoryPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [orderTypeFilter, setOrderTypeFilter] = useState('all');
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
 
   const userData = JSON.parse(localStorage.getItem('userData') || localStorage.getItem('user') || '{}');
   const userId = userData._id || userData.id || localStorage.getItem('userId');
@@ -24,14 +26,19 @@ const OrdersHistoryPage = () => {
       setLoading(true);
       console.log('📡 Fetching orders for UserID:', userId);
       try {
-        const data = await orderApi.getMyOrders(userId);
+        const filters = {};
+        if (startDate) filters.startDate = startDate;
+        if (endDate) filters.endDate = endDate;
+        if (orderTypeFilter !== 'all') filters.orderType = orderTypeFilter;
+
+        const data = await orderApi.getMyOrders(userId, filters);
         console.log('✅ Received orders count:', data?.length || 0);
         
         const mockPastOrders = [
           {
             _id: 'mock_1',
             orderId: '#SPZ-9901',
-            status: 'Delivered',
+            status: 'DELIVERED',
             totalAmount: 1250.00,
             createdAt: new Date('2024-04-12'),
             serviceTier: 'Heritage',
@@ -63,22 +70,30 @@ const OrdersHistoryPage = () => {
   };
 
   useEffect(() => {
-    console.log('📦 OrdersHistoryPage Mounted. UserID:', userId);
+    console.log('📦 OrdersHistoryPage Mounted or Filters Changed. UserID:', userId);
     if (!userId) {
       console.warn('⚠️ No UserID found in local storage. Fetch aborted.');
       setLoading(false);
       return;
     }
     fetchOrders();
-  }, [userId]);
+  }, [userId, startDate, endDate, orderTypeFilter]);
 
   const activeOrders = useMemo(() => 
-    orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status)), 
+    orders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status)), 
   [orders]);
 
   const pastOrders = useMemo(() => {
-    let filtered = orders.filter(o => ['Delivered', 'Cancelled'].includes(o.status));
+    let filtered = orders.filter(o => ['DELIVERED', 'CANCELLED'].includes(o.status));
     
+    if (orderTypeFilter !== 'all') {
+      filtered = filtered.filter(o => {
+        if (orderTypeFilter === 'walk-in') return o.orderType === 'walk-in';
+        if (orderTypeFilter === 'online') return o.orderType === 'online' || !o.orderType;
+        return true;
+      });
+    }
+
     if (startDate || endDate) {
       filtered = filtered.filter(o => {
         const orderDate = new Date(o.createdAt).setHours(0,0,0,0);
@@ -89,11 +104,10 @@ const OrdersHistoryPage = () => {
         if (end && orderDate > end) return false;
         return true;
       });
-      return filtered;
     }
     
-    return filtered.slice(0, 5);
-  }, [orders, startDate, endDate]);
+    return filtered;
+  }, [orders, startDate, endDate, orderTypeFilter]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -421,8 +435,23 @@ const OrdersHistoryPage = () => {
                       <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
                         <h3 className="text-lg font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
                         <div className="flex items-center gap-2">
-                          {order.status && !['Processing', 'Pending', 'Payment Pending'].includes(order.status) && (
-                            <span className="text-primary font-black text-[7px] tracking-[0.2em] uppercase bg-primary/5 px-2 py-1 rounded-full">{order.status}</span>
+                          {order.status && !['PROCESSING', 'ORDER_PLACED', 'Payment Pending'].includes(order.status) && (
+                            <span className="text-primary font-black text-[7px] tracking-[0.2em] uppercase bg-primary/5 px-2 py-1 rounded-full">
+                                {
+                                    {
+                                        'ORDER_PLACED': 'Placed',
+                                        'PICKUP_ASSIGNED': 'Rider Assigned',
+                                        'RIDER_ARRIVING': 'Rider Arriving',
+                                        'IN_TRANSIT': 'In Transit',
+                                        'RECEIVED_BY_VENDOR': 'In Transit',
+                                        'PROCESSING': 'Processing',
+                                        'READY_FOR_DISPATCH': 'Ready for Dispatch',
+                                        'OUT_FOR_DELIVERY': 'Out for Delivery',
+                                        'DELIVERED': 'Delivered',
+                                        'CANCELLED': 'Cancelled'
+                                    }[order.status] || order.status
+                                }
+                            </span>
                           )}
                           <p className="text-lg font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
                         </div>
@@ -442,20 +471,21 @@ const OrdersHistoryPage = () => {
                       <div className="mb-5 px-1 relative">
                         <div className="flex justify-between text-[6px] text-slate-400 font-black uppercase tracking-widest mb-1.5 px-0.5">
                           <span className="text-primary">Order Placed</span>
-                          <span className={['Assigned', 'Picked Up', 'In Progress', 'Ready', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Rider / Picked</span>
-                          <span className={['In Progress', 'Ready', 'Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Processing</span>
-                          <span className={['Out for Delivery', 'Delivered'].includes(order.status) ? 'text-primary' : ''}>Delivery</span>
+                          <span className={['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Rider / Picked</span>
+                          <span className={['PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Processing</span>
+                          <span className={['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Delivery</span>
                         </div>
                         <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: 
-                                order.status === 'Assigned' ? '40%' : 
-                                order.status === 'Picked Up' ? '55%' :
-                                order.status === 'In Progress' ? '70%' : 
-                                order.status === 'Ready' ? '85%' :
-                                order.status === 'Out for Delivery' ? '95%' : 
-                                order.status === 'Delivered' ? '100%' : '15%'
+                                order.status === 'PICKUP_ASSIGNED' ? '30%' : 
+                                order.status === 'RIDER_ARRIVING' ? '45%' :
+                                ['IN_TRANSIT', 'RECEIVED_BY_VENDOR'].includes(order.status) ? '60%' :
+                                order.status === 'PROCESSING' ? '75%' : 
+                                order.status === 'READY_FOR_DISPATCH' ? '85%' :
+                                order.status === 'OUT_FOR_DELIVERY' ? '95%' : 
+                                order.status === 'DELIVERED' ? '100%' : '15%'
                             }}
                             className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-1000" 
                           />
@@ -512,13 +542,13 @@ const OrdersHistoryPage = () => {
                   variants={itemVariants}
                   onClick={() => setShowDateFilter(!showDateFilter)}
                   className={`w-full py-2.5 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all mb-3 ${
-                    showDateFilter || startDate || endDate
+                    showDateFilter || startDate || endDate || orderTypeFilter !== 'all'
                       ? 'bg-primary text-white shadow-lg'
                       : 'bg-white text-slate-900 border border-slate-200'
                   }`}
                 >
-                  <span className="material-symbols-outlined text-xs">calendar_month</span>
-                  {startDate || endDate ? 'Date Filter Active' : 'Filter By Date'}
+                  <span className="material-symbols-outlined text-xs">filter_list</span>
+                  {startDate || endDate || orderTypeFilter !== 'all' ? 'Filters Active' : 'Filter Orders'}
                   <span className="material-symbols-outlined text-xs transition-transform duration-300" style={{ transform: showDateFilter ? 'rotate(180deg)' : 'none' }}>expand_more</span>
                 </motion.button>
 
@@ -557,10 +587,44 @@ const OrdersHistoryPage = () => {
                             />
                           </div>
                         </div>
-                        {(startDate || endDate) && (
+                        <div className="space-y-0.5 mt-2 relative">
+                           <label className="text-[7px] font-black text-slate-300 uppercase ml-2">Order Type</label>
+                           <button 
+                             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
+                             className="w-full bg-slate-50 border-none rounded-lg px-3 py-2 text-[9px] font-bold text-left flex justify-between items-center focus:ring-2 focus:ring-primary/20 transition-all"
+                           >
+                             <span className={orderTypeFilter === 'all' ? 'text-slate-600' : 'text-slate-900'}>
+                               {orderTypeFilter === 'all' ? 'All Orders' : orderTypeFilter === 'online' ? 'Online Orders' : 'Walk-in Orders'}
+                             </span>
+                             <span className="material-symbols-outlined text-[14px] text-slate-400">expand_more</span>
+                           </button>
+                           
+                           <AnimatePresence>
+                             {showTypeDropdown && (
+                               <motion.div 
+                                 initial={{ opacity: 0, height: 0 }} 
+                                 animate={{ opacity: 1, height: 'auto' }} 
+                                 exit={{ opacity: 0, height: 0 }} 
+                                 className="mt-1 bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden"
+                               >
+                                 {[{v: 'all', l: 'All Orders'}, {v: 'online', l: 'Online Orders'}, {v: 'walk-in', l: 'Walk-in Orders'}].map(opt => (
+                                   <button 
+                                     key={opt.v} 
+                                     onClick={() => { setOrderTypeFilter(opt.v); setShowTypeDropdown(false); }} 
+                                     className={`w-full text-left px-3 py-2.5 text-[9px] font-bold hover:bg-slate-50 transition-all border-b border-slate-50 last:border-b-0 ${orderTypeFilter === opt.v ? 'text-primary bg-primary/5' : 'text-slate-600'}`}
+                                   >
+                                     {opt.l}
+                                   </button>
+                                 ))}
+                               </motion.div>
+                             )}
+                           </AnimatePresence>
+                        </div>
+
+                        {(startDate || endDate || orderTypeFilter !== 'all') && (
                           <button 
-                            onClick={() => { setStartDate(''); setEndDate(''); }}
-                            className="text-[8px] font-black text-rose-500 uppercase tracking-widest w-full py-1.5 hover:bg-rose-50 rounded-lg transition-all"
+                            onClick={() => { setStartDate(''); setEndDate(''); setOrderTypeFilter('all'); }}
+                            className="text-[8px] font-black text-rose-500 uppercase tracking-widest w-full py-1.5 hover:bg-rose-50 rounded-lg transition-all mt-2"
                           >
                             Clear Filters
                           </button>
@@ -570,10 +634,7 @@ const OrdersHistoryPage = () => {
                   )}
                 </AnimatePresence>
 
-                <motion.h4 variants={itemVariants} className="text-[9px] font-black uppercase tracking-[0.3em] text-on-surface-variant opacity-30 px-4 flex items-center gap-4">
-                  {startDate || endDate ? 'Filtered Results' : 'Last 5 Orders'}
-                  <div className="flex-grow h-px bg-outline-variant/10"></div>
-                </motion.h4>
+
 
                 {pastOrders.length > 0 ? (
                   pastOrders.map((order) => (
@@ -585,8 +646,8 @@ const OrdersHistoryPage = () => {
                     >
                       <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-50">
                         <div className="space-y-0.5">
-                          <h3 className="text-base font-black text-slate-900 tracking-tight leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                          <h3 className="text-base font-bold text-slate-900 tracking-tight leading-none not-italic">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
+                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest not-italic">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                         </div>
                         <p className="text-base font-black text-slate-900 tracking-tight leading-none">₹{order.totalAmount?.toFixed(0)}</p>
                       </div>
@@ -613,13 +674,12 @@ const OrdersHistoryPage = () => {
                         </div>
                       </details>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="flex justify-between items-center mt-2">
                         <motion.button 
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleDownloadInvoice(order)}
-                          className="py-2.5 bg-slate-900 text-white rounded-lg font-black text-[7px] uppercase tracking-widest flex items-center justify-center gap-1.5"
+                          className="py-2.5 px-8 bg-black text-white rounded-full font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-1.5"
                         >
-                          <span className="material-symbols-outlined text-[10px]">picture_as_pdf</span>
                           Invoice
                         </motion.button>
                         <motion.button 
@@ -629,9 +689,8 @@ const OrdersHistoryPage = () => {
                             localStorage.setItem('cart_quantities', JSON.stringify(newCart));
                             navigate('/user/cart');
                           }}
-                          className="py-2.5 bg-slate-900 text-white rounded-lg font-black text-[7px] uppercase tracking-widest flex items-center justify-center gap-1.5"
+                          className="py-2.5 px-8 bg-black text-white rounded-full font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-1.5"
                         >
-                          <span className="material-symbols-outlined text-[10px]">replay</span>
                           Reorder
                         </motion.button>
                       </div>

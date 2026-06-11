@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { serviceApi, orderApi, authApi, masterServiceApi, mediaApi, promotionApi } from '../../../lib/api';
+import { serviceApi, orderApi, authApi, masterServiceApi, mediaApi, promotionApi, geofenceApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import { GoogleMap, Marker, Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 import { locationService } from '../../../lib/locationService';
@@ -59,6 +59,12 @@ const WalkInOrderPage = () => {
     const [selectedSubCategory, setSelectedSubCategory] = useState(null);
 
     // New Address & Maps states
+    const [selectedTier, setSelectedTier] = useState('Essential');
+    const [isExpress, setIsExpress] = useState(false);
+    const [heritageMultiplier, setHeritageMultiplier] = useState(1);
+    const [expressMultiplier, setExpressMultiplier] = useState(1);
+    const [pricingFactor, setPricingFactor] = useState(1);
+    const [showDeliveryTypeModal, setShowDeliveryTypeModal] = useState(false);
     const [savedCustomerAddress, setSavedCustomerAddress] = useState(null);
     const [enableDelivery, setEnableDelivery] = useState(false);
     const [showLocateModal, setShowLocateModal] = useState(false);
@@ -159,6 +165,7 @@ const WalkInOrderPage = () => {
     const { isLoaded } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+        version: '3.64',
         libraries: GOOGLE_MAPS_LIBRARIES
     });
 
@@ -195,6 +202,19 @@ const WalkInOrderPage = () => {
             if (profileRes) {
                 const shopAddr = profileRes.shopDetails?.address || profileRes.address || '';
                 setVendorAddress(shopAddr);
+
+                try {
+                    const lat = profileRes.location?.lat || 22.7196;
+                    const lng = profileRes.location?.lng || 75.8577;
+                    const zoneInfo = await geofenceApi.checkAvailability(lat, lng);
+                    if (zoneInfo && zoneInfo.available) {
+                        setHeritageMultiplier(zoneInfo.heritageMultiplier || 1);
+                        setExpressMultiplier(zoneInfo.expressMultiplier || 1);
+                        setPricingFactor(zoneInfo.pricingFactor || 1);
+                    }
+                } catch (err) {
+                    console.error('Error fetching zone pricing:', err);
+                }
             }
             
             const registrationServices = profileRes.shopDetails?.services || [];
@@ -224,9 +244,10 @@ const WalkInOrderPage = () => {
                     isFromRegistration: true,
                     approvalStatus: 'Approved',
                     active: s.active ?? true,
-                    basePrice: s.basePrice || s.vendorRate || 0,
+                    basePrice: master?.basePrice || s.basePrice || s.vendorRate || 0,
                     mainCategory: master?.categoryId?.mainCategory || 'Dry Cleaning',
-                    subCategory: master?.categoryId?.subCategory || 'General'
+                    subCategory: master?.categoryId?.subCategory || 'General',
+                    tier: s.tier || master?.tier || master?.categoryId?.tier || 'Essential'
                 });
             });
 
@@ -242,9 +263,10 @@ const WalkInOrderPage = () => {
                     isFromRegistration: false,
                     approvalStatus: s.approvalStatus || 'Pending',
                     active: s.status === 'Active',
-                    basePrice: s.basePrice || 0,
+                    basePrice: master?.basePrice || s.basePrice || 0,
                     mainCategory: s.category || master?.categoryId?.mainCategory || 'Custom',
-                    subCategory: master?.categoryId?.subCategory || 'General'
+                    subCategory: master?.categoryId?.subCategory || 'General',
+                    tier: s.tier || master?.tier || master?.categoryId?.tier || 'Essential'
                 });
             });
 
@@ -263,15 +285,27 @@ const WalkInOrderPage = () => {
     const services = useMemo(() => {
         return liveServices
             .filter(s => s.active && s.approvalStatus === 'Approved')
-            .map(s => ({
-                serviceId: s._id || s.id,
-                title: s.name,
-                price: s.basePrice || 0,
-                icon: s.icon || 'local_laundry_service',
-                category: s.mainCategory || 'Custom',
-                subCategory: s.subCategory || 'General'
-            }));
-    }, [liveServices]);
+            .filter(s => {
+                const serviceTier = s.tier || 'Essential';
+                if (serviceTier === 'Heritage' && selectedTier !== 'Heritage') return false;
+                return true;
+            })
+            .map(s => {
+                const serviceTier = s.tier || 'Essential';
+                const isServiceHeritage = serviceTier === 'Heritage';
+                const applyHeritageMultiplier = selectedTier === 'Heritage' && !isServiceHeritage;
+
+                return {
+                    serviceId: s._id || s.id,
+                    title: s.name,
+                    price: Math.round((s.basePrice || 0) * pricingFactor * (applyHeritageMultiplier ? heritageMultiplier : 1) * (isExpress ? expressMultiplier : 1)),
+                    icon: s.icon || 'local_laundry_service',
+                    category: s.mainCategory || 'Custom',
+                    subCategory: s.subCategory || 'General',
+                    tier: serviceTier
+                };
+            });
+    }, [liveServices, selectedTier, heritageMultiplier, isExpress, expressMultiplier, pricingFactor]);
 
     // Unique Categories memo derived from active services
     const uniqueCategories = useMemo(() => {
@@ -816,7 +850,7 @@ const WalkInOrderPage = () => {
                     photos: itemPhotos[i.serviceId] || []
                 })),
                 totalAmount: finalPrice,
-                status: 'In Progress',
+                status: 'PROCESSING',
                 customerPhotos: uniquePhotos,
                 deliveryCharge: enableDelivery ? calculatedLogisticFee : 0,
                 logisticPaymentStatus: enableDelivery ? 'Paid Online' : 'N/A',
@@ -827,12 +861,17 @@ const WalkInOrderPage = () => {
             const response = await orderApi.createWalkInOrder(orderData);
             setCreatedOrder(response);
             setShowReviewModal(false);
-            setShowInvoice(true);
             
-            toast.success('Walk-In Order Created!');
-            setTimeout(() => {
-                window.print();
-            }, 600);
+            if (enableDelivery) {
+                setShowInvoice(true);
+                toast.success('Walk-In Order Created!');
+                setTimeout(() => {
+                    window.print();
+                }, 600);
+            } else {
+                toast.success('Order Started Successfully!');
+                navigate('/vendor/dashboard', { state: { initialTab: 'In Progress' } });
+            }
         } catch (err) {
             console.error('Walk-In Creation Failure:', err);
             toast.error('Failed to generate order');
@@ -905,10 +944,10 @@ const WalkInOrderPage = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="flex-1 min-w-0 text-left">
-                                            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Dropoff Address & Time</p>
-                                            {enableDelivery ? (
+                                    {enableDelivery && (
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="flex-1 min-w-0 text-left">
+                                                <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1 whitespace-nowrap">Dropoff Address & Time</p>
                                                 <div className="space-y-1 mt-1">
                                                     <p className="text-[9px] font-black text-white uppercase truncate">
                                                         {addressDetails.flatNo}, {addressDetails.street}
@@ -920,18 +959,9 @@ const WalkInOrderPage = () => {
                                                         {deliveryTime}
                                                     </p>
                                                 </div>
-                                            ) : (
-                                                <div className="flex items-center gap-1 mt-1 whitespace-nowrap">
-                                                    <span className="text-[7px] font-black bg-rose-500/20 text-rose-400 uppercase px-1.5 py-0.5 rounded border border-rose-500/10 shrink-0">
-                                                        N/A
-                                                    </span>
-                                                    <p className="text-[9px] font-black text-white/40 uppercase">
-                                                        No Dropoff Configured
-                                                    </p>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1029,26 +1059,17 @@ const WalkInOrderPage = () => {
                                 </motion.button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="flex justify-end mt-2">
                                 <motion.button 
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     type="button"
                                     onClick={handleCollectAndPrint}
                                     disabled={isProcessing}
-                                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-2xl transition-all text-center"
+                                    className="bg-slate-900 text-white px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-2xl transition-all flex items-center justify-center gap-2"
                                 >
-                                    PAY ON VENDOR
-                                </motion.button>
-                                <motion.button 
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    type="button"
-                                    onClick={handleCollectAndPrint}
-                                    disabled={isProcessing}
-                                    className="w-full bg-white text-slate-900 border border-slate-200 hover:bg-slate-50 py-4 rounded-2xl font-black text-[9px] uppercase tracking-widest shadow-2xl transition-all text-center"
-                                >
-                                    PAY WITH SPINZYT
+                                    <span>Submit</span>
+                                    <span className="material-symbols-outlined text-sm">arrow_forward</span>
                                 </motion.button>
                             </div>
                         )}
@@ -1420,6 +1441,30 @@ const WalkInOrderPage = () => {
 
                 {/* Service Selection */}
                 <section className={`space-y-4 transition-all duration-300 ${customerPhone.length !== 10 || tempName.trim().length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
+
+                    {/* Consolidated Control Row (Tier & Schedule) */}
+                    <div className="flex flex-row items-center justify-between gap-2 mb-4 px-0 w-full">
+                        <div className="flex-1 h-12 flex gap-1.5 shrink-0">
+                            {['Essential', 'Heritage'].map(tier => (
+                                <button 
+                                    key={tier} 
+                                    onClick={() => setSelectedTier(tier)} 
+                                    className={`flex-1 h-full rounded-xl font-black text-[7.5px] uppercase tracking-tighter transition-all duration-300 border ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515] border-[#996515]' : 'bg-black border-black') + ' text-white shadow-lg' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
+                                >
+                                    {tier}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button 
+                            disabled={!selectedTier || !enableDelivery}
+                            onClick={() => setShowDeliveryTypeModal(true)}
+                            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-[0.05em] border transition-all flex flex-row items-center justify-center gap-1.5 ${(!selectedTier || !enableDelivery) ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
+                        >
+                            <span className="material-symbols-outlined text-[14px] leading-none">local_shipping</span>
+                            <span className="text-left">Select Delivery Type</span>
+                        </button>
+                    </div>
 
                     <div className="space-y-1.5">
                         {/* Category Selection Row */}
@@ -1840,6 +1885,47 @@ const WalkInOrderPage = () => {
                                         <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-40">*** Thank You for choosing Spinzyt ***</p>
                                     </div>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delivery Type Modal */}
+            <AnimatePresence>
+                {showDeliveryTypeModal && (
+                    <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white w-full max-w-[280px] rounded-[2rem] shadow-2xl flex flex-col p-4 border border-slate-100 relative"
+                        >
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 className="text-[10px] font-black tracking-widest uppercase text-slate-950">Delivery Type</h3>
+                                </div>
+                                <button 
+                                    onClick={() => setShowDeliveryTypeModal(false)} 
+                                    className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-base">close</span>
+                                </button>
+                            </div>
+
+                            <div className="bg-slate-100 p-1.5 rounded-xl border border-slate-200 flex gap-1">
+                                {['Normal', 'Express'].map(type => (
+                                    <button 
+                                        key={type}
+                                        onClick={() => {
+                                            setIsExpress(type === 'Express');
+                                            setShowDeliveryTypeModal(false);
+                                        }}
+                                        className={`flex-1 py-3 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress === true) || (type === 'Normal' && isExpress === false)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-200'}`}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
                             </div>
                         </motion.div>
                     </div>

@@ -79,13 +79,13 @@ export const verifyHandshake = async (req, res) => {
 
         // Trigger Status Updates based on Phase
         if (phase === 'Collection') {
-            order.status = 'Picked Up';
+            order.status = 'IN_TRANSIT';
         } else if (phase === 'Inbound') {
-            order.status = 'In Progress';
+            order.status = 'PROCESSING';
         } else if (phase === 'Reverse') {
-            order.status = 'Out for Delivery';
+            order.status = 'OUT_FOR_DELIVERY';
         } else if (phase === 'Completion') {
-            order.status = 'Delivered';
+            order.status = 'DELIVERED';
             
             // Notify customer of status update
             const { getIO } = await import('../socket.js');
@@ -96,7 +96,7 @@ export const verifyHandshake = async (req, res) => {
                 console.log(`[DEBUG] Notifying delivery to room: ${targetRoom}`);
                 io.to(targetRoom).emit('order_status_update', {
                     ...order.toObject(),
-                    status: 'Delivered'
+                    status: 'DELIVERED'
                 });
             }
         }

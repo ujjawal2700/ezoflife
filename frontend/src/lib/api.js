@@ -799,6 +799,17 @@ export const adminApi = {
             throw error;
         }
     },
+    getCloudinaryUsage: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/cloudinary-usage`, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Cloudinary Usage Error:', error);
+            throw error;
+        }
+    },
     getPendingApprovals: async (filters = {}) => {
         try {
             const queryParams = new URLSearchParams(filters).toString();
@@ -1169,9 +1180,10 @@ export const orderApi = {
             throw error;
         }
     },
-    getMyOrders: async (customerId) => {
+    getMyOrders: async (customerId, filters = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/orders/my?customerId=${customerId}`);
+            const queryParams = new URLSearchParams({ customerId, ...filters }).toString();
+            const response = await fetch(`${BASE_URL}/orders/my?${queryParams}`);
             return await response.json();
         } catch (error) {
             console.error('Get Orders Error:', error);

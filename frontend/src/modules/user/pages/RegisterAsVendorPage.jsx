@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { BASE_URL, authApi, UPLOADS_URL } from '../../../lib/api';
+import { Autocomplete } from '@react-google-maps/api';
 
 const getFieldStatus = (fieldName, isRevisionRequired, currentUser) => {
     if (!isRevisionRequired || !currentUser?.rejectionFlags) return 'normal';
@@ -28,8 +29,14 @@ const FieldHighlight = ({ name, children, isRevisionRequired, currentUser }) => 
 
 const RegisterAsVendorPage = () => {
   const navigate = useNavigate();
-  const [showLanding, setShowLanding] = useState(true);
-  const [step, setStep] = useState(1);
+  const [showLanding, setShowLanding] = useState(() => {
+    const savedStep = localStorage.getItem('vendor_onboarding_step');
+    return savedStep ? false : true;
+  });
+  const [step, setStep] = useState(() => {
+    const savedStep = localStorage.getItem('vendor_onboarding_step');
+    return savedStep ? parseInt(savedStep, 10) : 1;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [masterServices, setMasterServices] = useState([]);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
@@ -43,6 +50,39 @@ const RegisterAsVendorPage = () => {
   const [isAgreed, setIsAgreed] = useState(false);
   const [resolvedGpsAddress, setResolvedGpsAddress] = useState('');
   const [isResolvingGpsAddress, setIsResolvingGpsAddress] = useState(false);
+  const [autocomplete, setAutocomplete] = useState(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(!!window.google);
+
+  React.useEffect(() => {
+    if (window.google) {
+      setIsMapLoaded(true);
+    } else {
+      const interval = setInterval(() => {
+        if (window.google) {
+          setIsMapLoaded(true);
+          clearInterval(interval);
+        }
+      }, 500);
+      return () => clearInterval(interval);
+    }
+  }, []);
+
+  const onPlaceChanged = () => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
+      if (place.geometry && place.geometry.location) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        const address = place.formatted_address || '';
+        setFormData(prev => ({
+          ...prev,
+          businessAddress: address,
+          location: { lat, lng }
+        }));
+        setResolvedGpsAddress(address);
+      }
+    }
+  };
   
   const [currentUser, setCurrentUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
   const isPendingVendor = currentUser?.onboardingStage && 
@@ -169,7 +209,8 @@ const RegisterAsVendorPage = () => {
 
   useEffect(() => {
     localStorage.setItem('vendor_onboarding_form', JSON.stringify(formData));
-  }, [formData]);
+    localStorage.setItem('vendor_onboarding_step', step.toString());
+  }, [formData, step]);
 
   useEffect(() => {
       const resolveInitialAddress = async () => {
@@ -402,6 +443,8 @@ const RegisterAsVendorPage = () => {
             toast.success('Application submitted for Admin approval! 🎉');
             const updatedUser = { ...storedUser, role: 'Vendor', status: 'pending' };
             localStorage.setItem('user', JSON.stringify(updatedUser));
+            localStorage.removeItem('vendor_onboarding_form');
+            localStorage.removeItem('vendor_onboarding_step');
             navigate('/');
         } else {
             toast.error(result.message || 'Submission failed');
@@ -1159,14 +1202,30 @@ const RegisterAsVendorPage = () => {
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant ml-2">Full Facility Address</label>
                             <FieldHighlight name="businessAddress">
-                                <textarea 
-                                    required
-                                    value={formData.businessAddress}
-                                    onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
-                                    placeholder="ENTER FULL ADDRESS WITH LANDMARK..."
-                                    rows={4}
-                                    className="w-full p-4.5 bg-white border border-outline-variant/10 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase tracking-tight shadow-sm resize-none"
-                                />
+                                {isMapLoaded ? (
+                                    <Autocomplete
+                                        onLoad={ac => setAutocomplete(ac)}
+                                        onPlaceChanged={onPlaceChanged}
+                                    >
+                                        <input 
+                                            required
+                                            type="text"
+                                            value={formData.businessAddress}
+                                            onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+                                            placeholder="SEARCH ADDRESS..."
+                                            className="w-full p-4.5 bg-white border border-outline-variant/10 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase tracking-tight shadow-sm"
+                                        />
+                                    </Autocomplete>
+                                ) : (
+                                    <input 
+                                        required
+                                        type="text"
+                                        value={formData.businessAddress}
+                                        onChange={(e) => setFormData({ ...formData, businessAddress: e.target.value })}
+                                        placeholder="ENTER FULL ADDRESS WITH LANDMARK..."
+                                        className="w-full p-4.5 bg-white border border-outline-variant/10 rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary transition-all uppercase tracking-tight shadow-sm"
+                                    />
+                                )}
                             </FieldHighlight>
                         </div>
 
@@ -1308,6 +1367,20 @@ const RegisterAsVendorPage = () => {
                                 <div className={`space-y-2 p-2 rounded-xl border-2 transition-all ${getFieldStatus('bankDetails') === 'rejected' ? 'border-rose-500 bg-rose-50' : 'border-transparent'}`}>
                                     <input 
                                         disabled={bankVerified}
+                                        value={formData.bankAccountName}
+                                        onChange={(e) => setFormData({ ...formData, bankAccountName: e.target.value })}
+                                        placeholder="ACCOUNT HOLDER NAME"
+                                        className="w-full p-4 bg-white rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase tracking-widest border border-slate-100"
+                                    />
+                                    <input 
+                                        disabled={bankVerified}
+                                        value={formData.bankName}
+                                        onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                                        placeholder="BANK NAME"
+                                        className="w-full p-4 bg-white rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all uppercase tracking-widest border border-slate-100"
+                                    />
+                                    <input 
+                                        disabled={bankVerified}
                                         value={formData.bankAccountNumber}
                                         onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })}
                                         placeholder="ACCOUNT NUMBER"
@@ -1399,7 +1472,7 @@ const RegisterAsVendorPage = () => {
                     </div>
                 </section>
 
-                <div className="fixed bottom-16 left-0 right-0 px-6 py-2 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[40]">
+                <div className="fixed bottom-[80px] left-0 right-0 px-6 py-4 bg-white/80 backdrop-blur-md border-t border-outline-variant/10 z-[50]">
                     <div className="max-w-2xl mx-auto flex gap-4">
                         <button 
                             onClick={() => setStep(3)}

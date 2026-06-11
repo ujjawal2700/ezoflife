@@ -28,7 +28,8 @@ import {
     getCustomerPaymentSummary,
     getVendorPaymentSummary,
     recordVendorPayout,
-    getVendorPayoutHistory
+    getVendorPayoutHistory,
+    getCloudinaryUsage
 } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
 
@@ -39,6 +40,7 @@ router.delete('/services-clear-all', clearAllServices);
 router.get('/config', getSystemConfig);
 router.post('/config', updateSystemConfig);
 router.get('/stats', getDashboardStats);
+router.get('/cloudinary-usage', getCloudinaryUsage);
 router.get('/users', getAllUsers);
 router.patch('/users/:id/toggle-status', toggleUserStatus);
 router.delete('/users/:id', deleteUser);

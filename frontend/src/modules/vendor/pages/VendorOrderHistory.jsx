@@ -34,11 +34,11 @@ const VendorOrderHistory = () => {
     }, [vendorId]);
 
     const activeOrders = useMemo(() => {
-        return orders.filter(o => !['Delivered', 'Cancelled'].includes(o.status));
+        return orders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status));
     }, [orders]);
 
     const completedOrders = useMemo(() => {
-        let list = orders.filter(o => ['Delivered', 'Cancelled'].includes(o.status));
+        let list = orders.filter(o => ['DELIVERED', 'CANCELLED'].includes(o.status));
         if (startDate && endDate) {
             const start = new Date(startDate).setHours(0,0,0,0);
             const end = new Date(endDate).setHours(23,59,59,999);
@@ -52,6 +52,18 @@ const VendorOrderHistory = () => {
         }
         return list;
     }, [orders, startDate, endDate]);
+
+    const getFriendlyStatus = (status) => {
+        if (status === 'ORDER_PLACED') return 'New Order';
+        if (['PICKUP_ASSIGNED', 'PICKUP_IN_PROGRESS'].includes(status)) return 'Awaiting Pickup';
+        if (['COLLECTED', 'TRANSIT_TO_VENDOR'].includes(status)) return 'In Transit';
+        if (status === 'RECEIVED_BY_VENDOR') return 'Sorting';
+        if (status === 'PROCESSING') return 'In Progress';
+        if (status === 'READY_FOR_DISPATCH') return 'Ready to Ship';
+        if (status === 'DELIVERY_IN_PROGRESS') return 'Dispatched';
+        if (status === 'DELIVERED') return 'Completed';
+        return status;
+    };
 
     if (loading) {
         return (
@@ -115,7 +127,7 @@ const VendorOrderHistory = () => {
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <motion.span animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 2, repeat: Infinity }} className="w-2 h-2 rounded-full bg-[#3D5AFE]"></motion.span>
-                                                <span className="text-[#3D5AFE] font-bold text-[10px] tracking-widest uppercase">{order.status}</span>
+                                                <span className="text-[#3D5AFE] font-bold text-[10px] tracking-widest uppercase">{getFriendlyStatus(order.status)}</span>
                                             </div>
                                             <h3 className="text-xl font-bold text-slate-800 tracking-tight">{order.orderId}</h3>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">{new Date(order.createdAt).toLocaleDateString()}</p>
@@ -168,7 +180,7 @@ const VendorOrderHistory = () => {
                                         <div>
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className="material-symbols-outlined text-[18px] text-slate-300">check_circle</span>
-                                                <span className="text-slate-400 font-bold text-[10px] tracking-widest uppercase">{order.status}</span>
+                                                <span className="text-slate-400 font-bold text-[10px] tracking-widest uppercase">{getFriendlyStatus(order.status)}</span>
                                             </div>
                                             <h3 className="text-lg font-bold text-slate-800 tracking-tight">{order.orderId}</h3>
                                             <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mt-1">{new Date(order.createdAt).toLocaleDateString()}</p>

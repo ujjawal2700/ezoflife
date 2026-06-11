@@ -8,6 +8,7 @@ import Payout from '../models/Payout.js';
 import SupplierServiceZone from '../models/SupplierServiceZone.js';
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
+import { v2 as cloudinary } from 'cloudinary';
 
 // Get all roles pending approval
 export const getPendingApprovals = async (req, res) => {
@@ -532,6 +533,17 @@ export const getDashboardStats = async (req, res) => {
     } catch (err) {
         console.error('Get Stats Error:', err);
         res.status(500).json({ message: 'Error fetching statistics' });
+    }
+};
+
+// Get Cloudinary Usage Stats
+export const getCloudinaryUsage = async (req, res) => {
+    try {
+        const usage = await cloudinary.api.usage();
+        res.status(200).json(usage);
+    } catch (err) {
+        console.error('Cloudinary Usage Error:', err);
+        res.status(500).json({ message: 'Error fetching cloudinary usage', error: err.message });
     }
 };
 

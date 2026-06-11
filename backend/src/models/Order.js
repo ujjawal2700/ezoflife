@@ -29,8 +29,19 @@ const orderSchema = new mongoose.Schema({
     ],
     status: {
         type: String,
-        enum: ['Pending', 'Assigned', 'Picked Up', 'In Progress', 'Ready', 'Out for Delivery', 'Payment Pending', 'Delivered', 'Cancelled'],
-        default: 'Pending'
+        enum: [
+            'ORDER_PLACED', 
+            'PICKUP_ASSIGNED', 
+            'RIDER_ARRIVING', 
+            'IN_TRANSIT', 
+            'RECEIVED_BY_VENDOR', 
+            'PROCESSING', 
+            'READY_FOR_DISPATCH', 
+            'OUT_FOR_DELIVERY', 
+            'DELIVERED', 
+            'CANCELLED'
+        ],
+        default: 'ORDER_PLACED'
     },
     pickupSlot: {
         date: { type: String },

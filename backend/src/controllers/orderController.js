@@ -373,7 +373,7 @@ export const createOrder = async (req, res) => {
             const dbSvc = serviceDetailsMap[item.serviceId?.toString()];
             const dbGst = dbSvc ? dbSvc.gst : null;
             const itemTier = dbSvc ? dbSvc.tier : 'Essential';
-            const activeTier = selectedTier || req.body.selectedTier || itemTier || 'Essential';
+            const activeTier = req.body.selectedTier || itemTier || 'Essential';
             
             const itemGstPercent = activeTier === 'Heritage' 
               ? (dbSvc?.heritageGst !== undefined && dbSvc?.heritageGst !== null ? dbSvc.heritageGst : 18)
@@ -412,7 +412,7 @@ export const createOrder = async (req, res) => {
             specialInstructions: specialInstructions || '',
             customerPhotos: customerPhotos || [],
             priceBreakdown: finalPriceBreakdown,
-            status: 'Pending',
+            status: 'ORDER_PLACED',
             pickupExpectedDate: pickupExpectedDate,
             pickupTriggerTime: triggerTime,
             deliveryStatus: 'none',
@@ -502,43 +502,70 @@ export const createOrder = async (req, res) => {
             }
         }
 
+        console.log(`\n\n========================================`);
+        console.log(`🛍️ NEW ORDER CREATED SUCCESSFULLY!`);
+        console.log(`ORDER ID: ${newOrder.orderId}`);
+        console.log(`DB STATUS SAVED AS: ${newOrder.status}`);
+        console.log(`----------------------------------------`);
+        console.log(`CUSTOMER APP VIEW: "Placed"`);
+        console.log(`VENDOR APP VIEW: "New Order"`);
+        console.log(`========================================\n\n`);
+
         res.status(201).json(newOrder);
     } catch (err) {
+        console.error('Create Order Error Details:', err);
         res.status(500).json({ message: 'Error creating order', error: err.message });
     }
 };
 
 export const getMyOrders = async (req, res) => {
     try {
-        const { customerId } = req.query;
+        const { customerId, startDate, endDate, orderType } = req.query;
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
 
         logToFile(`[DEBUG] Fetching orders for CustomerID: ${customerId}. Detecting phone...`);
 
-        // Phase 1: Get the current user to find their phone number
         const currentUser = await User.findById(customerId);
         if (!currentUser) {
             logToFile(`[DEBUG] ERROR: User not found for ID: ${customerId}`);
             return res.status(404).json({ message: 'User not found' });
         }
 
-        if (!currentUser.phone) {
-            logToFile(`[DEBUG] WARNING: User ${customerId} has NO phone number. Fallback to ID search.`);
-            const orders = await Order.find({ customer: customerId }).sort({ createdAt: -1 });
-            return res.status(200).json(orders);
+        let accountIds = [customerId];
+
+        if (currentUser.phone) {
+            logToFile(`[DEBUG] Found phone: ${currentUser.phone} for account ${customerId}`);
+            const last10 = currentUser.phone.slice(-10);
+            const allUserAccounts = await User.find({ phone: new RegExp(last10 + '$') });
+            accountIds = allUserAccounts.map(acc => acc._id);
+            logToFile(`[DEBUG] Cross-account search for ${last10}. Found ${accountIds.length} linked IDs.`);
         }
 
-        logToFile(`[DEBUG] Found phone: ${currentUser.phone} for account ${customerId}`);
+        const query = { customer: { $in: accountIds } };
 
-        // Phase 2: Find ALL user accounts associated with this phone number (normalize to last 10 digits)
-        const last10 = currentUser.phone.slice(-10);
-        const allUserAccounts = await User.find({ phone: new RegExp(last10 + '$') });
-        const accountIds = allUserAccounts.map(acc => acc._id);
+        if (orderType && orderType !== 'all') {
+            if (orderType === 'walk-in') {
+                query.orderType = 'Walk-In'; 
+            } else if (orderType === 'online') {
+                query.$or = [{ orderType: 'Online' }, { orderType: { $exists: false } }, { orderType: null }];
+            }
+        }
 
-        logToFile(`[DEBUG] Cross-account search for ${last10}. Found ${accountIds.length} linked IDs.`);
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) {
+                const start = new Date(startDate);
+                start.setHours(0,0,0,0);
+                query.createdAt.$gte = start;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23,59,59,999);
+                query.createdAt.$lte = end;
+            }
+        }
 
-        // Phase 3: Fetch all orders for those accounts
-        const orders = await Order.find({ customer: { $in: accountIds } })
+        const orders = await Order.find(query)
             .populate('rider', 'displayName phone')
             .populate('vendor', 'shopDetails phone address')
             .sort({ createdAt: -1 });
@@ -575,7 +602,7 @@ export const updateOrderStatus = async (req, res) => {
 
         const updateData = { status };
 
-        if (status === 'Ready') {
+        if (status === 'READY_FOR_DISPATCH') {
             if (order.orderType === 'Walk-In' && !order.riderDropOff) {
                 console.log(`[LOGISTICS] Walk-In Order ${order.orderId} marked as READY (Direct Handover). Skipping rider assignment.`);
                 updateData.deliveryStatus = 'none';
@@ -660,6 +687,48 @@ export const updateOrderStatus = async (req, res) => {
             io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
         }
 
+        // Helper to map DB status to UI terms
+        const getCustomerStatus = (st) => {
+            const map = {
+                'ORDER_PLACED': 'Placed',
+                'PICKUP_ASSIGNED': 'Rider Assigned',
+                'RIDER_ARRIVING': 'Rider Arriving',
+                'IN_TRANSIT': 'In Transit',
+                'RECEIVED_BY_VENDOR': 'Processing',
+                'PROCESSING': 'Processing',
+                'READY_FOR_DISPATCH': 'Ready for Dispatch',
+                'OUT_FOR_DELIVERY': 'Out for Delivery',
+                'DELIVERED': 'Delivered',
+                'CANCELLED': 'Cancelled'
+            };
+            return map[st] || st;
+        };
+
+        const getVendorStatus = (st) => {
+            const map = {
+                'ORDER_PLACED': 'New Order',
+                'PICKUP_ASSIGNED': 'Awaiting Pickup',
+                'RIDER_ARRIVING': 'Awaiting Pickup',
+                'IN_TRANSIT': 'In Transit',
+                'RECEIVED_BY_VENDOR': 'Sorting',
+                'PROCESSING': 'In Progress',
+                'READY_FOR_DISPATCH': 'Ready to Ship',
+                'OUT_FOR_DELIVERY': 'Dispatched',
+                'DELIVERED': 'Completed',
+                'CANCELLED': 'Cancelled'
+            };
+            return map[st] || st;
+        };
+
+        console.log(`\n\n========================================`);
+        console.log(`🔄 ORDER STATUS UPDATED!`);
+        console.log(`ORDER ID: ${updatedOrder.orderId}`);
+        console.log(`DB STATUS NOW: ${updatedOrder.status}`);
+        console.log(`----------------------------------------`);
+        console.log(`CUSTOMER APP VIEW: "${getCustomerStatus(updatedOrder.status)}"`);
+        console.log(`VENDOR APP VIEW: "${getVendorStatus(updatedOrder.status)}"`);
+        console.log(`========================================\n\n`);
+
         res.status(200).json(updatedOrder);
     } catch (err) {
         console.error('Update Status Error:', err);
@@ -700,7 +769,7 @@ export const getPoolOrders = async (req, res) => {
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const expiredResult = await Order.updateMany(
             { 
-                status: 'Pending', 
+                status: 'ORDER_PLACED', 
                 vendor: null, 
                 createdAt: { $lt: oneHourAgo } 
             },
@@ -711,9 +780,9 @@ export const getPoolOrders = async (req, res) => {
             console.log(`🕒 [EXPIRY] Auto-cancelled ${expiredResult.modifiedCount} stale orders in pool.`);
         }
 
-        // Find all active Pending orders (within 1 hour window)
+        // Find all active ORDER_PLACED orders (within 1 hour window)
         const orders = await Order.find({ 
-            status: 'Pending', 
+            status: 'ORDER_PLACED', 
             vendor: null,
             createdAt: { $gte: oneHourAgo }
         }).populate('customer', 'displayName address location');
@@ -772,7 +841,7 @@ export const vendorAcceptOrder = async (req, res) => {
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         const updatedOrder = await Order.findByIdAndUpdate(
             id, 
-            { vendor: vendorId, status: 'Assigned', pickupOtp, pickupStatus: 'scheduled' }, 
+            { vendor: vendorId, status: 'RIDER_ARRIVING', pickupOtp, pickupStatus: 'scheduled' }, 
             { new: true }
         ).populate('customer', 'displayName phone address location');
 
@@ -879,7 +948,7 @@ export const getOrderById = async (req, res) => {
 
         const order = await Order.findOne(query)
             .populate('customer', 'displayName phone address email')
-            .populate('vendor', 'shopDetails phone')
+            .populate('vendor', 'shopDetails phone location address')
             .populate('rider', 'displayName phone');
 
         if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -901,7 +970,7 @@ export const markOrderReady = async (req, res) => {
         const order = await Order.findById(id);
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
-        order.status = 'Ready';
+        order.status = 'READY_FOR_DISPATCH';
         
         let message = 'Order marked as ready. Handover OTP generated for Rider.';
         
@@ -988,7 +1057,7 @@ export const verifyHandshake = async (req, res) => {
 
         // Update Order Status based on Phase
         if (phase === 'Reverse') {
-            order.status = 'Out for Delivery';
+            order.status = 'OUT_FOR_DELIVERY';
             // Generate next phase (Completion) OTP for final delivery to customer
             const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
             order.deliveryOtp = deliveryOtp; 
@@ -1007,7 +1076,7 @@ export const verifyHandshake = async (req, res) => {
         }
 
         if (phase === 'Completion') {
-            order.status = 'Delivered';
+            order.status = 'DELIVERED';
             
             // Emit completion update (not payment trigger)
             const io = getIO();
@@ -1017,7 +1086,7 @@ export const verifyHandshake = async (req, res) => {
                 console.log(`[DEBUG] Notifying customer of delivery in room: ${targetRoom}`);
                 io.to(targetRoom).emit('order_status_update', {
                     ...order.toObject(),
-                    status: 'Delivered',
+                    status: 'DELIVERED',
                     message: 'Items delivered successfully! Please rate your experience.'
                 });
             }
@@ -1156,7 +1225,7 @@ export const createWalkInOrder = async (req, res) => {
                 price: item.price,
                 unit: 'pc'
             })),
-            status: 'In Progress', // Direct to progress
+            status: 'PROCESSING', // Direct to progress
             paymentStatus: 'Paid', // Assuming cash/direct payment for walk-in
             totalAmount,
             orderType: 'Walk-In',
