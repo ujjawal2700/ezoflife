@@ -114,7 +114,7 @@ html {
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-headline tracking-tighter;
+    @apply font-body tracking-tighter;
   }
 
   .material-symbols-outlined {

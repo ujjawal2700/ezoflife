@@ -503,119 +503,117 @@ const OrderDetails = () => {
                     </section>
                 )}
 
+                {/* 5. BOTTOM ACTION & INFORMATION AREA */}
+                <section className="flex flex-col items-center gap-4 mt-2">
+                    {/* Read-Only Statuses */}
+                    {['PICKUP_ASSIGNED', 'RIDER_ARRIVING'].includes(order.status) && (
+                        <div className="bg-slate-900 p-4 rounded-3xl flex items-start gap-3 w-full shadow-sm">
+                            <span className="material-symbols-outlined text-white/50 text-lg mt-0.5 animate-pulse">info</span>
+                            <p className="text-xs font-bold leading-relaxed text-white">
+                                Rider is on the way to pick up the clothes from the customer.
+                            </p>
+                        </div>
+                    )}
+                    {order.status === 'OUT_FOR_DELIVERY' && (
+                        <div className="bg-emerald-950 p-4 rounded-3xl flex items-start gap-3 w-full shadow-sm">
+                            <span className="material-symbols-outlined text-emerald-400 text-lg mt-0.5">info</span>
+                            <p className="text-xs font-bold leading-relaxed text-emerald-50">
+                                Order has been dispatched and handed over to the delivery rider.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Actionable Buttons */}
+                    {['IN_TRANSIT', 'RECEIVED_BY_VENDOR'].includes(order.status) && (
+                        <motion.button 
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                                try {
+                                    await orderApi.updateOrderStatus(order._id, 'PROCESSING');
+                                    window.location.reload();
+                                } catch (err) { alert('Error starting processing'); }
+                            }}
+                            className="bg-black text-white w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-xl shadow-black/20 mt-2"
+                        >
+                            Start Processing
+                            <span className="material-symbols-outlined text-lg">play_circle</span>
+                        </motion.button>
+                    )}
+                    {order.status === 'PROCESSING' && (
+                        <motion.button 
+                            whileTap={{ scale: 0.95 }}
+                            onClick={async () => {
+                                try {
+                                    await orderApi.markOrderReady(order._id);
+                                    window.location.reload();
+                                } catch (err) { alert('Error marking as ready'); }
+                            }}
+                            className="bg-black text-white w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-xl shadow-black/20 mt-2"
+                        >
+                            Mark Order Ready
+                            <span className="material-symbols-outlined text-lg">check_circle</span>
+                        </motion.button>
+                    )}
+                    {order.status === 'READY_FOR_DISPATCH' && (
+                        <div className="w-full flex flex-col items-center mt-2">
+                            {!isHandshakeModalOpen ? (
+                                <motion.button 
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => setIsHandshakeModalOpen(true)}
+                                    className="bg-black text-white w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-xl shadow-black/20"
+                                >
+                                    {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Handover to Customer' : 'Verify & Handover'}
+                                    <span className="material-symbols-outlined text-lg">
+                                        {order.orderType === 'Walk-In' && !order.riderDropOff ? 'handshake' : 'verified_user'}
+                                    </span>
+                                </motion.button>
+                            ) : (
+                                <div className="w-full bg-slate-50 border border-slate-200 rounded-[2rem] p-5 flex flex-col gap-4 shadow-sm">
+                                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight text-center">
+                                        {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Enter Customer OTP' : 'Enter Rider OTP'}
+                                    </p>
+                                    <div className="flex justify-center gap-3">
+                                        {otp.map((digit, index) => (
+                                            <input
+                                                key={index}
+                                                id={`otp-${index}`}
+                                                type="text"
+                                                value={digit}
+                                                autoFocus={index === 0 && !digit}
+                                                onChange={(e) => handleOtpChange(index, e.target.value)}
+                                                className="w-12 h-16 bg-white border-2 border-slate-100 rounded-xl text-center text-2xl font-black focus:border-slate-900 transition-all outline-none"
+                                                maxLength={1}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between gap-3 w-full mt-2">
+                                        <button 
+                                            onClick={() => { setIsHandshakeModalOpen(false); setOtp(['','','','']); }}
+                                            className="flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            onClick={handleVerifyHandshake}
+                                            disabled={verifying || otp.join('').length < 4}
+                                            className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                                                verifying || otp.join('').length < 4 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-900/20'
+                                            }`}
+                                        >
+                                            {verifying ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                                                    Verifying
+                                                </span>
+                                            ) : 'Complete'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </section>
             </main>
-
-            {/* Fixed Bottom Action Bar */}
-            <div className="fixed bottom-0 left-0 right-0 z-[60] bg-white border-t border-slate-100 px-6 pt-4 pb-[100px] flex flex-col items-center">
-                {/* Read-Only Statuses */}
-                {['PICKUP_ASSIGNED', 'RIDER_ARRIVING'].includes(order.status) && (
-                    <div className="bg-slate-900 p-4 rounded-2xl flex items-start gap-3 w-full max-w-xs shadow-lg shadow-slate-900/10">
-                        <span className="material-symbols-outlined text-white/50 text-lg mt-0.5 animate-pulse">info</span>
-                        <p className="text-xs font-bold leading-relaxed text-white">
-                            Rider is on the way to pick up the clothes from the customer.
-                        </p>
-                    </div>
-                )}
-                {order.status === 'OUT_FOR_DELIVERY' && (
-                    <div className="bg-emerald-950 p-4 rounded-2xl flex items-start gap-3 w-full max-w-xs shadow-lg shadow-emerald-900/10">
-                        <span className="material-symbols-outlined text-emerald-400 text-lg mt-0.5">info</span>
-                        <p className="text-xs font-bold leading-relaxed text-emerald-50">
-                            Order has been dispatched and handed over to the delivery rider.
-                        </p>
-                    </div>
-                )}
-
-                {/* Actionable Buttons */}
-                {['IN_TRANSIT', 'RECEIVED_BY_VENDOR'].includes(order.status) && (
-                    <motion.button 
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                            try {
-                                await orderApi.updateOrderStatus(order._id, 'PROCESSING');
-                                window.location.reload();
-                            } catch (err) { alert('Error starting processing'); }
-                        }}
-                        className="bg-black text-white px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-[0.1em] flex items-center gap-3 shadow-xl shadow-black/20"
-                    >
-                        Start Processing
-                        <span className="material-symbols-outlined text-lg">play_circle</span>
-                    </motion.button>
-                )}
-                {order.status === 'PROCESSING' && (
-                    <motion.button 
-                        whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
-                            try {
-                                await orderApi.markOrderReady(order._id);
-                                window.location.reload();
-                            } catch (err) { alert('Error marking as ready'); }
-                        }}
-                        className="bg-black text-white px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-[0.1em] flex items-center gap-3 shadow-xl shadow-black/20"
-                    >
-                        Mark Order Ready
-                        <span className="material-symbols-outlined text-lg">check_circle</span>
-                    </motion.button>
-                )}
-                {order.status === 'READY_FOR_DISPATCH' && (
-                    <div className="w-full max-w-sm flex flex-col items-center">
-                        {!isHandshakeModalOpen ? (
-                            <motion.button 
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => setIsHandshakeModalOpen(true)}
-                                className="bg-black text-white px-8 py-4 rounded-full font-black text-[11px] uppercase tracking-[0.1em] flex items-center gap-3 shadow-xl shadow-black/20"
-                            >
-                                {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Handover to Customer' : 'Verify & Handover'}
-                                <span className="material-symbols-outlined text-lg">
-                                    {order.orderType === 'Walk-In' && !order.riderDropOff ? 'handshake' : 'verified_user'}
-                                </span>
-                            </motion.button>
-                        ) : (
-                            <div className="w-full bg-slate-50 border border-slate-200 rounded-[2rem] p-5 flex flex-col gap-4 shadow-sm">
-                                <p className="text-sm font-black text-slate-900 uppercase tracking-tight text-center">
-                                    {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Enter Customer OTP' : 'Enter Rider OTP'}
-                                </p>
-                                <div className="flex justify-center gap-3">
-                                    {otp.map((digit, index) => (
-                                        <input
-                                            key={index}
-                                            id={`otp-${index}`}
-                                            type="text"
-                                            value={digit}
-                                            autoFocus={index === 0 && !digit}
-                                            onChange={(e) => handleOtpChange(index, e.target.value)}
-                                            className="w-12 h-16 bg-white border-2 border-slate-100 rounded-xl text-center text-2xl font-black focus:border-slate-900 transition-all outline-none"
-                                            maxLength={1}
-                                        />
-                                    ))}
-                                </div>
-                                <div className="flex justify-between gap-3 w-full mt-2">
-                                    <button 
-                                        onClick={() => { setIsHandshakeModalOpen(false); setOtp(['','','','']); }}
-                                        className="flex-1 py-4 rounded-full font-black text-[10px] uppercase tracking-widest bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        onClick={handleVerifyHandshake}
-                                        disabled={verifying || otp.join('').length < 4}
-                                        className={`flex-1 py-4 rounded-full font-black text-[10px] uppercase tracking-widest transition-all ${
-                                            verifying || otp.join('').length < 4 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-900/20'
-                                        }`}
-                                    >
-                                        {verifying ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                                                Verifying
-                                            </span>
-                                        ) : 'Complete'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-            </div>
-
 
             {/* Fullscreen Image Modal */}
             {selectedImage && (
