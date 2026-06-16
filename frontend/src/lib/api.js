@@ -2053,7 +2053,11 @@ export const jobApi = {
             headers: isFormData ? {} : { 'Content-Type': 'application/json' },
             body: isFormData ? data : JSON.stringify(data)
         });
-        return await response.json();
+        const resJson = await response.json();
+        if (!response.ok) {
+            throw new Error(resJson.message || 'Application failed');
+        }
+        return resJson;
     },
     getAdminAll: async () => {
         const response = await fetch(`${BASE_URL}/jobs/admin/all`, {

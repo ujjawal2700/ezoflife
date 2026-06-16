@@ -40,114 +40,125 @@ const PoolOrderCard = ({ order, onAccept, acceptingId }) => {
             exit={{ opacity: 0, scale: 0.9, x: -100 }}
             className="w-[340px] bg-white text-slate-900 rounded-[2rem] p-4 border border-slate-200 shadow-sm shrink-0 flex flex-col gap-3"
         >
-            {/* Row 1: Delivery Mode (Left) | Order ID (Right) */}
+            {/* Row 1: Accept Button (Left) | Order ID (Right) */}
             <div className="flex justify-between items-center">
-                <div className="text-[10px] font-black uppercase tracking-widest text-slate-800">
-                    {order.deliveryMode === 'Express' ? 'EXPRESS' : 'NORMAL'}
-                </div>
-                <span className="text-[10px] font-black bg-black text-white px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
-                    {order.orderId}
-                </span>
-            </div>
-
-            {/* Row 2: Service Tier (Left) | Distance (Right) */}
-            <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 border border-slate-300 px-2 py-0.5 rounded-md">
-                    {order.tier || 'Essential'}
-                </span>
-                <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">explore</span>
-                    {order.distance} KM
-                </span>
-            </div>
-
-            {/* Row 3: Service Names (Left) | Earnings (Right) */}
-            <div className="flex justify-between items-start px-1 border-b border-slate-100 pb-2">
-                <div className="flex-1 flex flex-wrap gap-1">
-                    {order.items?.map((item, idx) => (
-                        <span key={idx} className="text-[10px] font-bold text-slate-700">
-                            {item.name} × {item.quantity}{idx < (order.items?.length || 0) - 1 ? ',' : ''}
-                        </span>
-                    ))}
-                </div>
-                <div className="text-right ml-2">
-                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Rate</p>
-                    <p className="text-lg font-black text-black tracking-tight leading-none mt-0.5">₹{approxEarnings}</p>
-                </div>
-            </div>
-
-            {/* Logistics Breakdown */}
-            <div className="space-y-2.5">
-                {/* Row 4 & 5: Pickup */}
-                <div>
-                    <div className="flex items-start gap-1.5 mb-0.5">
-                        <span className="material-symbols-outlined text-[12px] text-slate-600 mt-0.5">location_on</span>
-                        <p className="text-[10px] font-bold text-slate-800 leading-tight flex-1">
-                            {order.pickupAddress}
-                        </p>
-                    </div>
-                    <div className="flex items-center gap-1.5 pl-4">
-                        <span className="material-symbols-outlined text-[10px] text-slate-500">schedule</span>
-                        <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                            {order.pickupSlot?.date} | {order.pickupSlot?.time}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="border-t border-slate-100 ml-4"></div>
-
-                {/* Row 6: Drop-off */}
-                <div className="flex justify-between items-center pl-4">
-                    <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[12px] text-slate-600">pin_drop</span>
-                        <p className="text-[10px] font-bold text-slate-800">
-                            {isDropoffSame ? 'Same as Pickup' : order.dropAddress?.split(',')[0]}
-                        </p>
-                    </div>
-                    {order.deliverySlot && order.deliverySlot.date && (
-                        <div className="flex items-center gap-1 ml-auto">
-                            <span className="material-symbols-outlined text-[10px] text-slate-500">schedule</span>
-                            <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest text-right">
-                                {order.deliverySlot.date} {order.deliverySlot.time ? `| ${order.deliverySlot.time}` : ''}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Row 7: Images */}
-            {order.customerPhotos && order.customerPhotos.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar pt-2 border-t border-slate-100">
-                    {order.customerPhotos.map((img, idx) => (
-                        <img 
-                            key={idx} 
-                            src={img.url || img} 
-                            alt={`Item ${idx}`}
-                            className="w-10 h-10 object-cover rounded-md border border-slate-300 shadow-sm"
-                        />
-                    ))}
-                </div>
-            )}
-
-            {/* Row 8: Action Button */}
-            <div className="flex justify-end pt-2 mt-auto">
                 <button 
                     onClick={() => onAccept(order._id)}
                     disabled={acceptingId === order._id}
-                    className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${
+                    className={`px-5 py-2.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${
                         acceptingId === order._id ? 'bg-slate-200 text-slate-500' : 'bg-black text-white hover:bg-slate-800 shadow-md'
                     }`}
                 >
                     {acceptingId === order._id ? (
                         <>
-                            <span className="material-symbols-outlined text-[12px] animate-spin">refresh</span>
+                            <span className="material-symbols-outlined text-[10px] animate-spin">refresh</span>
                             Processing
                         </>
                     ) : (
                         'Accept'
                     )}
                 </button>
+                <span className="text-[10px] font-black bg-black text-white px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                    {order.orderId}
+                </span>
             </div>
+
+            {/* Concise Order Summary Box in Dark Theme (no address tags, only times & rate) */}
+            <div className="bg-slate-950 text-white rounded-[1.8rem] p-4.5 shadow-xl relative overflow-hidden group border border-white/5">
+                <div className="absolute right-0 top-0 p-4 opacity-[0.03] rotate-12 pointer-events-none">
+                    <span className="material-symbols-outlined text-[60px]">receipt_long</span>
+                </div>
+                
+                <div className="grid grid-cols-[1.1fr_1.4fr] gap-3.5 relative z-10">
+                  {/* Left Side: Tier & Mode */}
+                  <div className="space-y-3.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60 text-[12px]">workspace_premium</span>
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Tier</p>
+                        <p className="text-[10px] font-black text-white uppercase">{order.tier || 'Essential'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-white/60 text-[12px]">bolt</span>
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Delivery Mode</p>
+                        <p className="text-[10px] font-black text-white uppercase">{order.deliveryMode || 'Normal'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Side: Pickup, Drop & Price */}
+                  <div className="space-y-3.5 flex flex-col justify-between">
+                    <div className="space-y-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1.5 whitespace-nowrap">Pickup Time</p>
+                          <p className="text-[9px] font-black text-white uppercase truncate mt-0.5">
+                            {order.pickupSlot?.time || '07:00 AM - 09:00 AM'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-white/60 text-[12px]">local_shipping</span>
+                        </div>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1.5 whitespace-nowrap">Dropoff Time</p>
+                          <p className="text-[9px] font-black text-white uppercase truncate mt-0.5">
+                            {order.deliverySlot?.time || order.pickupSlot?.time || '07:00 AM - 09:00 AM'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Price in the right corner, large font size, no icon/label */}
+                    <div className="flex justify-end items-end mt-auto">
+                      <span className="text-[18px] font-black text-white tracking-tight">₹{order.totalAmount}</span>
+                    </div>
+                  </div>
+                </div>
+            </div>
+
+            {/* Article Details with Service Name & Images vertically stacked */}
+            <div className="border-t border-slate-100 pt-3.5 px-1 space-y-4">
+                <p className="text-[8px] font-black text-slate-900 uppercase tracking-[0.2em] text-left mb-1">Article Details</p>
+                <div className="space-y-4 text-left">
+                    {order.items?.map((item, idx) => {
+                        const itemImg = (order.customerPhotos && order.customerPhotos[idx]) || 
+                                        (order.customerPhotos && order.customerPhotos[0]) || 
+                                        (item.photos && item.photos[0]);
+                        return (
+                            <div key={idx} className="space-y-2">
+                                {/* Service Name & Qty */}
+                                <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                                    <p className="text-[9.5px] font-black text-slate-800 uppercase tracking-wide leading-none">{item.name}</p>
+                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest bg-slate-200/60 px-2.5 py-1 rounded-md">QTY: {item.quantity}</span>
+                                </div>
+                                {/* Service Image */}
+                                <div className="w-full h-32 rounded-2xl bg-slate-50/50 border border-slate-200/40 flex items-center justify-center text-slate-300 overflow-hidden shadow-inner">
+                                    {itemImg ? (
+                                        <img src={itemImg.url || itemImg} alt={item.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-1 opacity-40">
+                                            <span className="material-symbols-outlined text-3xl">dry_cleaning</span>
+                                            <span className="text-[8px] font-bold uppercase tracking-widest">No Image Uploaded</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+
         </motion.div>
     );
 };
@@ -573,7 +584,7 @@ const Dashboard = () => {
                                         { label: 'Total Payouts received', value: `₹${totalPayoutsReceivedYesterday.toLocaleString()}` },
                                         { label: 'Ready for delivery', value: readyForDeliveryCount },
                                     ].map((stat, idx) => (
-                                        <div key={idx} className={`flex items-center justify-between p-1.5 px-2 rounded-xl border min-h-[36px] transition-colors ${stat.highlight ? 'bg-red-500/20 border-red-500/50 hover:bg-red-500/30' : 'bg-neutral-900/60 border-neutral-800/40 hover:bg-neutral-800/50'}`}>
+                                        <div key={idx} className={`flex items-center justify-between p-1.5 px-2 rounded-xl border min-h-[36px] transition-colors ${stat.highlight ? 'bg-red-500/20 border-red-500/50 hover:bg-red-500/30 animate-pulse' : 'bg-neutral-900/60 border-neutral-800/40 hover:bg-neutral-800/50'}`}>
                                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                                                 <span className={`text-[8px] font-black uppercase tracking-tight leading-tight line-clamp-2 ${stat.highlight ? 'text-red-400' : 'text-neutral-300'}`}>
                                                     {stat.label}
@@ -739,28 +750,28 @@ const Dashboard = () => {
                                                         initial={{ opacity: 0, y: 10 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         exit={{ opacity: 0, scale: 0.95 }}
-                                                        className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm space-y-3 relative overflow-hidden group"
+                                                        className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm space-y-2 relative overflow-hidden group"
                                                     >
                                                         {/* Order ID */}
-                                                        <div className={`flex items-center ${activeTab !== 'Completed' ? 'justify-start' : 'justify-end'}`}>
-                                                            <span className="bg-slate-900 text-white px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                                                #{order.orderId}
+                                                        <div className="flex justify-start items-center">
+                                                            <span className="bg-slate-900 text-white px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                                {order.orderId?.startsWith('#') ? order.orderId : `#${order.orderId}`}
                                                             </span>
                                                         </div>
 
                                                         {/* Order Received Date & Time */}
-                                                        <div className="flex items-center justify-between mt-2">
+                                                        <div className="flex items-center justify-between mt-1">
                                                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date & Time Received</span>
-                                                            <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 flex items-center gap-1.5">
+                                                            <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 flex items-center gap-1.5">
                                                                 <span className="material-symbols-outlined text-[10px] text-slate-400">schedule</span>
                                                                 {new Date(order.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                             </span>
                                                         </div>
 
-                                                        {/* Elapsed Time */}
+                                                        {/* Time Elapsed */}
                                                         <div className="flex items-center justify-between mt-1">
-                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time Elapsed</span>
-                                                            <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 flex items-center gap-1.5">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time for Delivery</span>
+                                                            <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 flex items-center gap-1.5">
                                                                 <span className="material-symbols-outlined text-[10px] text-slate-400">timer</span>
                                                                 {(() => {
                                                                     const end = order.status === 'DELIVERED' || order.status === 'READY_FOR_DISPATCH' ? new Date(order.updatedAt) : new Date();
@@ -775,7 +786,7 @@ const Dashboard = () => {
                                                         {/* Total Amount (Right Aligned for Completed Tab only) */}
                                                         {activeTab === 'Completed' && (
                                                             <div className="flex items-center justify-end mt-1">
-                                                                <span className="text-[12px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-100">
+                                                                <span className="text-[12px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                                                                     ₹{order.totalAmount || 0}
                                                                 </span>
                                                             </div>
@@ -783,14 +794,13 @@ const Dashboard = () => {
 
                                                         {/* Actions for Completed Tab */}
                                                         {activeTab === 'Completed' && (
-                                                            <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100">
+                                                            <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-slate-100">
                                                                 <button 
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        // Future: handle invoice download
                                                                         alert('Invoice will be downloaded shortly.');
                                                                     }}
-                                                                    className="w-full py-2 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                                                                    className="w-full py-1.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
                                                                 >
                                                                     <span className="material-symbols-outlined text-[14px]">download</span>
                                                                     Download Invoice
@@ -801,7 +811,7 @@ const Dashboard = () => {
                                                                         e.stopPropagation();
                                                                         setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
                                                                     }}
-                                                                    className="w-full py-2 bg-white text-black border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                                                    className="w-full py-1.5 bg-white text-black border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
                                                                 >
                                                                     <span className="material-symbols-outlined text-[14px] transition-transform duration-300" style={{ transform: expandedOrderId === order._id ? 'rotate(180deg)' : 'none' }}>expand_more</span>
                                                                     Article Detail
@@ -815,11 +825,11 @@ const Dashboard = () => {
                                                                 initial={{ height: 0, opacity: 0 }}
                                                                 animate={{ height: 'auto', opacity: 1 }}
                                                                 exit={{ height: 0, opacity: 0 }}
-                                                                className="overflow-hidden mt-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2"
+                                                                className="overflow-hidden mt-1.5 bg-slate-50 p-2 rounded-2xl border border-slate-100 space-y-1.5"
                                                             >
-                                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Services / Items</p>
+                                                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Services / Items</p>
                                                                 {order.items?.map((item, idx) => (
-                                                                    <div key={idx} className="flex items-center justify-between py-1.5 border-b border-slate-200/50 last:border-0">
+                                                                    <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-200/50 last:border-0">
                                                                         <div className="flex flex-col">
                                                                             <span className="text-[10px] font-bold text-slate-800">{item.name}</span>
                                                                         </div>
@@ -831,13 +841,13 @@ const Dashboard = () => {
 
                                                         {/* Bottom Row for In Progress Tab: Amount & More Button */}
                                                         {activeTab !== 'Completed' && (
-                                                            <div className="flex items-center justify-between pt-2 mt-1 border-t border-slate-50">
-                                                                <span className="text-[13px] font-black text-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                                            <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-slate-50">
+                                                                <span className="text-[12px] font-black text-slate-900 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">
                                                                     ₹{order.totalAmount || 0}
                                                                 </span>
                                                                 <button 
                                                                     onClick={() => navigate(`/vendor/order/${order._id}`)}
-                                                                    className="px-5 py-2 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md shadow-slate-900/20"
+                                                                    className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md shadow-slate-900/20"
                                                                 >
                                                                     More
                                                                 </button>

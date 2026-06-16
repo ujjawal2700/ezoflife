@@ -11,6 +11,8 @@ const HelpCenterPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedId, setExpandedId] = useState(null);
     const [showContactModal, setShowContactModal] = useState(false);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const dropdownRef = useRef(null);
     
     // User Data for Auto-fill
     const userData = JSON.parse(
@@ -44,6 +46,16 @@ const HelpCenterPage = () => {
         attachments: []
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         const fetchFaqs = async () => {
@@ -362,17 +374,48 @@ const HelpCenterPage = () => {
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Subject</label>
-                                    <select 
-                                        value={ticketData.category}
-                                        onChange={(e) => setTicketData({ ...ticketData, category: e.target.value })}
-                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-900/5 outline-none appearance-none"
-                                    >
-                                        <option value="Technical Issue">Technical Issue</option>
-                                        <option value="Billing & Payments">Billing & Payments</option>
-                                        <option value="Onboarding Help">Onboarding Help</option>
-                                        <option value="Service Quality">Service Quality</option>
-                                        <option value="Others">Others</option>
-                                    </select>
+                                    <div className="relative" ref={dropdownRef}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowDropdown(!showDropdown)}
+                                            className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold flex items-center justify-between focus:ring-2 focus:ring-slate-900/5 outline-none text-left"
+                                        >
+                                            <span className="text-slate-900">{ticketData.category}</span>
+                                            <span className={`material-symbols-outlined text-slate-400 transition-transform duration-300 ${showDropdown ? 'rotate-180' : ''}`}>
+                                                expand_more
+                                            </span>
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {showDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute left-0 right-0 mt-2 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden z-[110]"
+                                                >
+                                                    {['Technical Issue', 'Billing & Payments', 'Onboarding Help', 'Service Quality', 'Others'].map((opt) => (
+                                                        <button
+                                                            key={opt}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setTicketData({ ...ticketData, category: opt });
+                                                                setShowDropdown(false);
+                                                            }}
+                                                            className={`w-full text-left px-5 py-3.5 text-sm font-semibold transition-all hover:bg-slate-50 flex items-center justify-between ${
+                                                                ticketData.category === opt ? 'bg-slate-50/80 text-slate-950 font-black' : 'text-slate-600'
+                                                            }`}
+                                                        >
+                                                            <span>{opt}</span>
+                                                            {ticketData.category === opt && (
+                                                                <span className="material-symbols-outlined text-[14px] text-slate-900 font-black">check</span>
+                                                            )}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">

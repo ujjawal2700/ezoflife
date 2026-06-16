@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { orderApi, adminApi } from '../../../lib/api';
+import socket from '../../../lib/socket';
 
 const OrdersHistoryPage = () => {
   const navigate = useNavigate();
@@ -78,6 +79,31 @@ const OrdersHistoryPage = () => {
     }
     fetchOrders();
   }, [userId, startDate, endDate, orderTypeFilter]);
+
+  useEffect(() => {
+    const handleOrderStatusUpdate = (updatedOrder) => {
+      console.log('🔌 [SOCKET] Received order status update in history:', updatedOrder);
+      if (!updatedOrder || !updatedOrder._id) return;
+      
+      setOrders((prevOrders) => {
+        return prevOrders.map((o) => {
+          if (o._id === updatedOrder._id || o.id === updatedOrder._id) {
+            return {
+              ...o,
+              ...updatedOrder
+            };
+          }
+          return o;
+        });
+      });
+    };
+
+    socket.on('order_status_update', handleOrderStatusUpdate);
+
+    return () => {
+      socket.off('order_status_update', handleOrderStatusUpdate);
+    };
+  }, []);
 
   const activeOrders = useMemo(() => 
     orders.filter(o => !['DELIVERED', 'CANCELLED'].includes(o.status)), 
@@ -434,27 +460,7 @@ const OrdersHistoryPage = () => {
                     >
                       <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
                         <h3 className="text-lg font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                        <div className="flex items-center gap-2">
-                          {order.status && !['PROCESSING', 'ORDER_PLACED', 'Payment Pending'].includes(order.status) && (
-                            <span className="text-primary font-black text-[7px] tracking-[0.2em] uppercase bg-primary/5 px-2 py-1 rounded-full">
-                                {
-                                    {
-                                        'ORDER_PLACED': 'Placed',
-                                        'PICKUP_ASSIGNED': 'Rider Assigned',
-                                        'RIDER_ARRIVING': 'Rider Arriving',
-                                        'IN_TRANSIT': 'In Transit',
-                                        'RECEIVED_BY_VENDOR': 'In Transit',
-                                        'PROCESSING': 'Processing',
-                                        'READY_FOR_DISPATCH': 'Ready for Dispatch',
-                                        'OUT_FOR_DELIVERY': 'Out for Delivery',
-                                        'DELIVERED': 'Delivered',
-                                        'CANCELLED': 'Cancelled'
-                                    }[order.status] || order.status
-                                }
-                            </span>
-                          )}
-                          <p className="text-lg font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
-                        </div>
+                        <p className="text-lg font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
                       </div>
 
                       <div className="flex items-center justify-between gap-4 mb-5">
@@ -469,23 +475,24 @@ const OrdersHistoryPage = () => {
                       </div>
 
                       <div className="mb-5 px-1 relative">
-                        <div className="flex justify-between text-[6px] text-slate-400 font-black uppercase tracking-widest mb-1.5 px-0.5">
-                          <span className="text-primary">Order Placed</span>
-                          <span className={['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Rider / Picked</span>
+                        <div className="flex justify-between text-[5.5px] text-slate-400 font-black uppercase tracking-widest mb-1.5 px-0.5">
+                          <span className="text-primary">Placed</span>
+                          <span className={['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Rider Assigned</span>
+                          <span className={['IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>In Transit</span>
                           <span className={['PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Processing</span>
-                          <span className={['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Delivery</span>
+                          <span className={['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Out for Delivery</span>
                         </div>
                         <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <motion.div 
                             initial={{ width: 0 }}
                             animate={{ width: 
-                                order.status === 'PICKUP_ASSIGNED' ? '30%' : 
-                                order.status === 'RIDER_ARRIVING' ? '45%' :
-                                ['IN_TRANSIT', 'RECEIVED_BY_VENDOR'].includes(order.status) ? '60%' :
+                                order.status === 'PICKUP_ASSIGNED' ? '25%' : 
+                                order.status === 'RIDER_ARRIVING' ? '37.5%' :
+                                order.status === 'IN_TRANSIT' ? '50%' :
+                                order.status === 'RECEIVED_BY_VENDOR' ? '62.5%' :
                                 order.status === 'PROCESSING' ? '75%' : 
-                                order.status === 'READY_FOR_DISPATCH' ? '85%' :
-                                order.status === 'OUT_FOR_DELIVERY' ? '95%' : 
-                                order.status === 'DELIVERED' ? '100%' : '15%'
+                                order.status === 'READY_FOR_DISPATCH' ? '87.5%' :
+                                ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? '100%' : '10%'
                             }}
                             className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-1000" 
                           />
@@ -656,7 +663,7 @@ const OrdersHistoryPage = () => {
                         <summary className="list-none p-3 cursor-pointer flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-[12px] text-slate-400">inventory_2</span>
-                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none">Items</p>
+                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none">Articles</p>
                           </div>
                           <span className="material-symbols-outlined text-slate-400 text-[10px] group-open:rotate-180 transition-transform">expand_more</span>
                         </summary>

@@ -8,6 +8,30 @@ import { locationService } from '../../../lib/locationService';
 
 const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places', 'geometry'];
 
+const getAvailableDates = () => {
+    const dates = [];
+    const now = new Date();
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() + i);
+        let dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+        if (i === 0) dayLabel = 'TODAY';
+        if (i === 1) dayLabel = 'TOMORROW';
+        dates.push({
+            day: dayLabel,
+            date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            raw: d
+        });
+    }
+    return dates;
+};
+
+const WALK_IN_TIME_SLOTS = [
+    '07:00 AM - 09:00 AM', '09:00 AM - 11:00 AM', '11:00 AM - 01:00 PM',
+    '01:00 PM - 03:00 PM', '03:00 PM - 05:00 PM', '05:00 PM - 07:00 PM',
+    '07:00 PM - 09:00 PM', '08:00 PM - 10:00 PM'
+];
+
 const getTomorrowDateString = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -96,8 +120,89 @@ const WalkInOrderPage = () => {
     });
 
     // Delivery date and time custom states
-    const [deliveryDate, setDeliveryDate] = useState(getTomorrowDateString());
-    const [deliveryTimeVal, setDeliveryTimeVal] = useState('18:00');
+    const availableDates = useMemo(() => getAvailableDates(), []);
+    const [selectedPickupDate, setSelectedPickupDate] = useState(() => {
+        return `${availableDates[0].day}, ${availableDates[0].date}`;
+    });
+    const [selectedPickupTime, setSelectedPickupTime] = useState(() => {
+        const validSlots = WALK_IN_TIME_SLOTS.filter(slot => {
+            const [timePart] = slot.split(' - ');
+            const [time, modifier] = timePart.split(' ');
+            let [hours] = time.split(':');
+            let h = parseInt(hours, 10);
+            if (h === 12) h = 0;
+            if (modifier === 'PM') h += 12;
+            const now = new Date();
+            const slotTime = new Date();
+            slotTime.setHours(h, 0, 0, 0);
+            return slotTime > new Date(now.getTime() + 60 * 60 * 1000);
+        });
+        return validSlots.length > 0 ? validSlots[0] : WALK_IN_TIME_SLOTS[WALK_IN_TIME_SLOTS.length - 1];
+    });
+    const [selectedDeliveryDate, setSelectedDeliveryDate] = useState(() => {
+        return `${availableDates[3].day}, ${availableDates[3].date}`;
+    });
+    const [selectedDeliveryTimeSlot, setSelectedDeliveryTimeSlot] = useState('06:00 PM - 08:00 PM');
+    const [openDropdown, setOpenDropdown] = useState(null);
+
+    const getSlotDateTime = (dateStr, timeStr) => {
+        if (!dateStr || !timeStr) return null;
+        let d;
+        const parts = dateStr.split(', ');
+        const datePart = parts[parts.length - 1];
+        const foundDate = availableDates.find(ad => ad.date === datePart);
+        if (foundDate) {
+            d = new Date(foundDate.raw);
+        } else {
+            d = new Date(datePart);
+        }
+        const [timeRange] = timeStr.split(' - ');
+        const [time, modifier] = timeRange.split(' ');
+        let [hours, minutes] = time.split(':');
+        let h = parseInt(hours, 10);
+        if (h === 12) h = 0;
+        if (modifier === 'PM') h += 12;
+        d.setHours(h, parseInt(minutes, 10), 0, 0);
+        return d;
+    };
+
+    useEffect(() => {
+        if (selectedDeliveryDate && selectedDeliveryTimeSlot) {
+            setDeliveryTime(`${selectedDeliveryDate}, ${selectedDeliveryTimeSlot}`);
+        }
+    }, [selectedDeliveryDate, selectedDeliveryTimeSlot]);
+
+    const maxServiceTime = useMemo(() => {
+        if (items.length === 0) return 1;
+        return items.reduce((max, item) => Math.max(max, item.completionTime || 1), 1);
+    }, [items]);
+
+    useEffect(() => {
+        if (selectedPickupDate && selectedPickupTime && selectedDeliveryDate && selectedDeliveryTimeSlot) {
+            const pDT = getSlotDateTime(selectedPickupDate, selectedPickupTime);
+            const dDT = getSlotDateTime(selectedDeliveryDate, selectedDeliveryTimeSlot);
+            if (pDT && dDT) {
+                const diffH = (dDT - pDT) / (1000 * 60 * 60);
+                const minH = isExpress ? 24 : (maxServiceTime * 24);
+                if (diffH < minH) {
+                    let foundValid = false;
+                    for (const d of availableDates) {
+                        const dateStr = `${d.day}, ${d.date}`;
+                        for (const slot of WALK_IN_TIME_SLOTS) {
+                            const candidateDT = getSlotDateTime(dateStr, slot);
+                            if (candidateDT && (candidateDT - pDT) / (1000 * 60 * 60) >= minH) {
+                                setSelectedDeliveryDate(dateStr);
+                                setSelectedDeliveryTimeSlot(slot);
+                                foundValid = true;
+                                break;
+                            }
+                        }
+                        if (foundValid) break;
+                    }
+                }
+            }
+        }
+    }, [selectedPickupDate, selectedPickupTime, isExpress, maxServiceTime, availableDates]);
 
     // Manual Quantity Input states
     const [manualQtyService, setManualQtyService] = useState(null);
@@ -117,48 +222,7 @@ const WalkInOrderPage = () => {
         );
     }, [addressDetails]);
 
-    useEffect(() => {
-        if (deliveryDate && deliveryTimeVal) {
-            const dateObj = new Date(`${deliveryDate}T${deliveryTimeVal}`);
-            if (!isNaN(dateObj.getTime())) {
-                const formattedDate = dateObj.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric'
-                });
-                const formattedTime = dateObj.toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                });
-                setDeliveryTime(`${formattedDate}, ${formattedTime}`);
-            } else {
-                setDeliveryTime(`${deliveryDate} ${deliveryTimeVal}`);
-            }
-        }
-    }, [deliveryDate, deliveryTimeVal]);
 
-    const selectPreset = (preset) => {
-        const today = new Date();
-        if (preset === 'today') {
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            setDeliveryDate(`${yyyy}-${mm}-${dd}`);
-            setDeliveryTimeVal('20:00');
-        } else if (preset === 'tomorrow') {
-            setDeliveryDate(getTomorrowDateString());
-            setDeliveryTimeVal('18:00');
-        } else if (preset === '2days') {
-            const in2Days = new Date();
-            in2Days.setDate(in2Days.getDate() + 2);
-            const yyyy = in2Days.getFullYear();
-            const mm = String(in2Days.getMonth() + 1).padStart(2, '0');
-            const dd = String(in2Days.getDate()).padStart(2, '0');
-            setDeliveryDate(`${yyyy}-${mm}-${dd}`);
-            setDeliveryTimeVal('18:00');
-        }
-    };
 
     const mapRef = useRef(null);
 
@@ -247,7 +311,8 @@ const WalkInOrderPage = () => {
                     basePrice: master?.basePrice || s.basePrice || s.vendorRate || 0,
                     mainCategory: master?.categoryId?.mainCategory || 'Dry Cleaning',
                     subCategory: master?.categoryId?.subCategory || 'General',
-                    tier: s.tier || master?.tier || master?.categoryId?.tier || 'Essential'
+                    tier: s.tier || master?.tier || master?.categoryId?.tier || 'Essential',
+                    completionTime: s.completionTime || master?.completionTime || 1
                 });
             });
 
@@ -266,7 +331,8 @@ const WalkInOrderPage = () => {
                     basePrice: master?.basePrice || s.basePrice || 0,
                     mainCategory: s.category || master?.categoryId?.mainCategory || 'Custom',
                     subCategory: master?.categoryId?.subCategory || 'General',
-                    tier: s.tier || master?.tier || master?.categoryId?.tier || 'Essential'
+                    tier: s.tier || master?.tier || master?.categoryId?.tier || 'Essential',
+                    completionTime: s.completionTime || master?.completionTime || 1
                 });
             });
 
@@ -302,7 +368,8 @@ const WalkInOrderPage = () => {
                     icon: s.icon || 'local_laundry_service',
                     category: s.mainCategory || 'Custom',
                     subCategory: s.subCategory || 'General',
-                    tier: serviceTier
+                    tier: serviceTier,
+                    completionTime: s.completionTime || 1
                 };
             });
     }, [liveServices, selectedTier, heritageMultiplier, isExpress, expressMultiplier, pricingFactor]);
@@ -547,6 +614,7 @@ const WalkInOrderPage = () => {
                         }
 
                         setSavedCustomerAddress({
+                            type: lookupRes.type || 'Home',
                             flatNo: cFlatNo,
                             street: cStreet,
                             city: cCity,
@@ -554,6 +622,17 @@ const WalkInOrderPage = () => {
                             pincode: cPincode,
                             lat: lookupRes.lat,
                             lng: lookupRes.lng
+                        });
+                        setEnableDelivery(true);
+                        setAddressDetails({
+                            type: lookupRes.type ? lookupRes.type.toUpperCase() : 'HOME',
+                            flatNo: cFlatNo || '',
+                            street: cStreet || '',
+                            city: cCity || '',
+                            state: cState || '',
+                            pincode: cPincode || '',
+                            lat: lookupRes.lat || 22.7196,
+                            lng: lookupRes.lng || 75.8577
                         });
                         toast.success(`Welcome back, ${dispName || 'Customer'}!`);
                     } else if (lookupRes && lookupRes.displayName) {
@@ -566,7 +645,13 @@ const WalkInOrderPage = () => {
                         setSavedCustomerAddress(null);
                     }
                 } catch (err) {
-                    console.log('Customer not previously registered under this phone.');
+                    console.error('Lookup Phone Error:', err);
+                    if (err.message && (err.message.includes('registered as a') || err.message.includes('Only Customer'))) {
+                        toast.error(err.message);
+                        setCustomerPhone('');
+                    } else {
+                        console.log('Customer not previously registered under this phone.');
+                    }
                     setTempName('');
                     setIsVerified(false);
                     setSavedCustomerAddress(null);
@@ -710,6 +795,7 @@ const WalkInOrderPage = () => {
                     subCategory: service.subCategory,
                     id: Date.now(),
                     quantity: 1,
+                    completionTime: service.completionTime || 1,
                     tag: `T-${Math.floor(1000 + Math.random() * 9000)}`
                 };
                 setItems([...currentItems, newItem]);
@@ -764,6 +850,7 @@ const WalkInOrderPage = () => {
                 subCategory: service.subCategory,
                 id: Date.now(),
                 quantity: newQty,
+                completionTime: service.completionTime || 1,
                 tag: `T-${Math.floor(1000 + Math.random() * 9000)}`
             };
             setItems([...currentItems, newItem]);
@@ -1126,120 +1213,145 @@ const WalkInOrderPage = () => {
                         </div>
                     </div>
 
-                    {/* Drop-off Delivery Toggle */}
-                    <div className={`flex items-center justify-between bg-slate-50 p-4 border border-slate-200/60 rounded-xl transition-all duration-300 ${customerPhone.length !== 10 || tempName.trim().length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
-                        <div className="space-y-0.5">
-                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Drop-off Delivery</span>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Enable rider courier delivery to customer address</p>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                if (!enableDelivery) {
-                                    setEnableDelivery(true);
-                                    if (savedCustomerAddress && (savedCustomerAddress.street || savedCustomerAddress.flatNo)) {
-                                        setAddressDetails(prev => ({
-                                            ...prev,
-                                            flatNo: savedCustomerAddress.flatNo || '',
-                                            street: savedCustomerAddress.street || '',
-                                            city: savedCustomerAddress.city || '',
-                                            state: savedCustomerAddress.state || '',
-                                            pincode: savedCustomerAddress.pincode || '',
-                                            lat: savedCustomerAddress.lat || 22.7196,
-                                            lng: savedCustomerAddress.lng || 75.8577
-                                        }));
-                                        toast.success("Delivery address auto-filled from customer profile!");
-                                    } else {
-                                        setShowLocateModal(true);
-                                    }
-                                } else {
-                                    setEnableDelivery(false);
-                                }
-                            }}
-                            className={`w-12 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 border ${
-                                enableDelivery ? 'bg-slate-950 border-slate-950 justify-end' : 'bg-slate-200 border-slate-300 justify-start'
-                            }`}
+                    {/* Send Verification OTP button */}
+                    {customerPhone.length === 10 && tempName.trim() && !isVerified && !showOtpField && (
+                        <motion.button
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleSendOtpInline}
+                            disabled={isSendingOtp}
+                            className="w-fit mx-auto px-8 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
                         >
-                            <motion.div 
-                                layout 
-                                className="w-4 h-4 bg-white rounded-full"
-                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            />
-                        </button>
-                    </div>
+                            {isSendingOtp ? (
+                                <motion.span 
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                    className="material-symbols-outlined text-[14px]"
+                                >
+                                    autorenew
+                                </motion.span>
+                            ) : (
+                                <>
+                                    <span className="material-symbols-outlined text-sm">sms</span>
+                                    <span>Send OTP</span>
+                                </>
+                            )}
+                        </motion.button>
+                    )}
 
-                    {/* Delivery Address Summary */}
-                    {enableDelivery && (
-                        <motion.div
+                    {/* Inline OTP Input Field */}
+                    {showOtpField && !isVerified && (
+                        <motion.div 
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-slate-50 border border-slate-200 p-4 space-y-4 rounded-3xl"
+                            className="bg-white rounded-3xl p-3 border border-slate-200 shadow-sm w-fit mx-auto"
                         >
-                            <div className="flex items-center justify-between">
-                                <div className="flex flex-col">
-                                    <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Delivery Address</span>
-                                    <span className="text-[10px] font-bold text-slate-500 mt-1">
-                                        {isAddressComplete ? `${addressDetails.flatNo}, ${addressDetails.street}` : 'Please provide location details'}
-                                    </span>
+                            <div className="flex gap-2 items-center">
+                                <input 
+                                    type="text"
+                                    placeholder="ENTER OTP"
+                                    value={otpValue}
+                                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    className="w-[140px] px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold text-slate-900 text-center tracking-[0.5em] placeholder:tracking-widest focus:bg-white border-2 border-transparent focus:border-slate-100 transition-all outline-none uppercase"
+                                />
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={handleVerifyOtpInline}
+                                    disabled={isVerifyingOtp}
+                                    className="px-5 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-md flex items-center justify-center hover:bg-slate-800 transition-colors"
+                                >
+                                    {isVerifyingOtp ? (
+                                        <motion.span 
+                                            animate={{ rotate: 360 }}
+                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                            className="material-symbols-outlined text-[14px]"
+                                        >
+                                            autorenew
+                                        </motion.span>
+                                    ) : (
+                                        'Verify'
+                                    )}
+                                </motion.button>
+                                <button 
+                                    onClick={handleSendOtpInline}
+                                    className="text-slate-400 hover:text-slate-900 transition-colors p-2 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center"
+                                    title="Resend OTP"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">refresh</span>
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Verified Customer Status */}
+                    {isVerified && (
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex items-center justify-between bg-emerald-50 border border-emerald-100 text-emerald-800 px-4 py-3 rounded-none text-xs font-bold"
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
+                                <span>Customer Verified: <strong>{customerName}</strong></span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setCustomerPhone('');
+                                    setTempName('');
+                                }}
+                                className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700"
+                            >
+                                Reset
+                            </button>
+                        </motion.div>
+                    )}
+
+                    {/* Drop-off Delivery Toggle */}
+                    {isVerified && (
+                        <>
+                            <div className="flex items-center justify-between bg-slate-50 p-4 border border-slate-200/60 rounded-xl transition-all duration-300">
+                                <div className="space-y-0.5">
+                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Drop-off Delivery</span>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Enable rider courier delivery to customer address</p>
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => setShowLocateModal(true)}
-                                    className="w-8 h-8 bg-slate-200 text-slate-900 rounded-full hover:bg-slate-300 transition-colors flex items-center justify-center"
+                                    onClick={() => {
+                                        if (!enableDelivery) {
+                                            setEnableDelivery(true);
+                                            if (savedCustomerAddress && (savedCustomerAddress.street || savedCustomerAddress.flatNo)) {
+                                                setAddressDetails(prev => ({
+                                                    ...prev,
+                                                    type: savedCustomerAddress.type ? savedCustomerAddress.type.toUpperCase() : 'HOME',
+                                                    flatNo: savedCustomerAddress.flatNo || '',
+                                                    street: savedCustomerAddress.street || '',
+                                                    city: savedCustomerAddress.city || '',
+                                                    state: savedCustomerAddress.state || '',
+                                                    pincode: savedCustomerAddress.pincode || '',
+                                                    lat: savedCustomerAddress.lat || 22.7196,
+                                                    lng: savedCustomerAddress.lng || 75.8577
+                                                }));
+                                                toast.success("Delivery address auto-filled from customer profile!");
+                                            } else {
+                                                setShowLocateModal(true);
+                                            }
+                                        } else {
+                                            setEnableDelivery(false);
+                                        }
+                                    }}
+                                    className={`w-12 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 border ${
+                                        enableDelivery ? 'bg-slate-950 border-slate-950 justify-end' : 'bg-slate-200 border-slate-300 justify-start'
+                                    }`}
                                 >
-                                    <span className="material-symbols-outlined text-sm">visibility</span>
+                                    <motion.div 
+                                        layout 
+                                        className="w-4 h-4 bg-white rounded-full"
+                                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                    />
                                 </button>
                             </div>
 
-                            {/* Delivery Date & Time Selector - Shows inside the address block once address is complete */}
-                            {isAddressComplete && (
-                                <div className="border-t border-slate-200 pt-4 mt-3 space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[9px] font-black text-[#3D5AFE] uppercase tracking-widest">Select Delivery Date & Time</span>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Date</label>
-                                            <input
-                                                type="date"
-                                                value={deliveryDate}
-                                                onChange={(e) => setDeliveryDate(e.target.value)}
-                                                className="w-full bg-white border border-slate-200 px-3 py-2.5 text-xs font-bold focus:border-slate-300 transition-all outline-none rounded-xl"
-                                            />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Delivery Time</label>
-                                            <input
-                                                type="time"
-                                                value={deliveryTimeVal}
-                                                onChange={(e) => setDeliveryTimeVal(e.target.value)}
-                                                className="w-full bg-white border border-slate-200 px-3 py-2.5 text-xs font-bold focus:border-slate-300 transition-all outline-none rounded-xl"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2 mt-1">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => selectPreset('today')}
-                                            className="flex-1 py-1.5 text-[8px] font-black uppercase tracking-widest rounded bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all"
-                                        >
-                                            Today 8PM
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => selectPreset('tomorrow')}
-                                            className="flex-1 py-1.5 text-[8px] font-black uppercase tracking-widest rounded bg-slate-200 text-slate-600 hover:bg-slate-300 transition-all"
-                                        >
-                                            Tomorrow 8PM
-                                        </button>
-                                    </div>
-                                    {/* Format Preview */}
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                                        Selected Schedule: <strong className="text-slate-800">{deliveryTime}</strong>
-                                    </p>
-                                </div>
-                            )}
-                        </motion.div>
+
+                        </>
                     )}
 
                     {/* Google Map Picker Modal Overlay */}
@@ -1346,97 +1458,7 @@ const WalkInOrderPage = () => {
                         )}
                     </AnimatePresence>
 
-                    {/* Send Verification OTP button */}
-                    {customerPhone.length === 10 && tempName.trim() && (!enableDelivery || isAddressComplete) && !isVerified && !showOtpField && (
-                        <motion.button
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleSendOtpInline}
-                            disabled={isSendingOtp}
-                            className="w-fit mx-auto px-8 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-full shadow-md flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
-                        >
-                            {isSendingOtp ? (
-                                <motion.span 
-                                    animate={{ rotate: 360 }}
-                                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                    className="material-symbols-outlined text-[14px]"
-                                >
-                                    autorenew
-                                </motion.span>
-                            ) : (
-                                <>
-                                    <span className="material-symbols-outlined text-sm">sms</span>
-                                    <span>Send OTP</span>
-                                </>
-                            )}
-                        </motion.button>
-                    )}
 
-                    {/* Inline OTP Input Field */}
-                    {showOtpField && !isVerified && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-3xl p-3 border border-slate-200 shadow-sm w-fit mx-auto"
-                        >
-                            <div className="flex gap-2 items-center">
-                                <input 
-                                    type="text"
-                                    placeholder="ENTER OTP"
-                                    value={otpValue}
-                                    onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    className="w-[140px] px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold text-slate-900 text-center tracking-[0.5em] placeholder:tracking-widest focus:bg-white border-2 border-transparent focus:border-slate-100 transition-all outline-none uppercase"
-                                />
-                                <motion.button
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={handleVerifyOtpInline}
-                                    disabled={isVerifyingOtp}
-                                    className="px-5 py-3 bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest rounded-xl shadow-md flex items-center justify-center hover:bg-slate-800 transition-colors"
-                                >
-                                    {isVerifyingOtp ? (
-                                        <motion.span 
-                                            animate={{ rotate: 360 }}
-                                            transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                                            className="material-symbols-outlined text-[14px]"
-                                        >
-                                            autorenew
-                                        </motion.span>
-                                    ) : (
-                                        'Verify'
-                                    )}
-                                </motion.button>
-                                <button 
-                                    onClick={handleSendOtpInline}
-                                    className="text-slate-400 hover:text-slate-900 transition-colors p-2 bg-slate-50 hover:bg-slate-100 rounded-xl flex items-center justify-center"
-                                    title="Resend OTP"
-                                >
-                                    <span className="material-symbols-outlined text-[20px]">refresh</span>
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-
-                    {/* Verified Customer Status */}
-                    {isVerified && (
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="flex items-center justify-between bg-emerald-50 border border-emerald-100 text-emerald-800 px-4 py-3 rounded-none text-xs font-bold"
-                        >
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-emerald-600 text-base">verified</span>
-                                <span>Customer Verified: <strong>{customerName}</strong></span>
-                            </div>
-                            <button 
-                                onClick={() => {
-                                    setCustomerPhone('');
-                                    setTempName('');
-                                }}
-                                className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700"
-                            >
-                                Reset
-                            </button>
-                        </motion.div>
-                    )}
                 </section>
 
                 {/* Service Selection */}
@@ -1457,9 +1479,9 @@ const WalkInOrderPage = () => {
                         </div>
 
                         <button 
-                            disabled={!selectedTier || !enableDelivery}
+                            disabled={!selectedTier}
                             onClick={() => setShowDeliveryTypeModal(true)}
-                            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-[0.05em] border transition-all flex flex-row items-center justify-center gap-1.5 ${(!selectedTier || !enableDelivery) ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
+                            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-[0.05em] border transition-all flex flex-row items-center justify-center gap-1.5 ${(!selectedTier) ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
                         >
                             <span className="material-symbols-outlined text-[14px] leading-none">local_shipping</span>
                             <span className="text-left">Select Delivery Type</span>
@@ -1668,18 +1690,18 @@ const WalkInOrderPage = () => {
                         exit={{ opacity: 0, y: 50 }}
                         className="fixed bottom-16 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-slate-100 z-[50]"
                     >
-                        <div className="max-w-2xl mx-auto flex justify-center">
+                        <div className="max-w-2xl mx-auto flex justify-end">
                             <button
                                 type="button"
                                 onClick={() => setShowReviewModal(true)}
                                 disabled={items.length === 0 || !customerPhone || !isVerified || isProcessing}
-                                className={`w-full max-w-md py-4 rounded-none font-black text-[10px] uppercase tracking-widest transition-all border-2 ${
+                                className={`px-10 py-4 rounded-none font-black text-[10px] uppercase tracking-widest transition-all border-2 ${
                                     items.length > 0 && customerPhone && isVerified
                                         ? 'bg-slate-950 text-white border-slate-950 shadow-md hover:bg-slate-900'
                                         : 'bg-slate-100 text-slate-300 border-transparent opacity-50 grayscale cursor-not-allowed'
                                 }`}
                             >
-                                Review
+                                {enableDelivery && isAddressComplete ? 'Review and Pay' : 'Review'}
                             </button>
                         </div>
                     </motion.div>
@@ -1891,20 +1913,25 @@ const WalkInOrderPage = () => {
                 )}
             </AnimatePresence>
 
-            {/* Delivery Type Modal */}
+            {/* Combined Pickup & Drop-off Logistics Modal */}
             <AnimatePresence>
                 {showDeliveryTypeModal && (
                     <div className="fixed inset-0 z-[6000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white w-full max-w-[280px] rounded-[2rem] shadow-2xl flex flex-col p-4 border border-slate-100 relative"
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            onClick={() => setShowDeliveryTypeModal(false)} 
+                            className="absolute inset-0 bg-transparent" 
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }} 
+                            className="relative w-full max-w-[280px] bg-white rounded-[2rem] p-4 shadow-2xl flex flex-col gap-2 overflow-y-auto max-h-[85vh] hide-scrollbar border border-slate-100"
                         >
-                            <div className="flex justify-between items-center mb-4">
-                                <div>
-                                    <h3 className="text-[10px] font-black tracking-widest uppercase text-slate-950">Delivery Type</h3>
-                                </div>
+                            <div className="flex justify-between items-center">
+                                <div /> {/* Spacer */}
                                 <button 
                                     onClick={() => setShowDeliveryTypeModal(false)} 
                                     className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
@@ -1913,24 +1940,307 @@ const WalkInOrderPage = () => {
                                 </button>
                             </div>
 
-                            <div className="bg-slate-100 p-1.5 rounded-xl border border-slate-200 flex gap-1">
-                                {['Normal', 'Express'].map(type => (
-                                    <button 
-                                        key={type}
-                                        onClick={() => {
-                                            setIsExpress(type === 'Express');
-                                            setShowDeliveryTypeModal(false);
-                                        }}
-                                        className={`flex-1 py-3 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress === true) || (type === 'Normal' && isExpress === false)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-200'}`}
-                                    >
-                                        {type}
-                                    </button>
-                                ))}
+                            <div className="space-y-3">
+                                {/* 1. Delivery Type Toggle */}
+                                <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5">
+                                    {['Normal', 'Express'].map(type => (
+                                        <button 
+                                            key={type}
+                                            onClick={() => {
+                                                setIsExpress(type === 'Express');
+                                            }}
+                                            className={`flex-1 py-1.5 rounded-lg font-black text-[7px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress === true) || (type === 'Normal' && isExpress === false)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-200/60'}`}
+                                        >
+                                            {type === 'Normal' ? 'Normal Delivery' : 'Express Delivery'}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* --- PICKUP SECTION --- */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center gap-1.5 px-1">
+                                        <div className="w-4 h-4 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                                            <span className="material-symbols-outlined text-[10px]">calendar_today</span>
+                                        </div>
+                                        <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">1. Pickup</p>
+                                    </div>
+                                    
+                                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
+                                        {/* Pickup Address */}
+                                        <div className="relative">
+                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Select Address</p>
+                                            <button 
+                                                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm cursor-not-allowed opacity-80"
+                                                disabled
+                                            >
+                                                <span className="text-slate-900">WALK-IN STORE</span>
+                                                <span className="material-symbols-outlined text-slate-400 text-sm">lock</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Date Dropdown */}
+                                        <div className="relative">
+                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                                            <button 
+                                                onClick={() => setOpenDropdown(openDropdown === 'pickupDate' ? null : 'pickupDate')}
+                                                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                                            >
+                                                <span className={selectedPickupDate ? 'text-slate-900' : 'text-slate-300'}>
+                                                    {selectedPickupDate || 'Select Date'}
+                                                </span>
+                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'pickupDate' ? 'rotate-180' : ''}`}>expand_more</span>
+                                            </button>
+                                            
+                                            <AnimatePresence>
+                                                {openDropdown === 'pickupDate' && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                                                    >
+                                                        <div className="max-h-32 overflow-y-auto font-sans">
+                                                            {availableDates.slice(0, 6).map((d, i) => (
+                                                                <button 
+                                                                    key={i}
+                                                                    onClick={() => {
+                                                                        setSelectedPickupDate(`${d.day}, ${d.date}`);
+                                                                        setOpenDropdown(null);
+                                                                    }}
+                                                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                                                >
+                                                                    {d.day}, {d.date}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+
+                                        {/* Time Dropdown */}
+                                        <div className="relative">
+                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                                            <button 
+                                                onClick={() => setOpenDropdown(openDropdown === 'pickupTime' ? null : 'pickupTime')}
+                                                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                                            >
+                                                <span className={selectedPickupTime ? 'text-slate-900' : 'text-slate-300'}>
+                                                    {selectedPickupTime || 'Select Time'}
+                                                </span>
+                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'pickupTime' ? 'rotate-180' : ''}`}>expand_more</span>
+                                            </button>
+                                            
+                                            <AnimatePresence>
+                                                {openDropdown === 'pickupTime' && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                                                    >
+                                                        <div className="max-h-32 overflow-y-auto font-sans">
+                                                            {WALK_IN_TIME_SLOTS.filter(slot => {
+                                                                if (!selectedPickupDate || !selectedPickupDate.startsWith('TODAY')) return true;
+                                                                const [timePart] = slot.split(' - ');
+                                                                const [time, modifier] = timePart.split(' ');
+                                                                let [hours] = time.split(':');
+                                                                let h = parseInt(hours, 10);
+                                                                if (h === 12) h = 0;
+                                                                if (modifier === 'PM') h += 12;
+                                                                const now = new Date();
+                                                                const slotTime = new Date();
+                                                                slotTime.setHours(h, 0, 0, 0);
+                                                                return slotTime > new Date(now.getTime() + 60 * 60 * 1000);
+                                                            }).map((slot) => (
+                                                                <button 
+                                                                    key={slot}
+                                                                    onClick={() => {
+                                                                        setSelectedPickupTime(slot);
+                                                                        setOpenDropdown(null);
+                                                                    }}
+                                                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                                                >
+                                                                    {slot}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* --- DROP-OFF SECTION --- */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center gap-1.5 px-1">
+                                        <div className="w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-amber-600">
+                                            <span className="material-symbols-outlined text-[10px]">local_shipping</span>
+                                        </div>
+                                        <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Drop-off</p>
+                                    </div>
+                                    
+                                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
+                                        {/* Drop-off Address Dropdown */}
+                                        <div className="relative mt-2">
+                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Drop-off Address</p>
+                                            <button 
+                                                onClick={() => setOpenDropdown(openDropdown === 'dropAddress' ? null : 'dropAddress')}
+                                                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                                            >
+                                                <span className={addressDetails.type ? 'text-slate-900' : 'text-slate-300'}>
+                                                    {addressDetails.type ? addressDetails.type.toUpperCase() : 'Choose Address'}
+                                                </span>
+                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropAddress' ? 'rotate-180' : ''}`}>expand_more</span>
+                                            </button>
+                                            
+                                            <AnimatePresence>
+                                                {openDropdown === 'dropAddress' && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                                                    >
+                                                        <div className="max-h-32 overflow-y-auto font-sans">
+                                                            {addressDetails.street && (
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        setOpenDropdown(null);
+                                                                    }}
+                                                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                                                >
+                                                                    {addressDetails.type ? addressDetails.type.toUpperCase() : 'CURRENT ADDRESS'}
+                                                                </button>
+                                                            )}
+                                                            <button 
+                                                                onClick={() => {
+                                                                    setShowDeliveryTypeModal(false);
+                                                                    setShowLocateModal(true);
+                                                                    setOpenDropdown(null);
+                                                                }}
+                                                                className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
+                                                            >
+                                                                + Enter New Address
+                                                            </button>
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+
+                                        {/* Date Dropdown */}
+                                        <div className="relative">
+                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                                            <button 
+                                                disabled={!selectedPickupDate || !selectedPickupTime}
+                                                onClick={() => setOpenDropdown(openDropdown === 'dropDate' ? null : 'dropDate')}
+                                                className={`w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm ${(!selectedPickupDate || !selectedPickupTime) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                                            >
+                                                <span className={selectedDeliveryDate ? 'text-slate-900' : 'text-slate-300'}>
+                                                    {(!selectedPickupDate || !selectedPickupTime) ? 'Select Pickup First' : (selectedDeliveryDate || 'Select Date')}
+                                                </span>
+                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropDate' ? 'rotate-180' : ''}`}>expand_more</span>
+                                            </button>
+                                            
+                                            <AnimatePresence>
+                                                {openDropdown === 'dropDate' && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                                                    >
+                                                        <div className="max-h-40 overflow-y-auto font-sans">
+                                                            {availableDates.filter(d => {
+                                                                if (!selectedPickupDate || !selectedPickupTime) return true;
+                                                                const dateStr = `${d.day}, ${d.date}`;
+                                                                const pDT = getSlotDateTime(selectedPickupDate, selectedPickupTime);
+                                                                const lastSlotDT = getSlotDateTime(dateStr, WALK_IN_TIME_SLOTS[WALK_IN_TIME_SLOTS.length - 1]);
+                                                                const minH = isExpress ? 24 : (maxServiceTime * 24);
+                                                                return (lastSlotDT - pDT) / (1000 * 60 * 60) >= minH;
+                                                            }).map((d, i) => {
+                                                                const dateStr = `${d.day}, ${d.date}`;
+                                                                return (
+                                                                    <button 
+                                                                        key={i}
+                                                                        onClick={() => {
+                                                                            setSelectedDeliveryDate(dateStr);
+                                                                            setOpenDropdown(null);
+                                                                        }}
+                                                                        className="w-full px-4 py-3 text-left text-[10px] font-black uppercase border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                                                                    >
+                                                                        {d.day}, {d.date}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+
+                                        {/* Time Dropdown */}
+                                        <div className="relative">
+                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                                            <button 
+                                                disabled={!selectedPickupDate || !selectedPickupTime || !selectedDeliveryDate}
+                                                onClick={() => setOpenDropdown(openDropdown === 'dropTime' ? null : 'dropTime')}
+                                                className={`w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm ${(!selectedPickupDate || !selectedPickupTime || !selectedDeliveryDate) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                                            >
+                                                <span className={selectedDeliveryTimeSlot ? 'text-slate-900' : 'text-slate-300'}>
+                                                    {(!selectedPickupDate || !selectedPickupTime || !selectedDeliveryDate) ? 'Select Pickup/Date First' : (selectedDeliveryTimeSlot || 'Select Time')}
+                                                </span>
+                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropTime' ? 'rotate-180' : ''}`}>expand_more</span>
+                                            </button>
+                                            
+                                            <AnimatePresence>
+                                                {openDropdown === 'dropTime' && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                                                    >
+                                                        <div className="max-h-40 overflow-y-auto font-sans">
+                                                            {WALK_IN_TIME_SLOTS.filter(slot => {
+                                                                if (!selectedPickupDate || !selectedPickupTime || !selectedDeliveryDate) return true;
+                                                                const pDT = getSlotDateTime(selectedPickupDate, selectedPickupTime);
+                                                                const dDT = getSlotDateTime(selectedDeliveryDate, slot);
+                                                                const minH = isExpress ? 24 : (maxServiceTime * 24);
+                                                                return (dDT - pDT) / (1000 * 60 * 60) >= minH;
+                                                            }).map((slot) => (
+                                                                <button 
+                                                                    key={slot}
+                                                                    onClick={() => {
+                                                                        setSelectedDeliveryTimeSlot(slot);
+                                                                        setOpenDropdown(null);
+                                                                    }}
+                                                                    className="w-full px-4 py-3 text-left text-[10px] font-black uppercase border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                                                                >
+                                                                    {slot}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+
+                                    </div>
+                                </div>
                             </div>
+
+                            <button 
+                                onClick={() => {
+                                    if (!selectedDeliveryDate || !selectedDeliveryTimeSlot) {
+                                        toast.error("Please select a drop-off date and time slot.");
+                                        return;
+                                    }
+                                    setEnableDelivery(true);
+                                    toast.success("Logistics confirmed: Rider drop-off delivery");
+                                    setShowDeliveryTypeModal(false);
+                                }} 
+                                className="w-full bg-slate-950 text-white py-3 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] mt-2 shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
+                            >
+                                Confirm Logistics
+                            </button>
                         </motion.div>
                     </div>
                 )}
             </AnimatePresence>
+
 
             {/* PHOTO OPTIONS & MANAGEMENT MODAL (OPTIONAL PHOTO ATTACHMENT) */}
             <AnimatePresence>

@@ -10,6 +10,8 @@ const jobSchema = new mongoose.Schema({
     location: { type: String },
     skills: [{ type: String }],
     requirements: [{ type: String }],
+    shiftStartTime: { type: String },
+    shiftEndTime: { type: String },
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     companyName: { type: String },
     creatorRole: { type: String, enum: ['Admin', 'Vendor'], default: 'Vendor' },

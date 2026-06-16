@@ -6,6 +6,7 @@ const RateAndReviewPage = () => {
   const navigate = useNavigate();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [selectedTags, setSelectedTags] = useState([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   const stats = useMemo(() => [
@@ -16,6 +17,7 @@ const RateAndReviewPage = () => {
 
   const handleReview = () => {
     setIsSubmitted(true);
+    console.log('Submitted Review:', { rating, comment, selectedTags });
     setTimeout(() => {
         navigate('/user/home');
     }, 2500);
@@ -58,7 +60,10 @@ const RateAndReviewPage = () => {
                             key={star}
                             whileHover={{ scale: 1.2, rotate: 10 }}
                             whileTap={{ scale: 0.9 }}
-                            onClick={() => setRating(star)}
+                            onClick={() => {
+                                setRating(star);
+                                setSelectedTags([]);
+                            }}
                             className={`material-symbols-outlined text-5xl transition-colors ${rating >= star ? 'text-amber-500' : 'text-slate-200'}`}
                             style={{ fontVariationSettings: rating >= star ? "'FILL' 1" : "'FILL' 0" }}
                         >
@@ -67,14 +72,39 @@ const RateAndReviewPage = () => {
                     ))}
                 </div>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-4 w-full mb-10">
-                    {stats.map((s, i) => (
-                        <div key={i} className="bg-surface-container-low p-4 rounded-3xl border border-outline-variant/10 text-center">
-                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-50 mb-1">{s.label}</p>
-                            <p className="text-[11px] font-black text-on-surface uppercase tracking-widest">{s.val}</p>
-                        </div>
-                    ))}
+                {/* Selectable Feedback Tags */}
+                <div className="w-full mb-10">
+                  <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-50 mb-3">
+                    {rating >= 4 ? 'What did you love?' : 'What can we improve?'}
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-2.5">
+                    {(rating >= 4 
+                      ? ['Crisp Folding', 'Fresh Fragrance', 'On-Time Delivery', 'Friendly Rider']
+                      : ['Late Pickup', 'Damp Clothes', 'Improper Crease', 'Rude Rider']
+                    ).map((tag) => {
+                      const isSelected = selectedTags.includes(tag);
+                      return (
+                        <button
+                          type="button"
+                          key={tag}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedTags(selectedTags.filter(t => t !== tag));
+                            } else {
+                              setSelectedTags([...selectedTags, tag]);
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${
+                            isSelected 
+                              ? 'bg-primary text-on-primary border-primary shadow-md' 
+                              : 'bg-white border-outline-variant/10 text-on-surface-variant hover:bg-slate-50'
+                          }`}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Comment Section */}

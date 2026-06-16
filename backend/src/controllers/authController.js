@@ -924,9 +924,17 @@ export const lookupCustomerByPhone = async (req, res) => {
         if (!customer) {
             return res.status(404).json({ message: 'Customer not found' });
         }
+        
+        if (customer.role !== 'Customer') {
+            return res.status(400).json({ 
+                message: `This phone number is registered as a ${customer.role}. Only Customer accounts are allowed.` 
+            });
+        }
+
         let defAddr = customer.addresses && customer.addresses.length > 0 ? customer.addresses[0] : null;
         res.status(200).json({ 
             displayName: customer.displayName || '',
+            type: defAddr ? defAddr.type : 'Home',
             address: defAddr ? defAddr.address : (customer.address || ''),
             city: defAddr ? defAddr.city : (customer.city || ''),
             state: customer.state || '', // User model doesn't store state in addresses array by default

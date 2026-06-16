@@ -256,32 +256,6 @@ const VendorCartDetailsPage = () => {
                     {/* SUPPLIER-WISE CARTS */}
                     {groupedCarts.map((group, idx) => (
                         <div key={idx} className="bg-[#0b0f19] text-white rounded-[2rem] p-6 shadow-2xl relative overflow-hidden mb-4 group">
-                            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-white/10">
-                                <span className="material-symbols-outlined text-white/40">storefront</span>
-                                <h3 className="text-xs font-black text-white uppercase tracking-widest truncate">From: {group.supplierName}</h3>
-                            </div>
-                            
-                            {/* Items List */}
-                            <div className="space-y-3 mb-6">
-                                {group.items.map((item, i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative">
-                                            {item.image ? (
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover opacity-80" />
-                                            ) : (
-                                                <span className="material-symbols-outlined text-white/30 text-sm">inventory_2</span>
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="font-black text-[11px] text-white uppercase tracking-tight truncate">{item.name}</h4>
-                                            <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-0.5">₹{item.wholesaleRate} × {item.quantity}</p>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-xs font-black text-white">₹{(item.wholesaleRate * item.quantity).toFixed(2)}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                             
                             {/* Supplier Summary */}
                             <div className="bg-white/5 border border-white/10 p-4 rounded-3xl space-y-2">

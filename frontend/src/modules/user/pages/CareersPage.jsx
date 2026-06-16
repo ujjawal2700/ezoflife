@@ -4,6 +4,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { jobApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
+const format24hTo12h = (time24) => {
+    if (!time24) return '';
+    try {
+        let [hours, minutes] = time24.split(':');
+        let hr = parseInt(hours, 10);
+        let ampm = 'AM';
+        if (hr >= 12) {
+            ampm = 'PM';
+            if (hr > 12) hr -= 12;
+        } else if (hr === 0) {
+            hr = 12;
+        }
+        return `${hr.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+    } catch (e) {
+        return time24;
+    }
+};
+
 const CareersPage = () => {
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +46,7 @@ const CareersPage = () => {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isApplying, setIsApplying] = useState(null);
+    const [viewingJobDetails, setViewingJobDetails] = useState(null);
     const [applyForm, setApplyForm] = useState({
         applicantName: '',
         applicantEmail: '',
@@ -87,7 +106,7 @@ const CareersPage = () => {
             setTimeout(() => setIsApplied(false), 3000);
             fetchJobs(); 
         } catch (error) {
-            toast.error('Application failed, please try again.');
+            toast.error(error.message || 'Application failed, please try again.');
         }
     };
 
@@ -316,10 +335,12 @@ const CareersPage = () => {
                                         </span>
                                         <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
                                             <span className="material-symbols-outlined text-[11px]">schedule</span>
-                                            {job.jobType}
+                                            {job.shiftStartTime && job.shiftEndTime 
+                                                ? `${format24hTo12h(job.shiftStartTime)} - ${format24hTo12h(job.shiftEndTime)}`
+                                                : (job.jobType || 'Full Time')}
                                         </span>
                                         {job.salary && (
-                                            <span className="inline-flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-emerald-600">
+                                            <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-800">
                                                 <span className="material-symbols-outlined text-[11px]">payments</span>
                                                 {job.salary}
                                             </span>
@@ -333,13 +354,25 @@ const CareersPage = () => {
                                         </p>
                                     )}
 
-                                    {/* Apply Button */}
-                                    <button 
-                                        onClick={() => setIsApplying(job)}
-                                        className="w-full py-3.5 bg-surface-container-high rounded-2xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all border border-primary/10"
-                                    >
-                                        Apply Now
-                                    </button>
+                                    {/* Action Buttons */}
+                                    <div className="flex gap-2.5 mt-2">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setViewingJobDetails(job)}
+                                            className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                                        >
+                                            <span className="material-symbols-outlined text-[13px]">info</span>
+                                            View Details
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setIsApplying(job)}
+                                            className="flex-[1.2] py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                        >
+                                            <span className="material-symbols-outlined text-[13px]">rocket_launch</span>
+                                            Apply Now
+                                        </button>
+                                    </div>
                                 </motion.div>
                             ))
                         ) : (
@@ -485,6 +518,109 @@ const CareersPage = () => {
                             </div>
                         </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* View Details Modal */}
+            <AnimatePresence>
+                {viewingJobDetails && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setViewingJobDetails(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 max-h-[85vh] overflow-y-auto no-scrollbar text-slate-900 border border-slate-200"
+                        >
+                            {/* Close Button */}
+                            <div className="flex justify-between items-start mb-4">
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Job Details</h3>
+                                <button
+                                    onClick={() => setViewingJobDetails(null)}
+                                    className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-lg">close</span>
+                                </button>
+                            </div>
+
+                            {/* Job Info Container */}
+                            <div className="space-y-5">
+                                {/* Header Info */}
+                                <div>
+                                    <h2 className="font-black text-lg tracking-tight text-slate-950 leading-tight">
+                                        {viewingJobDetails.title}
+                                    </h2>
+                                    <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 block mt-1">
+                                        {viewingJobDetails.creatorRole === 'Admin' ? (viewingJobDetails.companyName || 'Official Post') : (viewingJobDetails.vendor?.displayName || 'Vendor Post')}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1 mt-2 text-[8px] font-black text-slate-700 uppercase tracking-wider">
+                                        <span className="material-symbols-outlined text-[10px] text-slate-900">location_on</span>
+                                        {viewingJobDetails.location}
+                                    </span>
+                                </div>
+
+                                {/* Description */}
+                                {viewingJobDetails.description && (
+                                    <p className="text-[11px] text-slate-600 font-medium leading-relaxed italic border-l-2 border-slate-200 pl-3 block py-0.5">
+                                        "{viewingJobDetails.description}"
+                                    </p>
+                                )}
+
+                                {/* Requirements/Responsibilities */}
+                                {Array.isArray(viewingJobDetails.requirements) && viewingJobDetails.requirements.length > 0 && (
+                                    <div className="pt-4 border-t border-slate-100">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsibilities & Requirements</p>
+                                        <div className="space-y-1.5 max-h-40 overflow-y-auto no-scrollbar">
+                                            {viewingJobDetails.requirements.map((req, idx) => (
+                                                <p key={idx} className="text-[10px] font-medium text-slate-600 flex items-start gap-2 leading-relaxed">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-950 mt-1.5 shrink-0" />
+                                                    <span>{req}</span>
+                                                </p>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Badges Grid */}
+                                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100">
+                                    <div className="bg-slate-50 border border-slate-200/60 p-3.5 rounded-2xl flex flex-col gap-1">
+                                        <span className="material-symbols-outlined text-sm text-slate-400">payments</span>
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Salary</span>
+                                        <span className="text-[10px] font-black text-slate-800">{viewingJobDetails.salary || 'Not Disclosed'}</span>
+                                    </div>
+                                    <div className="bg-slate-50 border border-slate-200/60 p-3.5 rounded-2xl flex flex-col gap-1">
+                                        <span className="material-symbols-outlined text-sm text-slate-400">schedule</span>
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Timings</span>
+                                        <span className="text-[10px] font-black text-slate-800">
+                                            {viewingJobDetails.shiftStartTime && viewingJobDetails.shiftEndTime
+                                                ? `${format24hTo12h(viewingJobDetails.shiftStartTime)} - ${format24hTo12h(viewingJobDetails.shiftEndTime)}`
+                                                : (viewingJobDetails.jobType || 'Full Time')}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Apply Action in Modal */}
+                                <div className="pt-3">
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            setIsApplying(viewingJobDetails);
+                                            setViewingJobDetails(null);
+                                        }}
+                                        className="w-full py-4 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-slate-950/10"
+                                    >
+                                        Apply Now
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
 

@@ -104,14 +104,13 @@ const LaborRequestPage = () => {
                         <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-50 px-6 py-6 border-b border-slate-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <motion.button whileTap={{ scale: 0.9 }} onClick={() => navigate(-1)} className="p-2 hover:bg-slate-50 rounded-full">
-                                    <span className="material-symbols-outlined text-indigo-500">arrow_back</span>
+                                    <span className="material-symbols-outlined text-slate-950">arrow_back</span>
                                 </motion.button>
                                 <div>
-                                    <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none mb-1">Staffing Hub</h1>
-                                    <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Manage Jobs & Workers</p>
+                                    <h1 className="text-xl font-black tracking-tight text-slate-900 leading-none">Staffing Hub</h1>
                                 </div>
                             </div>
-                            <button onClick={() => navigate('/vendor/labor-request/create')} className="w-10 h-10 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-500/20 active:scale-90 transition-all">
+                            <button onClick={() => navigate('/vendor/labor-request/create')} className="w-10 h-10 bg-slate-950 text-white rounded-full flex items-center justify-center shadow-lg shadow-slate-950/20 active:scale-90 transition-all">
                                 <span className="material-symbols-outlined">add</span>
                             </button>
                         </header>

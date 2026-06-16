@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { jobApi } from '../../../lib/api';
+import { jobApi, authApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
 // Master templates for pre-populated roles
@@ -68,6 +68,116 @@ const ROLE_TEMPLATES = {
   }
 };
 
+const SALARY_OPTIONS = [
+  1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+  11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000,
+  25000, 30000, 35000, 40000, 45000, 50000, 60000, 70000, 80000, 90000, 100000
+];
+
+const TIME_OPTIONS_48 = [
+  '12:00 AM', '12:30 AM', '01:00 AM', '01:30 AM', '02:00 AM', '02:30 AM',
+  '03:00 AM', '03:30 AM', '04:00 AM', '04:30 AM', '05:00 AM', '05:30 AM',
+  '06:00 AM', '06:30 AM', '07:00 AM', '07:30 AM', '08:00 AM', '08:30 AM',
+  '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+  '12:00 PM', '12:30 PM', '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM',
+  '03:00 PM', '03:30 PM', '04:00 PM', '04:30 PM', '05:00 PM', '05:30 PM',
+  '06:00 PM', '06:30 PM', '07:00 PM', '07:30 PM', '08:00 PM', '08:30 PM',
+  '09:00 PM', '09:30 PM', '10:00 PM', '10:30 PM', '11:00 PM', '11:30 PM'
+];
+
+const format24hTo12h = (time24) => {
+  if (!time24) return '';
+  let [hours, minutes] = time24.split(':');
+  let hr = parseInt(hours, 10);
+  let ampm = 'AM';
+  if (hr >= 12) {
+    ampm = 'PM';
+    if (hr > 12) hr -= 12;
+  } else if (hr === 0) {
+    hr = 12;
+  }
+  return `${hr.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+};
+
+const format12hTo24h = (time12) => {
+  if (!time12) return '';
+  let [timeStr, ampm] = time12.split(' ');
+  let [hours, minutes] = timeStr.split(':');
+  let hr = parseInt(hours, 10);
+  if (ampm === 'PM' && hr !== 12) {
+    hr += 12;
+  } else if (ampm === 'AM' && hr === 12) {
+    hr = 0;
+  }
+  return `${hr.toString().padStart(2, '0')}:${minutes}`;
+};
+
+const getStateFromAddress = (address) => {
+  if (!address) return 'Haryana';
+  const states = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
+    'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
+    'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
+    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
+    'Uttarakhand', 'West Bengal', 'Delhi'
+  ];
+  for (const st of states) {
+    if (address.toLowerCase().includes(st.toLowerCase())) {
+      return st;
+    }
+  }
+  return 'Haryana';
+};
+
+const getCityFromAddress = (address) => {
+  if (!address) return '';
+  const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+  if (parts.length === 0) return '';
+  
+  const statesList = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
+    'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
+    'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
+    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
+    'Uttarakhand', 'West Bengal', 'Delhi'
+  ];
+
+  // Find which part contains a state name
+  let stateIndex = -1;
+  for (let i = 0; i < parts.length; i++) {
+    const partLower = parts[i].toLowerCase();
+    const hasState = statesList.some(state => partLower.includes(state.toLowerCase()));
+    if (hasState) {
+      stateIndex = i;
+      break;
+    }
+  }
+
+  // If we found a part containing a state, the city is likely the part just before it
+  if (stateIndex > 0) {
+    return parts[stateIndex - 1];
+  }
+
+  // Fallback: if there's no state found but we have multiple parts, or if state is the first part
+  let targetIndex = parts.length - 2;
+  if (parts.length >= 3) {
+    const lastPart = parts[parts.length - 1].toLowerCase();
+    if (lastPart === 'india') {
+      targetIndex = parts.length - 3;
+    }
+  }
+  if (targetIndex >= 0 && targetIndex < parts.length) {
+    return parts[targetIndex];
+  }
+  return parts[0] || '';
+};
+
+const getPincodeFromAddress = (address) => {
+  if (!address) return '';
+  const match = address.match(/\b\d{6}\b/);
+  return match ? match[0] : '';
+};
+
 const CreateJobRequisition = () => {
   const navigate = useNavigate();
 
@@ -77,6 +187,12 @@ const CreateJobRequisition = () => {
   const vendorId = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id;
   const shopName = vendorData.shopDetails?.name || vendorData.user?.shopDetails?.name || vendorData.shopDetails?.shopName || vendorData.user?.shopDetails?.shopName || 'Partner Laundry';
 
+  // Extract address info
+  const fullAddress = vendorData.shopDetails?.address || vendorData.user?.shopDetails?.address || vendorData.address || '';
+  const vendorCity = vendorData.shopDetails?.city || vendorData.user?.shopDetails?.city || vendorData.city || getCityFromAddress(fullAddress);
+  const vendorState = getStateFromAddress(fullAddress);
+  const vendorPincode = vendorData.shopDetails?.pincode || vendorData.user?.shopDetails?.pincode || vendorData.pincode || getPincodeFromAddress(fullAddress);
+
   // Form states
   const [roleTemplates, setRoleTemplates] = useState([]);
   const [selectedRoleKey, setSelectedRoleKey] = useState('');
@@ -85,23 +201,85 @@ const CreateJobRequisition = () => {
   
   const [minSalary, setMinSalary] = useState('');
   const [maxSalary, setMaxSalary] = useState('');
-  const [shiftStartTime, setShiftStartTime] = useState('');
-  const [shiftEndTime, setShiftEndTime] = useState('');
+  const [shiftStartTime, setShiftStartTime] = useState('09:00');
+  const [shiftEndTime, setShiftEndTime] = useState('18:00');
   const [responsibility, setResponsibility] = useState('');
+  const [additionalRequirements, setAdditionalRequirements] = useState('');
   
-  const [city, setCity] = useState(vendorData.shopDetails?.city || vendorData.user?.shopDetails?.city || vendorData.city || '');
-  const [area, setArea] = useState(vendorData.shopDetails?.address || vendorData.user?.shopDetails?.address || vendorData.address || '');
-  const [pincode, setPincode] = useState(vendorData.shopDetails?.pincode || vendorData.user?.shopDetails?.pincode || vendorData.pincode || '');
+  const [city, setCity] = useState(vendorCity || 'Gurugram');
+  const [area, setArea] = useState(vendorState || 'Haryana');
+  const [pincode, setPincode] = useState(vendorPincode || '122003');
   const hideAddress = false;
   const [status, setStatus] = useState('Open'); // Open, Paused, Draft
-
+  
   // UI state controllers
   const [loadingRole, setLoadingRole] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [minDropdownOpen, setMinDropdownOpen] = useState(false);
+  const [maxDropdownOpen, setMaxDropdownOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [isEditingInPreview, setIsEditingInPreview] = useState(false);
+  const [tempForm, setTempForm] = useState({
+    roleName: '',
+    roleDescription: '',
+    responsibility: '',
+    additionalRequirements: '',
+    minSalary: '',
+    maxSalary: '',
+    shiftStartTime: '',
+    shiftEndTime: ''
+  });
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Custom Time Dropdown states
+  const [startTimeDropdownOpen, setStartTimeDropdownOpen] = useState(false);
+  const [endTimeDropdownOpen, setEndTimeDropdownOpen] = useState(false);
+
+  // Fetch fresh vendor profile on mount to get the correct shop details and location
+  useEffect(() => {
+    const fetchVendorProfile = async () => {
+      try {
+        if (vendorId) {
+          const profile = await authApi.getProfile(vendorId);
+          if (profile) {
+            // Update address details in states
+            const address = profile.shopDetails?.address || profile.address || '';
+            const freshCity = profile.shopDetails?.city || profile.city || getCityFromAddress(address) || 'Gurugram';
+            const freshState = getStateFromAddress(address) || 'Haryana';
+            const freshPincode = profile.shopDetails?.pincode || profile.pincode || getPincodeFromAddress(address) || '122003';
+
+            setCity(freshCity);
+            setArea(freshState);
+            setPincode(freshPincode);
+
+            // Sync fresh profile to local storage cache to keep it fresh
+            const rawStored = localStorage.getItem('user') || localStorage.getItem('vendorData') || localStorage.getItem('userData');
+            if (rawStored) {
+              try {
+                const parsed = JSON.parse(rawStored);
+                let merged;
+                if (parsed.user) {
+                  merged = { ...parsed, user: { ...parsed.user, ...profile } };
+                } else {
+                  merged = { ...parsed, ...profile };
+                }
+                localStorage.setItem('user', JSON.stringify(merged));
+                localStorage.setItem('vendorData', JSON.stringify(merged));
+                localStorage.setItem('userData', JSON.stringify(merged));
+              } catch (e) {
+                console.error('LocalStorage sync error:', e);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch fresh vendor profile:', error);
+      }
+    };
+    fetchVendorProfile();
+  }, [vendorId]);
 
   // Fetch templates from MongoDB on load
   useEffect(() => {
@@ -166,10 +344,14 @@ const CreateJobRequisition = () => {
     setSubmitting(true);
     try {
       const finalStatus = submitStatus || status;
+      const prepReqs = responsibility.split('\n').map(r => r.trim()).filter(Boolean);
+      const customReqs = additionalRequirements.split('\n').map(r => r.trim()).filter(Boolean);
+      const combinedRequirements = [...prepReqs, ...customReqs];
+
       const jobData = {
         title: roleName || selectedRoleKey,
         description: roleDescription,
-        requirements: responsibility.split('\n').map(r => r.trim()).filter(r => r !== ''),
+        requirements: combinedRequirements,
         minSalary: Number(minSalary),
         maxSalary: Number(maxSalary),
         salary: `₹${Number(minSalary).toLocaleString('en-IN')} - ₹${Number(maxSalary).toLocaleString('en-IN')}`,
@@ -178,7 +360,7 @@ const CreateJobRequisition = () => {
         city,
         area,
         pincode,
-        location: pincode.trim() ? `${area}, ${city} - ${pincode}` : `${area}, ${city}`,
+        location: `${city}, ${area}`,
         hideAddress: false,
         status: finalStatus,
         vendorId,
@@ -203,10 +385,10 @@ const CreateJobRequisition = () => {
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-36 text-slate-900 font-body relative">
+    <div className="bg-slate-50 min-h-screen pb-12 text-slate-900 font-body relative">
       
       {/* 🚀 Top Navigation / Header */}
-      <header className="bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-6 py-5 border-b border-slate-100 flex items-center justify-between shadow-sm">
+      <header className="bg-white/80 backdrop-blur-xl sticky top-[64px] z-40 px-6 py-4 border-b border-slate-100 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
           <motion.button 
             whileTap={{ scale: 0.9 }} 
@@ -216,14 +398,7 @@ const CreateJobRequisition = () => {
             <span className="material-symbols-outlined text-slate-600">arrow_back</span>
           </motion.button>
           <div>
-            <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              <span>Dashboard</span>
-              <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-              <span>Hire Talent</span>
-              <span className="material-symbols-outlined text-[10px]">chevron_right</span>
-              <span className="text-primary font-black">Create Job</span>
-            </div>
-            <h1 className="text-xl font-black tracking-tight text-slate-950 mt-1">Create Job Requisition</h1>
+            <h1 className="text-xl font-black tracking-tight text-slate-950">Create Job Requisition</h1>
           </div>
         </div>
       </header>
@@ -240,7 +415,7 @@ const CreateJobRequisition = () => {
             <h2 className="text-sm font-black text-slate-950 uppercase tracking-wider">Select Job Role</h2>
           </div>
 
-          <div className="relative">
+          <div className={`relative ${dropdownOpen ? 'z-50' : 'z-0'}`}>
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1 block mb-2">Select Role <span className="text-red-500">*</span></label>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -350,10 +525,10 @@ const CreateJobRequisition = () => {
                     </div>
                     <textarea
                       rows="4"
+                      readOnly
                       value={roleDescription}
-                      onChange={(e) => setRoleDescription(e.target.value)}
-                      placeholder="Enter job description..."
-                      className="w-full bg-slate-50 border border-slate-100 text-slate-700 font-bold rounded-2xl p-4 text-xs focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all resize-none leading-relaxed"
+                      placeholder="Pre-populated job description..."
+                      className="w-full bg-indigo-50/30 border border-indigo-100/30 text-slate-600 font-bold rounded-2xl p-4 text-xs outline-none resize-none leading-relaxed cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -376,25 +551,94 @@ const CreateJobRequisition = () => {
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Salary Range (Monthly) <span className="text-red-500">*</span></label>
               <div className="grid grid-cols-2 gap-4">
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
-                  <input
-                    type="number"
-                    value={minSalary}
-                    onChange={(e) => setMinSalary(e.target.value)}
-                    placeholder="Min Salary"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-9 pr-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                  />
+                {/* Min Salary Dropdown */}
+                <div className={`relative ${minDropdownOpen ? 'z-50' : 'z-0'}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinDropdownOpen(!minDropdownOpen);
+                      setMaxDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left font-bold text-xs text-slate-700 hover:bg-slate-100/50 transition-colors"
+                  >
+                    <span className={minSalary ? 'text-slate-900 font-black' : 'text-slate-400 font-bold'}>
+                      {minSalary ? `₹${Number(minSalary).toLocaleString('en-IN')}` : 'Min Salary'}
+                    </span>
+                    <span className={`material-symbols-outlined text-slate-400 transition-transform ${minDropdownOpen ? 'rotate-180' : ''}`}>
+                      expand_more
+                    </span>
+                  </button>
+ 
+                  {minDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setMinDropdownOpen(false)} />
+                      <div className="absolute left-0 right-0 mt-2 z-50 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                        {SALARY_OPTIONS.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              setMinSalary(opt.toString());
+                              setMinDropdownOpen(false);
+                              // Clear maxSalary if it's less than or equal to the new min
+                              if (maxSalary && Number(maxSalary) <= opt) {
+                                setMaxSalary('');
+                              }
+                            }}
+                            className="w-full text-left px-5 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                          >
+                            ₹{opt.toLocaleString('en-IN')}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-sm">₹</span>
-                  <input
-                    type="number"
-                    value={maxSalary}
-                    onChange={(e) => setMaxSalary(e.target.value)}
-                    placeholder="Max Salary"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-9 pr-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                  />
+ 
+                {/* Max Salary Dropdown */}
+                <div className={`relative ${maxDropdownOpen ? 'z-50' : 'z-0'}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!minSalary) return;
+                      setMaxDropdownOpen(!maxDropdownOpen);
+                      setMinDropdownOpen(false);
+                    }}
+                    disabled={!minSalary}
+                    className={`w-full flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left font-bold text-xs transition-colors ${
+                      !minSalary ? 'cursor-not-allowed opacity-60 text-slate-400' : 'text-slate-700 hover:bg-slate-100/50'
+                    }`}
+                  >
+                    <span className={maxSalary ? 'text-slate-900 font-black' : 'text-slate-400 font-bold'}>
+                      {maxSalary ? `₹${Number(maxSalary).toLocaleString('en-IN')}` : (!minSalary ? 'Select Min First' : 'Max Salary')}
+                    </span>
+                    <span className={`material-symbols-outlined text-slate-400 transition-transform ${maxDropdownOpen ? 'rotate-180' : ''}`}>
+                      expand_more
+                    </span>
+                  </button>
+ 
+                  {maxDropdownOpen && minSalary && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setMaxDropdownOpen(false)} />
+                      <div className="absolute left-0 right-0 mt-2 z-50 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+                        {SALARY_OPTIONS
+                          .filter((opt) => opt > Number(minSalary))
+                          .map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                setMaxSalary(opt.toString());
+                                setMaxDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-5 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                            >
+                              ₹{opt.toLocaleString('en-IN')}
+                            </button>
+                          ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -403,23 +647,90 @@ const CreateJobRequisition = () => {
             <div className="space-y-2">
               <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Shift Timing <span className="text-red-500">*</span></label>
               <div className="grid grid-cols-2 gap-4">
+                {/* Start Time */}
                 <div className="space-y-1">
                   <span className="text-[8px] font-bold text-slate-400 uppercase ml-1 block">Start Time</span>
-                  <input
-                    type="time"
-                    value={shiftStartTime}
-                    onChange={(e) => setShiftStartTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                  />
+                  <div className={`relative ${startTimeDropdownOpen ? 'z-50' : 'z-0'}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStartTimeDropdownOpen(!startTimeDropdownOpen);
+                        setEndTimeDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left font-bold text-xs text-slate-700 hover:bg-slate-100/50 transition-colors"
+                    >
+                      <span className={shiftStartTime ? 'text-slate-900 font-black' : 'text-slate-400 font-bold'}>
+                        {shiftStartTime ? format24hTo12h(shiftStartTime) : '09:00 AM'}
+                      </span>
+                      <span className={`material-symbols-outlined text-slate-400 transition-transform ${startTimeDropdownOpen ? 'rotate-180' : ''}`}>
+                        expand_more
+                      </span>
+                    </button>
+
+                    {startTimeDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setStartTimeDropdownOpen(false)} />
+                        <div className="absolute left-0 right-0 mt-2 z-50 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                          {TIME_OPTIONS_48.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                setShiftStartTime(format12hTo24h(opt));
+                                setStartTimeDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-5 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
+
+                {/* End Time */}
                 <div className="space-y-1">
                   <span className="text-[8px] font-bold text-slate-400 uppercase ml-1 block">End Time</span>
-                  <input
-                    type="time"
-                    value={shiftEndTime}
-                    onChange={(e) => setShiftEndTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                  />
+                  <div className={`relative ${endTimeDropdownOpen ? 'z-50' : 'z-0'}`}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEndTimeDropdownOpen(!endTimeDropdownOpen);
+                        setStartTimeDropdownOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-4 text-left font-bold text-xs text-slate-700 hover:bg-slate-100/50 transition-colors"
+                    >
+                      <span className={shiftEndTime ? 'text-slate-900 font-black' : 'text-slate-400 font-bold'}>
+                        {shiftEndTime ? format24hTo12h(shiftEndTime) : '06:00 PM'}
+                      </span>
+                      <span className={`material-symbols-outlined text-slate-400 transition-transform ${endTimeDropdownOpen ? 'rotate-180' : ''}`}>
+                        expand_more
+                      </span>
+                    </button>
+
+                    {endTimeDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setEndTimeDropdownOpen(false)} />
+                        <div className="absolute left-0 right-0 mt-2 z-50 bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                          {TIME_OPTIONS_48.map((opt) => (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                setShiftEndTime(format12hTo24h(opt));
+                                setEndTimeDropdownOpen(false);
+                              }}
+                              className="w-full text-left px-5 py-3 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -434,198 +745,345 @@ const CreateJobRequisition = () => {
               </div>
               <textarea
                 rows="4"
-                maxLength="1000"
+                readOnly
                 value={responsibility}
-                onChange={(e) => setResponsibility(e.target.value)}
-                placeholder="Enter job responsibilities (e.g. Ironing clothes, operating steam press, maintaining washing machines...)"
-                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all resize-none leading-relaxed"
+                placeholder="Pre-populated job responsibilities..."
+                className="w-full bg-indigo-50/30 border border-indigo-100/30 text-slate-600 font-bold rounded-2xl p-4 text-xs outline-none resize-none leading-relaxed cursor-not-allowed"
               />
             </div>
-          </div>
-        </section>
 
-        {/* SECTION 5: JOB LOCATION */}
-        <section className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm space-y-5">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-              <span className="material-symbols-outlined text-lg">location_on</span>
+            {/* Additional Requirements */}
+            <div className="space-y-2">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Additional Requirements (Optional)</label>
+              <textarea
+                rows="3"
+                value={additionalRequirements}
+                onChange={(e) => setAdditionalRequirements(e.target.value)}
+                placeholder="Enter any custom requirements or benefits from your side (One per line)..."
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-800 outline-none focus:border-slate-300 transition-colors resize-none leading-relaxed"
+              />
             </div>
-            <h2 className="text-sm font-black text-slate-950 uppercase tracking-wider">Job Location</h2>
-          </div>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">City <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Gurugram"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Area / Geofence <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  value={area}
-                  onChange={(e) => setArea(e.target.value)}
-                  placeholder="e.g. Sector 45"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Pincode <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  maxLength="6"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="e.g. 122003"
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold focus:ring-4 focus:ring-slate-200 focus:bg-white outline-none transition-all"
-                />
-              </div>
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-3 pt-6 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowPreview(true)}
+                disabled={!isFormValid() || submitting}
+                className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
+                  isFormValid() && !submitting
+                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/10 hover:bg-black active:scale-[0.98]'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm">visibility</span>
+                Preview
+              </button>
             </div>
           </div>
         </section>
-
-
 
       </main>
-
-      {/* SECTION 7: ACTION BUTTONS (STICKY BOTTOM BAR) */}
-      <footer className="fixed bottom-0 left-0 right-0 z-30 bg-white/80 backdrop-blur-md border-t border-slate-100 py-5 px-6 shadow-2xl flex justify-center">
-        <div className="max-w-xl w-full flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => handleSubmit('Draft')}
-            disabled={submitting}
-            className="flex-1 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-100 active:scale-95 transition-all"
-          >
-            Save Draft
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => setShowPreview(true)}
-            className="flex-1 py-4 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all"
-          >
-            Preview Job
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={!isFormValid() || submitting}
-            className={`flex-[1.5] py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${
-              isFormValid() && !submitting
-                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 hover:bg-indigo-600 hover:scale-[1.02] active:scale-95'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            }`}
-          >
-            {submitting ? (
-              <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-sm">rocket_launch</span>
-                Submit
-              </>
-            )}
-          </button>
-        </div>
-      </footer>
 
       {/* 🚀 PREVIEW MODAL */}
       <AnimatePresence>
         {showPreview && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-100 w-full max-w-md rounded-[3rem] p-6 shadow-2xl space-y-6 relative overflow-hidden"
+              className="bg-slate-50 border border-slate-200 w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl space-y-6 relative overflow-hidden text-slate-900"
             >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/5 rounded-full blur-[80px] -mr-24 -mt-24 pointer-events-none"></div>
+              <div className="absolute top-0 right-0 w-48 h-48 bg-slate-200/30 rounded-full blur-[80px] -mr-24 -mt-24 pointer-events-none"></div>
 
               <div className="flex justify-between items-center relative z-10">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Careers Page Preview</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowPreview(false)}
-                  className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-slate-400 hover:bg-slate-200"
-                >
-                  <span className="material-symbols-outlined text-lg">close</span>
-                </button>
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  {isEditingInPreview ? 'Edit Requisition' : 'Careers Page Preview'}
+                </h3>
+                {!isEditingInPreview && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPreview(false)}
+                    className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">close</span>
+                  </button>
+                )}
               </div>
 
-              {/* Simulated Public Careers Page Card */}
-              <div className="bg-white rounded-[2rem] p-6 border border-slate-200 shadow-sm space-y-4 relative z-10">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-base tracking-tight text-slate-900 truncate">
-                      {roleName || selectedRoleKey || 'Job Title'}
-                    </h3>
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] text-indigo-600">
-                      {shopName}
-                    </span>
-                  </div>
-                  <div className="bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200/50 flex items-center gap-1 shrink-0 max-w-[180px]">
-                    <span className="material-symbols-outlined text-[12px] text-indigo-500 shrink-0">location_on</span>
-                    <span className="text-[8px] font-black uppercase tracking-wider truncate">
-                      {area || 'Area'}, {city || 'City'}{pincode ? ` - ${pincode}` : ''}
-                    </span>
-                  </div>
-                </div>
+              {/* The Single Box Container */}
+              <div className="bg-white rounded-[2rem] p-6 border border-slate-200/80 shadow-sm space-y-4 relative z-10 max-h-[60vh] overflow-y-auto no-scrollbar">
+                {isEditingInPreview ? (
+                  // EDITING MODE
+                  <div className="space-y-4">
+                    {/* Job Title / Role Name */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Title</label>
+                      <input
+                        type="text"
+                        value={tempForm.roleName}
+                        onChange={(e) => setTempForm({ ...tempForm, roleName: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 transition-all"
+                      />
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
-                    <span className="material-symbols-outlined text-[11px]">group</span>
-                    0 Applicants
-                  </span>
-                  <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
-                    <span className="material-symbols-outlined text-[11px]">schedule</span>
-                    Full Time
-                  </span>
-                  {minSalary && maxSalary && (
-                    <span className="inline-flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-emerald-600">
-                      <span className="material-symbols-outlined text-[11px]">payments</span>
-                      ₹{Number(minSalary).toLocaleString('en-IN')} - ₹{Number(maxSalary).toLocaleString('en-IN')}
-                    </span>
-                  )}
-                </div>
+                    {/* Description */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Description</label>
+                      <textarea
+                        value={tempForm.roleDescription}
+                        onChange={(e) => setTempForm({ ...tempForm, roleDescription: e.target.value })}
+                        rows={3}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none leading-relaxed transition-all"
+                      />
+                    </div>
 
-                {roleDescription && (
-                  <p className="text-[11px] text-slate-500 font-medium leading-relaxed italic line-clamp-3">
-                    "{roleDescription}"
-                  </p>
-                )}
+                    {/* Responsibilities */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Responsibilities (One per line)</label>
+                      <textarea
+                        value={tempForm.responsibility}
+                        onChange={(e) => setTempForm({ ...tempForm, responsibility: e.target.value })}
+                        rows={4}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none leading-relaxed transition-all"
+                      />
+                    </div>
 
-                {responsibility && (
-                  <div className="pt-2 border-t border-slate-50">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Responsibilities</p>
-                    <div className="space-y-1 max-h-24 overflow-y-auto no-scrollbar">
-                      {responsibility.split('\n').map((line, idx) => (
-                        <p key={idx} className="text-[10px] font-bold text-slate-600 flex items-start gap-1">
-                          <span className="w-1 h-1 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                          <span>{line}</span>
-                        </p>
-                      ))}
+                    {/* Additional Requirements */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Additional Requirements</label>
+                      <textarea
+                        value={tempForm.additionalRequirements}
+                        onChange={(e) => setTempForm({ ...tempForm, additionalRequirements: e.target.value })}
+                        rows={3}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none leading-relaxed transition-all"
+                      />
+                    </div>
+
+                    {/* Salary Range (Min / Max) */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Salary Range (Monthly)</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-slate-400 font-bold ml-1">Min</span>
+                          <select
+                            value={tempForm.minSalary}
+                            onChange={(e) => {
+                              const newMin = e.target.value;
+                              let newMax = tempForm.maxSalary;
+                              if (newMax && Number(newMax) <= Number(newMin)) {
+                                newMax = '';
+                              }
+                              setTempForm({ ...tempForm, minSalary: newMin, maxSalary: newMax });
+                            }}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 transition-all"
+                          >
+                            <option value="">Select Min</option>
+                            {SALARY_OPTIONS.map(val => (
+                              <option key={val} value={val}>₹{val.toLocaleString('en-IN')}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-slate-400 font-bold ml-1">Max</span>
+                          <select
+                            value={tempForm.maxSalary}
+                            disabled={!tempForm.minSalary}
+                            onChange={(e) => setTempForm({ ...tempForm, maxSalary: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none disabled:opacity-50 focus:border-slate-400 transition-all"
+                          >
+                            <option value="">Select Max</option>
+                            {SALARY_OPTIONS
+                              .filter(val => val > Number(tempForm.minSalary || 0))
+                              .map(val => (
+                                <option key={val} value={val}>₹{val.toLocaleString('en-IN')}</option>
+                              ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Shift Timings */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Shift Timings</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="text-[8px] text-slate-400 font-bold ml-1">Start Time</span>
+                          <select
+                            value={tempForm.shiftStartTime}
+                            onChange={(e) => setTempForm({ ...tempForm, shiftStartTime: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 transition-all"
+                          >
+                            {TIME_OPTIONS_48.map(t => (
+                              <option key={t} value={format12hTo24h(t)}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-slate-400 font-bold ml-1">End Time</span>
+                          <select
+                            value={tempForm.shiftEndTime}
+                            onChange={(e) => setTempForm({ ...tempForm, shiftEndTime: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 outline-none focus:border-slate-400 transition-all"
+                          >
+                            {TIME_OPTIONS_48.map(t => (
+                              <option key={t} value={format12hTo24h(t)}>{t}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
+                ) : (
+                  // PREVIEW VIEW
+                  <div className="space-y-4">
+                    {/* Role Title */}
+                    <div>
+                      <h3 className="font-black text-base tracking-tight text-slate-900 leading-tight">
+                        {roleName || selectedRoleKey || 'Job Title'}
+                      </h3>
+                      <span className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-500 block mt-1">
+                        {shopName}
+                      </span>
+                      <span className="inline-flex items-center gap-1 mt-2 text-[9px] font-black uppercase tracking-wider text-slate-700">
+                        <span className="material-symbols-outlined text-[11px] text-slate-900">location_on</span>
+                        {city || 'City'}, {area || 'State'} {pincode ? `- ${pincode}` : ''}
+                      </span>
+                    </div>
 
-                <button
-                  type="button"
-                  className="w-full py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest text-center"
-                >
-                  Apply Now
-                </button>
+                    {/* Description */}
+                    {roleDescription && (
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed italic border-l-2 border-slate-200 pl-3 block py-0.5">
+                        "{roleDescription}"
+                      </p>
+                    )}
+
+                    {/* Responsibilities */}
+                    {(responsibility || additionalRequirements) && (
+                      <div className="pt-4 border-t border-slate-100">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Responsibilities</p>
+                        <div className="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                          {responsibility && responsibility.split('\n').map((line, idx) => (
+                            <p key={idx} className="text-[10px] font-medium text-slate-600 flex items-start gap-2 leading-relaxed">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-950 mt-1.5 shrink-0" />
+                              <span>{line}</span>
+                            </p>
+                          ))}
+                          {additionalRequirements && additionalRequirements.split('\n').map((line, idx) => (
+                            <p key={`add-${idx}`} className="text-[10px] font-medium text-slate-600 flex items-start gap-2 leading-relaxed">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-950 mt-1.5 shrink-0" />
+                              <span>{line}</span>
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Salary Range */}
+                    {minSalary && maxSalary && (
+                      <div className="pt-4 border-t border-slate-100">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Salary Range</p>
+                        <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200/60 px-3 py-1.5 rounded-xl text-[9px] font-black tracking-wider text-slate-800">
+                          <span className="material-symbols-outlined text-xs text-slate-500">payments</span>
+                          ₹{Number(minSalary).toLocaleString('en-IN')} - ₹{Number(maxSalary).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Shift Timings */}
+                    {shiftStartTime && shiftEndTime && (
+                      <div className="pt-4 border-t border-slate-100">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Shift Timings</p>
+                        <span className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200/60 px-3 py-1.5 rounded-xl text-[9px] font-black tracking-wider text-slate-800">
+                          <span className="material-symbols-outlined text-xs text-slate-500">schedule</span>
+                          {format24hTo12h(shiftStartTime)} - {format24hTo12h(shiftEndTime)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="flex justify-center text-[9px] font-black text-slate-400 uppercase tracking-widest gap-2">
-                <span className="material-symbols-outlined text-[14px]">public</span>
-                Public Listing
+              {/* Action Buttons: Edit & Submit / Cancel & Save */}
+              <div className="pt-3 relative z-10 flex gap-3">
+                {isEditingInPreview ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditingInPreview(false);
+                      }}
+                      className="flex-1 py-3.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Save temp values to main state
+                        setRoleName(tempForm.roleName);
+                        setRoleDescription(tempForm.roleDescription);
+                        setResponsibility(tempForm.responsibility);
+                        setAdditionalRequirements(tempForm.additionalRequirements);
+                        setMinSalary(tempForm.minSalary);
+                        setMaxSalary(tempForm.maxSalary);
+                        setShiftStartTime(tempForm.shiftStartTime);
+                        setShiftEndTime(tempForm.shiftEndTime);
+                        setIsEditingInPreview(false);
+                      }}
+                      disabled={
+                        !tempForm.roleName.trim() ||
+                        !tempForm.minSalary ||
+                        !tempForm.maxSalary ||
+                        !tempForm.shiftStartTime ||
+                        !tempForm.shiftEndTime
+                      }
+                      className="flex-1 py-3.5 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-30 active:scale-95 transition-all"
+                    >
+                      Save
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Initialize temp state with current values
+                        setTempForm({
+                          roleName,
+                          roleDescription,
+                          responsibility,
+                          additionalRequirements,
+                          minSalary,
+                          maxSalary,
+                          shiftStartTime,
+                          shiftEndTime
+                        });
+                        setIsEditingInPreview(true);
+                      }}
+                      className="flex-1 py-3.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit()}
+                      disabled={submitting}
+                      className="flex-[2] py-3.5 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-slate-950/10 flex items-center justify-center gap-2 disabled:opacity-30"
+                    >
+                      {submitting ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-sm">rocket_launch</span>
+                          Submit
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </motion.div>
           </div>
@@ -641,7 +1099,7 @@ const CreateJobRequisition = () => {
               animate={{ scale: 1, y: 0, opacity: 1 }}
               className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl text-center space-y-6"
             >
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <div className="w-16 h-16 bg-slate-950 text-white rounded-full flex items-center justify-center mx-auto shadow-lg">
                 <span className="material-symbols-outlined text-3xl font-black">check_circle</span>
               </div>
 
@@ -650,7 +1108,7 @@ const CreateJobRequisition = () => {
                 <p className="text-xs font-bold text-slate-500 leading-relaxed">
                   Job requisition submitted successfully.
                 </p>
-                <p className="text-[9px] font-black text-indigo-500 uppercase tracking-wider">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
                   The vacancy is now live on the public careers page.
                 </p>
               </div>

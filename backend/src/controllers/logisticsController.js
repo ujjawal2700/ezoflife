@@ -86,22 +86,34 @@ export const verifyHandshake = async (req, res) => {
             order.status = 'OUT_FOR_DELIVERY';
         } else if (phase === 'Completion') {
             order.status = 'DELIVERED';
-            
-            // Notify customer of status update
-            const { getIO } = await import('../socket.js');
-            const io = getIO();
-            if (io) {
-                const customerId = order.customer._id || order.customer;
-                const targetRoom = `user_${customerId.toString()}`;
-                console.log(`[DEBUG] Notifying delivery to room: ${targetRoom}`);
-                io.to(targetRoom).emit('order_status_update', {
-                    ...order.toObject(),
-                    status: 'DELIVERED'
-                });
-            }
         }
 
         await order.save();
+
+        // Populate order details and emit WebSocket status update
+        try {
+            const populatedOrder = await Order.findById(order._id)
+                .populate('customer', 'displayName phone address email')
+                .populate('vendor', 'shopDetails address location')
+                .populate('rider', 'displayName phone location');
+
+            const { getIO } = await import('../socket.js');
+            const io = getIO();
+            if (io) {
+                const orderRoom = `order_${order._id.toString()}`;
+                console.log(`[DEBUG] Emitting order status update to room: ${orderRoom} -> ${order.status}`);
+                io.to(orderRoom).emit('order_status_update', populatedOrder);
+
+                if (phase === 'Completion') {
+                    const customerId = order.customer._id || order.customer;
+                    const targetRoom = `user_${customerId.toString()}`;
+                    console.log(`[DEBUG] Notifying delivery to user room: ${targetRoom}`);
+                    io.to(targetRoom).emit('order_status_update', populatedOrder);
+                }
+            }
+        } catch (socketErr) {
+            console.error('Socket notification error in logistics handshake verification:', socketErr);
+        }
 
         res.status(200).json({ 
             message: `Handshake ${phase} verified successfully!`,

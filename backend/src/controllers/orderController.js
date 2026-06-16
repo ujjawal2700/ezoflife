@@ -406,6 +406,7 @@ export const createOrder = async (req, res) => {
             advanceAmount: Math.round(calculatedAdvance),
             dueAmount: Math.round(calculatedDue),
             deliveryMode: deliveryMode || 'Normal',
+            tier: req.body.selectedTier || 'Essential',
             deliveryCharge: Number(deliveryCharge) || 0,
             promoApplied: req.body.promoApplied || null,
             discountAmount: req.body.discountAmount || 0,
@@ -803,7 +804,7 @@ export const getPoolOrders = async (req, res) => {
         }).map(o => ({
             ...o._doc,
             distance: calculateHaversineDistance(vLat, vLng, o.pickupLocation.lat, o.pickupLocation.lng).toFixed(2),
-            tier: o.items[0]?.tier || 'Essential',
+            tier: o.tier || o.items[0]?.tier || 'Essential',
             deliveryMode: o.deliveryMode || 'Normal',
             notes: o.specialInstructions
         }));
@@ -1134,26 +1135,61 @@ const parseWalkInDeliveryTime = (deliveryTime) => {
     let timeSlot = '06:00 PM - 08:00 PM';
 
     if (deliveryTime) {
-        const timeStr = deliveryTime.toLowerCase();
-        if (timeStr.includes('today')) {
-            targetDate = now;
-            if (timeStr.includes('8 pm')) {
-                timeSlot = '08:00 PM - 10:00 PM';
+        // Handle formats with commas, e.g., "TOMORROW, Jun 13, 2026, 06:00 PM - 08:00 PM"
+        const parts = deliveryTime.split(',');
+        if (parts.length >= 2) {
+            const timePart = parts[parts.length - 1].trim();
+            const datePart = parts.slice(0, -1).join(',').trim();
+            
+            // Clean up weekday, TODAY, or TOMORROW prefixes
+            const cleanDatePart = datePart.replace(/^(TODAY|TOMORROW|MON|TUE|WED|THU|FRI|SAT|SUN)\s*,?\s*/i, '').trim();
+            
+            const parsedDate = new Date(cleanDatePart);
+            if (!isNaN(parsedDate.getTime())) {
+                targetDate = parsedDate;
+            } else {
+                const lowerDatePart = datePart.toLowerCase();
+                if (lowerDatePart.includes('today')) {
+                    targetDate = now;
+                } else if (lowerDatePart.includes('tomorrow')) {
+                    targetDate = new Date();
+                    targetDate.setDate(now.getDate() + 1);
+                }
             }
-        } else if (timeStr.includes('tomorrow')) {
-            targetDate.setDate(now.getDate() + 1);
-            if (timeStr.includes('6 pm')) {
-                timeSlot = '06:00 PM - 08:00 PM';
+
+            if (timePart.includes('-')) {
+                timeSlot = timePart;
+            } else {
+                timeSlot = timePart;
             }
-        } else if (timeStr.includes('2 days')) {
-            targetDate.setDate(now.getDate() + 2);
+        } else {
+            // Old format fallback
+            const timeStr = deliveryTime.toLowerCase();
+            if (timeStr.includes('today')) {
+                targetDate = now;
+                if (timeStr.includes('8 pm')) {
+                    timeSlot = '08:00 PM - 10:00 PM';
+                }
+            } else if (timeStr.includes('tomorrow')) {
+                targetDate.setDate(now.getDate() + 1);
+                if (timeStr.includes('6 pm')) {
+                    timeSlot = '06:00 PM - 08:00 PM';
+                }
+            } else if (timeStr.includes('2 days')) {
+                targetDate.setDate(now.getDate() + 2);
+            }
         }
     } else {
         targetDate.setDate(now.getDate() + 1);
     }
 
+    // Format targetDate as YYYY-MM-DD
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+
     return {
-        date: targetDate.toISOString().split('T')[0],
+        date: `${year}-${month}-${day}`,
         time: timeSlot
     };
 };
@@ -1229,6 +1265,7 @@ export const createWalkInOrder = async (req, res) => {
             paymentStatus: 'Paid', // Assuming cash/direct payment for walk-in
             totalAmount,
             orderType: 'Walk-In',
+            tier: req.body.selectedTier || req.body.tier || 'Essential',
             riderDropOff: riderDropOff || false,
             pickupStatus: 'picked',
             pickupExpectedDate: new Date(),

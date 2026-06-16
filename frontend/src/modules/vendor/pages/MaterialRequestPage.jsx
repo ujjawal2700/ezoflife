@@ -320,7 +320,7 @@ const MaterialRequestPage = () => {
                         </header>
 
                         {/* Cart Icon inside Vendor Header via Portal */}
-                        {document.getElementById('vendor-header-cart-portal') && createPortal(
+                        {document.getElementById('vendor-header-cart-portal') && totalItems > 0 && createPortal(
                             <button 
                                 onClick={() => {
                                     if (totalItems > 0) {

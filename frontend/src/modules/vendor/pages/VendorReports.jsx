@@ -553,6 +553,95 @@ const VendorReports = () => {
               </button>
             </div>
           </motion.div>
+
+          {/* Customer Sentiment & Reviews Card */}
+          <motion.div
+            variants={cardVariants}
+            className="bg-white p-6 rounded-[2.2rem] border border-black/5 shadow-sm space-y-5"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-tight">
+                  Customer Sentiment & Reviews
+                </span>
+                <span className="text-xs font-bold text-slate-500 mt-0.5">
+                  Satisfaction & Feedback Analytics
+                </span>
+              </div>
+              <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-xl border border-amber-100/50 shrink-0">
+                <span className="material-symbols-outlined text-xs font-bold animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <span className="text-xs font-black">4.8</span>
+              </div>
+            </div>
+
+            {/* Average Rating Trend Graph */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Average Rating Trend</span>
+              <div className="h-28 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={[
+                    { name: 'W1', rating: 4.2 },
+                    { name: 'W2', rating: 4.5 },
+                    { name: 'W3', rating: 4.4 },
+                    { name: 'W4', rating: 4.7 },
+                    { name: 'W5', rating: 4.8 }
+                  ]} margin={{ top: 10, bottom: 5, left: -25, right: 10 }}>
+                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} />
+                    <YAxis domain={[1, 5]} tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="rating" 
+                      stroke="#000000" 
+                      strokeWidth={2} 
+                      dot={{ r: 3.5, stroke: '#000000', strokeWidth: 1.5, fill: '#ffffff' }}
+                      activeDot={{ r: 5, stroke: '#000000', strokeWidth: 2, fill: '#ffffff' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Positive & Critical Tags Sections */}
+            <div className="space-y-4 pt-2 border-t border-slate-100/80">
+              {/* Positive Attributes */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-emerald-600">
+                  <span className="material-symbols-outlined text-sm font-bold">sentiment_satisfied</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider">Top Positive Attributes</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2.5 py-1 rounded-xl bg-emerald-50/60 text-emerald-700 text-[10px] font-black border border-emerald-100/40">
+                    Crisp Folding
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-emerald-50/60 text-emerald-700 text-[10px] font-black border border-emerald-100/40">
+                    Fresh Fragrance
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-emerald-50/60 text-emerald-700 text-[10px] font-black border border-emerald-100/40">
+                    On-Time Delivery
+                  </span>
+                </div>
+              </div>
+
+              {/* Critical Areas */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 text-rose-600">
+                  <span className="material-symbols-outlined text-sm font-bold">sentiment_dissatisfied</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider">Critical Improvement Areas</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2.5 py-1 rounded-xl bg-rose-50/60 text-rose-700 text-[10px] font-black border border-rose-100/40">
+                    Late Pickup
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-rose-50/60 text-rose-700 text-[10px] font-black border border-rose-100/40">
+                    Damp Clothes
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl bg-rose-50/60 text-rose-700 text-[10px] font-black border border-rose-100/40">
+                    Improper Crease
+                  </span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Revenue Graph Modal */}

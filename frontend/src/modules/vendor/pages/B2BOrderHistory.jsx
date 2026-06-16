@@ -106,7 +106,7 @@ const B2BOrderHistory = () => {
             const { rzpOrder } = await b2bOrderApi.initiateB2BPayment(order._id);
             
             const options = {
-                key: 'rzp_test_placeholder', // Should be from backend or env
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_placeholder', // Should be from backend or env
                 amount: rzpOrder.amount,
                 currency: rzpOrder.currency,
                 name: 'EzOfLife B2B',

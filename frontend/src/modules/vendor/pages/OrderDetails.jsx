@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { orderApi } from '../../../lib/api';
+import { orderApi, logisticsApi } from '../../../lib/api';
 
 const OrderDetails = () => {
     const navigate = useNavigate();
@@ -10,6 +10,7 @@ const OrderDetails = () => {
     const [loading, setLoading] = useState(true);
 
     const [isHandshakeModalOpen, setIsHandshakeModalOpen] = useState(false);
+    const [activeHandshakePhase, setActiveHandshakePhase] = useState(null); // 'Inbound' or 'Reverse'
     const [otp, setOtp] = useState(['', '', '', '']);
     const [verifying, setVerifying] = useState(false);
 
@@ -213,7 +214,9 @@ const OrderDetails = () => {
         
         try {
             setVerifying(true);
-            if (order.orderType === 'Walk-In' && !order.riderDropOff) {
+            if (activeHandshakePhase === 'Inbound') {
+                await logisticsApi.verifyHandshake(order._id, 'Inbound', otpString);
+            } else if (order.orderType === 'Walk-In' && !order.riderDropOff) {
                 await orderApi.verifyDeliveryOtp(order._id, otpString);
             } else {
                 await orderApi.verifyHandshake(order._id, 'Reverse', otpString);
@@ -303,9 +306,74 @@ const OrderDetails = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* 1.5. CONCISE ORDER SUMMARY BOX IN DARK THEME */}
+                <div className="px-6 pb-4">
+                    <div className="bg-slate-950 text-white rounded-[1.8rem] p-4.5 shadow-xl relative overflow-hidden group border border-white/5">
+                        <div className="absolute right-0 top-0 p-4 opacity-[0.03] rotate-12 pointer-events-none">
+                            <span className="material-symbols-outlined text-[60px]">receipt_long</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-[1.1fr_1.4fr] gap-3.5 relative z-10">
+                          {/* Left Side: Tier & Mode */}
+                          <div className="space-y-3.5">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-white/60 text-[12px]">workspace_premium</span>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Tier</p>
+                                <p className="text-[10px] font-black text-white uppercase">{order.tier || 'Essential'}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-white/60 text-[12px]">bolt</span>
+                              </div>
+                              <div className="flex-1 text-left">
+                                <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Delivery Mode</p>
+                                <p className="text-[10px] font-black text-white uppercase">{order.deliveryMode || 'Normal'}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Side: Pickup, Drop & Price */}
+                          <div className="space-y-3.5 flex flex-col justify-between">
+                            <div className="space-y-3.5">
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                  <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1.5 whitespace-nowrap">Pickup Time</p>
+                                  <p className="text-[9px] font-black text-white uppercase truncate mt-0.5">
+                                    {order.pickupSlot?.time || '07:00 AM - 09:00 AM'}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                                  <span className="material-symbols-outlined text-white/60 text-[12px]">local_shipping</span>
+                                </div>
+                                <div className="flex-1 min-w-0 text-left">
+                                  <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1.5 whitespace-nowrap">Dropoff Time</p>
+                                  <p className="text-[9px] font-black text-white uppercase truncate mt-0.5">
+                                    {order.deliverySlot?.time || order.pickupSlot?.time || '07:00 AM - 09:00 AM'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            {/* Price in the right corner, large font size, no icon/label */}
+                            <div className="flex justify-end items-end mt-auto">
+                              <span className="text-[18px] font-black text-white tracking-tight">₹{order.totalAmount}</span>
+                            </div>
+                          </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div className="px-6 pb-2 pt-2">
-                    <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">Order Summary</h3>
+                    <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">Article Detail</h3>
                 </div>
             </div>
 
@@ -314,170 +382,41 @@ const OrderDetails = () => {
                 {/* 2. ORDER SUMMARY ITEMS */}
                 <section className="flex flex-col gap-4">
                     <div className="flex flex-col gap-4">
-                        {order.items?.map((item, i) => (
-                            <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm flex flex-col gap-4">
-                                {/* Row 1 */}
-                                <div className="flex justify-between items-center">
-                                    <p className="font-black text-slate-900 text-sm uppercase">{item.name}</p>
-                                    <p className="font-black text-slate-900 text-sm uppercase">{item.quantity} {item.unit || 'articles'}</p>
-                                </div>
-                                {/* Row 2 */}
-                                <div className="flex justify-between items-center text-xs font-black text-slate-900 uppercase tracking-widest">
-                                    <p>{order.deliveryMode || 'Normal'}</p>
-                                    <p>{order.careType || item.careType || 'Essential'}</p>
-                                </div>
-                                {/* Row 3 */}
-                                {item.photos && item.photos.length > 0 ? (
-                                    <div className={`grid gap-2 ${item.photos.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                                        {item.photos.map((photo, pIdx) => (
-                                            <div 
-                                                key={pIdx} 
-                                                className={`w-full ${item.photos.length === 1 ? 'h-40' : 'h-24'} rounded-2xl bg-slate-50 overflow-hidden border border-slate-100 cursor-pointer`}
-                                                onClick={() => setSelectedImage(photo)}
-                                            >
-                                                <img src={photo} alt={`${item.name} ${pIdx + 1}`} className="w-full h-full object-cover" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="w-full h-40 rounded-2xl bg-slate-50 overflow-hidden flex items-center justify-center border border-slate-100">
-                                        <span className="material-symbols-outlined text-slate-300 text-4xl">local_laundry_service</span>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* PAYMENT */}
-                    <div className="flex justify-between items-center pt-2">
-                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Vendor Payout</p>
-                        <p className="font-black text-slate-900 text-3xl tracking-tighter">₹{order.totalAmount}</p>
-                    </div>
-                </section>
-
-                {/* 2.5 DELIVERY BOY DETAIL (Shiprocket Mock) */}
-                {order && ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) && (
-                    <section className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex flex-col gap-4">
-                        <div className="flex items-center gap-3 border-b border-black/5 pb-4">
-                            <span className="material-symbols-outlined text-black text-xl">delivery_dining</span>
-                            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-black">Delivery Boy Details</h3>
-                        </div>
-                        
-                        {/* Mocking the data here */}
-                        {(() => {
-                            // TODO: Replace with actual Shiprocket API responses later
-                            const pickupRider = order.shiprocketPickupRider || null;
-                            const deliveryRider = order.shiprocketDeliveryRider || null;
-                            const isDeliveryAssigned = ['READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status);
-                            
+                        {order.items?.map((item, i) => {
+                            const itemImg = (order.customerPhotos && order.customerPhotos[i]) || 
+                                            (order.customerPhotos && order.customerPhotos[0]) || 
+                                            (item.photos && item.photos[0]);
                             return (
-                                <div className="flex flex-col gap-6">
-                                    {/* Pickup Rider Block */}
-                                    <div className="flex flex-col gap-3">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-black/40">Pickup from Customer</p>
-                                        {pickupRider ? (
-                                            <div className="flex gap-4 items-center">
-                                                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-black border border-black/5">
-                                                    <span className="material-symbols-outlined">person</span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-black text-sm">{pickupRider.name}</p>
-                                                    <p className="font-bold text-black/60 text-xs mt-0.5">{pickupRider.phone}</p>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-black/5">
-                                                <span className="material-symbols-outlined text-black text-lg mt-0.5">info</span>
-                                                <p className="text-xs font-bold text-black/80 leading-relaxed">
-                                                    Shiprocket has not sent the pickup rider details yet.
-                                                </p>
-                                            </div>
-                                        )}
+                                <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm flex flex-col gap-4">
+                                    {/* Service Name & Qty */}
+                                    <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
+                                        <p className="text-[11px] font-black text-slate-800 uppercase tracking-wide leading-none">{item.name}</p>
+                                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-200/60 px-2.5 py-1 rounded-md">QTY: {item.quantity}</span>
                                     </div>
-
-                                    {/* Delivery Rider Block */}
-                                    <div className="flex flex-col gap-3 pt-6 border-t border-black/5">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-black/40">Delivery to Customer</p>
-                                        {!isDeliveryAssigned ? (
-                                            <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-black/5 opacity-70">
-                                                <span className="material-symbols-outlined text-black text-lg mt-0.5">schedule</span>
-                                                <p className="text-xs font-bold text-black/80 leading-relaxed">
-                                                    Delivery rider will be assigned once you mark the order as Ready for Dispatch.
-                                                </p>
-                                            </div>
-                                        ) : deliveryRider ? (
-                                            <div className="flex gap-4 items-center">
-                                                <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-black border border-black/5">
-                                                    <span className="material-symbols-outlined">person</span>
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-black text-sm">{deliveryRider.name}</p>
-                                                    <p className="font-bold text-black/60 text-xs mt-0.5">{deliveryRider.phone}</p>
-                                                </div>
-                                            </div>
+                                    {/* Service Image */}
+                                    <div 
+                                        className="w-full h-40 rounded-2xl bg-slate-50/50 border border-slate-200/40 flex items-center justify-center text-slate-300 overflow-hidden shadow-inner cursor-pointer"
+                                        onClick={() => itemImg && setSelectedImage(itemImg.url || itemImg)}
+                                    >
+                                        {itemImg ? (
+                                            <img src={itemImg.url || itemImg} alt={item.name} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="flex items-start gap-3 bg-slate-50 p-4 rounded-2xl border border-black/5">
-                                                <span className="material-symbols-outlined text-black text-lg mt-0.5">info</span>
-                                                <p className="text-xs font-bold text-black/80 leading-relaxed">
-                                                    Shiprocket has not sent the delivery rider details yet.
-                                                </p>
+                                            <div className="flex flex-col items-center gap-1 opacity-40">
+                                                <span className="material-symbols-outlined text-4xl">dry_cleaning</span>
+                                                <span className="text-[9px] font-bold uppercase tracking-widest">No Image Uploaded</span>
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             );
-                        })()}
-                    </section>
-                )}
-
-                {/* 3. CUSTOMER DETAIL */}
-                <section className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm flex flex-col gap-6">
-                    <div className="flex items-center gap-3 border-b border-black/5 pb-4">
-                        <span className="material-symbols-outlined text-black text-xl">person</span>
-                        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-black">Customer Details</h3>
+                        })}
                     </div>
-                    
-                    <div className="flex flex-col gap-6">
-                        {/* Customer Name & Number */}
-                        <div className="flex gap-4 items-center">
-                            <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center text-black border border-black/5">
-                                <span className="material-symbols-outlined">badge</span>
-                            </div>
-                            <div>
-                                <h4 className="font-black text-black text-sm">{order.customer?.displayName || 'Customer'}</h4>
-                                <p className="font-bold text-black/60 text-xs mt-0.5">{order.customer?.phone}</p>
-                            </div>
-                        </div>
 
-                        <div className="flex flex-col gap-5 pt-6 border-t border-black/5">
-                            {/* Pickup Address */}
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-black border border-black/5 flex-shrink-0">
-                                    <span className="material-symbols-outlined text-[18px]">home_pin</span>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1">Pickup Address</p>
-                                    <p className="text-xs font-bold text-black/80 leading-relaxed">
-                                        {order.pickupAddress}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Dropoff Address */}
-                            <div className="flex gap-4">
-                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-black border border-black/5 flex-shrink-0">
-                                    <span className="material-symbols-outlined text-[18px]">location_on</span>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-black/40 mb-1">Dropoff Address</p>
-                                    <p className="text-xs font-bold text-black/80 leading-relaxed">
-                                        {order.dropAddress}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </section>
+
+
+
+
 
                 {/* 4. RIDER LOGISTICS */}
                 {order.rider && (
@@ -525,19 +464,72 @@ const OrderDetails = () => {
 
                     {/* Actionable Buttons */}
                     {['IN_TRANSIT', 'RECEIVED_BY_VENDOR'].includes(order.status) && (
-                        <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={async () => {
-                                try {
-                                    await orderApi.updateOrderStatus(order._id, 'PROCESSING');
-                                    window.location.reload();
-                                } catch (err) { alert('Error starting processing'); }
-                            }}
-                            className="bg-black text-white w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-xl shadow-black/20 mt-2"
-                        >
-                            Start Processing
-                            <span className="material-symbols-outlined text-lg">play_circle</span>
-                        </motion.button>
+                        <div className="w-full flex flex-col items-center mt-2">
+                            {!isHandshakeModalOpen ? (
+                                <motion.button 
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={async () => {
+                                        try {
+                                            setVerifying(true);
+                                            await logisticsApi.requestHandshake(order._id, 'Inbound');
+                                            setActiveHandshakePhase('Inbound');
+                                            setIsHandshakeModalOpen(true);
+                                        } catch (err) {
+                                            alert('Failed to request Inbound OTP. Please try again.');
+                                        } finally {
+                                            setVerifying(false);
+                                        }
+                                    }}
+                                    disabled={verifying}
+                                    className="bg-black text-white w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-xl shadow-black/20"
+                                >
+                                    {verifying ? 'Requesting OTP...' : 'Verify & Start Processing'}
+                                    <span className="material-symbols-outlined text-lg">play_circle</span>
+                                </motion.button>
+                            ) : (
+                                <div className="w-full bg-slate-50 border border-slate-200 rounded-[2rem] p-5 flex flex-col gap-4 shadow-sm">
+                                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight text-center">
+                                        Enter Rider Inbound OTP
+                                    </p>
+                                    <div className="flex justify-center gap-3">
+                                        {otp.map((digit, index) => (
+                                            <input
+                                                key={index}
+                                                id={`otp-${index}`}
+                                                type="text"
+                                                value={digit}
+                                                autoFocus={index === 0 && !digit}
+                                                onChange={(e) => handleOtpChange(index, e.target.value)}
+                                                className="w-12 h-16 bg-white border-2 border-slate-100 rounded-xl text-center text-2xl font-black focus:border-slate-900 transition-all outline-none"
+                                                maxLength={1}
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="flex justify-between gap-3 w-full mt-2">
+                                        <button 
+                                            onClick={() => { setIsHandshakeModalOpen(false); setActiveHandshakePhase(null); setOtp(['','','','']); }}
+                                            className="flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            onClick={handleVerifyHandshake}
+                                            disabled={verifying || otp.join('').length < 4}
+                                            className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${
+                                                verifying || otp.join('').length < 4 ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-900/20'
+                                            }`}
+                                        >
+                                            {verifying ? (
+                                                <span className="flex items-center justify-center gap-2">
+                                                    <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                                                    Verifying
+                                                </span>
+                                            ) : 'Complete'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     )}
                     {order.status === 'PROCESSING' && (
                         <motion.button 
@@ -559,7 +551,10 @@ const OrderDetails = () => {
                             {!isHandshakeModalOpen ? (
                                 <motion.button 
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => setIsHandshakeModalOpen(true)}
+                                    onClick={() => {
+                                        setActiveHandshakePhase('Reverse');
+                                        setIsHandshakeModalOpen(true);
+                                    }}
                                     className="bg-black text-white w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.1em] flex items-center justify-center gap-3 shadow-xl shadow-black/20"
                                 >
                                     {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Handover to Customer' : 'Verify & Handover'}
@@ -588,7 +583,7 @@ const OrderDetails = () => {
                                     </div>
                                     <div className="flex justify-between gap-3 w-full mt-2">
                                         <button 
-                                            onClick={() => { setIsHandshakeModalOpen(false); setOtp(['','','','']); }}
+                                            onClick={() => { setIsHandshakeModalOpen(false); setActiveHandshakePhase(null); setOtp(['','','','']); }}
                                             className="flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest bg-slate-200 text-slate-600 hover:bg-slate-300 transition-colors"
                                         >
                                             Cancel

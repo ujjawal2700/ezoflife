@@ -121,6 +121,11 @@ const orderSchema = new mongoose.Schema({
         enum: ['Normal', 'Express'],
         default: 'Normal'
     },
+    tier: {
+        type: String,
+        enum: ['Essential', 'Heritage'],
+        default: 'Essential'
+    },
     deliveryCharge: {
         type: Number,
         default: 0

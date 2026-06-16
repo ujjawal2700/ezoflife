@@ -6,7 +6,7 @@ import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } f
 // Vendor: Post a new job
 export const createJob = async (req, res) => {
     try {
-        const { title, category, jobType, type, description, experience, salary, location, skills, requirements, vendorId, companyName, creatorRole } = req.body;
+        const { title, category, jobType, type, description, experience, salary, location, skills, requirements, vendorId, companyName, creatorRole, shiftStartTime, shiftEndTime } = req.body;
         const newJob = new Job({
             title, 
             category, 
@@ -17,6 +17,8 @@ export const createJob = async (req, res) => {
             location, 
             skills,
             requirements,
+            shiftStartTime,
+            shiftEndTime,
             vendor: creatorRole === 'Admin' ? null : vendorId,
             companyName,
             creatorRole: creatorRole || 'Vendor',

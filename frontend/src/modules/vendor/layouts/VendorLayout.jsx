@@ -102,11 +102,12 @@ const VendorLayout = () => {
         }
     };
 
-    const hideNavRoutes = ['/vendor/auth', '/vendor/otp', '/vendor/register', '/vendor/upload-documents', '/vendor/approval-pending', '/vendor/cart-details'];
+    const hideNavRoutes = ['/vendor/auth', '/vendor/otp', '/vendor/register', '/vendor/upload-documents', '/vendor/approval-pending'];
     const showNav = !hideNavRoutes.includes(currentPath);
 
     const hideHeaderRoutes = [
         ...hideNavRoutes,
+        '/vendor/cart-details',
         '/vendor/order/', // Hide on order details
         '/vendor/fulfillment',
         '/vendor/promotions',
@@ -118,7 +119,7 @@ const VendorLayout = () => {
         <div className="admin-theme flex flex-col min-h-screen">
             {showHeader && <VendorHeader />}
             
-            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? (['/vendor/walk-in', '/vendor/material-request', '/vendor/labor-request', '/vendor/material-orders'].includes(currentPath) ? 'pt-16' : 'pt-20') : ''}`}>
+            <main className={`flex-1 pb-24 bg-slate-50/50 ${showHeader ? (['/vendor/walk-in', '/vendor/material-request', '/vendor/labor-request', '/vendor/labor-request/create', '/vendor/material-orders'].includes(currentPath) ? 'pt-16' : 'pt-20') : ''}`}>
                 <Outlet />
             </main>
 
