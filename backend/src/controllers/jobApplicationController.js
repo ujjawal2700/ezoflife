@@ -21,10 +21,10 @@ export const submitApplication = async (req, res) => {
         if (job) {
             const io = getIO();
             
-            // 1. Notify Job Creator (Vendor or Admin)
+            // 1. Notify Job Creator (Vendor, Supplier or Admin)
             const creatorNotification = await Notification.create({
                 recipient: job.createdBy,
-                role: job.creatorRole === 'Admin' ? 'admin' : 'vendor',
+                role: job.creatorRole === 'Admin' ? 'admin' : (job.creatorRole === 'Supplier' ? 'supplier' : 'vendor'),
                 title: 'New Job Application',
                 message: `You have a new application from ${application.applicantName} for the position of ${job.title}.`,
                 type: 'job_application',
@@ -35,13 +35,13 @@ export const submitApplication = async (req, res) => {
             try {
                 io.emit('new_notification', {
                     recipient: job.createdBy.toString(),
-                    role: job.creatorRole === 'Admin' ? 'admin' : 'vendor',
+                    role: job.creatorRole === 'Admin' ? 'admin' : (job.creatorRole === 'Supplier' ? 'supplier' : 'vendor'),
                     notification: creatorNotification
                 });
             } catch (err) { console.error('Socket Emit Error (Creator):', err); }
             
-            // 2. Notify Global Admin (if creator was Vendor)
-            if (job.creatorRole === 'Vendor') {
+            // 2. Notify Global Admin (if creator was Vendor or Supplier)
+            if (job.creatorRole === 'Vendor' || job.creatorRole === 'Supplier') {
                 const admin = await User.findOne({ 
                     $or: [
                         { role: 'Admin' },
@@ -85,10 +85,10 @@ export const submitApplication = async (req, res) => {
                 let recipientEmail = adminEmail;
                 let ccEmail = undefined;
 
-                if (jobWithVendor && jobWithVendor.creatorRole === 'Vendor') {
-                    const vendorEmail = jobWithVendor.vendor?.email;
-                    if (vendorEmail) {
-                        recipientEmail = vendorEmail;
+                if (jobWithVendor && (jobWithVendor.creatorRole === 'Vendor' || jobWithVendor.creatorRole === 'Supplier')) {
+                    const creatorEmail = jobWithVendor.vendor?.email;
+                    if (creatorEmail) {
+                        recipientEmail = creatorEmail;
                         ccEmail = adminEmail;
                     }
                 }

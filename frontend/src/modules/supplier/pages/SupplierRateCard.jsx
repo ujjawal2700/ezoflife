@@ -43,8 +43,8 @@ const SupplierRateCard = () => {
     }), []);
 
     return (
-        <div className="bg-background text-on-surface min-h-screen pb-40">
-            <header className="px-6 pt-4 mb-4 z-20 pb-4">
+        <div className="text-on-surface min-h-screen pb-40">
+            <header className="px-6 pt-2 mb-4 z-20 pb-4">
                 <h1 className="text-2xl font-black tracking-tighter italic uppercase leading-none">Batch Rate Card</h1>
                 <p className="text-[10px] font-black text-on-surface/40 uppercase tracking-widest mt-1 opacity-60">Set Your Base Rates ( $R_b$ )</p>
             </header>

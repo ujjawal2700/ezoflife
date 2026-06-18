@@ -54,8 +54,8 @@ const SupplierMorePage = () => {
   };
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen pb-40 font-sans">
-      <main className="max-w-md mx-auto px-6 pt-10">
+    <div className="min-h-screen pb-40 font-sans">
+      <main className="max-w-md mx-auto px-6 pt-2">
         <header className="mb-10">
           <h2 className="text-3xl font-black tracking-tighter text-slate-950 uppercase italic leading-none">More</h2>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-3">Supplier Operations Hub</p>

@@ -4,6 +4,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { b2bOrderApi } from '../../../lib/api';
 
 const SupplierLogistics = () => {
+    const b2bStatusMapSupplier = {
+        'SUBMITTED': { label: 'New Order Received', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'ACCEPTED': { label: 'Timeline Scheduled', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'PROCESSING': { label: 'Preparing Order', emoji: '📦', color: 'bg-blue-50 text-blue-600 border-blue-200' },
+        'DISPATCHED': { label: 'Shipped / En Route', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'DELIVERED': { label: 'Fulfilled & Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'REJECTED': { label: 'Order Declined', emoji: '🚫', color: 'bg-rose-50 text-rose-600 border-rose-200' },
+        'CANCELLED': { label: 'Cancelled by Buyer', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' },
+
+        // Old CamelCase statuses for backward compatibility
+        'Submitted': { label: 'New Order Received', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'Confirmed': { label: 'Timeline Scheduled', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Accepted': { label: 'Timeline Scheduled', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Out for Delivery': { label: 'Shipped / En Route', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'Delivered': { label: 'Fulfilled & Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Cancelled': { label: 'Cancelled by Buyer', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' }
+    };
+
+    const getStatusLabel = (status) => b2bStatusMapSupplier[status]?.label || status;
+    const getStatusIcon = (status) => b2bStatusMapSupplier[status]?.emoji || '📥';
+    const getStatusColor = (status) => b2bStatusMapSupplier[status]?.color || 'bg-slate-500 text-white';
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('All');
@@ -26,7 +47,7 @@ const SupplierLogistics = () => {
                 items: order.items.map(i => `${i.quantity}x ${i.name}`).join(', '),
                 status: order.status,
                 driver: 'System Assigned',
-                eta: order.status === 'Pending' ? 'Incoming' : 'In Progress'
+                eta: ['SUBMITTED', 'Submitted', 'Pending', 'Open'].includes(order.status) ? 'Incoming' : 'In Progress'
             })));
         } catch (error) {
             console.error('Fetch Orders Error:', error);
@@ -48,20 +69,36 @@ const SupplierLogistics = () => {
         }
     };
 
-    const filters = ['All', 'Pending', 'Accepted', 'Dispatched', 'Delivered'];
+    const filters = ['All', 'SUBMITTED', 'ACCEPTED', 'PROCESSING', 'DISPATCHED', 'DELIVERED'];
 
     const filteredShipments = useMemo(() => {
         return shipments.filter(ship => {
             const matchesSearch = ship.vendor.toLowerCase().includes(searchQuery.toLowerCase()) || 
                                 ship.id.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesFilter = activeFilter === 'All' || ship.status === activeFilter;
+            
+            let matchesFilter = activeFilter === 'All';
+            if (!matchesFilter) {
+                if (activeFilter === 'SUBMITTED') {
+                    matchesFilter = ['SUBMITTED', 'Submitted', 'Pending', 'Open'].includes(ship.status);
+                } else if (activeFilter === 'ACCEPTED') {
+                    matchesFilter = ['ACCEPTED', 'Accepted', 'Confirmed'].includes(ship.status);
+                } else if (activeFilter === 'PROCESSING') {
+                    matchesFilter = ship.status === 'PROCESSING';
+                } else if (activeFilter === 'DISPATCHED') {
+                    matchesFilter = ['DISPATCHED', 'Dispatched', 'Out for Delivery'].includes(ship.status);
+                } else if (activeFilter === 'DELIVERED') {
+                    matchesFilter = ['DELIVERED', 'Delivered', 'Settled'].includes(ship.status);
+                } else {
+                    matchesFilter = ship.status === activeFilter;
+                }
+            }
             return matchesSearch && matchesFilter;
         });
     }, [shipments, searchQuery, activeFilter]);
 
     return (
-        <div className="min-h-screen bg-background pb-40 font-body text-on-background">
-            <header className="px-6 pt-6 mb-2">
+        <div className="min-h-screen pb-40 font-body text-on-background">
+            <header className="px-6 pt-2 mb-2">
                 <div className="flex justify-between items-start mb-6">
                     <div>
                         <h1 className="text-3xl font-black tracking-tighter italic uppercase leading-none">Logistics</h1>
@@ -98,7 +135,7 @@ const SupplierLogistics = () => {
                                 : 'bg-white/40 text-on-surface/40 border-white/20 hover:bg-white/60'
                             }`}
                         >
-                            {filter}
+                            {filter === 'All' ? 'All' : (b2bStatusMapSupplier[filter]?.label || filter)}
                         </button>
                     ))}
                 </div>
@@ -143,18 +180,16 @@ const SupplierLogistics = () => {
                                     className="bg-white/90 backdrop-blur-md p-6 rounded-[2.5rem] border border-white/40 shadow-sm relative overflow-hidden group hover:shadow-xl transition-all"
                                 >
                                     <div className={`absolute top-0 left-0 w-2 h-full transition-all duration-500 ${
-                                        ship.status === 'Dispatched' ? 'bg-emerald-400' : 
-                                        ship.status === 'In Transit' ? 'bg-primary' : 'bg-amber-400'
+                                        ['DISPATCHED', 'Dispatched', 'Out for Delivery'].includes(ship.status) ? 'bg-indigo-400' : 
+                                        ['DELIVERED', 'Delivered'].includes(ship.status) ? 'bg-emerald-400' : 'bg-amber-400'
                                     }`}></div>
                                     
                                     <div className="flex justify-between items-start mb-6">
                                         <div className="max-w-[70%]">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                                    ship.status === 'Dispatched' ? 'bg-emerald-50 text-emerald-600' : 
-                                                    ship.status === 'In Transit' ? 'bg-primary/5 text-primary' : 'bg-amber-50 text-amber-600'
-                                                }`}>
-                                                    {ship.status}
+                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border flex items-center gap-1 ${getStatusColor(ship.status)}`}>
+                                                    <span className="text-xs">{getStatusIcon(ship.status)}</span>
+                                                    <span>{getStatusLabel(ship.status)}</span>
                                                 </span>
                                             </div>
                                             <h3 className="text-base font-black text-on-surface leading-tight mb-2 tracking-tight group-hover:text-primary transition-colors">{ship.vendor}</h3>
@@ -180,20 +215,36 @@ const SupplierLogistics = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            {ship.status === 'Pending' && (
+                                            {['SUBMITTED', 'Submitted', 'Pending', 'Open'].includes(ship.status) && (
                                                 <button 
-                                                    onClick={() => handleUpdateStatus(ship._id, 'Accepted')}
+                                                    onClick={() => handleUpdateStatus(ship._id, 'ACCEPTED')}
                                                     className="h-10 px-6 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.25em] shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
                                                 >
                                                     Accept
                                                 </button>
                                             )}
-                                            {ship.status === 'Accepted' && (
+                                            {['ACCEPTED', 'Accepted', 'Confirmed'].includes(ship.status) && (
                                                 <button 
-                                                    onClick={() => handleUpdateStatus(ship._id, 'Dispatched')}
+                                                    onClick={() => handleUpdateStatus(ship._id, 'PROCESSING')}
+                                                    className="h-10 px-6 bg-indigo-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.25em] shadow-lg shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all"
+                                                >
+                                                    Prepare
+                                                </button>
+                                            )}
+                                            {ship.status === 'PROCESSING' && (
+                                                <button 
+                                                    onClick={() => handleUpdateStatus(ship._id, 'DISPATCHED')}
                                                     className="h-10 px-6 bg-primary text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.25em] shadow-lg shadow-black/5 hover:scale-105 active:scale-95 transition-all"
                                                 >
                                                     Dispatch
+                                                </button>
+                                            )}
+                                            {['DISPATCHED', 'Dispatched', 'Out for Delivery'].includes(ship.status) && (
+                                                <button 
+                                                    onClick={() => handleUpdateStatus(ship._id, 'DELIVERED')}
+                                                    className="h-10 px-6 bg-emerald-600 text-white rounded-2xl text-[9px] font-black uppercase tracking-[0.25em] shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
+                                                >
+                                                    Deliver
                                                 </button>
                                             )}
                                             <button 

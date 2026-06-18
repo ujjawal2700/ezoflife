@@ -269,6 +269,61 @@ mongoose.connect(MONGODB_URI)
                         'Measure detergent, bleach, and other laundry additives',
                         'Assist senior staff with daily operational duties'
                     ]
+                },
+                {
+                    name: 'Warehouse Helper',
+                    description: 'Responsible for managing and organizing supply materials in the warehouse, loading/unloading, and picking lists.',
+                    responsibilities: [
+                        'Organize and stack supply inventory neatly in warehouse bays',
+                        'Follow picking lists to prepare shipments for dispatch',
+                        'Assist in unloading material shipments and verifying quantities',
+                        'Perform periodic stock counting and inventory reporting'
+                    ],
+                    targetRole: 'Supplier'
+                },
+                {
+                    name: 'Delivery Driver',
+                    description: 'Responsible for delivering wholesale orders to vendor locations safely and on time.',
+                    responsibilities: [
+                        'Load materials safely onto delivery vehicles',
+                        'Drive and deliver wholesale orders to local laundry vendors',
+                        'Verify delivered items with vendor receipts and return sheets',
+                        'Perform daily vehicle maintenance and safety checks'
+                    ],
+                    targetRole: 'Supplier'
+                },
+                {
+                    name: 'Inventory Coordinator',
+                    description: 'Responsible for cataloging supply inventory, tracking stock levels, and coordinate orders.',
+                    responsibilities: [
+                        'Maintain accurate digital registers of raw supply inventory',
+                        'Track stock thresholds and alert procurement team for refills',
+                        'Coordinate with suppliers for delivery schedules and invoicing',
+                        'Monitor and report material usage trends in the facility'
+                    ],
+                    targetRole: 'Supplier'
+                },
+                {
+                    name: 'Sales Executive',
+                    description: 'Responsible for reaching out to new laundry vendors and promoting wholesale laundry products.',
+                    responsibilities: [
+                        'Visit local laundry shops to present wholesale catalogs',
+                        'Explain benefits of wholesale pricing and bulk discount slabs',
+                        'Manage relations with registered vendors and resolve disputes',
+                        'Track monthly sales targets and generate vendor accounts'
+                    ],
+                    targetRole: 'Supplier'
+                },
+                {
+                    name: 'Machine Operator',
+                    description: 'Responsible for operating chemical mixers or packaging machinery in the facility.',
+                    responsibilities: [
+                        'Set up and calibrate packaging or mixing machines',
+                        'Load chemicals, detergents, and packages into machinery',
+                        'Monitor machinery runs to ensure uniform packaging sizes',
+                        'Follow strict safety, hazardous handling, and chemical mixing SOPs'
+                    ],
+                    targetRole: 'Supplier'
                 }
             ];
 

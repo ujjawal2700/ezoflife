@@ -669,6 +669,15 @@ export const b2bOrderApi = {
             throw error;
         }
     },
+    getById: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/b2b-orders/${id}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get B2B Order by ID Error:', error);
+            throw error;
+        }
+    },
     getSupplierOrders: async (supplierId) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/supplier/${supplierId}`);
@@ -2042,6 +2051,10 @@ export const jobApi = {
         const response = await fetch(`${BASE_URL}/jobs/active`);
         return await response.json();
     },
+    getAppliedJobIds: async (applicantId) => {
+        const response = await fetch(`${BASE_URL}/jobs/applicant/${applicantId}/applied-job-ids`);
+        return await response.json();
+    },
     getVendorApplications: async (vendorId) => {
         const response = await fetch(`${BASE_URL}/jobs/vendor/${vendorId}/applications`);
         return await response.json();
@@ -2118,8 +2131,11 @@ export const jobApi = {
         });
         return await response.json();
     },
-    getRoleTemplates: async () => {
-        const response = await fetch(`${BASE_URL}/jobs/role-templates`);
+    getRoleTemplates: async (targetRole) => {
+        const url = targetRole
+            ? `${BASE_URL}/jobs/role-templates?targetRole=${targetRole}`
+            : `${BASE_URL}/jobs/role-templates`;
+        const response = await fetch(url);
         return await response.json();
     },
     createRoleTemplate: async (data) => {

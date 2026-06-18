@@ -124,7 +124,7 @@ export const placeB2BOrder = async (req, res) => {
                 shippingAddress,
                 pincode,
                 city: city?.trim(),
-                status: 'Submitted',
+                status: (totalPlatformFee && totalPlatformFee > 0) ? 'PENDING_PAYMENT' : 'SUBMITTED',
                 cycleId: groupCycleId,
                 deliveryDay: groupDeliveryDay,
                 deliveryDate: groupDeliveryDate,
@@ -158,7 +158,7 @@ export const placeB2BOrder = async (req, res) => {
             } else {
                 // If no platform fee, automatically confirm
                 for (let order of createdOrders) {
-                    order.status = 'Confirmed';
+                    order.status = 'SUBMITTED';
                     order.paymentStatus = 'Paid';
                     await order.save();
                 }
@@ -196,7 +196,7 @@ export const verifyPlatformFeePayment = async (req, res) => {
         const orders = await B2BOrder.find({ _id: { $in: orderIds } });
         
         for (let order of orders) {
-            order.status = 'Confirmed';
+            order.status = 'SUBMITTED';
             order.paymentStatus = 'Paid';
             await order.save();
             
@@ -275,12 +275,12 @@ export const getSupplierOrders = async (req, res) => {
 
         // Find orders assigned to them OR pending orders in their region with no supplier yet
         const orders = await B2BOrder.find({
-            status: { $ne: 'Submitted' }, // Hide unpaid orders
+            status: { $nin: ['PENDING_PAYMENT', 'CART', 'Submitted'] }, // Hide unpaid/draft/old-submitted orders
             $or: [
                 { supplier: supplierId }, // Already claimed
                 { 
                     supplier: null, 
-                    status: { $in: ['Open', 'Locked', 'Pending', 'Confirmed'] },
+                    status: { $in: ['SUBMITTED', 'Confirmed', 'Open', 'Locked', 'Pending'] },
                     $or: regionalQuery.length > 0 ? regionalQuery : [{ _id: null }] // Match nothing if no location
                 }
             ]
@@ -325,11 +325,11 @@ export const updateB2BStatus = async (req, res) => {
         const supplier = await User.findById(supplierId);
 
         // Claiming logic
-        if (status === 'Accepted' && !order.supplier) {
+        if ((status === 'ACCEPTED' || status === 'Accepted') && !order.supplier) {
             // Atomically claim the order
             const claimedOrder = await B2BOrder.findOneAndUpdate(
                 { _id: id, supplier: null },
-                { status: 'Accepted', supplier: supplierId },
+                { status: 'ACCEPTED', supplier: supplierId },
                 { new: true }
             ).populate('vendor');
 
@@ -360,7 +360,13 @@ export const updateB2BStatus = async (req, res) => {
             }
         } else {
             // Normal status update
-            order.status = status;
+            const upperStatus = status.toUpperCase();
+            const validUppercaseStatuses = ['CART', 'PENDING_PAYMENT', 'SUBMITTED', 'ACCEPTED', 'PROCESSING', 'DISPATCHED', 'DELIVERED', 'REJECTED', 'CANCELLED', 'SETTLED'];
+            if (validUppercaseStatuses.includes(upperStatus)) {
+                order.status = upperStatus;
+            } else {
+                order.status = status;
+            }
             await order.save();
         }
         
@@ -396,7 +402,7 @@ export const initiateB2BPayment = async (req, res) => {
         const b2bOrder = await B2BOrder.findById(orderId);
 
         if (!b2bOrder) return res.status(404).json({ message: 'Order not found' });
-        if (b2bOrder.status !== 'Delivered') {
+        if (b2bOrder.status !== 'DELIVERED' && b2bOrder.status !== 'Delivered') {
             return res.status(400).json({ message: 'Payment only allowed after product is delivered' });
         }
 
@@ -528,3 +534,19 @@ export const getSupplierTimeline = async (req, res) => {
         res.status(500).json({ message: 'Error fetching timeline' });
     }
 };
+
+export const getB2BOrderById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const order = await B2BOrder.findById(id)
+            .populate('vendor', 'displayName phone shopDetails')
+            .populate('supplier', 'displayName phone supplierDetails')
+            .populate('items.materialId');
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        res.status(200).json(order);
+    } catch (err) {
+        console.error('Fetch B2B Order Error:', err);
+        res.status(500).json({ message: 'Error fetching order details' });
+    }
+};
+

@@ -994,78 +994,59 @@ const HomePage = () => {
               {loading ? (
                 [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-4 h-24 border border-slate-50 animate-pulse" />)
               ) : (
-                // Grouping Logic for Home Page
-                Object.entries(
-                  filteredServices.reduce((acc, service) => {
-                    const catName = service.mainCategory || 'Services';
-                    if (!acc[catName]) acc[catName] = [];
-                    acc[catName].push(service);
-                    return acc;
-                  }, {})
-                ).map(([categoryName, catServices]) => (
-                  <div key={categoryName} className="space-y-3 mb-6">
-                    {!selectedCategory && (
-                      <div className="flex items-center gap-3 px-2">
-                        <span className="text-[7px] font-black uppercase tracking-[0.3em] text-primary">{categoryName}</span>
-                        <div className="h-px flex-1 bg-slate-100" />
+                filteredServices.map((service, i) => {
+                  const serviceId = service._id || service.id;
+                  const qty = selectedQuantities[serviceId] || 0;
+                  const isSelected = qty > 0;
+                  return (
+                    <motion.div 
+                      key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+                      className={`rounded-[1.5rem] p-2.5 flex flex-row items-center gap-3 border transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 shadow-sm'}`}
+                    >
+                      {/* Left: Info Block */}
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <h4 className={`font-black text-[9px] uppercase line-clamp-1 tracking-tight mb-0.5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
+                        <div className="flex gap-1 items-center">
+                          <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.mainCategory || 'Cat'}</span>
+                          <span className={`w-0.5 h-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-slate-200'}`} />
+                          <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.subCategoryName || 'Sub'}</span>
+                        </div>
                       </div>
-                    )}
-                    
-                    {catServices.map((service, i) => {
-                      const serviceId = service._id || service.id;
-                      const qty = selectedQuantities[serviceId] || 0;
-                      const isSelected = qty > 0;
-                      return (
-                        <motion.div 
-                          key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                          className={`rounded-[1.5rem] p-2.5 flex flex-row items-center gap-3 border transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 shadow-sm'}`}
-                        >
-                          {/* Left: Info Block */}
-                          <div className="flex-1 min-w-0 flex flex-col justify-center">
-                            <h4 className={`font-black text-[9px] uppercase line-clamp-1 tracking-tight mb-0.5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
-                            <div className="flex gap-1 items-center">
-                              <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.mainCategory || 'Cat'}</span>
-                              <span className={`w-0.5 h-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-slate-200'}`} />
-                              <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.subCategoryName || 'Sub'}</span>
-                            </div>
-                          </div>
 
-                          {/* Right: Price & Actions */}
-                          <div className="flex items-center gap-2.5 shrink-0">
-                            {/* Price */}
-                            <div className="flex flex-col items-end">
-                              <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>
-                                ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
-                              </span>
-                              {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
-                                <span className="text-[8px] font-bold line-through text-slate-300">
-                                  ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
-                                </span>
-                              )}
-                            </div>
+                      {/* Right: Price & Actions */}
+                      <div className="flex items-center gap-2.5 shrink-0">
+                        {/* Price */}
+                        <div className="flex flex-col items-end">
+                          <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>
+                            ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
+                          </span>
+                          {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
+                            <span className="text-[8px] font-bold line-through text-slate-300">
+                              ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
+                            </span>
+                          )}
+                        </div>
 
-                            {/* Qty Controls */}
-                            <div className={`flex items-center rounded-lg p-0.5 border shadow-inner ${isSelected ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
-                              <button onClick={() => updateQuantity(serviceId, -1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">remove</span></button>
-                              <span className={`text-[9px] font-black px-1.5 min-w-[20px] text-center ${isSelected ? 'text-white' : 'text-slate-900'}`}>{qty}</span>
-                              <button onClick={() => updateQuantity(serviceId, 1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">add</span></button>
-                            </div>
+                        {/* Qty Controls */}
+                        <div className={`flex items-center rounded-lg p-0.5 border shadow-inner ${isSelected ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
+                          <button onClick={() => updateQuantity(serviceId, -1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">remove</span></button>
+                          <span className={`text-[9px] font-black px-1.5 min-w-[20px] text-center ${isSelected ? 'text-white' : 'text-slate-900'}`}>{qty}</span>
+                          <button onClick={() => updateQuantity(serviceId, 1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">add</span></button>
+                        </div>
 
-                            {/* Camera */}
-                            {isSelected && (
-                              <button 
-                                onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
-                                className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/10 text-white/40 border border-white/10 hover:text-white'}`}
-                              >
-                                <span className="material-symbols-outlined text-[14px]">add_a_photo</span>
-                              </button>
-                            )}
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                ))
+                        {/* Camera */}
+                        {isSelected && (
+                          <button 
+                            onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/10 text-white/40 border border-white/10 hover:text-white'}`}
+                          >
+                            <span className="material-symbols-outlined text-[14px]">add_a_photo</span>
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
               )}
             </div>
           </section>

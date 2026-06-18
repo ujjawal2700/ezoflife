@@ -23,8 +23,8 @@ const SupplierWallet = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background pb-40">
-            <header className="px-6 pt-4 mb-4 z-20 pb-4">
+        <div className="min-h-screen pb-40">
+            <header className="px-6 pt-2 mb-4 z-20 pb-4">
                 <h1 className="text-2xl font-black tracking-tighter uppercase leading-none text-on-surface">Wallet</h1>
                 <p className="text-[9px] font-black text-on-surface/40 uppercase tracking-[0.3em] mt-1">Bulk Sourcing Settlements</p>
             </header>

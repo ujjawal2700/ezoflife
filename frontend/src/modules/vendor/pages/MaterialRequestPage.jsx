@@ -221,22 +221,35 @@ const MaterialRequestPage = () => {
         };
     }, [cart, materials]);
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Submitted': return 'bg-amber-500 text-white';
-            case 'Confirmed': return 'bg-sky-500 text-white';
-            case 'Out for Delivery': return 'bg-purple-500 text-white';
-            case 'Delivered': return 'bg-emerald-500 text-white';
-            case 'Cancelled': return 'bg-red-500 text-white';
-            default: return 'bg-slate-500 text-white';
-        }
+    const b2bStatusMapVendor = {
+        'CART': { label: 'Draft', emoji: '🛒', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+        'PENDING_PAYMENT': { label: 'Awaiting Fee Payment', emoji: '💳', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'SUBMITTED': { label: 'Awaiting Supplier Review', emoji: '⌛', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'ACCEPTED': { label: 'Order Confirmed', emoji: '✅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'PROCESSING': { label: 'Packing', emoji: '📦', color: 'bg-blue-50 text-blue-600 border-blue-200' },
+        'DISPATCHED': { label: 'In Transit', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'DELIVERED': { label: 'Received at Facility', emoji: '🧺', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'REJECTED': { label: 'Rejected by Supplier', emoji: '❌', color: 'bg-rose-50 text-rose-600 border-rose-200' },
+        'CANCELLED': { label: 'Cancelled by You', emoji: '🛑', color: 'bg-red-50 text-red-600 border-red-200' },
+
+        // Old CamelCase statuses for backward compatibility
+        'Submitted': { label: 'Awaiting Supplier Review', emoji: '⌛', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'Confirmed': { label: 'Order Confirmed', emoji: '✅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Out for Delivery': { label: 'In Transit', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'Delivered': { label: 'Received at Facility', emoji: '🧺', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Cancelled': { label: 'Cancelled by You', emoji: '🛑', color: 'bg-red-50 text-red-600 border-red-200' }
     };
 
+    const getStatusLabel = (status) => b2bStatusMapVendor[status]?.label || status;
+    const getStatusIcon = (status) => b2bStatusMapVendor[status]?.emoji || '⌛';
+    const getStatusColor = (status) => b2bStatusMapVendor[status]?.color || 'bg-slate-500 text-white';
+
     const displayedOrders = (() => {
+        const pastStatuses = ['Delivered', 'DELIVERED', 'Cancelled', 'CANCELLED', 'REJECTED'];
         if (orderTab === 'active') {
-            return vendorOrders.filter(o => !['Delivered', 'Cancelled'].includes(o.status));
+            return vendorOrders.filter(o => !pastStatuses.includes(o.status));
         } else {
-            let pastOrders = vendorOrders.filter(o => ['Delivered', 'Cancelled'].includes(o.status));
+            let pastOrders = vendorOrders.filter(o => pastStatuses.includes(o.status));
             if (pastOrderStartDate && pastOrderEndDate) {
                 const start = new Date(pastOrderStartDate);
                 start.setHours(0, 0, 0, 0);
@@ -556,8 +569,9 @@ const MaterialRequestPage = () => {
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2">
                                                         <h4 className="text-xs font-black text-slate-900 tracking-tight">#{order.b2bOrderId}</h4>
-                                                        <span className={`px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest ${getStatusColor(order.status)}`}>
-                                                            {order.status}
+                                                        <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1 border ${getStatusColor(order.status)}`}>
+                                                            <span className="text-xs">{getStatusIcon(order.status)}</span>
+                                                            <span>{getStatusLabel(order.status)}</span>
                                                         </span>
                                                     </div>
                                                     
@@ -571,7 +585,7 @@ const MaterialRequestPage = () => {
                                                                 <span className="material-symbols-outlined text-[16px]">chat</span>
                                                             </button>
                                                         )}
-                                                        {order.status === 'Delivered' && (
+                                                        {['Delivered', 'DELIVERED'].includes(order.status) && (
                                                             <button 
                                                                 onClick={() => openInvoice(order)}
                                                                 className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"

@@ -285,7 +285,7 @@ const CreateJobRequisition = () => {
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        const data = await jobApi.getRoleTemplates();
+        const data = await jobApi.getRoleTemplates('Vendor');
         if (Array.isArray(data) && data.length > 0) {
           setRoleTemplates(data);
         } else {

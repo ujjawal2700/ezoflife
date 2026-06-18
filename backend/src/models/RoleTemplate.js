@@ -16,7 +16,12 @@ const roleTemplateSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
-    }]
+    }],
+    targetRole: {
+        type: String,
+        enum: ['Vendor', 'Supplier', 'Both'],
+        default: 'Vendor'
+    }
 }, { timestamps: true });
 
 const RoleTemplate = mongoose.model('RoleTemplate', roleTemplateSchema);

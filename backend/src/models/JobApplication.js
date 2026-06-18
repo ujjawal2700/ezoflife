@@ -6,7 +6,7 @@ const jobApplicationSchema = new mongoose.Schema({
     applicantName: { type: String, required: true },
     applicantEmail: { type: String },
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    creatorRole: { type: String, enum: ['Admin', 'Vendor'], default: 'Vendor' },
+    creatorRole: { type: String, enum: ['Admin', 'Vendor', 'Supplier'], default: 'Vendor' },
     status: { type: String, enum: ['Pending', 'Reviewed', 'Selected', 'Rejected'], default: 'Pending' },
     experience: { type: String },
     contactNumber: { type: String },

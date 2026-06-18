@@ -136,6 +136,7 @@ const navItems = [
                 subItems: [
                     { label: 'Admin Posts', path: '/admin/careers/admin-posts' },
                     { label: 'Vendor Posts', path: '/admin/careers/vendor-posts' },
+                    { label: 'Supplier Posts', path: '/admin/careers/supplier-posts' },
                     { label: 'Role Details', path: '/admin/careers/role-details' },
                 ]
             },

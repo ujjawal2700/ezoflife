@@ -14,7 +14,7 @@ const jobSchema = new mongoose.Schema({
     shiftEndTime: { type: String },
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     companyName: { type: String },
-    creatorRole: { type: String, enum: ['Admin', 'Vendor'], default: 'Vendor' },
+    creatorRole: { type: String, enum: ['Admin', 'Vendor', 'Supplier'], default: 'Vendor' },
     status: { type: String, enum: ['Active', 'Filled', 'Closed'], default: 'Active' },
     applicantsCount: { type: Number, default: 0 }
 }, { timestamps: true });

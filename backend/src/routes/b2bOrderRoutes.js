@@ -7,6 +7,7 @@ import { verifyAdmin } from '../middleware/authMiddleware.js';
 router.post('/place', b2bController.placeB2BOrder);
 router.get('/supplier/:supplierId', b2bController.getSupplierOrders);
 router.get('/vendor/:vendorId', b2bController.getVendorOrders);
+router.get('/:id', b2bController.getB2BOrderById);
 router.patch('/:id/status', b2bController.updateB2BStatus);
 router.post('/bulk-status-update', b2bController.bulkUpdateB2BStatus);
 router.post('/verify-platform-fee', b2bController.verifyPlatformFeePayment);

@@ -139,15 +139,28 @@ const B2BOrderHistory = () => {
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'Pending': return 'bg-amber-500 text-white';
-            case 'Accepted': return 'bg-blue-600 text-white';
-            case 'Dispatched': return 'bg-indigo-600 text-white';
-            case 'Delivered': return 'bg-green-600 text-white';
-            default: return 'bg-slate-500 text-white';
-        }
+    const b2bStatusMapVendor = {
+        'CART': { label: 'Draft', emoji: '🛒', color: 'bg-slate-100 text-slate-700 border-slate-200' },
+        'PENDING_PAYMENT': { label: 'Awaiting Fee Payment', emoji: '💳', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'SUBMITTED': { label: 'Awaiting Supplier Review', emoji: '⌛', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'ACCEPTED': { label: 'Order Confirmed', emoji: '✅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'PROCESSING': { label: 'Packing', emoji: '📦', color: 'bg-blue-50 text-blue-600 border-blue-200' },
+        'DISPATCHED': { label: 'In Transit', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'DELIVERED': { label: 'Received at Facility', emoji: '🧺', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'REJECTED': { label: 'Rejected by Supplier', emoji: '❌', color: 'bg-rose-50 text-rose-600 border-rose-200' },
+        'CANCELLED': { label: 'Cancelled by You', emoji: '🛑', color: 'bg-red-50 text-red-600 border-red-200' },
+
+        // Old CamelCase statuses for backward compatibility
+        'Submitted': { label: 'Awaiting Supplier Review', emoji: '⌛', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'Confirmed': { label: 'Order Confirmed', emoji: '✅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Out for Delivery': { label: 'In Transit', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'Delivered': { label: 'Received at Facility', emoji: '🧺', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Cancelled': { label: 'Cancelled by You', emoji: '🛑', color: 'bg-red-50 text-red-600 border-red-200' }
     };
+
+    const getStatusLabel = (status) => b2bStatusMapVendor[status]?.label || status;
+    const getStatusIcon = (status) => b2bStatusMapVendor[status]?.emoji || '⌛';
+    const getStatusColor = (status) => b2bStatusMapVendor[status]?.color || 'bg-slate-500 text-white';
 
     return (
         <motion.div 
@@ -222,8 +235,9 @@ const B2BOrderHistory = () => {
 
                                         {/* Status Badge */}
                                         <div className="shrink-0">
-                                            <span className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm inline-block ${getStatusColor(order.status)}`}>
-                                                {order.status}
+                                            <span className={`px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1 border ${getStatusColor(order.status)}`}>
+                                                <span className="text-xs">{getStatusIcon(order.status)}</span>
+                                                <span>{getStatusLabel(order.status)}</span>
                                             </span>
                                         </div>
                                     </div>
@@ -257,7 +271,7 @@ const B2BOrderHistory = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2">
-                                                {order.status === 'Delivered' && (
+                                                {['Delivered', 'DELIVERED'].includes(order.status) && (
                                                     <button 
                                                         onClick={() => openInvoice(order)}
                                                         className="px-4 py-2.5 bg-white border border-slate-200 text-slate-900 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] shadow-sm flex items-center gap-2 hover:bg-slate-50 transition-all"
@@ -267,7 +281,7 @@ const B2BOrderHistory = () => {
                                                     </button>
                                                 )}
 
-                                                {order.status === 'Delivered' && order.paymentStatus === 'Pending' && (
+                                                {['Delivered', 'DELIVERED'].includes(order.status) && order.paymentStatus === 'Pending' && (
                                                     <button 
                                                         onClick={() => handlePayment(order)}
                                                         className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-[0.15em] shadow-lg shadow-slate-900/10 flex items-center gap-2 hover:scale-[1.02] active:scale-95 transition-all"

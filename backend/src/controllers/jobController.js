@@ -103,10 +103,10 @@ export const applyToJob = async (req, res) => {
             let recipientEmail = adminEmail;
             let ccEmail = undefined;
 
-            if (job.creatorRole === 'Vendor') {
-                const vendorEmail = job.vendor?.email;
-                if (vendorEmail) {
-                    recipientEmail = vendorEmail;
+            if (job.creatorRole === 'Vendor' || job.creatorRole === 'Supplier') {
+                const creatorEmail = job.vendor?.email;
+                if (creatorEmail) {
+                    recipientEmail = creatorEmail;
                     ccEmail = adminEmail;
                 }
             }
@@ -216,3 +216,15 @@ export const deleteApplication = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+export const getAppliedJobIds = async (req, res) => {
+    try {
+        const { applicantId } = req.params;
+        const applications = await JobApplication.find({ applicant: applicantId }).select('job');
+        const jobIds = applications.map(app => app.job.toString());
+        res.json(jobIds);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+

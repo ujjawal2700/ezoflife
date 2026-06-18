@@ -44,6 +44,7 @@ const CareersPage = () => {
     const salaryLabel = SALARY_OPTIONS.find(o => o.value === salaryFilter)?.label || 'Any Salary';
     const [isApplied, setIsApplied] = useState(false);
     const [jobs, setJobs] = useState([]);
+    const [appliedJobIds, setAppliedJobIds] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isApplying, setIsApplying] = useState(null);
     const [viewingJobDetails, setViewingJobDetails] = useState(null);
@@ -63,6 +64,18 @@ const CareersPage = () => {
         try {
             const data = await jobApi.getActiveJobs();
             setJobs(Array.isArray(data) ? data : []);
+            
+            const userDataRaw = localStorage.getItem('userData') || localStorage.getItem('user') || '{}';
+            const userData = JSON.parse(userDataRaw);
+            const applicantId = userData._id || userData.id || userData.user?._id || userData.user?.id;
+            if (applicantId) {
+                try {
+                    const appliedIds = await jobApi.getAppliedJobIds(applicantId);
+                    setAppliedJobIds(Array.isArray(appliedIds) ? appliedIds : []);
+                } catch (e) {
+                    console.error('Fetch applied job IDs error:', e);
+                }
+            }
         } catch (error) {
             console.error('Fetch jobs error:', error);
         } finally {
@@ -116,7 +129,13 @@ const CareersPage = () => {
             const q = searchQuery.toLowerCase();
             const matchesSearch = !searchQuery ||
                 job.title.toLowerCase().includes(q) ||
-                (job.location || '').toLowerCase().includes(q);
+                (job.description || '').toLowerCase().includes(q) ||
+                (job.location || '').toLowerCase().includes(q) ||
+                (job.companyName || '').toLowerCase().includes(q) ||
+                (job.category || '').toLowerCase().includes(q) ||
+                (job.jobType || '').toLowerCase().includes(q) ||
+                (Array.isArray(job.skills) && job.skills.some(skill => skill.toLowerCase().includes(q))) ||
+                (Array.isArray(job.requirements) && job.requirements.some(req => req.toLowerCase().includes(q)));
 
             const matchesName = !nameFilter ||
                 job.title.toLowerCase().includes(nameFilter.toLowerCase());
@@ -174,7 +193,7 @@ const CareersPage = () => {
                         <span className="material-symbols-outlined text-outline-variant mr-3 text-[20px]">search</span>
                         <input 
                             type="text" 
-                            placeholder="Search by Skill or Location"
+                            placeholder="Search by keyboard"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold w-full placeholder:text-outline-variant/40"
@@ -364,14 +383,25 @@ const CareersPage = () => {
                                             <span className="material-symbols-outlined text-[13px]">info</span>
                                             View Details
                                         </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setIsApplying(job)}
-                                            className="flex-[1.2] py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                                        >
-                                            <span className="material-symbols-outlined text-[13px]">rocket_launch</span>
-                                            Apply Now
-                                        </button>
+                                        {appliedJobIds.includes(job._id) ? (
+                                             <button 
+                                                 type="button"
+                                                 onClick={() => toast.success('You have already applied for this job! We are reviewing your application.')}
+                                                 className="flex-[1.2] py-3 bg-white border border-slate-950 hover:bg-slate-50 text-slate-950 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                             >
+                                                 <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                                 View Application Status
+                                             </button>
+                                         ) : (
+                                            <button 
+                                                type="button"
+                                                onClick={() => setIsApplying(job)}
+                                                className="flex-[1.2] py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                            >
+                                                <span className="material-symbols-outlined text-[13px]">rocket_launch</span>
+                                                Apply Now
+                                            </button>
+                                        )}
                                     </div>
                                 </motion.div>
                             ))
@@ -607,16 +637,29 @@ const CareersPage = () => {
 
                                 {/* Apply Action in Modal */}
                                 <div className="pt-3">
-                                    <button 
-                                        type="button"
-                                        onClick={() => {
-                                            setIsApplying(viewingJobDetails);
-                                            setViewingJobDetails(null);
-                                        }}
-                                        className="w-full py-4 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-slate-950/10"
-                                    >
-                                        Apply Now
-                                    </button>
+                                    {appliedJobIds.includes(viewingJobDetails._id) ? (
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                toast.success('You have already applied for this job!');
+                                                setViewingJobDetails(null);
+                                            }}
+                                            className="w-full py-4 bg-white border border-slate-950 hover:bg-slate-50 text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm"
+                                        >
+                                            View Application Status
+                                        </button>
+                                    ) : (
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setIsApplying(viewingJobDetails);
+                                                setViewingJobDetails(null);
+                                            }}
+                                            className="w-full py-4 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-slate-950/10"
+                                        >
+                                            Apply Now
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

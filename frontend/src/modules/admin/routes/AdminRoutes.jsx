@@ -149,6 +149,7 @@ const AdminRoutes = () => {
         <Route path="/careers" element={<CareerModeration creatorFilter="Admin" />} />
         <Route path="/careers/admin-posts" element={<CareerModeration creatorFilter="Admin" />} />
         <Route path="/careers/vendor-posts" element={<CareerModeration creatorFilter="Vendor" />} />
+        <Route path="/careers/supplier-posts" element={<CareerModeration creatorFilter="Supplier" />} />
         <Route path="/careers/role-details" element={<RoleDetails />} />
         <Route path="/categories" element={<CategoryManagement />} />
         <Route path="/vendor-supply-pricing/categories" element={<VendorSupplyCategoryManagement />} />

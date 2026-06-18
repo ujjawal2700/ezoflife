@@ -208,7 +208,7 @@ const VendorCartDetailsPage = () => {
                     },
                     modal: {
                         ondismiss: function () {
-                            toast.error('Payment cancelled. Order saved as Submitted.', { id: loadingToast });
+                            toast.error('Payment cancelled. Order saved as Awaiting Fee Payment.', { id: loadingToast });
                             setLoading(false);
                             // We can navigate back or let them stay. If they stay, they might click PAY NOW again, creating DUPLICATE orders!
                             // So we navigate away with reset cart, they can find the submitted order in their history.

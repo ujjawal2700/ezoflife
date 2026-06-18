@@ -2,7 +2,24 @@ import RoleTemplate from '../models/RoleTemplate.js';
 
 export const getRoleTemplates = async (req, res) => {
     try {
-        const templates = await RoleTemplate.find().sort({ createdAt: -1 });
+        const { targetRole } = req.query;
+        const query = {};
+        if (targetRole) {
+            if (targetRole === 'Vendor') {
+                query.$or = [
+                    { targetRole: 'Vendor' },
+                    { targetRole: 'Both' },
+                    { targetRole: { $exists: false } },
+                    { targetRole: null }
+                ];
+            } else {
+                query.$or = [
+                    { targetRole: targetRole },
+                    { targetRole: 'Both' }
+                ];
+            }
+        }
+        const templates = await RoleTemplate.find(query).sort({ createdAt: -1 });
         res.json(templates);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -11,7 +28,7 @@ export const getRoleTemplates = async (req, res) => {
 
 export const createRoleTemplate = async (req, res) => {
     try {
-        const { name, description, responsibilities } = req.body;
+        const { name, description, responsibilities, targetRole } = req.body;
         
         // Validation: word count for responsibilities (max 50 words per bullet)
         if (Array.isArray(responsibilities)) {
@@ -30,7 +47,8 @@ export const createRoleTemplate = async (req, res) => {
         const newTemplate = new RoleTemplate({
             name,
             description,
-            responsibilities
+            responsibilities,
+            targetRole
         });
         await newTemplate.save();
         res.status(201).json(newTemplate);
@@ -44,7 +62,7 @@ export const createRoleTemplate = async (req, res) => {
 
 export const updateRoleTemplate = async (req, res) => {
     try {
-        const { name, description, responsibilities } = req.body;
+        const { name, description, responsibilities, targetRole } = req.body;
 
         if (Array.isArray(responsibilities)) {
             for (let i = 0; i < responsibilities.length; i++) {
@@ -59,7 +77,7 @@ export const updateRoleTemplate = async (req, res) => {
 
         const updated = await RoleTemplate.findByIdAndUpdate(
             req.params.id,
-            { name, description, responsibilities },
+            { name, description, responsibilities, targetRole },
             { new: true }
         );
         if (!updated) {

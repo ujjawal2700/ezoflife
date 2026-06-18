@@ -22,6 +22,7 @@ export default function RoleDetails() {
     const [roleName, setRoleName] = useState('');
     const [description, setDescription] = useState('');
     const [responsibilities, setResponsibilities] = useState(['']); // Array of bullet points
+    const [targetRole, setTargetRole] = useState('Vendor');
 
     useEffect(() => {
         fetchTemplates();
@@ -71,6 +72,7 @@ export default function RoleDetails() {
         setRoleName('');
         setDescription('');
         setResponsibilities(['']);
+        setTargetRole('Vendor');
     };
 
     const handleCreateTemplate = async (e) => {
@@ -91,7 +93,8 @@ export default function RoleDetails() {
             const response = await jobApi.createRoleTemplate({
                 name: roleName,
                 description,
-                responsibilities: cleanResponsibilities
+                responsibilities: cleanResponsibilities,
+                targetRole
             });
 
             if (response.message) {
@@ -114,6 +117,7 @@ export default function RoleDetails() {
         setRoleName(template.name);
         setDescription(template.description);
         setResponsibilities(template.responsibilities.length > 0 ? template.responsibilities : ['']);
+        setTargetRole(template.targetRole || 'Vendor');
         setIsEditing(true);
     };
 
@@ -135,7 +139,8 @@ export default function RoleDetails() {
             const response = await jobApi.updateRoleTemplate(editingTemplate._id, {
                 name: roleName,
                 description,
-                responsibilities: cleanResponsibilities
+                responsibilities: cleanResponsibilities,
+                targetRole
             });
 
             if (response.message) {
@@ -174,6 +179,7 @@ export default function RoleDetails() {
     const handleDownloadExcel = () => {
         const exportData = templates.map(t => ({
             'Role Name': t.name,
+            'Target Role': t.targetRole || 'Vendor',
             'Description': t.description,
             'Responsibilities': t.responsibilities.join('; ')
         }));
@@ -188,8 +194,24 @@ export default function RoleDetails() {
             header: 'Role Name',
             key: 'name',
             sortable: true,
-            width: '20%',
+            width: '15%',
             render: (val) => <span className="font-bold text-slate-900">{val}</span>
+        },
+        {
+            header: 'Target Role',
+            key: 'targetRole',
+            width: '10%',
+            render: (val) => (
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                    val === 'Supplier' 
+                        ? 'bg-purple-50 text-purple-600 border border-purple-100' 
+                        : val === 'Both' 
+                        ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
+                        : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                }`}>
+                    {val || 'Vendor'}
+                </span>
+            )
         },
         {
             header: 'Description',
@@ -326,6 +348,20 @@ export default function RoleDetails() {
                                             className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-400 transition-all outline-none"
                                         />
                                     </div>
+                                </div>
+
+                                {/* Target Role Selection */}
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-0.5">Target Role *</label>
+                                    <select
+                                        value={targetRole}
+                                        onChange={(e) => setTargetRole(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 text-xs font-bold text-slate-900 focus:bg-white focus:border-slate-400 transition-all outline-none cursor-pointer"
+                                    >
+                                        <option value="Vendor">Vendor Only</option>
+                                        <option value="Supplier">Supplier Only</option>
+                                        <option value="Both">Both (Vendor & Supplier)</option>
+                                    </select>
                                 </div>
 
                                 {/* Description */}

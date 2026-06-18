@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 const navItems = [
   { label: 'Home', icon: 'home', path: '/supplier/dashboard' },
-  { label: 'Supplies', icon: 'inventory_2', path: '/supplier/supplies' },
+  { label: 'Supplier', icon: 'inventory_2', path: '/supplier/supplies' },
   { label: 'Profile', icon: 'person', path: '/supplier/profile' },
   { label: 'More', icon: 'menu', path: '/supplier/more' },
 ];
