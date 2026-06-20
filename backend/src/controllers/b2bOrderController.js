@@ -27,8 +27,35 @@ export const placeB2BOrder = async (req, res) => {
             return val.toString().trim();
         };
 
-        const pincode = cleanLocation(req.body.pincode) || cleanLocation(vendor.shopDetails?.pincode) || cleanLocation(vendor.pincode);
-        const city = cleanLocation(req.body.city) || cleanLocation(vendor.shopDetails?.city) || cleanLocation(vendor.city);
+        let pincode = cleanLocation(req.body.pincode) || cleanLocation(vendor.shopDetails?.pincode) || cleanLocation(vendor.pincode);
+        let city = cleanLocation(req.body.city) || cleanLocation(vendor.shopDetails?.city) || cleanLocation(vendor.city);
+
+        if (!pincode && vendor.shopDetails?.address) {
+            const pinMatch = vendor.shopDetails.address.match(/\b\d{6}\b/);
+            if (pinMatch) {
+                pincode = pinMatch[0];
+                if (vendor.shopDetails) {
+                    vendor.shopDetails.pincode = pincode;
+                    await vendor.save();
+                }
+            }
+        }
+
+        const cleanAddress = (addr) => {
+            if (!addr) return null;
+            const trimmed = addr.trim();
+            const invalidTokens = [',', ', ', 'undefined', 'null', '.', '. '];
+            if (invalidTokens.includes(trimmed)) {
+                return null;
+            }
+            return trimmed;
+        };
+
+        const finalShippingAddress = cleanAddress(shippingAddress) || 
+                                     cleanAddress(vendor.shopDetails?.address) || 
+                                     cleanAddress(vendor.address) || 
+                                     cleanAddress(vendor.businessAddress) || 
+                                     `${city || ''}, ${pincode || ''}`.trim();
 
         // 1. Get Global Delivery Day
         const config = await SystemConfig.findOne({ key: 'delivery_day' });
@@ -121,7 +148,7 @@ export const placeB2BOrder = async (req, res) => {
                 items: groupItems,
                 totalAmount: groupTotal,
                 platformFee: 0, // We will assign the total platform fee to the first order later
-                shippingAddress,
+                shippingAddress: finalShippingAddress,
                 pincode,
                 city: city?.trim(),
                 status: (totalPlatformFee && totalPlatformFee > 0) ? 'PENDING_PAYMENT' : 'SUBMITTED',
@@ -539,8 +566,8 @@ export const getB2BOrderById = async (req, res) => {
     try {
         const { id } = req.params;
         const order = await B2BOrder.findById(id)
-            .populate('vendor', 'displayName phone shopDetails')
-            .populate('supplier', 'displayName phone supplierDetails')
+            .populate('vendor', 'displayName phone shopDetails location')
+            .populate('supplier', 'displayName phone supplierDetails location')
             .populate('items.materialId');
         if (!order) return res.status(404).json({ message: 'Order not found' });
         res.status(200).json(order);
@@ -549,4 +576,38 @@ export const getB2BOrderById = async (req, res) => {
         res.status(500).json({ message: 'Error fetching order details' });
     }
 };
+
+export const updateB2BDeliveryDate = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { deliveryDate } = req.body;
+
+        if (!deliveryDate) {
+            return res.status(400).json({ message: 'Delivery date is required' });
+        }
+
+        const parsedDate = new Date(deliveryDate);
+        if (isNaN(parsedDate.getTime())) {
+            return res.status(400).json({ message: 'Invalid delivery date format' });
+        }
+
+        const order = await B2BOrder.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        order.deliveryDate = parsedDate;
+        
+        const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        order.deliveryDay = DAYS[parsedDate.getDay()];
+        
+        await order.save();
+
+        res.status(200).json({ message: 'Delivery date updated successfully', order });
+    } catch (err) {
+        console.error('Update Delivery Date Error:', err);
+        res.status(500).json({ message: 'Error updating delivery date', error: err.message });
+    }
+};
+
 

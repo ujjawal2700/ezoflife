@@ -111,7 +111,8 @@ const VendorLayout = () => {
         '/vendor/order/', // Hide on order details
         '/vendor/fulfillment',
         '/vendor/promotions',
-        '/vendor/reviews'
+        '/vendor/reviews',
+        '/vendor/material-request/track'
     ];
     const showHeader = !hideHeaderRoutes.some(path => currentPath.startsWith(path));
 

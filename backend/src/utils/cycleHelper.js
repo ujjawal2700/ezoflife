@@ -54,3 +54,76 @@ export const isBeforeCutoff = (deliveryDate, cutoffHours = 24) => {
     cutoffTime.setHours(cutoffTime.getHours() - cutoffHours);
     return now < cutoffTime;
 };
+
+/**
+ * Calculates the next delivery Date based on supplier application frequencies and selected days/dates.
+ */
+export const calculateNextDeliveryDateForSupplier = (app) => {
+    const now = new Date();
+    if (!app || !app.deliveryFrequency || app.deliveryFrequency.length === 0) {
+        return getNextDeliveryDate('Sunday');
+    }
+
+    const freq = app.deliveryFrequency;
+    const DAYS_LOWER = DAYS.map(d => d.toLowerCase());
+
+    // 1. Daily
+    if (freq.includes('Daily')) {
+        const nextDay = new Date();
+        nextDay.setDate(now.getDate() + 1);
+        nextDay.setHours(23, 59, 59, 999);
+        return nextDay;
+    }
+
+    // 2. Thrice a week
+    if (freq.includes('Thrice a Week') && app.thriceWeekDays && app.thriceWeekDays.length > 0) {
+        const targetDays = app.thriceWeekDays.filter(Boolean).map(d => DAYS_LOWER.indexOf(d.toLowerCase())).filter(idx => idx !== -1);
+        if (targetDays.length > 0) {
+            let minDiff = 8;
+            targetDays.forEach(targetDayIdx => {
+                const currentDay = now.getDay();
+                let diff = (targetDayIdx - currentDay + 7) % 7;
+                if (diff === 0) diff = 7;
+                if (diff < minDiff) {
+                    minDiff = diff;
+                }
+            });
+            const delivery = new Date();
+            delivery.setDate(now.getDate() + minDiff);
+            delivery.setHours(23, 59, 59, 999);
+            return delivery;
+        }
+    }
+
+    // 3. Weekly
+    if (freq.includes('Weekly')) {
+        const dayName = app.weeklyDay || 'Sunday';
+        try {
+            return getNextDeliveryDate(dayName);
+        } catch (e) {
+            return getNextDeliveryDate('Sunday');
+        }
+    }
+
+    // 4. Monthly
+    if (freq.includes('Monthly') && app.monthlyDate) {
+        const targetDate = parseInt(app.monthlyDate, 10);
+        if (!isNaN(targetDate)) {
+            const delivery = new Date();
+            delivery.setHours(23, 59, 59, 999);
+            if (now.getDate() < targetDate) {
+                delivery.setDate(targetDate);
+            } else {
+                delivery.setMonth(delivery.getMonth() + 1);
+                delivery.setDate(targetDate);
+            }
+            return delivery;
+        }
+    }
+
+    // 5. On-Demand / fallback
+    const delivery = new Date();
+    delivery.setDate(now.getDate() + 2);
+    delivery.setHours(23, 59, 59, 999);
+    return delivery;
+};

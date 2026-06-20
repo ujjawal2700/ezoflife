@@ -13,6 +13,10 @@ const SupplierDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [updatingOrderId, setUpdatingOrderId] = useState(null);
     const [expandedOrderId, setExpandedOrderId] = useState(null);
+    const [dateModalOpen, setDateModalOpen] = useState(false);
+    const [selectedOrderForDate, setSelectedOrderForDate] = useState(null);
+    const [newDeliveryDate, setNewDeliveryDate] = useState('');
+    const [updatingDate, setUpdatingDate] = useState(false);
 
     const b2bStatusMapSupplier = {
         'SUBMITTED': { label: 'New Order Received', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -79,6 +83,26 @@ const SupplierDashboard = () => {
             toast.error(error.response?.data?.message || 'Failed to update status');
         } finally {
             setUpdatingOrderId(null);
+        }
+    };
+
+    const handleUpdateDeliveryDate = async () => {
+        if (!selectedOrderForDate || !newDeliveryDate) return;
+        try {
+            setUpdatingDate(true);
+            const res = await b2bOrderApi.updateDeliveryDate(selectedOrderForDate._id, newDeliveryDate);
+            if (res.error) {
+                toast.error(res.message || res.error || 'Failed to update delivery date');
+            } else {
+                toast.success('Delivery date updated successfully');
+                setDateModalOpen(false);
+                fetchOrders();
+            }
+        } catch (error) {
+            console.error('Update Delivery Date Error:', error);
+            toast.error(error.message || 'Failed to update delivery date');
+        } finally {
+            setUpdatingDate(false);
         }
     };
 
@@ -578,10 +602,22 @@ const SupplierDashboard = () => {
                                                                 </div>
                                                             </div>
                                                             {/* Delivery Date */}
-                                                            <div className="flex items-center gap-2">
+                                                            <div 
+                                                                onClick={() => {
+                                                                    setSelectedOrderForDate(order);
+                                                                    const d = order.deliveryDate ? new Date(order.deliveryDate) : new Date();
+                                                                    const formatted = d.toISOString().split('T')[0];
+                                                                    setNewDeliveryDate(formatted);
+                                                                    setDateModalOpen(true);
+                                                                }}
+                                                                className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-1 rounded-xl transition-all"
+                                                            >
                                                                 <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">calendar_today</span>
                                                                 <div className="min-w-0">
-                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">DELIVERY DATE</p>
+                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 flex items-center gap-1">
+                                                                        DELIVERY DATE
+                                                                        <span className="material-symbols-outlined text-[10px] text-slate-400">edit</span>
+                                                                    </p>
                                                                     <p className="text-[10px] font-black text-white uppercase truncate">
                                                                         {formatB2BDate(order.deliveryDate)}
                                                                     </p>
@@ -601,16 +637,17 @@ const SupplierDashboard = () => {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            {/* Vendor Location */}
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">location_on</span>
-                                                                <div className="min-w-0">
-                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">VENDOR LOCATION</p>
-                                                                    <p className="text-[10px] font-black text-white uppercase truncate">
-                                                                        {order.vendor?.shopDetails?.city || order.city || 'LOCAL'}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Vendor Address Row */}
+                                                    <div className="mt-1 pt-3 border-t border-white/10 flex items-start gap-2">
+                                                        <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0 mt-0.5">location_on</span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">VENDOR ADDRESS</p>
+                                                            <p className="text-[10px] font-black text-white leading-relaxed break-words">
+                                                                {order.shippingAddress || order.vendor?.shopDetails?.address || 'N/A'}
+                                                            </p>
                                                         </div>
                                                     </div>
 
@@ -804,6 +841,71 @@ const SupplierDashboard = () => {
                                     className="px-6 py-2.5 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-md active:scale-95"
                                 >
                                     CLOSE
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delivery Date Change Modal */}
+            <AnimatePresence>
+                {dateModalOpen && selectedOrderForDate && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            onClick={() => setDateModalOpen(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 flex flex-col gap-5 text-left border border-slate-100 text-slate-900"
+                        >
+                            <div>
+                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 leading-none">
+                                    Change Delivery Date
+                                </h3>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                    Order #{selectedOrderForDate.b2bOrderId}
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                                    Select New Date
+                                </label>
+                                <input 
+                                    type="date"
+                                    value={newDeliveryDate}
+                                    onChange={(e) => setNewDeliveryDate(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:border-slate-900 text-sm font-bold text-slate-800 bg-[#F8FAFC]"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 mt-2">
+                                <button 
+                                    onClick={() => setDateModalOpen(false)}
+                                    className="px-5 py-2.5 rounded-full border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all active:scale-95"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    onClick={handleUpdateDeliveryDate}
+                                    disabled={updatingDate || !newDeliveryDate}
+                                    className="px-6 py-2.5 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                                >
+                                    {updatingDate ? (
+                                        <>
+                                            <span className="material-symbols-outlined text-[12px] animate-spin">refresh</span>
+                                            SAVING...
+                                        </>
+                                    ) : (
+                                        'SAVE CHANGES'
+                                    )}
                                 </button>
                             </div>
                         </motion.div>

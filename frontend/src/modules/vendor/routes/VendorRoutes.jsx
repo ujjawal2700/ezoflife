@@ -38,6 +38,7 @@ import VendorProductImages from '../pages/VendorProductImages';
 import VendorCartDetailsPage from '../pages/VendorCartDetailsPage';
 import VendorProductQueries from '../pages/VendorProductQueries';
 import VendorProductQueryChat from '../pages/VendorProductQueryChat';
+import B2BOrderTrackingPage from '../pages/B2BOrderTrackingPage';
 
 // Profile sub-pages
 import EditProfile from '../pages/EditProfile';
@@ -83,6 +84,7 @@ const VendorRoutes = () => {
         <Route path="/promotions" element={<PromotionManagerPage />} />
         <Route path="/fulfillment" element={<B2BFulfillmentPage />} />
         <Route path="/material-request" element={<MaterialRequestPage />} />
+        <Route path="/material-request/track/:id" element={<B2BOrderTrackingPage />} />
         <Route path="/cart-details" element={<VendorCartDetailsPage />} />
         <Route path="/labor-request" element={<LaborRequestPage />} />
         <Route path="/labor-request/create" element={<CreateJobRequisition />} />

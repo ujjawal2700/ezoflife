@@ -416,7 +416,7 @@ const MaterialRequestPage = () => {
                                                     {/* Left: Large Image Container */}
                                                     <div 
                                                         onClick={() => navigate('/vendor/product-images', { state: { images: item.images?.length ? item.images : (item.image ? [item.image] : []), name: item.name } })}
-                                                        className="w-[150px] xs:w-[180px] sm:w-[220px] md:w-[260px] h-[180px] xs:h-[220px] sm:h-[260px] md:h-[300px] rounded-r-[2.2rem] rounded-l-none bg-slate-50 overflow-hidden shrink-0 border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
+                                                        className="w-[150px] xs:w-[180px] sm:w-[220px] md:w-[260px] h-[210px] xs:h-[240px] sm:h-[270px] md:h-[300px] rounded-r-[2.2rem] rounded-l-none bg-slate-50 overflow-hidden shrink-0 border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
                                                     >
                                                         <AnimatePresence initial={false}>
                                                             {displayImage ? (
@@ -444,13 +444,14 @@ const MaterialRequestPage = () => {
                                                     </div>
                                                     
                                                     {/* Right: Details Column */}
-                                                    <div className="flex-1 min-w-0 flex flex-col justify-between h-[180px] xs:h-[220px] sm:h-[260px] md:h-[300px] py-2 md:py-4">
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-between h-[210px] xs:h-[240px] sm:h-[270px] md:h-[300px] py-2 md:py-4">
                                                         <div className="space-y-2.5 sm:space-y-4">
                                                             {/* Subcategory & Delivery Info */}
                                                             <div className="flex items-center gap-1.5 flex-wrap">
-                                                                {item.deliveryFrequency && (
-                                                                    <span className="bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-lg font-bold text-[9px] sm:text-[11px] uppercase tracking-wider">
-                                                                        {item.deliveryFrequency} Delivery
+                                                                {item.nextDeliveryDate && (
+                                                                    <span className="bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg font-bold text-[9px] sm:text-[11px] uppercase tracking-wider flex items-center gap-1">
+                                                                        <span className="material-symbols-outlined text-[10px] sm:text-[12px]">local_shipping</span>
+                                                                        Est. Deliv: {item.nextDeliveryDate}
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -564,7 +565,11 @@ const MaterialRequestPage = () => {
                                         </div>
                                     ) : (
                                         displayedOrders.map((order) => (
-                                            <div key={order._id} className="bg-white p-4 rounded-[1.8rem] border border-slate-100 shadow-sm space-y-3">
+                                            <div 
+                                                key={order._id} 
+                                                onClick={() => navigate(`/vendor/material-request/track/${order._id}`)}
+                                                className="bg-white p-4 rounded-[1.8rem] border border-slate-100 shadow-sm space-y-3 cursor-pointer hover:border-slate-300 hover:shadow-md transition-all active:scale-[0.99]"
+                                            >
                                                 {/* Header Row: ID, Status, Actions */}
                                                 <div className="flex items-center justify-between gap-2">
                                                     <div className="flex items-center gap-2">
@@ -578,7 +583,10 @@ const MaterialRequestPage = () => {
                                                     <div className="flex items-center gap-1.5">
                                                         {order.supplier && (
                                                             <button 
-                                                                onClick={() => setChatModal({ isOpen: true, order: order, step: 'select', selectedProduct: null, message: '' })}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setChatModal({ isOpen: true, order: order, step: 'select', selectedProduct: null, message: '' });
+                                                                }}
                                                                 className="w-7 h-7 rounded-lg bg-slate-100 text-slate-900 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all"
                                                                 title="Chat with Supplier"
                                                             >
@@ -587,7 +595,10 @@ const MaterialRequestPage = () => {
                                                         )}
                                                         {['Delivered', 'DELIVERED'].includes(order.status) && (
                                                             <button 
-                                                                onClick={() => openInvoice(order)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openInvoice(order);
+                                                                }}
                                                                 className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all"
                                                                 title="View Invoice"
                                                             >

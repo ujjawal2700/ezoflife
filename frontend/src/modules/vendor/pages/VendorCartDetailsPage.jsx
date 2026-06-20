@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { b2bOrderApi } from '../../../lib/api';
+import { b2bOrderApi, authApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
 const VendorCartDetailsPage = () => {
@@ -13,6 +13,31 @@ const VendorCartDetailsPage = () => {
     
     const [promoCode, setPromoCode] = useState('');
     const [loading, setLoading] = useState(false);
+    const [profileData, setProfileData] = useState(vendorData);
+
+    useEffect(() => {
+        const loadProfile = async () => {
+            const vId = vendorData._id || vendorData.id;
+            if (!vId) return;
+            try {
+                const profile = await authApi.getProfile(vId);
+                if (profile) {
+                    setProfileData(profile);
+                    // Update localStorage
+                    localStorage.setItem('vendorData', JSON.stringify(profile));
+                    if (localStorage.getItem('user')) {
+                        localStorage.setItem('user', JSON.stringify(profile));
+                    }
+                    if (localStorage.getItem('userData')) {
+                        localStorage.setItem('userData', JSON.stringify(profile));
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load vendor profile:', err);
+            }
+        };
+        loadProfile();
+    }, [vendorData]);
     
     const { itemSubtotal, totalGst, totalDeliveryCharges, grandTotal, totalPlatformFee, payableToSupplier, orderItems, groupedCarts } = useMemo(() => {
         let subTotal = 0;
@@ -132,9 +157,16 @@ const VendorCartDetailsPage = () => {
         );
     }
 
-    const city = vendorData.shopDetails?.city || vendorData.address_city || vendorData.city || '';
-    const pincode = vendorData.shopDetails?.pincode || vendorData.address_pincode || vendorData.pincode || '';
-    const shippingAddress = vendorData.shopDetails?.address || vendorData.address || `${city}, ${pincode}`;
+    let city = profileData.shopDetails?.city || profileData.address_city || profileData.city || '';
+    let pincode = profileData.shopDetails?.pincode || profileData.address_pincode || profileData.pincode || '';
+    const shippingAddress = profileData.shopDetails?.address || profileData.address || `${city}, ${pincode}`;
+
+    if (!pincode && shippingAddress) {
+        const pinMatch = shippingAddress.match(/\b\d{6}\b/);
+        if (pinMatch) {
+            pincode = pinMatch[0];
+        }
+    }
 
     const loadRazorpayScript = () => {
         return new Promise((resolve) => {
@@ -151,7 +183,7 @@ const VendorCartDetailsPage = () => {
         setLoading(true);
         try {
             const payload = {
-                vendorId: vendorData._id || vendorData.id,
+                vendorId: profileData._id || profileData.id,
                 items: orderItems,
                 totalAmount: payableToSupplier,
                 totalPlatformFee: totalPlatformFee,
@@ -163,6 +195,12 @@ const VendorCartDetailsPage = () => {
             };
 
             const response = await b2bOrderApi.placeOrder(payload);
+            
+            if (response.error || !response.orders || response.orders.length === 0) {
+                toast.error(response.message || response.error || 'Failed to place procurement requests', { id: loadingToast });
+                setLoading(false);
+                return;
+            }
             
             if (response.razorpayOrderId && response.platformFeeAmount > 0) {
                 toast.loading('Opening payment gateway...', { id: loadingToast });
@@ -199,9 +237,9 @@ const VendorCartDetailsPage = () => {
                         }
                     },
                     prefill: {
-                        name: vendorData.displayName || vendorData.name || '',
-                        email: vendorData.email || '',
-                        contact: vendorData.phone || ''
+                        name: profileData.displayName || profileData.name || '',
+                        email: profileData.email || '',
+                        contact: profileData.phone || ''
                     },
                     theme: {
                         color: '#0f172a'
@@ -335,13 +373,7 @@ const VendorCartDetailsPage = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="flex flex-col gap-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="font-black text-[11px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
-                                                    <span className="text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest bg-emerald-50 text-emerald-600 shrink-0 border border-emerald-100">
-                                                        {item.deliveryFrequency || 'Normal'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">{item.supplierFacilityName}</p>
+                                                <h3 className="font-black text-[11px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
                                             </div>
                                             <div className="flex flex-col items-end shrink-0">
                                                 <p className="text-sm font-black text-slate-900 tracking-tighter">

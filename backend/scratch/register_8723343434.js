@@ -1,0 +1,41 @@
+import mongoose from 'mongoose';
+import User from '../src/models/User.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0';
+
+async function run() {
+    try {
+        await mongoose.connect(MONGO_URI);
+        console.log('Connected to MongoDB');
+        
+        const phone = '8723343434';
+        const role = 'Customer';
+        const otp = '123456';
+        const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+        
+        const updatedUser = await User.findOneAndUpdate(
+            { phone },
+            { 
+                phone,
+                role,
+                otp,
+                otpExpiry: expiry,
+                displayName: 'Test Customer 8723343434',
+                status: 'approved',
+                customerType: 'individual',
+                isProfileComplete: true
+            },
+            { upsert: true, new: true }
+        );
+        
+        console.log('User created/updated successfully:', updatedUser);
+    } catch (err) {
+        console.error('Error:', err);
+    } finally {
+        await mongoose.disconnect();
+    }
+}
+
+run();

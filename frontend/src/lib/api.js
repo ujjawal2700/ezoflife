@@ -709,6 +709,19 @@ export const b2bOrderApi = {
             throw error;
         }
     },
+    updateDeliveryDate: async (id, deliveryDate) => {
+        try {
+            const response = await fetch(`${BASE_URL}/b2b-orders/${id}/delivery-date`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deliveryDate })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update B2B Delivery Date Error:', error);
+            throw error;
+        }
+    },
     bulkUpdateStatus: async (data) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/bulk-status-update`, {

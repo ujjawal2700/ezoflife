@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import toast from 'react-hot-toast';
 import { authApi } from '../../../lib/api';
-import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
+
+
+const formatSupplierAddress = (address) => {
+    if (!address) return 'N/A';
+    const pincodeRegex = /^(\d{6})(?:\s*\(Pincode\))?\s*,\s*(.*)$/i;
+    const match = address.match(pincodeRegex);
+    if (match) {
+        const pincode = match[1];
+        const restOfAddress = match[2];
+        return `${restOfAddress} - ${pincode}`;
+    }
+    return address;
+};
 
 const SupplierProfile = () => {
     const navigate = useNavigate();
@@ -307,12 +319,12 @@ const SupplierProfile = () => {
                         </div>
                         <div className="grid grid-cols-1 gap-4 pl-1">
                             <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Business Name</p>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
                                 <p className="text-sm font-black text-slate-900 tracking-tight">{user.supplierDetails?.businessName || 'N/A'}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Business Address</p>
-                                <p className="text-xs font-bold text-slate-600 leading-relaxed">{user.supplierDetails?.address || 'N/A'}</p>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Address</p>
+                                <p className="text-xs font-bold text-slate-600 leading-relaxed">{formatSupplierAddress(user.supplierDetails?.address)}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
@@ -403,10 +415,26 @@ const SupplierProfile = () => {
                             </div>
                         )}
                     </section>
+
+                    {/* APP SETTINGS SECTION */}
+                    <section className="divide-y divide-slate-50 bg-slate-50/20 border-t border-slate-50">
+                        {[
+                            { label: 'Privacy Policy', icon: 'security', path: '/user/privacy?role=supplier' },
+                            { label: 'Terms & Conditions', icon: 'description', path: '/user/terms?role=supplier' }
+                        ].map((link, i) => (
+                            <div key={i} onClick={() => navigate(link.path)} className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all group">
+                                <div className="flex items-center gap-3">
+                                    <span className="material-symbols-outlined text-slate-400 text-lg group-hover:text-slate-950 transition-colors">{link.icon}</span>
+                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{link.label}</span>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward_ios</span>
+                            </div>
+                        ))}
+                    </section>
                 </div>
 
                 {/* DOCUMENTS SECTION */}
-                <section className="space-y-3">
+                <section className="space-y-3 mt-16">
                     <div className="flex items-center justify-between px-1">
                         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Verification Documents</h3>
                         <span className="material-symbols-outlined text-slate-200 text-lg">folder_shared</span>
@@ -459,47 +487,6 @@ const SupplierProfile = () => {
                     </div>
                 </section>
 
-                {/* LEGAL & POLICIES SECTION */}
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>
-                        <span className="material-symbols-outlined text-slate-200 text-lg">policy</span>
-                    </div>
-
-                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-                        <button
-                            onClick={() => navigate('/user/terms?role=supplier')}
-                            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group text-left"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-lg">gavel</span>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 leading-none mb-1">Terms of Service</p>
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Rules & Regulations</p>
-                                </div>
-                            </div>
-                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
-                        </button>
-
-                        <button
-                            onClick={() => navigate('/user/privacy?role=supplier')}
-                            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group text-left"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-lg">verified_user</span>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 leading-none mb-1">Privacy Policy</p>
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Data Protection Protocol</p>
-                                </div>
-                            </div>
-                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
-                        </button>
-                    </div>
-                </section>
 
                 {/* Action Footer */}
                 <div className="flex flex-col gap-4 pt-4">
@@ -517,130 +504,7 @@ const SupplierProfile = () => {
                 </div>
             </main>
 
-            <AnimatePresence>
-                {isEditModalOpen && (
-                    <div className="fixed inset-0 z-[101] flex items-end justify-center px-4 pb-10 sm:items-center">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setIsEditModalOpen(false)}
-                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
-                        />
-                        <motion.div
-                            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-                            className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
-                        >
-                            <h3 className="text-xl font-black text-slate-950 mb-6 uppercase tracking-tighter">Edit {editSection === 'business' ? 'Business' : 'Bank'} Info</h3>
 
-                            <div className="space-y-5">
-                                {editSection === 'business' ? (
-                                    <>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
-                                            <input value={formData.businessName} onChange={e => setFormData({ ...formData, businessName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
-                                            <input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Full Address (Google Maps)</label>
-                                            {isLoaded ? (
-                                                <Autocomplete
-                                                    onLoad={ac => setAutocomplete(ac)}
-                                                    onPlaceChanged={() => {
-                                                        const place = autocomplete.getPlace();
-                                                        if (place.geometry) {
-                                                            const lat = place.geometry.location.lat();
-                                                            const lng = place.geometry.location.lng();
-
-                                                            // Parse components
-                                                            let city = '';
-                                                            let pincode = '';
-                                                            place.address_components.forEach(comp => {
-                                                                if (comp.types.includes('locality')) city = comp.long_name;
-                                                                if (comp.types.includes('postal_code')) pincode = comp.long_name;
-                                                            });
-
-                                                            setFormData({
-                                                                ...formData,
-                                                                address_area: place.formatted_address,
-                                                                address_city: city,
-                                                                address_pincode: pincode,
-                                                                location: { lat, lng }
-                                                            });
-                                                            toast.success('Location detected!');
-                                                        }
-                                                    }}
-                                                >
-                                                    <input
-                                                        placeholder="Start typing your address..."
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none"
-                                                    />
-                                                </Autocomplete>
-                                            ) : (
-                                                <div className="w-full h-14 bg-slate-50 rounded-2xl animate-pulse border border-slate-100" />
-                                            )}
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Flat/Office No</label>
-                                                <input value={formData.address_shop} onChange={e => setFormData({ ...formData, address_shop: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Area (Auto-filled)</label>
-                                                <input value={formData.address_area} onChange={e => setFormData({ ...formData, address_area: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none opacity-70" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Landmark</label>
-                                            <input value={formData.address_landmark} onChange={e => setFormData({ ...formData, address_landmark: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
-                                                <input value={formData.address_city} onChange={e => setFormData({ ...formData, address_city: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pincode</label>
-                                                <input value={formData.address_pincode} onChange={e => setFormData({ ...formData, address_pincode: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
-                                            <input value={formData.gst} onChange={e => setFormData({ ...formData, gst: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</label>
-                                            <input value={formData.accountHolderName} onChange={e => setFormData({ ...formData, accountHolderName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
-                                            <input value={formData.bankName} onChange={e => setFormData({ ...formData, bankName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">IFSC Code</label>
-                                            <input value={formData.ifscCode} onChange={e => setFormData({ ...formData, ifscCode: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
-                                            <input value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-slate-950/20 outline-none" />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 mt-8">
-                                <button onClick={() => setIsEditModalOpen(false)} className="py-4 bg-slate-50 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all">Cancel</button>
-                                <button onClick={handleSave} className="py-4 bg-slate-950 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-slate-950/20 active:scale-95 transition-all">Save Changes</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 };

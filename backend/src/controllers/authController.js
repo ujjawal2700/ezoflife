@@ -457,15 +457,7 @@ export const verifyOtp = async (req, res) => {
         res.status(200).json({
             message: 'OTP verified successfully',
             token,
-            user: {
-                id: user._id,
-                phone: user.phone,
-                role: user.role,
-                customerType: user.customerType || 'individual',
-                displayName: user.displayName,
-                status: user.status,
-                isProfileComplete: user.isProfileComplete
-            }
+            user
         });
     } catch (err) {
         console.error('Verify OTP Error:', err);

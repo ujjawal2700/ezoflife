@@ -470,14 +470,29 @@ export const vendorMasterSupplyController = {
                 }
             });
 
+            const SupplierApplication = (await import('../models/SupplierApplication.js')).default;
+            const supplierApps = await SupplierApplication.find({});
+            const supplierAppMap = {};
+            supplierApps.forEach(app => {
+                if (app.user) {
+                    supplierAppMap[app.user.toString()] = app;
+                }
+            });
+
+            const { calculateNextDeliveryDateForSupplier } = await import('../utils/cycleHelper.js');
+
             // Format items to match frontend expectation
             const formatted = populated.map(item => {
                 const supplierUserObj = supplierUserMap[item.supplierId];
+                const supplierAppObj = supplierUserObj ? supplierAppMap[supplierUserObj._id.toString()] : null;
+                const nextDelivDateObj = calculateNextDeliveryDateForSupplier(supplierAppObj);
+                const nextDeliveryDateString = nextDelivDateObj ? nextDelivDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'On-Demand';
+
                 const gst = item.gst || 18;
-                const basePrice = item.wholesaleRate + (item.wholesaleRate * gst / 100);
+                const basePrice = Math.round((item.wholesaleRate + (item.wholesaleRate * gst / 100)) * 100) / 100;
                 const itemMultiplier = item.supplierPlatformMultiplier || 0;
-                const platformFeeAmount = basePrice * itemMultiplier;
-                const finalPrice = basePrice + platformFeeAmount;
+                const platformFeeAmount = Math.round((basePrice * itemMultiplier) * 100) / 100;
+                const finalPrice = Math.round((basePrice + platformFeeAmount) * 100) / 100;
                 
                 return {
                     _id: item._id,
@@ -499,6 +514,7 @@ export const vendorMasterSupplyController = {
                     image: null,
                     images: item.images || [],
                     deliveryFrequency: item.deliveryFrequency || 'On-Demand',
+                    nextDeliveryDate: nextDeliveryDateString,
                     movFreeDelivery: supplierZoneMap[item.supplierId]?.minOrderValue || 0,
                     deliveryCharges: supplierZoneMap[item.supplierId]?.deliveryCharges || 0,
                     bulkDiscount: item.bulkDiscount || 0,
