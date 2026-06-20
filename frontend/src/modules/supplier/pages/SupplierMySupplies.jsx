@@ -9,6 +9,8 @@ const SupplierMySupplies = () => {
 
     const [supplies, setSupplies] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editMode, setEditMode] = useState(false);
+    const [originalSupplies, setOriginalSupplies] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
     const [selectedSupply, setSelectedSupply] = useState(null);
@@ -56,6 +58,49 @@ const SupplierMySupplies = () => {
         }
     };
 
+    const toggleSupplyStatusLocal = (id) => {
+        if (!editMode) return;
+        setSupplies(prev => prev.map(item => {
+            if (item._id === id) {
+                const currentActive = item.isActive || 'y';
+                const nextActive = currentActive === 'y' ? 'n' : 'y';
+                return { ...item, isActive: nextActive };
+            }
+            return item;
+        }));
+    };
+
+    const handleGlobalSave = async () => {
+        try {
+            setLoading(true);
+            const updates = [];
+            for (const item of supplies) {
+                const original = originalSupplies.find(o => o._id === item._id);
+                if (original && original.isActive !== item.isActive) {
+                    const payload = {
+                        ...item,
+                        categoryId: item.categoryId?._id
+                    };
+                    updates.push(vendorMasterSupplyApi.update(item._id, payload));
+                }
+            }
+
+            if (updates.length > 0) {
+                await Promise.all(updates);
+                toast.success('Supply statuses updated successfully!');
+            } else {
+                toast('No changes to save.', { icon: 'ℹ️' });
+            }
+            setEditMode(false);
+            fetchSupplies();
+        } catch (error) {
+            console.error('Global save error:', error);
+            toast.error('Failed to save changes');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Retrieve logged-in supplier user
     const user = useMemo(() => {
         try {
@@ -80,7 +125,9 @@ const SupplierMySupplies = () => {
         try {
             setLoading(true);
             const data = await vendorMasterSupplyApi.getAll({ supplierId: supplierCode });
-            setSupplies(Array.isArray(data) ? data : []);
+            const list = Array.isArray(data) ? data : [];
+            setSupplies(list);
+            setOriginalSupplies(JSON.parse(JSON.stringify(list)));
         } catch (err) {
             console.error('Failed to fetch supplies:', err);
             toast.error('Failed to load supplies registry');
@@ -151,9 +198,20 @@ const SupplierMySupplies = () => {
                             <h3 className="text-xl font-black text-slate-900 tracking-tight mt-2 uppercase">{supply.materialName}</h3>
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">By {supply.brand || 'Generic'}</p>
                         </div>
-                        <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
-                            <span className="material-symbols-outlined text-xl">close</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => {
+                                    onClose();
+                                    handleOpenEditModal(supply);
+                                }} 
+                                className="w-10 h-10 rounded-2xl bg-slate-900 text-white hover:bg-primary flex items-center justify-center transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                                <span className="material-symbols-outlined text-xl">close</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Modal Body */}
@@ -349,133 +407,100 @@ const SupplierMySupplies = () => {
                     </div>
                 )}
             </AnimatePresence>
-
+            
             {/* Header */}
-            <header className="px-6 pt-2 flex items-center justify-between mb-6 max-w-md mx-auto">
+            <header className="px-6 pt-2 flex items-center justify-between mb-6 max-w-5xl mx-auto">
                 <div className="flex items-center gap-2">
-                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-950 shadow-sm transition-all mr-2">
-                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                    </button>
-                    <h1 className="text-2xl font-black tracking-tighter text-slate-950 uppercase leading-none">Spinzyt</h1>
+                    <h1 className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 animate-pulse"></div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <motion.button 
-                        whileTap={{ scale: 0.9 }}
-                        className="w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center text-slate-400 shadow-sm relative"
-                    >
-                        <span className="material-symbols-outlined text-xl">notifications</span>
-                        <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
-                    </motion.button>
-
-                    <motion.div 
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate('/supplier/profile')}
-                        className="w-10 h-10 rounded-full bg-white border border-black/5 overflow-hidden shadow-sm cursor-pointer"
-                    >
-                        <img 
-                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" 
-                            alt="Supplier" 
-                            className="w-full h-full object-cover" 
-                        />
-                    </motion.div>
-                </div>
+                {/* Profile Icon */}
+                <motion.div 
+                    onClick={() => navigate('/supplier/profile')}
+                    whileHover={{ scale: 1.05 }}
+                    className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+                >
+                    {user.avatar ? (
+                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        <span className="material-symbols-outlined text-slate-500 text-[20px]">person</span>
+                    )}
+                </motion.div>
             </header>
 
-            <main className="px-6 space-y-8 max-w-md mx-auto">
-                {/* 1. OPERATIONS & LOGISTICS */}
-                <section className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4">
-                        <motion.div 
-                            whileHover={{ scale: 1.01 }}
-                            className="bg-slate-900 rounded-[2.5rem] p-7 shadow-2xl shadow-slate-900/20 relative overflow-hidden group cursor-pointer"
-                            onClick={() => {
-                                toast.success('Aggregated Manifest Generated!');
-                            }}
+            <main className="px-6 space-y-8 max-w-5xl mx-auto">
+                {/* Action Row */}
+                <div className="flex items-center justify-between">
+                    <button onClick={() => navigate(-1)} className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 shadow-sm transition-all">
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => toast('Coming soon!', { icon: '🚀' })}
+                            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
                         >
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-[60px] -mr-16 -mt-16"></div>
-                            <div className="relative z-10 flex items-center justify-between">
-                                <div className="space-y-1.5">
-                                    <h2 className="text-xl font-black text-white tracking-tight uppercase">Aggregated Manifest</h2>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-relaxed max-w-[200px]">
-                                        Consolidated picking list for current batch orders.
-                                    </p>
-                                </div>
-                                <div className="w-14 h-14 bg-white/5 rounded-2xl border border-white/10 flex items-center justify-center text-white">
-                                    <span className="material-symbols-outlined text-2xl">download_for_offline</span>
-                                </div>
-                            </div>
-                            <div className="mt-6 pt-5 border-t border-white/5 flex gap-4">
-                                {[
-                                    { val: '450 KG', label: 'Detergent' },
-                                    { val: '1200 Pcs', label: 'Bags' },
-                                    { val: '80 Ltr', label: 'Softener' }
-                                ].map((stat, i) => (
-                                    <div key={i} className="flex-1">
-                                        <p className="text-[10px] font-black text-white leading-none">{stat.val}</p>
-                                        <p className="text-[7px] font-bold text-slate-500 uppercase tracking-widest mt-1">{stat.label}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.div>
+                            Create
+                        </button>
+                        <button 
+                            onClick={() => editMode ? handleGlobalSave() : setEditMode(true)}
+                            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
+                        >
+                            {editMode ? 'Save' : 'Edit'}
+                        </button>
                     </div>
-                </section>
-
+                </div>
                 {/* 2. INVENTORY RATE CARD */}
                 <section className="space-y-4">
-                    {/* SEARCH & FILTERS CONTAINER */}
-                    <div className="space-y-3">
-                        {/* Search Bar */}
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-lg">search</span>
-                            <input 
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by name, brand, SKU..."
-                                className="w-full bg-white pl-11 pr-4 py-4 rounded-2xl text-[12px] font-bold border border-slate-100 focus:border-slate-300 outline-none shadow-sm transition-all"
-                            />
-                            {searchTerm && (
-                                <button 
-                                    onClick={() => setSearchTerm('')}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 material-symbols-outlined text-lg"
-                                >
-                                    close
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Status Filters */}
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                            {['all', 'active', 'inactive'].map((filter) => (
-                                <button
-                                    key={filter}
-                                    onClick={() => setStatusFilter(filter)}
-                                    className={`flex-1 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
-                                        statusFilter === filter 
-                                            ? 'bg-white text-slate-900 shadow-sm' 
-                                            : 'text-slate-400 hover:text-slate-700'
-                                    }`}
-                                >
-                                    {filter}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* SUPPLY ITEMS LIST */}
                     <div className="space-y-4">
                         {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 gap-3">
-                                <motion.span 
-                                    animate={{ rotate: 360 }}
-                                    transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-                                    className="material-symbols-outlined text-slate-300 text-3xl"
-                                >
-                                    sync
-                                </motion.span>
-                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Loading Supplies...</span>
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[850px]">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                                <th className="p-4 w-28"><div className="h-3 w-16 bg-slate-200 rounded mx-auto"></div></th>
+                                                <th className="p-4"><div className="h-3 w-24 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4 w-32"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4 w-28"><div className="h-3 w-16 bg-slate-200 rounded"></div></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {[...Array(6)].map((_, i) => (
+                                                <tr key={i} className="animate-pulse">
+                                                    <td className="p-4">
+                                                        <div className="w-10 h-5 rounded-full bg-slate-200 mx-auto"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="flex flex-col gap-2">
+                                                            <div className="w-32 h-3 bg-slate-200 rounded"></div>
+                                                            <div className="w-20 h-2 bg-slate-100 rounded"></div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-20 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-24 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-24 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-24 h-8 bg-slate-100 rounded-xl"></div>
+                                                    </td>
+                                                    <td className="p-4">
+                                                        <div className="w-16 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         ) : filteredSupplies.length === 0 ? (
                             <div className="text-center py-16 bg-white border border-slate-100 rounded-[2.5rem] p-6 shadow-sm">
@@ -484,96 +509,85 @@ const SupplierMySupplies = () => {
                                 <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest mt-1">Check search query or status filter</p>
                             </div>
                         ) : (
-                            <AnimatePresence>
-                                {filteredSupplies.map((item, idx) => {
-                                    const isActiveVal = item.isActive || 'y';
-                                    return (
-                                        <motion.div 
-                                            key={item._id}
-                                            initial={{ opacity: 0, y: 15 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: Math.min(idx * 0.05, 0.4) }}
-                                            onClick={() => {
-                                                setSelectedSupply(item);
-                                                setShowDetailModal(true);
-                                            }}
-                                            className={`bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4 relative overflow-hidden group transition-all cursor-pointer hover:border-slate-300 hover:shadow-md ${
-                                                isActiveVal !== 'y' ? 'grayscale opacity-60' : ''
-                                            }`}
-                                        >
-                                            {/* Product Header */}
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border border-slate-100 transition-all duration-300 bg-slate-50 text-slate-700 group-hover:bg-slate-950 group-hover:text-white`}>
-                                                        <span className="material-symbols-outlined text-xl">
-                                                            {getCategoryIcon(item.categoryId?.mainCategory)}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-[13px] font-black text-slate-900 tracking-tight leading-none uppercase">{item.materialName}</h4>
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">
-                                                            {item.brand || 'Generic'} • {item.categoryId?.subCategory || 'General'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <span className={`px-2 py-0.5 rounded-full text-[7px] font-black uppercase border ${
-                                                    isActiveVal === 'y' 
-                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                                                        : 'bg-slate-100 text-slate-400 border-slate-200'
-                                                }`}>
-                                                    {isActiveVal === 'y' ? 'Active' : 'Inactive'}
-                                                </span>
-                                            </div>
-
-                                            {/* Pricing & Unit Info */}
-                                            <div className="grid grid-cols-2 gap-3 pt-1">
-                                                <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
-                                                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Wholesale Rate</p>
-                                                    <p className="text-sm font-black text-slate-900 tracking-tight">₹{item.wholesaleRate || 0} <span className="text-[8px] text-slate-400 font-bold">/ {item.quantity}</span></p>
-                                                </div>
-                                                <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50 flex flex-col justify-center">
-                                                    <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">GST & HSN</p>
-                                                    <p className="text-[10px] font-black text-slate-800">{item.gst || 18}% <span className="text-slate-400 font-bold text-[8px]">({item.hsnCode || '2800'})</span></p>
-                                                </div>
-                                            </div>
-
-                                            {/* Expand Note */}
-                                            <div className="flex justify-between items-center text-[7px] font-black uppercase tracking-widest text-slate-400 pt-1" onClick={(e) => e.stopPropagation()}>
-                                                <span>SKU: {item.skuId || 'N/A'}</span>
-                                                <div className="flex items-center gap-3">
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); handleOpenEditModal(item); }}
-                                                        className="px-3 py-1 bg-slate-900 text-white hover:bg-primary hover:text-white rounded-lg text-[8px] font-black uppercase tracking-wider transition-all"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <span 
+                            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse min-w-[850px]">
+                                        <thead>
+                                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Status</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Product Name</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Brand</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Category</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Sub Category</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-32">Wholesale Rate</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">GST</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                            {filteredSupplies.map((item) => {
+                                                const isActiveVal = item.isActive || 'y';
+                                                const isActive = isActiveVal === 'y';
+                                                return (
+                                                    <tr 
+                                                        key={item._id} 
                                                         onClick={() => {
+                                                            if (editMode) return;
                                                             setSelectedSupply(item);
                                                             setShowDetailModal(true);
                                                         }}
-                                                        className="flex items-center gap-0.5 text-primary group-hover:underline cursor-pointer"
+                                                        className={`hover:bg-slate-50/50 transition-colors ${editMode ? 'cursor-default' : 'cursor-pointer'}`}
                                                     >
-                                                        View Details
-                                                        <span className="material-symbols-outlined text-[10px]">arrow_right_alt</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    );
-                                })}
-                            </AnimatePresence>
+                                                        <td className="p-4">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <div 
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (!editMode) return;
+                                                                        toggleSupplyStatusLocal(item._id);
+                                                                    }}
+                                                                    className={`w-10 h-5 rounded-full relative transition-all duration-300 ${!editMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isActive ? 'bg-slate-900' : 'bg-slate-200'}`}
+                                                                >
+                                                                    <motion.div 
+                                                                        animate={{ x: isActive ? 22 : 2 }}
+                                                                        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="flex flex-col gap-1">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{item.materialName}</span>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                            {item.brand || 'Generic'}
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                            {item.categoryId?.mainCategory || 'Generic'}
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                            {item.categoryId?.subCategory || 'General'}
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="text-xs font-black text-slate-900 bg-slate-50 px-3 py-2 rounded-xl inline-block border border-slate-100">
+                                                                ₹{item.wholesaleRate || 0}
+                                                                <span className="text-[9px] text-slate-400 font-bold ml-1">/ {item.quantity}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4 text-xs font-bold text-slate-700">
+                                                            {item.gst || 18}%
+                                                            <span className="text-[10px] text-slate-400 font-bold ml-1">({item.hsnCode || '-'})</span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         )}
-                    </div>
-
-                    {/* Footer Insight */}
-                    <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex gap-4">
-                        <div className="w-9 h-9 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-                            <span className="material-symbols-outlined text-lg">info</span>
-                        </div>
-                        <p className="text-[9px] font-bold text-slate-400 leading-relaxed uppercase tracking-[0.05em] flex-1">
-                            This catalog displays all supply items created for you by the admin. To make updates or modify rates/details, please reach out to admin support.
-                        </p>
                     </div>
                 </section>
             </main>

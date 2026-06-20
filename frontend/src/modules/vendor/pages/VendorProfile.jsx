@@ -3,21 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { authApi } from '../../../lib/api';
-import { Autocomplete, useJsApiLoader } from '@react-google-maps/api';
 
 const VendorProfile = () => {
     const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        version: '3.64',
-        libraries: ['drawing', 'places', 'geometry']
-    });
-
-    const [autocomplete, setAutocomplete] = useState(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -32,6 +23,14 @@ const VendorProfile = () => {
 
                 const data = await authApi.getProfile(userId);
                 setUser(data);
+                setFormData({
+                    shopName: data.shopDetails?.name || '',
+                    phone: data.phone || '',
+                    accountHolderName: data.bankDetails?.accountHolderName || '',
+                    accountNumber: data.bankDetails?.accountNumber || '',
+                    ifscCode: data.bankDetails?.ifscCode || '',
+                    bankName: data.bankDetails?.bankName || ''
+                });
             } catch (err) {
                 console.error('Profile fetch error:', err);
                 toast.error('Failed to load profile');
@@ -43,69 +42,33 @@ const VendorProfile = () => {
         fetchProfile();
     }, [navigate]);
 
-    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [editSection, setEditSection] = useState(null); // 'shop' or 'bank'
-    const [formData, setFormData] = useState({});
-
-    const handleEditClick = (section) => {
-        setEditSection(section);
-        if (section === 'shop') {
-            const addrParts = (user.shopDetails?.address || '').split(', ').filter(p => p !== 'undefined' && p !== '');
-            setFormData({
-                shopName: user.shopDetails?.name || '',
-                phone: user.phone || '',
-                address_shop: addrParts[0] || '',
-                address_area: addrParts[1] || '',
-                address_landmark: addrParts[2] || '',
-                address_city: user.shopDetails?.city || '',
-                address_pincode: user.shopDetails?.pincode || '',
-                gst: user.shopDetails?.gst || '',
-                location: user.location || null
-            });
-        } else if (section === 'bank') {
-            setFormData({
-                accountHolderName: user.bankDetails?.accountHolderName || '',
-                accountNumber: user.bankDetails?.accountNumber || '',
-                ifscCode: user.bankDetails?.ifscCode || '',
-                bankName: user.bankDetails?.bankName || ''
-            });
-        }
-        setIsEditModalOpen(true);
-    };
+    const [isEditing, setIsEditing] = useState(false);
+    const [formData, setFormData] = useState({
+        shopName: '',
+        phone: '',
+        accountHolderName: '',
+        accountNumber: '',
+        ifscCode: '',
+        bankName: ''
+    });
 
     const handleSave = async () => {
         const loadingToast = toast.loading('Saving changes...');
         try {
             const userId = user.id || user._id;
-            let payload = {};
-
-            if (editSection === 'shop') {
-                const fullAddress = [formData.address_shop, formData.address_area, formData.address_landmark]
-                    .filter(p => p && p.trim() !== '' && p !== 'undefined')
-                    .join(', ');
-                payload = {
-                    phone: formData.phone,
-                    shopDetails: {
-                        name: formData.shopName,
-                        address: fullAddress,
-                        city: formData.address_city,
-                        pincode: formData.address_pincode,
-                        gst: formData.gst
-                    },
-                    location: formData.location, // Save Lat/Lng
-                    city: formData.address_city,
-                    pincode: formData.address_pincode
-                };
-            } else {
-                payload = {
-                    bankDetails: {
-                        accountHolderName: formData.accountHolderName,
-                        accountNumber: formData.accountNumber,
-                        ifscCode: formData.ifscCode,
-                        bankName: formData.bankName
-                    }
-                };
-            }
+            const payload = {
+                phone: formData.phone,
+                shopDetails: {
+                    ...(user.shopDetails || {}),
+                    name: formData.shopName
+                },
+                bankDetails: {
+                    accountHolderName: formData.accountHolderName,
+                    accountNumber: formData.accountNumber,
+                    ifscCode: formData.ifscCode,
+                    bankName: formData.bankName
+                }
+            };
 
             const updatedUser = await authApi.updateProfile(userId, payload);
             setUser(updatedUser);
@@ -129,7 +92,7 @@ const VendorProfile = () => {
                 }
             }
 
-            setIsEditModalOpen(false);
+            setIsEditing(false);
             toast.success('Profile updated successfully', { id: loadingToast });
         } catch (err) {
             console.error('Save error:', err);
@@ -183,16 +146,7 @@ const VendorProfile = () => {
         }
     };
 
-    useEffect(() => {
-        if (isEditModalOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
-    }, [isEditModalOpen]);
+
 
     if (isLoading) {
         return (
@@ -211,16 +165,41 @@ const VendorProfile = () => {
                 {/* UNIFIED PROFILE BOX - everything in one card */}
                 <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden relative">
 
-                    {/* Manage button top-right */}
-                    <div className="absolute top-5 right-5 z-10 flex gap-2">
-                        <button
-                            onClick={() => handleEditClick('shop')}
-                            className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl hover:bg-slate-900 hover:text-white transition-all flex items-center gap-1"
-                        >
-                            <span className="material-symbols-outlined text-[12px]">settings</span>
-                            Manage
-                        </button>
-                    </div>
+                    {!isEditing ? (
+                        <div className="absolute top-5 right-5 z-10">
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="bg-slate-950 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-900 transition-all"
+                            >
+                                MANAGE PROFILE
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+                            <button 
+                                onClick={() => {
+                                    setIsEditing(false);
+                                    setFormData({
+                                        shopName: user.shopDetails?.name || '',
+                                        phone: user.phone || '',
+                                        accountHolderName: user.bankDetails?.accountHolderName || '',
+                                        accountNumber: user.bankDetails?.accountNumber || '',
+                                        ifscCode: user.bankDetails?.ifscCode || '',
+                                        bankName: user.bankDetails?.bankName || ''
+                                    });
+                                }} 
+                                className="text-[8px] font-black text-slate-400 uppercase"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSave} 
+                                className="text-[8px] font-black text-white bg-slate-950 border border-slate-950 px-2 py-1 rounded-lg"
+                            >
+                                SAVE
+                            </button>
+                        </div>
+                    )}
 
                     {/* TOP SECTION: Image + Name + Email + Phone */}
                     <section className="p-7 border-b border-slate-50">
@@ -234,17 +213,19 @@ const VendorProfile = () => {
                                 className="hidden"
                             />
                             <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className="w-20 h-20 rounded-[1.8rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden cursor-pointer relative"
+                                onClick={() => isEditing && fileInputRef.current?.click()}
+                                className={`w-20 h-20 rounded-[1.8rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden relative ${isEditing ? 'cursor-pointer' : ''}`}
                             >
                                 <img
                                     src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=200"}
                                     alt="Profile"
                                     className="w-full h-full object-cover"
                                 />
-                                <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
-                                </div>
+                                {isEditing && (
+                                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
+                                    </div>
+                                )}
                             </div>
                             <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg z-20">
                                 <span className="material-symbols-outlined text-[12px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
@@ -254,12 +235,23 @@ const VendorProfile = () => {
                         {/* Name */}
                         <div className="space-y-1 mb-4">
                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop / Partner Name</p>
-                            <h2 className="text-xl font-black tracking-tight text-slate-950 leading-tight">
-                                {user.shopDetails?.name || user.displayName || 'Partner'}
-                            </h2>
-                            <span className={`inline-block mt-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${user.status === 'approved' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-amber-100 text-amber-600 border-amber-200'}`}>
-                                {user.status}
-                            </span>
+                            {isEditing ? (
+                                <input 
+                                    type="text" 
+                                    value={formData.shopName} 
+                                    onChange={(e) => setFormData({...formData, shopName: e.target.value})} 
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all mt-1" 
+                                />
+                            ) : (
+                                <>
+                                    <h2 className="text-xl font-black tracking-tight text-slate-950 leading-tight">
+                                        {user.shopDetails?.name || user.displayName || 'Partner'}
+                                    </h2>
+                                    <span className={`inline-block mt-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${user.status === 'approved' ? 'bg-slate-950 text-white border-slate-950' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                                        {user.status}
+                                    </span>
+                                </>
+                            )}
                         </div>
 
                         {/* Email */}
@@ -271,19 +263,35 @@ const VendorProfile = () => {
                         {/* Phone */}
                         <div className="space-y-1">
                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Mobile Number</p>
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[14px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                                <p className="text-[11px] font-black text-slate-950">{user.phone}</p>
-                            </div>
+                            {isEditing ? (
+                                <input 
+                                    type="tel" 
+                                    value={formData.phone} 
+                                    onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all mt-1" 
+                                />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-[14px] text-slate-950" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                                    <p className="text-[11px] font-black text-slate-950">{user.phone}</p>
+                                </div>
+                            )}
                         </div>
                     </section>
 
-                    {/* BUSINESS DETAILS */}
                     <section className="p-7 border-b border-slate-50 space-y-5">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[14px]">store</span>
-                            Business Details
-                        </p>
+                        <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[14px]">store</span>
+                                Saved Address
+                            </p>
+                            <button
+                                onClick={() => navigate('/vendor/addresses')}
+                                className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1"
+                            >
+                                Manage Address
+                            </button>
+                        </div>
                         <div className="grid grid-cols-1 gap-4 pl-1">
                             <div className="space-y-1">
                                 <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
@@ -300,7 +308,7 @@ const VendorProfile = () => {
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MSME Status</p>
-                                    <p className="text-xs font-black text-emerald-600 tracking-tight flex items-center gap-1 uppercase">
+                                    <p className="text-xs font-black text-slate-950 tracking-tight flex items-center gap-1 uppercase">
                                         <span className="material-symbols-outlined text-[14px]">check_circle</span> {user.shopDetails?.msmeStatus || 'N/A'}
                                     </p>
                                 </div>
@@ -315,36 +323,88 @@ const VendorProfile = () => {
                                 <span className="material-symbols-outlined text-[14px]">account_balance</span>
                                 Bank Details
                             </p>
-                            <button
-                                onClick={() => handleEditClick('bank')}
-                                className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1"
-                            >
-                                <span className="material-symbols-outlined text-[12px]">edit</span>
-                                Update
-                            </button>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 pl-1">
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
-                                <p className="text-sm font-black text-slate-900 tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
+                        {isEditing ? (
+                            <div className="space-y-4 pl-1">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
+                                    <input 
+                                        type="text" 
+                                        value={formData.accountHolderName} 
+                                        onChange={(e) => setFormData({...formData, accountHolderName: e.target.value})} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
+                                    />
+                                </div>
                                 <div className="space-y-1">
                                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
-                                    <p className="text-xs font-black text-slate-900 tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
+                                    <input 
+                                        type="text" 
+                                        value={formData.bankName} 
+                                        onChange={(e) => setFormData({...formData, bankName: e.target.value})} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
+                                        <input 
+                                            type="text" 
+                                            value={formData.ifscCode} 
+                                            onChange={(e) => setFormData({...formData, ifscCode: e.target.value})} 
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
+                                        <input 
+                                            type="text" 
+                                            value={formData.accountNumber} 
+                                            onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} 
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4 pl-1">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
+                                    <p className="text-sm font-black text-slate-900 tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
+                                        <p className="text-xs font-black text-slate-900 tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
-                                    <p className="text-xs font-black text-slate-900 tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
+                                    <p className="text-xs font-black text-slate-900 tracking-[0.15em]">
+                                        {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
-                                <p className="text-xs font-black text-slate-900 tracking-[0.15em]">
-                                    {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
-                                </p>
+                        )}
+                    </section>
+
+                    {/* APP SETTINGS SECTION */}
+                    <section className="divide-y divide-slate-50 bg-slate-50/20">
+                        {[
+                            { label: 'Privacy Policy', icon: 'security', path: '/user/privacy?role=vendor' },
+                            { label: 'Terms & Conditions', icon: 'description', path: '/user/terms?role=vendor' }
+                        ].map((link, i) => (
+                            <div key={i} onClick={() => navigate(link.path)} className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all group">
+                                <div className="flex items-center gap-3">
+                                    <span className="material-symbols-outlined text-slate-400 text-lg group-hover:text-slate-950 transition-colors">{link.icon}</span>
+                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{link.label}</span>
+                                </div>
+                                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward_ios</span>
                             </div>
-                        </div>
+                        ))}
                     </section>
                 </div>
 
@@ -402,48 +462,6 @@ const VendorProfile = () => {
                     </div>
                 </section>
 
-                {/* LEGAL & POLICIES SECTION */}
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Legal & Policies</h3>
-                        <span className="material-symbols-outlined text-slate-200 text-lg">policy</span>
-                    </div>
-
-                    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
-                        <button
-                            onClick={() => navigate('/user/terms?role=vendor')}
-                            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group text-left"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-lg">gavel</span>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 leading-none mb-1">Terms of Service</p>
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Rules & Regulations</p>
-                                </div>
-                            </div>
-                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
-                        </button>
-
-                        <button
-                            onClick={() => navigate('/user/privacy?role=vendor')}
-                            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors group text-left"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="w-9 h-9 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                                    <span className="material-symbols-outlined text-lg">verified_user</span>
-                                </div>
-                                <div>
-                                    <p className="text-xs font-black text-slate-900 leading-none mb-1">Privacy Policy</p>
-                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Data Protection Protocol</p>
-                                </div>
-                            </div>
-                            <span className="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
-                        </button>
-                    </div>
-                </section>
-
                 {/* Action Footer */}
                 <div className="flex flex-col gap-4 pt-4">
                     <button
@@ -460,130 +478,6 @@ const VendorProfile = () => {
                 </div>
             </main>
 
-            <AnimatePresence>
-                {isEditModalOpen && (
-                    <div className="fixed inset-0 z-[101] flex items-end justify-center px-4 pb-10 sm:items-center">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setIsEditModalOpen(false)}
-                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
-                        />
-                        <motion.div
-                            initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-                            className="bg-white w-full max-w-md rounded-[3rem] p-8 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto"
-                        >
-                            <h3 className="text-xl font-black text-slate-950 mb-6 uppercase tracking-tighter">Edit {editSection === 'shop' ? 'Business' : 'Bank'} Info</h3>
-
-                            <div className="space-y-5">
-                                {editSection === 'shop' ? (
-                                    <>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Shop Name</label>
-                                            <input value={formData.shopName} onChange={e => setFormData({ ...formData, shopName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</label>
-                                            <input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Full Address (Google Maps)</label>
-                                            {isLoaded ? (
-                                                <Autocomplete
-                                                    onLoad={ac => setAutocomplete(ac)}
-                                                    onPlaceChanged={() => {
-                                                        const place = autocomplete.getPlace();
-                                                        if (place.geometry) {
-                                                            const lat = place.geometry.location.lat();
-                                                            const lng = place.geometry.location.lng();
-
-                                                            // Parse components
-                                                            let city = '';
-                                                            let pincode = '';
-                                                            place.address_components.forEach(comp => {
-                                                                if (comp.types.includes('locality')) city = comp.long_name;
-                                                                if (comp.types.includes('postal_code')) pincode = comp.long_name;
-                                                            });
-
-                                                            setFormData({
-                                                                ...formData,
-                                                                address_area: place.formatted_address,
-                                                                address_city: city,
-                                                                address_pincode: pincode,
-                                                                location: { lat, lng }
-                                                            });
-                                                            toast.success('Location detected!');
-                                                        }
-                                                    }}
-                                                >
-                                                    <input
-                                                        placeholder="Start typing your address..."
-                                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none"
-                                                    />
-                                                </Autocomplete>
-                                            ) : (
-                                                <div className="w-full h-14 bg-slate-50 rounded-2xl animate-pulse border border-slate-100" />
-                                            )}
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Flat/Shop No</label>
-                                                <input value={formData.address_shop} onChange={e => setFormData({ ...formData, address_shop: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Area (Auto-filled)</label>
-                                                <input value={formData.address_area} onChange={e => setFormData({ ...formData, address_area: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none opacity-70" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Landmark</label>
-                                            <input value={formData.address_landmark} onChange={e => setFormData({ ...formData, address_landmark: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">City</label>
-                                                <input value={formData.address_city} onChange={e => setFormData({ ...formData, address_city: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pincode</label>
-                                                <input value={formData.address_pincode} onChange={e => setFormData({ ...formData, address_pincode: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
-                                            <input value={formData.gst} onChange={e => setFormData({ ...formData, gst: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</label>
-                                            <input value={formData.accountHolderName} onChange={e => setFormData({ ...formData, accountHolderName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
-                                            <input value={formData.bankName} onChange={e => setFormData({ ...formData, bankName: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">IFSC Code</label>
-                                            <input value={formData.ifscCode} onChange={e => setFormData({ ...formData, ifscCode: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
-                                            <input value={formData.accountNumber} onChange={e => setFormData({ ...formData, accountNumber: e.target.value })} className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 outline-none" />
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 mt-8">
-                                <button onClick={() => setIsEditModalOpen(false)} className="py-4 bg-slate-50 text-slate-400 rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition-all">Cancel</button>
-                                <button onClick={handleSave} className="py-4 bg-primary text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 active:scale-95 transition-all">Save Changes</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     );
 };

@@ -213,7 +213,7 @@ const UserProfilePage = () => {
           ) : (
             <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
                <button onClick={() => setIsEditing(false)} className="text-[8px] font-black text-slate-400 uppercase">Cancel</button>
-               <button onClick={handleSave} disabled={loading} className="text-[8px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-1 rounded-lg">{loading ? '...' : 'SAVE'}</button>
+               <button onClick={handleSave} disabled={loading} className="text-[8px] font-black text-white bg-slate-950 border border-slate-950 px-2 py-1 rounded-lg">{loading ? '...' : 'SAVE'}</button>
             </div>
           )}
           
@@ -264,7 +264,7 @@ const UserProfilePage = () => {
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</p>
                       <div className="flex items-center gap-2 text-slate-950 font-black text-[11px] ml-1">
-                        <span className="material-symbols-outlined text-[14px] text-emerald-500" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                        <span className="material-symbols-outlined text-[14px] text-slate-950" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                         <span>+91 {user.phone}</span>
                       </div>
                     </div>
@@ -300,7 +300,7 @@ const UserProfilePage = () => {
                         <div className="flex items-center gap-2">
                           <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">{addr.type}</p>
                           {addr.isDefault && (
-                            <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded">Default</span>
+                            <span className="bg-slate-950 text-white border border-slate-950 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded">Default</span>
                           )}
                         </div>
                         <p className="text-[11px] font-bold text-slate-900 truncate leading-tight mt-1">

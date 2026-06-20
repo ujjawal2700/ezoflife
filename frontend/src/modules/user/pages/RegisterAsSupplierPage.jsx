@@ -38,6 +38,9 @@ const RegisterAsSupplierPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeWeeklyDropdown, setActiveWeeklyDropdown] = useState(false);
+  const [activeThriceDropdown, setActiveThriceDropdown] = useState([false, false, false]);
+  const [activeMonthlyDropdown, setActiveMonthlyDropdown] = useState(false);
   const [applicationStatus, setApplicationStatus] = useState(null);
   const [isGstVerified, setIsGstVerified] = useState(false);
   const [isVerifyingGst, setIsVerifyingGst] = useState(false);
@@ -88,6 +91,9 @@ const RegisterAsSupplierPage = () => {
                     pincode: data.pincode || '',
                     vehicles: data.vehicles || [],
                     deliveryFrequency: data.deliveryFrequency || [],
+                    weeklyDay: data.weeklyDay || '',
+                    thriceWeekDays: data.thriceWeekDays || ['', '', ''],
+                    monthlyDate: data.monthlyDate || '',
                     warehousePhotos: data.warehousePhotos || [],
                     dispatchPhoto: data.dispatchPhoto || '',
                     ownerAadhaar: data.ownerAadhaar || '',
@@ -152,6 +158,9 @@ const RegisterAsSupplierPage = () => {
     pincode: '',
     vehicles: [],
     deliveryFrequency: [],
+    weeklyDay: '',
+    thriceWeekDays: ['', '', ''],
+    monthlyDate: '',
     warehousePhotos: [],
     dispatchPhoto: '',
     ownerAadhaar: '',
@@ -297,7 +306,7 @@ const RegisterAsSupplierPage = () => {
   ];
 
   const vehicleOptions = ['Two-wheeler', '3-Wheeler/Tempo', 'LCV/Truck', 'Third-party Logistics'];
-  const frequencyOptions = ['Daily', 'Thrice a Week', 'Weekly', 'On-Demand'];
+  const frequencyOptions = ['Daily', 'Thrice a Week', 'Weekly', 'Monthly', 'On-Demand'];
 
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -516,6 +525,18 @@ const RegisterAsSupplierPage = () => {
         }
         if (formData.deliveryFrequency.length === 0) {
             toast.error('Please select delivery frequency');
+            return;
+        }
+        if (formData.deliveryFrequency.includes('Weekly') && !formData.weeklyDay) {
+            toast.error('Please select weekly delivery day');
+            return;
+        }
+        if (formData.deliveryFrequency.includes('Thrice a Week') && (!formData.thriceWeekDays || formData.thriceWeekDays.some(day => !day))) {
+            toast.error('Please select all three delivery days');
+            return;
+        }
+        if (formData.deliveryFrequency.includes('Monthly') && !formData.monthlyDate) {
+            toast.error('Please select monthly delivery date');
             return;
         }
         if (formData.warehousePhotos.length < 2) {
@@ -1046,6 +1067,165 @@ const RegisterAsSupplierPage = () => {
                                 </button>
                             ))}
                         </div>
+
+                        {/* Conditional Scheduling Dropdowns */}
+                        {(formData.deliveryFrequency.includes('Weekly') || 
+                          formData.deliveryFrequency.includes('Thrice a Week') || 
+                          formData.deliveryFrequency.includes('Monthly')) && (
+                            <div className="mt-4 p-5 bg-slate-50 border border-slate-100 rounded-3xl space-y-4">
+                                <div className="border-b border-slate-100 pb-2">
+                                    <h5 className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-xs">schedule</span>
+                                        Specify Delivery Days/Dates
+                                    </h5>
+                                </div>
+
+                                {/* Weekly Dropdown */}
+                                {formData.deliveryFrequency.includes('Weekly') && (
+                                    <div className="space-y-1.5 relative">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Weekly Delivery Day</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveWeeklyDropdown(!activeWeeklyDropdown)}
+                                            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-xs font-bold text-slate-900 outline-none flex items-center justify-between transition-all hover:bg-slate-50"
+                                        >
+                                            <span>{formData.weeklyDay || 'Select Day'}</span>
+                                            <span className={`material-symbols-outlined transition-transform duration-300 ${activeWeeklyDropdown ? 'rotate-180' : ''}`}>expand_more</span>
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {activeWeeklyDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 max-h-60 overflow-y-auto"
+                                                >
+                                                    {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                                                        <button
+                                                            key={day}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, weeklyDay: day });
+                                                                setActiveWeeklyDropdown(false);
+                                                            }}
+                                                            className={`w-full text-left px-5 py-3.5 text-xs font-bold transition-colors ${
+                                                                formData.weeklyDay === day ? 'bg-primary text-white' : 'hover:bg-slate-50 text-slate-600'
+                                                            }`}
+                                                        >
+                                                            {day}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+
+                                {/* Thrice a Week Dropdowns */}
+                                {formData.deliveryFrequency.includes('Thrice a Week') && (
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Thrice a Week Delivery Days</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {[0, 1, 2].map((idx) => (
+                                                <div key={idx} className="relative">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const updated = [...activeThriceDropdown];
+                                                            const next = [false, false, false];
+                                                            next[idx] = !updated[idx];
+                                                            setActiveThriceDropdown(next);
+                                                        }}
+                                                        className="w-full bg-white border border-slate-200 rounded-2xl px-4 py-4 text-[10px] font-bold text-slate-900 outline-none flex items-center justify-between transition-all hover:bg-slate-50"
+                                                    >
+                                                        <span>{formData.thriceWeekDays[idx] || `Day ${idx + 1}`}</span>
+                                                        <span className={`material-symbols-outlined transition-transform duration-300 ${activeThriceDropdown[idx] ? 'rotate-180' : ''}`}>expand_more</span>
+                                                    </button>
+
+                                                    <AnimatePresence>
+                                                        {activeThriceDropdown[idx] && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: -10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: -10 }}
+                                                                className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 max-h-60 overflow-y-auto"
+                                                            >
+                                                                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                                                                    <button
+                                                                        key={day}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const updatedDays = [...formData.thriceWeekDays];
+                                                                            updatedDays[idx] = day;
+                                                                            setFormData({ ...formData, thriceWeekDays: updatedDays });
+                                                                            const updatedDropdowns = [...activeThriceDropdown];
+                                                                            updatedDropdowns[idx] = false;
+                                                                            setActiveThriceDropdown(updatedDropdowns);
+                                                                        }}
+                                                                        className={`w-full text-left px-4 py-3 text-[10px] font-bold transition-colors ${
+                                                                            formData.thriceWeekDays[idx] === day ? 'bg-primary text-white' : 'hover:bg-slate-50 text-slate-600'
+                                                                        }`}
+                                                                    >
+                                                                        {day}
+                                                                    </button>
+                                                                ))}
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Monthly Dropdown */}
+                                {formData.deliveryFrequency.includes('Monthly') && (
+                                    <div className="space-y-1.5 relative">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Monthly Delivery Date</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveMonthlyDropdown(!activeMonthlyDropdown)}
+                                            className="w-full bg-white border border-slate-200 rounded-2xl px-5 py-4 text-xs font-bold text-slate-900 outline-none flex items-center justify-between transition-all hover:bg-slate-50"
+                                        >
+                                            <span>
+                                                {formData.monthlyDate 
+                                                    ? `${formData.monthlyDate}${formData.monthlyDate == 1 ? 'st' : formData.monthlyDate == 2 ? 'nd' : formData.monthlyDate == 3 ? 'rd' : 'th'} of Month` 
+                                                    : 'Select Date'}
+                                            </span>
+                                            <span className={`material-symbols-outlined transition-transform duration-300 ${activeMonthlyDropdown ? 'rotate-180' : ''}`}>expand_more</span>
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {activeMonthlyDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: -10 }}
+                                                    className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 max-h-60 overflow-y-auto"
+                                                >
+                                                    {Array.from({ length: 31 }, (_, i) => i + 1).map(date => (
+                                                        <button
+                                                            key={date}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setFormData({ ...formData, monthlyDate: String(date) });
+                                                                setActiveMonthlyDropdown(false);
+                                                            }}
+                                                            className={`w-full text-left px-5 py-3 text-xs font-bold transition-colors ${
+                                                                formData.monthlyDate === String(date) ? 'bg-primary text-white' : 'hover:bg-slate-50 text-slate-600'
+                                                            }`}
+                                                        >
+                                                            {date}{date === 1 ? 'st' : date === 2 ? 'nd' : date === 3 ? 'rd' : 'th'} of Month
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     </FieldHighlight>
                 </div>

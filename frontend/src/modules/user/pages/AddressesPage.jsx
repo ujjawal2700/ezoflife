@@ -367,7 +367,7 @@ const AddressesPage = () => {
           </button>
           <div className="flex items-center justify-between">
             <h1 className="text-4xl font-black text-on-background leading-none tracking-tighter">
-              Saved <span className="text-on-surface tracking-tighter italic">Locales.</span>
+              Saved <span className="text-on-surface tracking-tighter">Address.</span>
             </h1>
             <motion.button 
               onClick={openAddModal}
@@ -467,7 +467,7 @@ const AddressesPage = () => {
             className="py-24 flex flex-col items-center text-center opacity-30"
           >
             <span className="material-symbols-outlined text-7xl mb-4">wrong_location</span>
-            <p className="font-black text-[10px] uppercase tracking-widest">No Locales Saved</p>
+            <p className="font-black text-[10px] uppercase tracking-widest">No Address Saved</p>
           </motion.div>
         )}
       </main>

@@ -5,6 +5,12 @@ import toast from 'react-hot-toast';
 
 const SupplierSupplies = () => {
     const navigate = useNavigate();
+    const user = JSON.parse(
+        localStorage.getItem('supplierData') || 
+        localStorage.getItem('userData') || 
+        localStorage.getItem('user') || 
+        '{}'
+    );
 
     return (
         <motion.div 
@@ -15,31 +21,22 @@ const SupplierSupplies = () => {
             {/* Header */}
             <header className="px-6 pt-2 flex items-center justify-between mb-6 max-w-md mx-auto">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-black tracking-tighter text-slate-950 uppercase leading-none">Spinzyt</h1>
+                    <h1 className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 animate-pulse"></div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <motion.button 
-                        whileTap={{ scale: 0.9 }}
-                        className="w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center text-slate-400 shadow-sm relative"
-                    >
-                        <span className="material-symbols-outlined text-xl">notifications</span>
-                        <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
-                    </motion.button>
-
-                    <motion.div 
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate('/supplier/profile')}
-                        className="w-10 h-10 rounded-full bg-white border border-black/5 overflow-hidden shadow-sm cursor-pointer"
-                    >
-                        <img 
-                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" 
-                            alt="Supplier" 
-                            className="w-full h-full object-cover" 
-                        />
-                    </motion.div>
-                </div>
+                {/* Profile Icon */}
+                <motion.div 
+                    onClick={() => navigate('/supplier/profile')}
+                    whileHover={{ scale: 1.05 }}
+                    className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+                >
+                    {user.avatar ? (
+                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        <span className="material-symbols-outlined text-slate-500 text-[20px]">person</span>
+                    )}
+                </motion.div>
             </header>
 
             <main className="px-6 space-y-6 max-w-md mx-auto">

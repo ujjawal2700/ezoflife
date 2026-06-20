@@ -12,6 +12,7 @@ const SupplierDashboard = () => {
     const [showModal, setShowModal] = useState(false);
     const [loading, setLoading] = useState(true);
     const [updatingOrderId, setUpdatingOrderId] = useState(null);
+    const [expandedOrderId, setExpandedOrderId] = useState(null);
 
     const b2bStatusMapSupplier = {
         'SUBMITTED': { label: 'New Order Received', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
@@ -291,36 +292,51 @@ const SupplierDashboard = () => {
         return orders.filter(o => o.status === 'PROCESSING').length;
     }, [orders]);
 
+    const formatB2BDate = (dateInput) => {
+        if (!dateInput) return 'N/A';
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return 'N/A';
+        const day = d.getDate();
+        const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+    };
+
+    const formatReceivedDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/A';
+        const day = date.getDate();
+        const month = date.toLocaleString('en-US', { month: 'short' });
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${day} ${month}, ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    };
+
     return (
         <div className="text-on-surface min-h-screen pb-60 font-body relative">
             {/* Header */}
             <header className="px-6 pt-2 flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-black tracking-tighter text-slate-950 uppercase leading-none">Spinzyt</h1>
+                    <h1 className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 animate-pulse"></div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <motion.button 
-                        whileTap={{ scale: 0.9 }}
-                        className="w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center text-slate-400 shadow-sm relative"
-                    >
-                        <span className="material-symbols-outlined text-xl">notifications</span>
-                        <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-rose-500 rounded-full border border-white"></span>
-                    </motion.button>
-
-                    <motion.div 
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate('/supplier/profile')}
-                        className="w-10 h-10 rounded-full bg-white border border-black/5 overflow-hidden shadow-sm cursor-pointer"
-                    >
-                        <img 
-                            src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=100" 
-                            alt="Supplier" 
-                            className="w-full h-full object-cover" 
-                        />
-                    </motion.div>
-                </div>
+                {/* Profile Icon */}
+                <motion.div 
+                    onClick={() => navigate('/supplier/profile')}
+                    whileHover={{ scale: 1.05 }}
+                    className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+                >
+                    {user.avatar ? (
+                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        <span className="material-symbols-outlined text-slate-500 text-[20px]">person</span>
+                    )}
+                </motion.div>
             </header>
 
             {/* MONTH SUMMARY (ULTRA COMPACT BLACK & WHITE MATCHING VENDOR STYLE) */}
@@ -415,50 +431,73 @@ const SupplierDashboard = () => {
                                                 variants={itemVariants}
                                                 initial="hidden"
                                                 animate="visible"
-                                                className="w-full max-w-md mx-auto bg-white p-3 rounded-2xl border border-slate-100 shadow-sm space-y-2 relative overflow-hidden group text-slate-900"
+                                                className="w-full max-w-xl mx-auto bg-white p-4.5 rounded-[2rem] border border-slate-150 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-2.5 relative overflow-hidden group text-slate-900 text-left"
                                             >
-                                                {/* Order ID */}
-                                                <div className="flex justify-start items-center">
-                                                    <span className="bg-slate-900 text-white px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                {/* Top Row: Order ID Badge */}
+                                                <div className="flex justify-start">
+                                                    <span className="bg-black text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
                                                         #{order.b2bOrderId}
                                                     </span>
                                                 </div>
 
-                                                {/* Date & Time Received */}
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date & Time Received</span>
-                                                    <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 flex items-center gap-1.5">
-                                                        <span className="material-symbols-outlined text-[10px] text-slate-400">schedule</span>
-                                                        {new Date(order.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                </div>
+                                                {/* Key-Value Details Stack */}
+                                                <div className="space-y-2 my-1">
+                                                    {/* DATE & TIME RECEIVED */}
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-[8.5px] font-black text-[#8fa0b5] uppercase tracking-widest">
+                                                            DATE & TIME RECEIVED
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-800 bg-[#F8FAFC] px-3 py-1 rounded-lg border border-slate-100/50 flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[14px] text-slate-400">schedule</span>
+                                                            {formatReceivedDate(order.createdAt)}
+                                                        </span>
+                                                    </div>
 
-                                                {/* Time for Delivery */}
-                                                <div className="flex items-center justify-between mt-1">
-                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time for Delivery</span>
-                                                    <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 flex items-center gap-1.5">
-                                                        <span className="material-symbols-outlined text-[10px] text-slate-400">timer</span>
-                                                        {(() => {
-                                                            const end = ['DELIVERED', 'Delivered', 'CANCELLED', 'Cancelled', 'REJECTED'].includes(order.status) ? new Date(order.updatedAt) : new Date();
-                                                            const timeTakenMs = end - new Date(order.createdAt);
-                                                            const hours = Math.floor(timeTakenMs / (1000 * 60 * 60));
-                                                            const minutes = Math.floor((timeTakenMs % (1000 * 60 * 60)) / (1000 * 60));
-                                                            return `${hours}h ${minutes}m`;
-                                                        })()}
-                                                    </span>
+                                                    {/* TIME FOR DELIVERY */}
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-[8.5px] font-black text-[#8fa0b5] uppercase tracking-widest">
+                                                            TIME FOR DELIVERY
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-800 bg-[#F8FAFC] px-3 py-1 rounded-lg border border-slate-100/50 flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[14px] text-slate-400">calendar_today</span>
+                                                            {order.deliveryDate ? formatB2BDate(order.deliveryDate) : 'N/A'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* VENDOR NAME */}
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-[8.5px] font-black text-[#8fa0b5] uppercase tracking-widest">
+                                                            VENDOR NAME
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-800 bg-[#F8FAFC] px-3 py-1 rounded-lg border border-slate-100/50 flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[14px] text-slate-400">store</span>
+                                                            {order.vendor?.displayName || 'Unknown Vendor'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* VENDOR LOCATION */}
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <span className="text-[8.5px] font-black text-[#8fa0b5] uppercase tracking-widest">
+                                                            VENDOR LOCATION
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-slate-800 bg-[#F8FAFC] px-3 py-1 rounded-lg border border-slate-100/50 flex items-center gap-1.5">
+                                                            <span className="material-symbols-outlined text-[14px] text-slate-400">location_on</span>
+                                                            {order.vendor?.shopDetails?.city || order.city || 'Local'}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
                                                 {/* Bottom Row: Amount & Action Buttons */}
-                                                <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-slate-50">
-                                                    <span className="text-[12px] font-black text-slate-900 bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                                                <div className="flex items-center justify-between pt-2.5 mt-1.5 border-t border-slate-100">
+                                                    <div className="bg-[#F8FAFC] px-4 py-1.5 rounded-lg border border-slate-100/80 text-[11px] font-black text-slate-900">
                                                         ₹{order.totalAmount || 0}
-                                                    </span>
+                                                    </div>
                                                     <div className="flex gap-2">
                                                         <button 
                                                             onClick={() => navigate(`/supplier/order/${order._id}`)}
-                                                            className="px-4 py-1.5 bg-black text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md active:scale-95"
+                                                            className="px-5 py-2 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-md active:scale-95"
                                                         >
-                                                            More
+                                                            MORE
                                                         </button>
                                                     </div>
                                                 </div>
@@ -489,109 +528,112 @@ const SupplierDashboard = () => {
                                             variants={itemVariants}
                                             initial="hidden"
                                             animate="visible"
-                                            className="w-full max-w-md mx-auto bg-white text-slate-900 rounded-[2rem] p-4 border border-slate-200 shadow-sm flex flex-col gap-3"
+                                            className="w-full max-w-md mx-auto bg-white text-slate-900 rounded-[2.2rem] p-4.5 border border-slate-200 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.06),0_8px_16px_-6px_rgba(0,0,0,0.04)] flex flex-col gap-4"
                                         >
                                             {/* Row 1: Action Buttons (Left) | Order ID (Right) */}
-                                            <div className="flex justify-between items-center">
+                                            <div className="flex justify-between items-center px-1">
                                                 <div className="flex gap-2">
                                                     <button 
                                                         onClick={() => handleStatusUpdate(order._id, 'ACCEPTED')}
                                                         disabled={updatingOrderId === order._id}
-                                                        className={`px-5 py-2.5 rounded-full font-black text-[9px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${
-                                                            updatingOrderId === order._id ? 'bg-slate-200 text-slate-500' : 'bg-black text-white hover:bg-slate-800 shadow-md active:scale-95'
+                                                        className={`px-6 py-2.5 rounded-full font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-1.5 ${
+                                                            updatingOrderId === order._id ? 'bg-slate-200 text-slate-500' : 'bg-black text-white hover:bg-neutral-800 shadow-md active:scale-95'
                                                         }`}
                                                     >
                                                         {updatingOrderId === order._id ? (
                                                             <>
                                                                 <span className="material-symbols-outlined text-[10px] animate-spin">refresh</span>
-                                                                Processing
+                                                                PROCESSING
                                                             </>
                                                         ) : (
-                                                            'Accept'
+                                                            'ACCEPT'
                                                         )}
                                                     </button>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black bg-black text-white px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">
+                                                    <span className="text-[10px] font-black bg-black text-white px-5 py-2 rounded-full uppercase tracking-widest shadow-sm">
                                                         #{order.b2bOrderId}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Dark summary box */}
-                                            <div className="bg-slate-950 text-white rounded-[1.8rem] p-4.5 shadow-xl relative overflow-hidden group border border-white/5">
+                                            <div className="bg-[#090F21] text-white rounded-[1.8rem] p-5 shadow-xl relative overflow-hidden group border border-white/5">
                                                 <div className="absolute right-0 top-0 p-4 opacity-[0.03] rotate-12 pointer-events-none">
                                                     <span className="material-symbols-outlined text-[60px]">local_shipping</span>
                                                 </div>
                                                 
-                                                <div className="relative z-10 flex flex-col gap-3">
-                                                    {/* Row 1: Delivery Date & Day */}
-                                                    <div className="flex flex-wrap gap-x-6 gap-y-2 items-center">
-                                                        {/* Delivery Date */}
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                                                <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
+                                                <div className="relative z-10 flex flex-col gap-4 text-left">
+                                                    <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                                                        {/* Left Column */}
+                                                        <div className="space-y-4">
+                                                            {/* Submitted Date */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">schedule</span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">SUBMITTED DATE</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">
+                                                                        {formatB2BDate(order.createdAt)}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                            <div className="text-left min-w-0">
-                                                                <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Delivery Date</p>
-                                                                <p className="text-[10px] font-black text-white uppercase truncate">
-                                                                    {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
-                                                                </p>
+                                                            {/* Delivery Date */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">calendar_today</span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">DELIVERY DATE</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">
+                                                                        {formatB2BDate(order.deliveryDate)}
+                                                                    </p>
+                                                                </div>
                                                             </div>
                                                         </div>
 
-                                                        {/* Delivery Day */}
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                                                <span className="material-symbols-outlined text-white/60 text-[12px]">schedule</span>
+                                                        {/* Right Column */}
+                                                        <div className="space-y-4">
+                                                            {/* Vendor Name */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">store</span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">VENDOR NAME</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">
+                                                                        {order.vendor?.displayName || 'UNKNOWN VENDOR'}
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                            <div className="text-left min-w-0">
-                                                                <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Delivery Day</p>
-                                                                <p className="text-[10px] font-black text-white uppercase truncate">
-                                                                    {order.deliveryDay || 'Standard Cycle'}
-                                                                </p>
+                                                            {/* Vendor Location */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">location_on</span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">VENDOR LOCATION</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate">
+                                                                        {order.vendor?.shopDetails?.city || order.city || 'LOCAL'}
+                                                                    </p>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     {/* Row 2: Price at the bottom right corner */}
-                                                    <div className="flex justify-end">
+                                                    <div className="flex justify-end mt-1.5">
                                                         <div className="text-right shrink-0">
-                                                            <p className="text-[7px] font-black text-white/40 uppercase tracking-widest leading-none mb-0.5">Price</p>
-                                                            <p className="text-[14px] font-black text-white tracking-tighter">₹{order.totalAmount}</p>
+                                                            <span className="text-[22px] font-black text-white tracking-tight">₹{order.totalAmount}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Article Details with Service Name & Images vertically stacked */}
-                                            <div className="border-t border-slate-100 pt-3.5 px-1 space-y-4">
-                                                <p className="text-[8px] font-black text-slate-900 uppercase tracking-[0.2em] text-left mb-1">Article Details</p>
-                                                <div className="space-y-4 text-left">
-                                                    {order.items?.map((item, idx) => {
-                                                        const itemImg = item.image || item.photo || (item.photos && item.photos[0]) || '';
-                                                        return (
-                                                            <div key={idx} className="space-y-2">
-                                                                {/* Service Name & Qty */}
-                                                                <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                                                                    <p className="text-[9.5px] font-black text-slate-800 uppercase tracking-wide leading-none">{item.name}</p>
-                                                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest bg-slate-200/60 px-2.5 py-1 rounded-md">QTY: {item.quantity}</span>
-                                                                </div>
-                                                                {/* Service Image */}
-                                                                <div className="w-full h-32 rounded-2xl bg-slate-50/50 border border-slate-200/40 flex items-center justify-center text-slate-300 overflow-hidden shadow-inner">
-                                                                    {itemImg ? (
-                                                                        <img src={itemImg.url || itemImg} alt={item.name} className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        <div className="flex flex-col items-center gap-1 opacity-40">
-                                                                            <span className="material-symbols-outlined text-3xl">inventory_2</span>
-                                                                            <span className="text-[8px] font-bold uppercase tracking-widest">No Image Available</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                            {/* More Button */}
+                                            <div className="flex justify-end mt-1">
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedOrder(order);
+                                                        setShowModal(true);
+                                                    }}
+                                                    className="px-6 py-2.5 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-md active:scale-95"
+                                                >
+                                                    MORE
+                                                </button>
                                             </div>
                                         </motion.div>
                                     ))
@@ -609,58 +651,103 @@ const SupplierDashboard = () => {
                             transition={{ duration: 0.2 }}
                             className="space-y-6 pb-20"
                         >
-                            <div className="flex items-center justify-between px-1">
-                                <h3 className="text-[10px] font-black text-slate-400 tracking-widest">Historical Shipments</h3>
-                                <span className="material-symbols-outlined text-slate-300 text-sm">history</span>
-                            </div>
-
                             <div className="space-y-3">
                                 {orders.filter(o => ['Delivered', 'DELIVERED', 'Settled', 'SETTLED', 'Cancelled', 'CANCELLED', 'REJECTED'].includes(o.status)).slice(0, 50).map((order) => {
-                                    const totalQty = order.items.reduce((acc, item) => acc + item.quantity, 0);
-                                    const isCancelled = ['Cancelled', 'CANCELLED', 'REJECTED'].includes(order.status);
-                                    const isSettled = ['Settled', 'SETTLED'].includes(order.status) || order.paymentStatus === 'Paid';
-                                    
                                     return (
-                                        <div 
-                                            key={order._id} 
-                                            onClick={() => navigate(`/supplier/order/${order._id}`)}
-                                            className={`p-5 rounded-3xl border shadow-sm flex items-center justify-between transition-all cursor-pointer active:scale-95 ${
-                                                isCancelled ? 'bg-slate-50 border-slate-200 hover:border-slate-300' : 'bg-white border-slate-200 hover:border-slate-900 hover:shadow-md'
-                                            }`}
+                                        <motion.div 
+                                            key={order._id}
+                                            layout
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm space-y-2 relative overflow-hidden group text-slate-900"
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
-                                                    isCancelled ? 'bg-slate-200 text-slate-500' : 'bg-slate-100 text-slate-900'
-                                                }`}>
-                                                    <span className="material-symbols-outlined text-xl">
-                                                        {isCancelled ? 'cancel' : 'package_2'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <h4 className={`text-sm font-black tracking-tight ${isCancelled ? 'text-slate-500 line-through opacity-70' : 'text-slate-900'}`}>
-                                                        Shipment #{order.b2bOrderId}
-                                                    </h4>
-                                                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isCancelled ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                        {new Date(order.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {totalQty} Items
-                                                    </p>
-                                                    {isCancelled && (
-                                                        <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1 italic">
-                                                            Reason: Non-fulfilled / Rejected
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className={`text-sm font-black tracking-tight ${isCancelled ? 'text-slate-500 opacity-50' : 'text-slate-900'}`}>₹{order.totalAmount}</p>
-                                                <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mt-1 inline-flex items-center gap-1 border ${getStatusColor(order.status)}`}>
-                                                    <span className="text-xs">{getStatusIcon(order.status)}</span>
-                                                    <span>{getStatusLabel(order.status)}</span>
+                                            {/* Order ID */}
+                                            <div className="flex justify-start items-center">
+                                                <span className="bg-slate-900 text-white px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                                    #{order.b2bOrderId}
                                                 </span>
                                             </div>
-                                        </div>
+
+                                            {/* Date & Time Received */}
+                                            <div className="flex items-center justify-between mt-1">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Date & Time Received</span>
+                                                <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[10px] text-slate-400">schedule</span>
+                                                    {new Date(order.createdAt).toLocaleString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+
+                                            {/* Time for Delivery */}
+                                            <div className="flex items-center justify-between mt-1">
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time for Delivery</span>
+                                                <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[10px] text-slate-400">timer</span>
+                                                    {(() => {
+                                                        const end = ['DELIVERED', 'Delivered', 'CANCELLED', 'Cancelled', 'REJECTED'].includes(order.status) ? new Date(order.updatedAt) : new Date();
+                                                        const timeTakenMs = end - new Date(order.createdAt);
+                                                        const hours = Math.floor(timeTakenMs / (1000 * 60 * 60));
+                                                        const minutes = Math.floor((timeTakenMs % (1000 * 60 * 60)) / (1000 * 60));
+                                                        return `${hours}h ${minutes}m`;
+                                                    })()}
+                                                </span>
+                                            </div>
+
+                                            {/* Total Amount */}
+                                            <div className="flex items-center justify-end mt-1">
+                                                <span className="text-[12px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                                    ₹{order.totalAmount || 0}
+                                                </span>
+                                            </div>
+
+                                            {/* Actions for Completed Tab */}
+                                            <div className="flex flex-col gap-1.5 mt-2 pt-2 border-t border-slate-100">
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        alert('Invoice will be downloaded shortly.');
+                                                    }}
+                                                    className="w-full py-1.5 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px]">download</span>
+                                                    Download Invoice
+                                                </button>
+                                                
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setExpandedOrderId(expandedOrderId === order._id ? null : order._id);
+                                                    }}
+                                                    className="w-full py-1.5 bg-white text-black border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                                                >
+                                                    <span className="material-symbols-outlined text-[14px] transition-transform duration-300" style={{ transform: expandedOrderId === order._id ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                                                    Product Detail
+                                                </button>
+                                            </div>
+
+                                            {/* Expanded Product Details */}
+                                            {expandedOrderId === order._id && (
+                                                <motion.div 
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    className="overflow-hidden mt-1.5 bg-slate-50 p-2 rounded-2xl border border-slate-100 space-y-1.5 text-left"
+                                                >
+                                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Products / Items</p>
+                                                    {order.items?.map((item, idx) => (
+                                                        <div key={idx} className="flex items-center justify-between py-1 border-b border-slate-200/50 last:border-0">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-bold text-slate-800">{item.name}</span>
+                                                            </div>
+                                                            <span className="text-[10px] font-black text-slate-600 bg-white px-2 py-0.5 rounded shadow-sm border border-slate-100">Qty: {item.quantity || 1}</span>
+                                                        </div>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </motion.div>
                                     );
                                 })}
-                                {orders.filter(o => ['Delivered', 'Settled', 'Cancelled'].includes(o.status)).length === 0 && (
+                                {orders.filter(o => ['Delivered', 'DELIVERED', 'Settled', 'SETTLED', 'Cancelled', 'CANCELLED', 'REJECTED'].includes(o.status)).length === 0 && (
                                     <p className="text-center py-10 opacity-30 text-[11px] font-black uppercase tracking-widest italic">No historical data available</p>
                                 )}
                             </div>
@@ -668,6 +755,61 @@ const SupplierDashboard = () => {
                     )}
                 </AnimatePresence>
             </main>
+
+            {/* Product Details Modal */}
+            <AnimatePresence>
+                {showModal && selectedOrder && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowModal(false)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 flex flex-col gap-5 text-left border border-slate-100"
+                        >
+                            {/* Modal Title */}
+                            <div>
+                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800 leading-none">
+                                    PRODUCT LIST
+                                </h3>
+                            </div>
+
+                            {/* Product List */}
+                            <div className="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
+                                {selectedOrder.items?.map((item, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        className="bg-[#F8FAFC] p-4.5 rounded-[1.5rem] border border-slate-100 flex items-center justify-between gap-4"
+                                    >
+                                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                                            {item.name}
+                                        </span>
+                                        <span className="bg-black text-white px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest shrink-0 shadow-sm">
+                                            QTY: {item.quantity || 1}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Close Button */}
+                            <div className="flex justify-end mt-2">
+                                <button 
+                                    onClick={() => setShowModal(false)}
+                                    className="px-6 py-2.5 bg-black text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-md active:scale-95"
+                                >
+                                    CLOSE
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

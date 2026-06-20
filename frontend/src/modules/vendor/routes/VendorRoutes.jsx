@@ -45,6 +45,7 @@ import Support from '../pages/Support';
 import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsConditions from '../pages/TermsConditions';
 import RejectedServices from '../pages/RejectedServices';
+import VendorAddressesPage from '../pages/VendorAddressesPage';
 
 import VendorLayout from '../layouts/VendorLayout';
 
@@ -98,6 +99,7 @@ const VendorRoutes = () => {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms-conditions" element={<TermsConditions />} />
         <Route path="/rejected-services" element={<RejectedServices />} />
+        <Route path="/addresses" element={<VendorAddressesPage />} />
 
         {/* Default */}
         <Route path="*" element={<Navigate to="/vendor/splash" replace />} />

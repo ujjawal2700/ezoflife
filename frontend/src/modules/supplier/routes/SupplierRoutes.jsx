@@ -12,6 +12,7 @@ import SupplierProfile from '../pages/SupplierProfile';
 import SupplierMorePage from '../pages/SupplierMorePage';
 import SupplierLaborRequestPage from '../pages/SupplierLaborRequestPage';
 import SupplierCreateJobRequisition from '../pages/SupplierCreateJobRequisition';
+import SupplierAddressesPage from '../pages/SupplierAddressesPage';
 
 import SupplierAuth from '../pages/SupplierAuth';
 import SupplierOtp from '../pages/SupplierOtp';
@@ -33,6 +34,7 @@ const SupplierRoutes = () => {
         <Route path="/logistics" element={<SupplierLogistics />} />
         <Route path="/wallet" element={<SupplierWallet />} />
         <Route path="/profile" element={<SupplierProfile />} />
+        <Route path="/addresses" element={<SupplierAddressesPage />} />
         <Route path="/more" element={<SupplierMorePage />} />
         <Route path="/labor-request" element={<SupplierLaborRequestPage />} />
         <Route path="/labor-request/create" element={<SupplierCreateJobRequisition />} />
