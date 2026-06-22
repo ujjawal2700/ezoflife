@@ -22,6 +22,8 @@ const B2BOrderTrackingPage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [directionsResponse, setDirectionsResponse] = useState(null);
+  const [otpInput, setOtpInput] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
@@ -43,6 +45,26 @@ const B2BOrderTrackingPage = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpInput) return;
+    try {
+      setVerifyingOtp(true);
+      const res = await b2bOrderApi.verifyDeliveryOtp(id, otpInput);
+      if (res.error) {
+        toast.error(res.message || res.error || 'Invalid OTP');
+      } else {
+        toast.success('Order delivered and completed successfully!');
+        setOtpInput('');
+        fetchOrder(true);
+      }
+    } catch (err) {
+      console.error('Verify OTP Error:', err);
+      toast.error('Failed to verify OTP. Please try again.');
+    } finally {
+      setVerifyingOtp(false);
     }
   };
 
@@ -417,6 +439,43 @@ const B2BOrderTrackingPage = () => {
                   </div>
               </div>
           </motion.section>
+
+          {/* OTP Verification Card */}
+          {order?.status?.toUpperCase() === 'DISPATCHED' && (
+              <motion.section 
+                  variants={itemVariants}
+                  className="bg-white border border-slate-100 shadow-sm rounded-[2rem] p-6 space-y-4 text-left"
+              >
+                  <div>
+                      <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">Verify Delivery OTP</h4>
+                      <p className="text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mt-1.5 leading-relaxed">
+                          Enter the 6-digit OTP shared by the supplier/delivery agent to confirm receipt of materials.
+                      </p>
+                  </div>
+                  
+                  <div className="flex gap-3">
+                      <input 
+                          type="text" 
+                          maxLength={6}
+                          placeholder="ENTER OTP"
+                          value={otpInput}
+                          onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                          className="flex-1 px-5 py-4 bg-[#F8FAFC] border border-slate-200 rounded-2xl text-center text-sm font-black tracking-widest outline-none focus:border-slate-900 focus:bg-white transition-all placeholder:font-black placeholder:text-slate-300 placeholder:tracking-wider"
+                      />
+                      <button 
+                          onClick={handleVerifyOtp}
+                          disabled={otpInput.length !== 6 || verifyingOtp}
+                          className="px-8 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-neutral-800 transition-all disabled:opacity-40 flex items-center justify-center shrink-0"
+                      >
+                          {verifyingOtp ? (
+                              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                          ) : (
+                              'CONFIRM'
+                          )}
+                      </button>
+                  </div>
+              </motion.section>
+          )}
         </motion.main>
       )}
     </motion.div>

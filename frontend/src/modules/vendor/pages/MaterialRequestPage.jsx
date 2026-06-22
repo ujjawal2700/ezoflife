@@ -7,6 +7,31 @@ import toast from 'react-hot-toast';
 import B2BInvoicePrint from '../components/B2BInvoicePrint';
 import { Printer, X, FileText } from 'lucide-react';
 
+const parseSupplierInfo = (facilityName, phoneFromItem) => {
+    let name = facilityName || '';
+    let phone = phoneFromItem || '';
+
+    // Extract 10-digit number from name if phone is not already provided
+    if (!phone) {
+        const match = name.match(/\b\d{10}\b/);
+        if (match) {
+            phone = match[0];
+            name = name.replace(match[0], '').trim();
+        } else {
+            // Also try matching any sequence of 4-9 digits at the end if it's a test suffix
+            const shortMatch = name.match(/\b\d{4,9}\b/);
+            if (shortMatch) {
+                phone = shortMatch[0];
+                name = name.replace(shortMatch[0], '').trim();
+            }
+        }
+    }
+    
+    // Clean up name
+    name = name.replace(/\s+/g, ' ').trim();
+    return { name, phone };
+};
+
 const MaterialRequestPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -411,7 +436,7 @@ const MaterialRequestPage = () => {
                                                 <motion.div 
                                                     key={item._id}
                                                     layout
-                                                    className="bg-white py-4.5 xs:py-5 sm:py-6 pr-4.5 xs:pr-5 sm:pr-6 pl-0 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-4 sm:gap-6 hover:border-primary/20 transition-all group w-full overflow-hidden"
+                                                    className="bg-white py-4 xs:py-5 sm:py-6 pr-4 xs:pr-5 sm:pr-6 pl-0 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-4 sm:gap-6 hover:border-primary/20 transition-all group w-full overflow-hidden"
                                                 >
                                                     {/* Left: Large Image Container */}
                                                     <div 
@@ -462,12 +487,27 @@ const MaterialRequestPage = () => {
                                                             </h3>
 
                                                             {/* Supplier Info */}
-                                                            <div className="flex items-center gap-1.5 text-slate-400">
-                                                                <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">store</span>
-                                                                <span className="text-[10px] xs:text-xs sm:text-sm font-bold uppercase tracking-wider truncate max-w-[150px] sm:max-w-[250px]">
-                                                                    {item.supplierFacilityName}
-                                                                </span>
-                                                            </div>
+                                                            {(() => {
+                                                                const { name, phone } = parseSupplierInfo(item.supplierFacilityName, item.supplierPhone);
+                                                                return (
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        <div className="flex items-center gap-1.5 text-slate-400">
+                                                                            <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">store</span>
+                                                                            <span className="text-[10px] xs:text-xs sm:text-sm font-bold uppercase tracking-wider truncate max-w-[150px] sm:max-w-[250px]">
+                                                                                {name}
+                                                                            </span>
+                                                                        </div>
+                                                                        {phone && (
+                                                                            <div className="flex items-center gap-1.5 text-slate-400">
+                                                                                <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">call</span>
+                                                                                <span className="text-[10px] xs:text-xs sm:text-sm font-bold uppercase tracking-wider">
+                                                                                    {phone}
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
 
                                                             {/* Stock & Delivery Info */}
                                                             <div className="flex flex-col gap-0.5">

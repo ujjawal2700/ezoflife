@@ -1,19 +1,150 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Search, Download, Filter, FileText, PlusCircle, ExternalLink, User, Store, Calendar, ArrowRight, Eye, Edit3, Trash2 } from 'lucide-react';
+import { ShoppingBag, Search, Download, Filter, FileText, PlusCircle, ExternalLink, User, Store, Calendar, ArrowRight, Eye, Edit3, Trash2, ChevronDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
-import { orderApi, adminApi } from '../../../lib/api';
+import { orderApi, adminApi, supplierServiceZoneApi } from '../../../lib/api';
+
+const generateStatusHistory = (row) => {
+  // If the order already has a tracked history of multiple states, use it
+  if (row.statusHistory && row.statusHistory.length > 1) {
+    return row.statusHistory;
+  }
+
+  const currentStatus = (row.status || '').toUpperCase();
+  const orderType = row.orderType;
+  const createdAt = new Date(row.createdAt || Date.now());
+  const updatedAt = new Date(row.updatedAt || createdAt);
+  
+  if (currentStatus === 'ORDER_PLACED' && (!row.statusHistory || row.statusHistory.length <= 1)) {
+    return [{ status: 'ORDER_PLACED', timestamp: createdAt }];
+  }
+
+  if (currentStatus === 'CANCELLED') {
+    return [
+      { status: 'ORDER_PLACED', timestamp: createdAt },
+      { status: 'CANCELLED', timestamp: updatedAt }
+    ];
+  }
+
+  let chain = [];
+  if (orderType === 'Walk-In') {
+    chain = ['PROCESSING', 'READY_FOR_DISPATCH', 'DELIVERED'];
+  } else {
+    chain = [
+      'ORDER_PLACED', 
+      'PICKUP_ASSIGNED', 
+      'RIDER_ARRIVING', 
+      'IN_TRANSIT', 
+      'RECEIVED_BY_VENDOR', 
+      'PROCESSING', 
+      'READY_FOR_DISPATCH', 
+      'OUT_FOR_DELIVERY', 
+      'DELIVERED'
+    ];
+  }
+
+  let index = chain.indexOf(currentStatus);
+  if (index === -1) {
+    return [{ status: row.status, timestamp: updatedAt }];
+  }
+
+  const subChain = chain.slice(0, index + 1);
+  if (subChain.length === 1) {
+    return [{ status: subChain[0], timestamp: createdAt }];
+  }
+
+  const startMs = createdAt.getTime();
+  const endMs = updatedAt.getTime();
+  const diffMs = endMs - startMs;
+  
+  return subChain.map((status, i) => {
+    let timestamp;
+    if (diffMs > 5000) {
+      const stepMs = startMs + (diffMs * (i / (subChain.length - 1)));
+      timestamp = new Date(stepMs);
+    } else {
+      const stepMs = startMs + (i * 60 * 60 * 1000);
+      timestamp = new Date(stepMs);
+    }
+    return { status, timestamp };
+  });
+};
+
+const generateStatusDurations = (history) => {
+  const durations = [];
+  for (let i = 0; i < history.length; i++) {
+    const start = new Date(history[i].timestamp);
+    let end;
+    if (i < history.length - 1) {
+      end = new Date(history[i + 1].timestamp);
+    } else {
+      const statusUpper = (history[i].status || '').toUpperCase();
+      if (statusUpper === 'DELIVERED' || statusUpper === 'CANCELLED') {
+        end = start;
+      } else {
+        end = new Date();
+      }
+    }
+    const diffMs = end.getTime() - start.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    let durationStr = '0m';
+    if (diffMs > 0) {
+      if (diffHours >= 24) {
+        durationStr = `${(diffHours / 24).toFixed(1)}d`;
+      } else if (diffHours >= 1) {
+        durationStr = `${diffHours.toFixed(1)}h`;
+      } else {
+        const diffMins = diffMs / (1000 * 60);
+        durationStr = `${Math.round(diffMins)}m`;
+      }
+    }
+    
+    durations.push({
+      status: history[i].status,
+      duration: durationStr
+    });
+  }
+  return durations;
+};
+
+const calculateTotalTurnaroundTime = (row) => {
+  const history = generateStatusHistory(row);
+  const completedEntry = history.find(h => (h.status || '').toUpperCase() === 'DELIVERED');
+  if (!completedEntry || !completedEntry.timestamp) {
+    return null;
+  }
+  const start = new Date(row.createdAt);
+  const end = new Date(completedEntry.timestamp);
+  const diffMs = end.getTime() - start.getTime();
+  if (diffMs <= 0) return '0.0 hrs';
+  const diffHours = diffMs / (1000 * 60 * 60);
+  return `${diffHours.toFixed(1)} hrs`;
+};
+
+
 
 export default function Orders() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('All');
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [zones, setZones] = useState([]);
+  const [selectedZone, setSelectedZone] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  
+  // Modal states for Service Items JSON
+  const [itemsModalOpen, setItemsModalOpen] = useState(false);
+  const [selectedOrderItems, setSelectedOrderItems] = useState([]);
+  const [selectedOrderIdForItems, setSelectedOrderIdForItems] = useState('');
 
   const tabs = useMemo(() => ['All', 'Placed', 'Processing', 'Delivered', 'Cancelled'], []);
 
@@ -72,14 +203,42 @@ export default function Orders() {
     doc.text(`Category: ${activeTab} Orders`, 14, 35);
     
     // Prepare Table Data
-    const tableColumn = ["Order ID", "Customer", "Vendor", "Amount", "Status", "Date"];
-    const tableRows = filteredOrders.map(order => [
-      order.orderId || order._id.slice(-6).toUpperCase(),
-      order.customer?.displayName || 'Unknown',
-      order.vendor?.shopDetails?.shopName || 'N/A',
-      `Rs. ${order.totalAmount}`,
-      order.status,
-      new Date(order.createdAt).toLocaleDateString()
+    const tableColumn = ["Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Gross Service Cost", "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"];
+    const tableRows = flattenedOrders.map(row => [
+      row.serviceZone || 'N/A',
+      row.orderId || row._id.slice(-6).toUpperCase(),
+      row.customer?.displayName || 'Unknown',
+      row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A',
+      row.singleItem ? JSON.stringify([{ item: row.singleItem.name, qty: row.singleItem.quantity, rate: row.singleItem.price }]) : '-',
+      row.status,
+      "-",
+      "-",
+      "-",
+      JSON.stringify(generateStatusHistory(row).map(h => ({
+        status: h.status,
+        time: h.timestamp ? new Date(h.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'
+      }))),
+      JSON.stringify(generateStatusDurations(generateStatusHistory(row))),
+      (() => {
+        const completedEntry = generateStatusHistory(row).find(h => (h.status || '').toUpperCase() === 'DELIVERED');
+        return completedEntry?.timestamp ? new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+      })(),
+      calculateTotalTurnaroundTime(row) || '-',
+      `Rs. ${row.grossServiceCost || 0}`,
+      `Rs. ${row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0)}`,
+      `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+      `Rs. ${Math.round(((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+      `Rs. ${row.totalAmount}`,
+      `Rs. ${Math.round((row.grossServiceCost || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+      `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+      (() => {
+        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+        const platformGst = (row.priceBreakdown?.platformFee || 0) * (gstPercent / 100);
+        const vendorGst = ((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * (gstPercent / 100);
+        return `Rs. ${Math.round(platformGst + vendorGst)}`;
+      })(),
+      row.vendor?.shopDetails?.shopName || 'N/A',
+      new Date(row.createdAt).toLocaleDateString()
     ]);
     
     // Generate Table
@@ -116,139 +275,543 @@ export default function Orders() {
     }
   };
 
+  const fetchZones = async () => {
+    try {
+      const data = await supplierServiceZoneApi.getAll();
+      let rawZones = [];
+      if (Array.isArray(data)) {
+        rawZones = data;
+      } else if (data && Array.isArray(data.data)) {
+        rawZones = data.data;
+      }
+      
+      const uniqueNames = new Set();
+      const uniqueZones = [];
+      rawZones.forEach(z => {
+        const name = (z.zoneName || '').trim();
+        if (name && !uniqueNames.has(name.toLowerCase())) {
+          uniqueNames.add(name.toLowerCase());
+          uniqueZones.push(z);
+        }
+      });
+      setZones(uniqueZones);
+    } catch (err) {
+      console.error('Error fetching zones:', err);
+    }
+  };
+
   useEffect(() => {
     fetchAllOrders();
+    fetchZones();
   }, []);
 
+  const uniqueZonesList = useMemo(() => {
+    const uniqueNames = new Set();
+    const list = [];
+    zones.forEach(z => {
+      const name = (z.zoneName || '').trim();
+      if (name && !uniqueNames.has(name.toLowerCase())) {
+        uniqueNames.add(name.toLowerCase());
+        list.push(z);
+      }
+    });
+    return list;
+  }, [zones]);
+
+  const uniqueCustomersList = useMemo(() => {
+    const names = new Set();
+    allOrders.forEach(o => {
+      const name = (o.customer?.displayName || '').trim();
+      if (name) {
+        names.add(name);
+      }
+    });
+    return Array.from(names).sort();
+  }, [allOrders]);
+
+  const statusesList = useMemo(() => [
+    'ORDER_PLACED', 
+    'PICKUP_ASSIGNED', 
+    'RIDER_ARRIVING', 
+    'IN_TRANSIT', 
+    'RECEIVED_BY_VENDOR', 
+    'PROCESSING', 
+    'READY_FOR_DISPATCH', 
+    'OUT_FOR_DELIVERY', 
+    'DELIVERED', 
+    'CANCELLED'
+  ], []);
+
   const filteredOrders = useMemo(() => {
-    if (activeTab === 'All') return allOrders;
-    if (activeTab === 'Placed') return allOrders.filter(o => o.status === 'ORDER_PLACED');
-    if (activeTab === 'Processing') return allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(o.status));
-    if (activeTab === 'Delivered') return allOrders.filter(o => o.status === 'DELIVERED');
-    if (activeTab === 'Cancelled') return allOrders.filter(o => o.status === 'CANCELLED');
-    return allOrders;
-  }, [activeTab, allOrders]);
+    let list = allOrders;
+    
+    if (selectedStatus) {
+      list = list.filter(o => (o.status || '').toUpperCase() === selectedStatus.toUpperCase());
+    } else {
+      if (activeTab === 'Placed') {
+        list = allOrders.filter(o => o.status === 'ORDER_PLACED');
+      } else if (activeTab === 'Processing') {
+        list = allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(o.status));
+      } else if (activeTab === 'Delivered') {
+        list = allOrders.filter(o => o.status === 'DELIVERED');
+      } else if (activeTab === 'Cancelled') {
+        list = allOrders.filter(o => o.status === 'CANCELLED');
+      }
+    }
+
+    if (selectedZone) {
+      list = list.filter(o => (o.serviceZone || '').trim().toLowerCase() === selectedZone.trim().toLowerCase());
+    }
+
+    if (selectedCustomer) {
+      list = list.filter(o => (o.customer?.displayName || '').trim().toLowerCase() === selectedCustomer.trim().toLowerCase());
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      list = list.filter(o => new Date(o.createdAt) >= start);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      list = list.filter(o => new Date(o.createdAt) <= end);
+    }
+
+    return list;
+  }, [activeTab, allOrders, selectedZone, selectedCustomer, selectedStatus, startDate, endDate]);
+
+  const flattenedOrders = useMemo(() => {
+    const list = [];
+    filteredOrders.forEach(order => {
+      if (!order.items || order.items.length === 0) {
+        list.push({
+          ...order,
+          uniqueRowId: `${order._id}_none`,
+          singleItem: null,
+          grossServiceCost: 0
+        });
+      } else {
+        order.items.forEach((item, index) => {
+          list.push({
+            ...order,
+            uniqueRowId: `${order._id}_${item._id || index}`,
+            singleItem: item,
+            grossServiceCost: (item.quantity || 0) * (item.price || 0)
+          });
+        });
+      }
+    });
+    return list;
+  }, [filteredOrders]);
 
   const orderColumns = useMemo(() => [
+    { 
+      header: 'Service Zone', 
+      key: 'serviceZone',
+      render: (val) => (
+        <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+          {val || 'N/A'}
+        </span>
+      )
+    },
     { 
       header: 'Order ID', 
       key: 'orderId',
       render: (val, row) => (
-        <div className="flex flex-col">
-          <span className="font-bold text-slate-900 text-[11px] tracking-[0.1em] uppercase leading-none mb-1 group-hover:text-blue-600 transition-colors">{val}</span>
-          <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-80 tabular-nums">Service Request</span>
-        </div>
+        <span className="font-bold text-slate-900 text-[11px] tracking-[0.1em] uppercase group-hover:text-blue-600 transition-colors">{val}</span>
       )
     },
     { 
-      header: 'Customer', 
+      header: 'Customer Name', 
       key: 'customer',
       render: (val) => (
-        <div className="flex items-center gap-2 transition-transform">
-          <div className="w-6 h-6 rounded-sm bg-slate-50 text-slate-400 flex items-center justify-center border border-slate-200 text-[8px] font-bold uppercase">
-            {val?.displayName?.charAt(0) || 'U'}
-          </div>
-          <span className="font-bold text-slate-800 text-[10px] uppercase tracking-tight">{val?.displayName || 'Unknown'}</span>
-        </div>
+        <span className="font-bold text-slate-800 text-[10px] uppercase tracking-tight">{val?.displayName || 'Unknown'}</span>
       )
     },
     { 
-      header: 'Vendor', 
-      key: 'vendor',
+      header: 'Order Submitted Timestamp', 
+      key: 'createdAt', 
       render: (val) => (
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-sm bg-slate-950 text-white flex items-center justify-center border border-slate-800 text-[8px] font-bold uppercase">
-             <Store size={10} />
-          </div>
-          <span className="font-bold text-slate-700 text-[10px] uppercase tracking-tighter tabular-nums">{val?.shopDetails?.name || 'Unassigned'}</span>
-        </div>
+        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider tabular-nums">
+          {val ? new Date(val).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}
+        </span>
       )
     },
     { 
-      header: 'Amount', 
-      key: 'totalAmount', 
-      align: 'right', 
-      render: (val) => <span className="font-bold text-slate-900 tabular-nums text-xs">₹{val?.toLocaleString() || 0}</span> 
+      header: 'Service Items JSON', 
+      key: 'singleItem',
+      wrap: true, // Enforce multi-line wrapping in the table cell
+      render: (val, row) => {
+        if (!val) return <span className="text-slate-400 font-bold">-</span>;
+        const displayItem = [{
+          item: val.name,
+          qty: val.quantity,
+          rate: val.price
+        }];
+        const jsonStr = JSON.stringify(displayItem);
+        return (
+          <div className="flex items-start gap-2 max-w-[300px]">
+            <span className="font-mono text-[9px] text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded block whitespace-normal break-all">
+              {jsonStr}
+            </span>
+            {row.items && row.items.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedOrderItems(row.items);
+                  setSelectedOrderIdForItems(row.orderId || row._id.slice(-6).toUpperCase());
+                  setItemsModalOpen(true);
+                }}
+                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 hover:border-blue-300 rounded text-[9px] font-bold uppercase tracking-wider transition-all shrink-0 mt-0.5"
+              >
+                All
+              </button>
+            )}
+          </div>
+        );
+      }
     },
     { 
-      header: 'Status', 
+      header: 'Current Order Status', 
       key: 'status', 
       render: (val) => <StatusBadge status={val} /> 
     },
     { 
-      header: 'Date', 
-      key: 'createdAt', 
-      render: (val) => <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest tabular-nums opacity-60 flex items-center gap-2"><ArrowRight size={10} className="text-slate-200" /> {new Date(val).toLocaleDateString()}</span> 
+      header: 'Rider ID', 
+      key: 'riderIdPlaceholder', 
+      render: () => <span className="text-slate-400 font-bold">-</span> 
+    },
+    { 
+      header: 'Rider Name', 
+      key: 'riderNamePlaceholder', 
+      render: () => <span className="text-slate-400 font-bold">-</span> 
+    },
+    { 
+      header: 'Rider Contact Number', 
+      key: 'riderContactPlaceholder', 
+      render: () => <span className="text-slate-400 font-bold">-</span> 
     },
     {
-      header: 'Actions',
-      key: '_id',
+      header: 'Status Timestamp History',
+      key: 'statusHistory',
+      wrap: true,
+      render: (val, row) => {
+        const displayHistory = generateStatusHistory(row).map(h => ({
+          status: h.status,
+          time: h.timestamp ? new Date(h.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'
+        }));
+        const jsonStr = JSON.stringify(displayHistory);
+        return (
+          <div className="max-w-[300px]">
+            <span className="font-mono text-[9px] text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded block whitespace-normal break-all">
+              {jsonStr}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Status Duration Hours',
+      key: 'statusDurations',
+      wrap: true,
+      render: (val, row) => {
+        const history = generateStatusHistory(row);
+        const durations = generateStatusDurations(history);
+        const jsonStr = JSON.stringify(durations);
+        return (
+          <div className="max-w-[300px]">
+            <span className="font-mono text-[9px] text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded block whitespace-normal break-all">
+              {jsonStr}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Order Completed Timestamp',
+      key: 'orderCompletedTimestamp',
+      render: (val, row) => {
+        const completedEntry = generateStatusHistory(row).find(h => (h.status || '').toUpperCase() === 'DELIVERED');
+        if (!completedEntry || !completedEntry.timestamp) {
+          return <span className="text-slate-400 font-bold">-</span>;
+        }
+        return (
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider tabular-nums">
+            {new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Total Turnaround Time (Hrs)',
+      key: 'totalTurnaroundTime',
+      render: (val, row) => {
+        const tat = calculateTotalTurnaroundTime(row);
+        if (!tat) return <span className="text-slate-400 font-bold">-</span>;
+        return (
+          <span className="text-[10px] text-slate-700 font-bold tracking-tight tabular-nums bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded">
+            {tat}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Gross Service Cost',
+      key: 'grossServiceCost',
       align: 'right',
-      render: (val, row) => (
-        <div className="flex items-center justify-end gap-2">
-          <button 
-            onClick={() => navigate(`/admin/orders/${val}`)}
-            className="p-1.5 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-blue-600 transition-all"
-            title="View Details"
-          >
-            <Eye size={14} />
-          </button>
-          <button 
-            onClick={() => handleUpdateStatus(val, row.status)}
-            className="p-1.5 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-amber-600 transition-all"
-            title="Update Status"
-          >
-            <Edit3 size={14} />
-          </button>
-          <button 
-            onClick={() => handleDeleteOrder(val)}
-            className="p-1.5 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-red-600 transition-all"
-            title="Delete Order"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
+      render: (val) => (
+        <span className="font-bold text-slate-900 tabular-nums text-xs">
+          ₹{(val || 0).toLocaleString()}
+        </span>
       )
+    },
+    {
+      header: 'Logistics Fee',
+      key: 'priceBreakdown',
+      align: 'right',
+      render: (val, row) => {
+        const fee = val?.logisticsFee !== undefined ? val.logisticsFee : (row.deliveryCharge || 0);
+        return (
+          <span className="font-bold text-slate-900 tabular-nums text-xs">
+            ₹{fee.toLocaleString()}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Platform GST Amount',
+      key: 'priceBreakdown',
+      align: 'right',
+      render: (val, row) => {
+        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+        const gst = (val?.platformFee || 0) * (gstPercent / 100);
+        return (
+          <span className="font-bold text-slate-900 tabular-nums text-xs">
+            ₹{Math.round(gst).toLocaleString()}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Vendor GST Amount',
+      key: 'priceBreakdown',
+      align: 'right',
+      render: (val, row) => {
+        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+        const vendorGst = ((val?.baseWithArea || 0) + (val?.expressSurcharge || 0)) * (gstPercent / 100);
+        return (
+          <span className="font-bold text-slate-900 tabular-nums text-xs">
+            ₹{Math.round(vendorGst).toLocaleString()}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Total Customer Payable',
+      key: 'totalAmount',
+      align: 'right',
+      render: (val) => (
+        <span className="font-bold text-slate-900 tabular-nums text-xs">
+          ₹{(val || 0).toLocaleString()}
+        </span>
+      )
+    },
+    {
+      header: 'Vendor Payout Share',
+      key: 'priceBreakdown',
+      align: 'right',
+      render: (val, row) => {
+        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+        const gross = row.grossServiceCost || 0;
+        const vendorGst = gross * (gstPercent / 100);
+        const payout = gross + vendorGst;
+        return (
+          <span className="font-bold text-slate-900 tabular-nums text-xs">
+            ₹{Math.round(payout).toLocaleString()}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Admin Revenue Share',
+      key: 'priceBreakdown',
+      align: 'right',
+      render: (val, row) => {
+        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+        const fee = val?.platformFee || 0;
+        const platformGst = fee * (gstPercent / 100);
+        const revenue = fee + platformGst;
+        return (
+          <span className="font-bold text-slate-900 tabular-nums text-xs">
+            ₹{Math.round(revenue).toLocaleString()}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Total Payable to GST',
+      key: 'priceBreakdown',
+      align: 'right',
+      render: (val, row) => {
+        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+        const platformGst = (val?.platformFee || 0) * (gstPercent / 100);
+        const vendorGst = ((val?.baseWithArea || 0) + (val?.expressSurcharge || 0)) * (gstPercent / 100);
+        const totalGst = platformGst + vendorGst;
+        return (
+          <span className="font-bold text-slate-900 tabular-nums text-xs">
+            ₹{Math.round(totalGst).toLocaleString()}
+          </span>
+        );
+      }
     }
   ], []);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
       <PageHeader 
-        title="Orders" 
+        title="" 
         actions={[
-          { label: 'Clear All Orders', icon: Trash2, variant: 'secondary', onClick: handleClearAllOrders },
-          { label: 'Export Order List', icon: FileText, variant: 'secondary', onClick: handleExportPDF },
-          { label: 'Create Manual Order', icon: PlusCircle, variant: 'primary' }
+          { label: 'Export Order List', icon: FileText, variant: 'secondary', onClick: handleExportPDF }
         ]}
       />
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-        {/* Navigation Filters */}
-        <div className="flex bg-white p-1 rounded-sm w-fit border border-slate-200 relative z-10">
-          {tabs.map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-sm text-[9px] font-bold uppercase tracking-[0.25em] transition-all duration-300 ${
-                activeTab === tab 
-                  ? 'bg-slate-900 text-white z-10 translate-y-[-1px]' 
-                  : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        {/* Dropdown Filters Row */}
+        <div className="flex justify-between items-center gap-4 flex-wrap bg-white p-3 rounded-md border border-slate-200/60 shadow-sm">
+          {/* Left Filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Zone Filter */}
+            <div className="relative flex items-center">
+              <select
+                value={selectedZone}
+                onChange={(e) => setSelectedZone(e.target.value)}
+                className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
+              >
+                <option value="">Zone</option>
+                {uniqueZonesList.map((z, idx) => (
+                  <option key={z._id || idx} value={z.zoneName}>
+                    {z.zoneName}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-500" />
+            </div>
+
+            {/* Customer Filter */}
+            <div className="relative flex items-center">
+              <select
+                value={selectedCustomer}
+                onChange={(e) => setSelectedCustomer(e.target.value)}
+                className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
+              >
+                <option value="">Customer</option>
+                {uniqueCustomersList.map((name, idx) => (
+                  <option key={idx} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-500" />
+            </div>
+
+            {/* Status Filter */}
+            <div className="relative flex items-center">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
+              >
+                <option value="">Status</option>
+                {statusesList.map((status, idx) => (
+                  <option key={idx} value={status}>
+                    {status.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-500" />
+            </div>
+          </div>
+
+          {/* Right Date Range Filters */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">From:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">To:</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="text-[9px] font-bold uppercase tracking-wider text-rose-600 hover:text-rose-700 px-3 py-1.5 transition-all bg-rose-50 hover:bg-rose-100/50 border border-rose-100 rounded-md"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Order List */}
         <DataGrid 
-          title={`${activeTab} Orders`}
+          showHeader={false}
           columns={orderColumns}
-          data={filteredOrders}
-          onAction={(row) => navigate(`/admin/orders/${row.id}`)}
+          data={flattenedOrders}
         />
       </div>
+
+      {/* Items List Modal */}
+      {itemsModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setItemsModalOpen(false)} />
+          <div className="bg-white rounded-lg p-6 shadow-2xl relative z-10 w-full max-w-lg border border-slate-100 flex flex-col gap-4 text-left">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-slate-800">
+                Order Items JSON - {selectedOrderIdForItems}
+              </h3>
+              <button 
+                onClick={() => setItemsModalOpen(false)} 
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="max-h-[60vh] overflow-y-auto font-mono text-[11px] bg-slate-50 p-4 border border-slate-200 rounded text-slate-800 whitespace-pre">
+              {JSON.stringify(selectedOrderItems.map(i => ({
+                item: i.name,
+                quantity: i.quantity,
+                rate: i.price
+              })), null, 2)}
+            </div>
+            
+            <div className="flex justify-end pt-2">
+              <button 
+                onClick={() => setItemsModalOpen(false)}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-sm text-[10px] font-bold uppercase tracking-widest transition-all"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

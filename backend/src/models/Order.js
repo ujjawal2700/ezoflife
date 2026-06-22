@@ -199,10 +199,16 @@ const orderSchema = new mongoose.Schema({
     riderDropOff: {
         type: Boolean,
         default: false
-    }
+    },
+    statusHistory: [
+        {
+            status: { type: String, required: true },
+            timestamp: { type: Date, default: Date.now }
+        }
+    ]
 }, { timestamps: true });
 
-// Pre-save hook to generate a unique readable order ID like #ON-8291 or #WL-8291
+// Pre-save hook to generate unique readable order ID and track status history
 orderSchema.pre('save', async function(next) {
     if (!this.orderId) {
         const random = Math.floor(1000 + Math.random() * 9000);
@@ -211,6 +217,16 @@ orderSchema.pre('save', async function(next) {
         } else {
             this.orderId = `#ON-${random}`;
         }
+    }
+
+    if (this.isNew || this.isModified('status')) {
+        if (!this.statusHistory) {
+            this.statusHistory = [];
+        }
+        this.statusHistory.push({
+            status: this.status,
+            timestamp: new Date()
+        });
     }
     next();
 });

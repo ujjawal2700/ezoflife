@@ -510,6 +510,7 @@ export const vendorMasterSupplyController = {
                     quantity: item.quantity || '1 Unit',
                     supplierId: item.supplierId,
                     supplierFacilityName: supplierUserObj?.displayName || item.supplierFacilityName || item.supplierId,
+                    supplierPhone: supplierUserObj?.phone || '',
                     stock: 'Available',
                     image: null,
                     images: item.images || [],

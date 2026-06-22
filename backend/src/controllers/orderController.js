@@ -606,28 +606,31 @@ export const updateOrderStatus = async (req, res) => {
         if (status === 'READY_FOR_DISPATCH') {
             if (order.orderType === 'Walk-In' && !order.riderDropOff) {
                 console.log(`[LOGISTICS] Walk-In Order ${order.orderId} marked as READY (Direct Handover). Skipping rider assignment.`);
-                updateData.deliveryStatus = 'none';
-                updateData.deliveryTriggerTime = null;
-                updateData.nearbyRiders = [];
-                updateData.rider = null;
+                order.deliveryStatus = 'none';
+                order.deliveryTriggerTime = null;
+                order.nearbyRiders = [];
+                order.rider = null;
                 if (!order.deliveryOtp) {
-                    updateData.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                    order.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
                 }
             } else {
                 console.log(`[LOGISTICS] Order ${order.orderId} marked as READY. Scheduling delivery trigger...`);
                 
                 const deliveryTriggerTime = calculateTriggerTime(order.deliverySlot?.date, order.deliverySlot?.time);
-                updateData.deliveryTriggerTime = deliveryTriggerTime;
-                updateData.deliveryStatus = 'scheduled';
+                order.deliveryTriggerTime = deliveryTriggerTime;
+                order.deliveryStatus = 'scheduled';
 
                 // Local rider allocation, notifications, and broadcasts are bypassed because Shiprocket handles all deliveries.
-                updateData.nearbyRiders = [];
-                updateData.rider = null; 
-                updateData.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                order.nearbyRiders = [];
+                order.rider = null; 
+                order.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
             }
         }
 
-        const updatedOrder = await Order.findByIdAndUpdate(id, updateData, { new: true })
+        order.status = status;
+        await order.save();
+
+        const updatedOrder = await Order.findById(id)
             .populate('customer', 'displayName phone address email')
             .populate('vendor', 'shopDetails address location')
             .populate('rider', 'displayName phone location');
@@ -739,9 +742,40 @@ export const updateOrderStatus = async (req, res) => {
 
 export const getAllOrders = async (req, res) => {
     try {
-        const orders = await Order.find().populate('customer', 'displayName phone').populate('vendor', 'shopDetails phone').sort({ createdAt: -1 });
-        res.status(200).json(orders);
+        const orders = await Order.find()
+            .populate('customer', 'displayName phone')
+            .populate('vendor', 'shopDetails phone')
+            .sort({ createdAt: -1 });
+        
+        // Fetch active service areas to map them to orders
+        const serviceAreas = await ServiceArea.find({ isActive: true });
+        
+        const ordersWithZone = orders.map(order => {
+            let zoneName = 'N/A';
+            const lat = order.pickupLocation?.lat;
+            const lng = order.pickupLocation?.lng;
+            
+            if (lat && lng) {
+                for (const area of serviceAreas) {
+                    if (area.boundary?.coordinates?.[0]) {
+                        const polygonCoords = area.boundary.coordinates[0];
+                        if (isPointInPolygon(lat, lng, polygonCoords)) {
+                            zoneName = area.areaName;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return {
+                ...order.toObject(),
+                serviceZone: zoneName
+            };
+        });
+        
+        res.status(200).json(ordersWithZone);
     } catch (err) {
+        console.error('Error fetching all orders:', err);
         res.status(500).json({ message: 'Error fetching all orders' });
     }
 };
@@ -840,20 +874,19 @@ export const vendorAcceptOrder = async (req, res) => {
         }
 
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
-        const updatedOrder = await Order.findByIdAndUpdate(
-            id, 
-            { vendor: vendorId, status: 'RIDER_ARRIVING', pickupOtp, pickupStatus: 'scheduled' }, 
-            { new: true }
-        ).populate('customer', 'displayName phone address location');
+        
+        order.vendor = vendorId;
+        order.status = 'RIDER_ARRIVING';
+        order.pickupOtp = pickupOtp;
+        order.pickupStatus = 'scheduled';
+        order.nearbyRiders = [];
 
         // Remove availability notifications for other vendors
         await Notification.deleteMany({ orderId: id, type: 'order_available' });
 
+        await order.save();
 
-        // Update nearby riders in order for dashboard listing (Internal Pool - Decommissioned)
-        const nearbyRiders = [];
-        updatedOrder.nearbyRiders = nearbyRiders;
-        await updatedOrder.save();
+        const updatedOrder = await Order.findById(id).populate('customer', 'displayName phone address location');
 
 
         // Socket.io updates

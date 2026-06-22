@@ -709,6 +709,19 @@ export const b2bOrderApi = {
             throw error;
         }
     },
+    verifyDeliveryOtp: async (id, otp) => {
+        try {
+            const response = await fetch(`${BASE_URL}/b2b-orders/${id}/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Verify B2B Delivery OTP Error:', error);
+            throw error;
+        }
+    },
     updateDeliveryDate: async (id, deliveryDate) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/${id}/delivery-date`, {

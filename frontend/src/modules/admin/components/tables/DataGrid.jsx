@@ -17,6 +17,7 @@ export default function DataGrid({
     onPageChange,
     showFilter = true,
     showSearch = true,
+    showHeader = true,
     onDownload
 }) {
     const [searchTerm, setSearchTerm] = React.useState('');
@@ -43,45 +44,47 @@ export default function DataGrid({
     return (
         <div className="w-full bg-white border border-slate-200 flex flex-col rounded-sm">
             {/* Grid Header Strip */}
-            <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white z-20">
-                <div className="flex items-center flex-wrap gap-3">
-                    <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />
-                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
-                        {title}
-                    </h3>
-                    <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
-                        {pagination ? pagination.total : data.length} TOTAL ENTITIES
-                    </span>
-                </div>
-                <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
-                    {showSearch && (
-                        <div className="relative group lg:block hidden">
-                            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-slate-900 transition-all" />
-                            <input 
-                                 type="text" 
-                                 value={searchTerm}
-                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                 placeholder="Filter records..." 
-                                 className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-300 transition-all outline-none w-48"
-                            />
-                        </div>
-                    )}
-                    {actions}
-                    {onDownload && (
-                        <>
-                            <div className="h-4 w-px bg-slate-100 mx-1" />
-                            <button onClick={onDownload} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm" title="Download Excel/CSV">
-                                <Download size={14} />
+            {showHeader && (
+                <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white z-20">
+                    <div className="flex items-center flex-wrap gap-3">
+                        <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />
+                        <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
+                            {title}
+                        </h3>
+                        <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
+                            {pagination ? pagination.total : data.length} TOTAL ENTITIES
+                        </span>
+                    </div>
+                    <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
+                        {showSearch && (
+                            <div className="relative group lg:block hidden">
+                                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-slate-900 transition-all" />
+                                <input 
+                                     type="text" 
+                                     value={searchTerm}
+                                     onChange={(e) => setSearchTerm(e.target.value)}
+                                     placeholder="Filter records..." 
+                                     className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-300 transition-all outline-none w-48"
+                                />
+                            </div>
+                        )}
+                        {actions}
+                        {onDownload && (
+                            <>
+                                <div className="h-4 w-px bg-slate-100 mx-1" />
+                                <button onClick={onDownload} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm" title="Download Excel/CSV">
+                                    <Download size={14} />
+                                </button>
+                            </>
+                        )}
+                        {showFilter && (
+                            <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
+                                <Filter size={14} />
                             </button>
-                        </>
-                    )}
-                    {showFilter && (
-                        <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
-                            <Filter size={14} />
-                        </button>
-                    )}
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Main Table Engine */}
             <div className="overflow-x-auto relative z-10">
@@ -95,7 +98,7 @@ export default function DataGrid({
                                 <th
                                     key={idx}
                                     className={cn(
-                                        "text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all",
+                                        "text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all whitespace-nowrap",
                                         density === 'compact' ? "px-5 py-3" : "px-5 py-4",
                                         col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
                                         col.sticky && "sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]"
@@ -140,6 +143,7 @@ export default function DataGrid({
                                             key={colIdx}
                                             className={cn(
                                                 "text-[12px] font-medium text-slate-700 tabular-nums tracking-tight",
+                                                col.wrap ? "whitespace-normal" : "whitespace-nowrap",
                                                 density === 'compact' ? "px-5 py-2.5" : "px-5 py-3.5",
                                                 col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
                                                 col.sticky && "sticky left-0 bg-white group-hover:bg-slate-50 z-10"

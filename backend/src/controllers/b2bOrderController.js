@@ -390,7 +390,19 @@ export const updateB2BStatus = async (req, res) => {
             const upperStatus = status.toUpperCase();
             const validUppercaseStatuses = ['CART', 'PENDING_PAYMENT', 'SUBMITTED', 'ACCEPTED', 'PROCESSING', 'DISPATCHED', 'DELIVERED', 'REJECTED', 'CANCELLED', 'SETTLED'];
             if (validUppercaseStatuses.includes(upperStatus)) {
+                // OTP Protection: Block direct transition to DELIVERED if it has a deliveryOtp and was in DISPATCHED status
+                if (upperStatus === 'DELIVERED' && order.status === 'DISPATCHED' && order.deliveryOtp) {
+                    return res.status(400).json({ message: 'Delivery OTP verification is required to complete this order.' });
+                }
+
                 order.status = upperStatus;
+
+                // Generate OTP when status is marked as DISPATCHED (Shipped)
+                if (upperStatus === 'DISPATCHED') {
+                    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+                    order.deliveryOtp = otp;
+                    console.log(`🔑 [B2B_OTP] Generated Delivery OTP for Order #${order.b2bOrderId}: ${otp}`);
+                }
             } else {
                 order.status = status;
             }
@@ -401,6 +413,39 @@ export const updateB2BStatus = async (req, res) => {
     } catch (err) {
         console.error('Update B2B Status Error:', err);
         res.status(500).json({ message: 'Error updating status' });
+    }
+};
+
+// Verify B2B Delivery OTP and complete order
+export const verifyDeliveryOtp = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { otp } = req.body;
+
+        const order = await B2BOrder.findById(id).populate('vendor');
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        if (order.status !== 'DISPATCHED') {
+            return res.status(400).json({ message: 'Order must be in DISPATCHED status to verify delivery OTP' });
+        }
+
+        if (!order.deliveryOtp) {
+            return res.status(400).json({ message: 'No delivery OTP generated for this order' });
+        }
+
+        if (order.deliveryOtp !== otp) {
+            return res.status(400).json({ message: 'Invalid delivery OTP' });
+        }
+
+        // Success! Set status to DELIVERED
+        order.status = 'DELIVERED';
+        await order.save();
+
+        console.log(`✅ [B2B_OTP_SUCCESS] Order #${order.b2bOrderId} marked as DELIVERED via OTP verification`);
+        res.status(200).json({ message: 'OTP verified successfully. Order completed.', order });
+    } catch (err) {
+        console.error('Verify B2B OTP Error:', err);
+        res.status(500).json({ message: 'Error verifying OTP' });
     }
 };
 

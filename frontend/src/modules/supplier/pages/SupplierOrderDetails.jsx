@@ -16,21 +16,21 @@ const SupplierOrderDetails = () => {
     const [selectedImage, setSelectedImage] = useState(null);
 
     const b2bStatusMapSupplier = {
-        'SUBMITTED': { label: 'New Order', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
-        'ACCEPTED': { label: 'Accepted', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-        'PROCESSING': { label: 'Preparing', emoji: '📦', color: 'bg-blue-50 text-blue-600 border-blue-200' },
-        'DISPATCHED': { label: 'Dispatched', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
-        'DELIVERED': { label: 'Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-        'REJECTED': { label: 'Declined', emoji: '🚫', color: 'bg-rose-50 text-rose-600 border-rose-200' },
-        'CANCELLED': { label: 'Cancelled', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' },
-        'SETTLED': { label: 'Settled', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'SUBMITTED': { label: 'New Order Received', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'ACCEPTED': { label: 'Timeline Scheduled', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'PROCESSING': { label: 'Preparing Order', emoji: '📦', color: 'bg-blue-50 text-blue-600 border-blue-200' },
+        'DISPATCHED': { label: 'Shipped / En Route', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'DELIVERED': { label: 'Fulfilled & Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'REJECTED': { label: 'Order Declined', emoji: '🚫', color: 'bg-rose-50 text-rose-600 border-rose-200' },
+        'CANCELLED': { label: 'Cancelled by Buyer', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' },
+        'SETTLED': { label: 'Fulfilled & Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
 
-        'Submitted': { label: 'New Order', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
-        'Confirmed': { label: 'Accepted', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-        'Accepted': { label: 'Accepted', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-        'Out for Delivery': { label: 'Dispatched', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
-        'Delivered': { label: 'Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-        'Cancelled': { label: 'Cancelled', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' }
+        'Submitted': { label: 'New Order Received', emoji: '📥', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+        'Confirmed': { label: 'Timeline Scheduled', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Accepted': { label: 'Timeline Scheduled', emoji: '📅', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Out for Delivery': { label: 'Shipped / En Route', emoji: '🚚', color: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
+        'Delivered': { label: 'Fulfilled & Completed', emoji: '🏁', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+        'Cancelled': { label: 'Cancelled by Buyer', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' }
     };
 
     const getStatusLabel = (status) => b2bStatusMapSupplier[status]?.label || status;
@@ -42,7 +42,6 @@ const SupplierOrderDetails = () => {
         const s = status.toUpperCase();
         if (s === 'ACCEPTED' || s === 'CONFIRMED') return 'PROCESSING';
         if (s === 'PROCESSING') return 'DISPATCHED';
-        if (s === 'DISPATCHED' || s === 'OUT FOR DELIVERY') return 'DELIVERED';
         return null;
     };
 
@@ -111,11 +110,11 @@ const SupplierOrderDetails = () => {
         const status = order.status?.toUpperCase();
         
         const stages = [
-            { id: 1, label: 'New Order', icon: 'schedule', status: 'pending' },
-            { id: 2, label: 'Accepted', icon: 'handshake', status: 'pending' },
-            { id: 3, label: 'Preparing', icon: 'inventory_2', status: 'pending' },
-            { id: 4, label: 'Dispatched', icon: 'local_shipping', status: 'pending' },
-            { id: 5, label: 'Completed', icon: 'verified', status: 'pending' }
+            { id: 1, label: 'New Order Received', icon: 'schedule', status: 'pending' },
+            { id: 2, label: 'Timeline Scheduled', icon: 'handshake', status: 'pending' },
+            { id: 3, label: 'Preparing Order', icon: 'inventory_2', status: 'pending' },
+            { id: 4, label: 'Shipped / En Route', icon: 'local_shipping', status: 'pending' },
+            { id: 5, label: 'Fulfilled & Completed', icon: 'verified', status: 'pending' }
         ];
 
         const statusOrder = ['SUBMITTED', 'ACCEPTED', 'PROCESSING', 'DISPATCHED', 'DELIVERED', 'SETTLED'];
@@ -346,68 +345,39 @@ const SupplierOrderDetails = () => {
                     </div>
                 </div>
 
+                {/* OTP Display Card for Supplier */}
+                {order.status?.toUpperCase() === 'DISPATCHED' && order.deliveryOtp && (
+                    <div className="px-6 pb-4">
+                        <div className="bg-slate-950 text-white rounded-[1.8rem] p-5 shadow-xl border border-white/5 space-y-3">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400">Delivery OTP</h4>
+                                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Share this with the vendor to complete delivery</p>
+                                </div>
+                                <span className="text-xl font-black text-white tracking-widest bg-white/10 px-4 py-1.5 rounded-xl border border-white/10">{order.deliveryOtp}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="px-6 pb-2 pt-2">
-                    <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">Article Detail</h3>
+                    <h3 className="font-black text-slate-900 text-lg uppercase tracking-tight">Product Detail</h3>
                 </div>
             </div>
 
             <main className="flex-1 flex flex-col px-6 py-4 gap-6 overflow-y-auto pb-32 text-left">
-                {/* ARTICLE DETAIL ITEMS */}
+                {/* PRODUCT DETAIL ITEMS */}
                 <section className="flex flex-col gap-4">
                     {order.items?.map((item, i) => {
-                        const itemImg = getImageUrl(item);
                         return (
-                            <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm flex flex-col gap-4">
+                            <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm">
                                 <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
                                     <p className="text-[11px] font-black text-slate-800 uppercase tracking-wide leading-none">{item.name}</p>
                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-200/60 px-2.5 py-1 rounded-md">QTY: {item.quantity}</span>
                                 </div>
-                                <div 
-                                    className="w-full h-40 rounded-2xl bg-slate-50/50 border border-slate-200/40 flex items-center justify-center text-slate-300 overflow-hidden shadow-inner cursor-pointer"
-                                    onClick={() => itemImg && setSelectedImage(itemImg)}
-                                >
-                                    {itemImg ? (
-                                        <img src={itemImg} alt={item.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="flex flex-col items-center gap-1 opacity-40">
-                                            <span className="material-symbols-outlined text-4xl">dry_cleaning</span>
-                                            <span className="text-[9px] font-bold uppercase tracking-widest">No Image Uploaded</span>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
                         );
                     })}
-                </section>
-
-                {/* BUYER DETAILS */}
-                <section className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm space-y-4">
-                    <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
-                        <span className="material-symbols-outlined text-slate-400 text-xl">storefront</span>
-                        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Buyer Details</h3>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center">
-                                <span className="material-symbols-outlined text-2xl text-slate-400">store</span>
-                            </div>
-                            <div>
-                                <h4 className="text-sm font-black text-slate-900">{order.vendor?.displayName || 'Unknown Vendor'}</h4>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{order.vendor?.phone || 'N/A'}</p>
-                            </div>
-                        </div>
-                        {order.vendor?.phone && (
-                            <a href={`tel:${order.vendor.phone}`} className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-                                <span className="material-symbols-outlined">call</span>
-                            </a>
-                        )}
-                    </div>
-                    {order.shippingAddress && (
-                        <div className="pt-2 border-t border-slate-50 text-left">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Shipping Address</p>
-                            <p className="text-xs font-bold text-slate-700">{order.shippingAddress}</p>
-                        </div>
-                    )}
                 </section>
 
                 {/* BOTTOM ACTIONS AREA */}

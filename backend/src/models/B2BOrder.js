@@ -77,6 +77,10 @@ const b2bOrderSchema = new mongoose.Schema({
     b2bOrderId: {
         type: String,
         unique: true
+    },
+    deliveryOtp: {
+        type: String,
+        required: false
     }
 }, { timestamps: true });
 
