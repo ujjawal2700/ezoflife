@@ -742,9 +742,11 @@ export const updateOrderStatus = async (req, res) => {
 
 export const getAllOrders = async (req, res) => {
     try {
+        const { page, limit, status, zone, customer, startDate, endDate } = req.query;
+
         const orders = await Order.find()
             .populate('customer', 'displayName phone')
-            .populate('vendor', 'shopDetails phone')
+            .populate('vendor', 'shopDetails phone location')
             .sort({ createdAt: -1 });
         
         // Fetch active service areas to map them to orders
@@ -752,8 +754,13 @@ export const getAllOrders = async (req, res) => {
         
         const ordersWithZone = orders.map(order => {
             let zoneName = 'N/A';
-            const lat = order.pickupLocation?.lat;
-            const lng = order.pickupLocation?.lng;
+            let lat = order.pickupLocation?.lat;
+            let lng = order.pickupLocation?.lng;
+
+            if (order.orderType === 'Walk-In' && order.vendor?.location) {
+                lat = order.vendor.location.lat;
+                lng = order.vendor.location.lng;
+            }
             
             if (lat && lng) {
                 for (const area of serviceAreas) {
@@ -772,6 +779,71 @@ export const getAllOrders = async (req, res) => {
                 serviceZone: zoneName
             };
         });
+
+        // Compute unique customer names and service zones from all orders before filtering
+        const uniqueCustomerNamesSet = new Set();
+        const uniqueServiceZonesSet = new Set();
+        
+        ordersWithZone.forEach(o => {
+            const custName = (o.customer?.displayName || '').trim();
+            if (custName) uniqueCustomerNamesSet.add(custName);
+            
+            const zoneName = (o.serviceZone || '').trim();
+            if (zoneName && zoneName !== 'N/A') uniqueServiceZonesSet.add(zoneName);
+        });
+
+        const uniqueCustomerNames = Array.from(uniqueCustomerNamesSet).sort();
+        const uniqueServiceZones = Array.from(uniqueServiceZonesSet).sort();
+
+        // Apply filtering
+        let filtered = ordersWithZone;
+
+        if (status) {
+            filtered = filtered.filter(o => (o.status || '').toUpperCase() === status.toUpperCase());
+        }
+
+        if (zone) {
+            filtered = filtered.filter(o => (o.serviceZone || '').trim().toLowerCase() === zone.trim().toLowerCase());
+        }
+
+        if (customer) {
+            filtered = filtered.filter(o => (o.customer?.displayName || '').trim().toLowerCase() === customer.trim().toLowerCase());
+        }
+
+        if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            filtered = filtered.filter(o => new Date(o.createdAt) >= start);
+        }
+
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            filtered = filtered.filter(o => new Date(o.createdAt) <= end);
+        }
+
+        // Apply pagination if page and limit are specified
+        if (page && limit) {
+            const pageNumber = parseInt(page, 10) || 1;
+            const limitNumber = parseInt(limit, 10) || 10;
+            const skip = (pageNumber - 1) * limitNumber;
+
+            const paginated = filtered.slice(skip, skip + limitNumber);
+            
+            return res.status(200).json({
+                data: paginated,
+                pagination: {
+                    total: filtered.length,
+                    page: pageNumber,
+                    limit: limitNumber,
+                    totalPages: Math.ceil(filtered.length / limitNumber) || 1
+                },
+                filterOptions: {
+                    customerNames: uniqueCustomerNames,
+                    serviceZones: uniqueServiceZones
+                }
+            });
+        }
         
         res.status(200).json(ordersWithZone);
     } catch (err) {
@@ -1177,8 +1249,24 @@ const parseWalkInDeliveryTime = (deliveryTime) => {
             // Clean up weekday, TODAY, or TOMORROW prefixes
             const cleanDatePart = datePart.replace(/^(TODAY|TOMORROW|MON|TUE|WED|THU|FRI|SAT|SUN)\s*,?\s*/i, '').trim();
             
-            const parsedDate = new Date(cleanDatePart);
-            if (!isNaN(parsedDate.getTime())) {
+            let parsedDate;
+            const yearRegex = /\b\d{4}\b/;
+            if (!yearRegex.test(cleanDatePart)) {
+                const testDate = new Date(`${cleanDatePart}, ${now.getFullYear()}`);
+                if (!isNaN(testDate.getTime())) {
+                    if (testDate < new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)) {
+                        parsedDate = new Date(`${cleanDatePart}, ${now.getFullYear() + 1}`);
+                    } else {
+                        parsedDate = testDate;
+                    }
+                } else {
+                    parsedDate = new Date(cleanDatePart);
+                }
+            } else {
+                parsedDate = new Date(cleanDatePart);
+            }
+
+            if (parsedDate && !isNaN(parsedDate.getTime())) {
                 targetDate = parsedDate;
             } else {
                 const lowerDatePart = datePart.toLowerCase();
@@ -1262,9 +1350,10 @@ export const createWalkInOrder = async (req, res) => {
             const existingAddress = customer.addresses.find(a => a.address === formattedAddress);
             if (!existingAddress) {
                 customer.addresses.push({
-                    type: 'Home',
+                    type: (addr.type && addr.type.trim().toLowerCase() === 'office') ? 'Office' : (addr.type && addr.type.trim().toLowerCase() === 'other') ? 'Other' : 'Home',
                     address: formattedAddress,
                     city: addr.city || '',
+                    state: addr.state || '',
                     pincode: addr.pincode || '',
                     location: {
                         lat: addr.lat || 0,
@@ -1299,6 +1388,8 @@ export const createWalkInOrder = async (req, res) => {
             totalAmount,
             orderType: 'Walk-In',
             tier: req.body.selectedTier || req.body.tier || 'Essential',
+            deliveryMode: req.body.deliveryMode || 'Normal',
+            deliveryCharge: req.body.deliveryCharge || 0,
             riderDropOff: riderDropOff || false,
             pickupStatus: 'picked',
             pickupExpectedDate: new Date(),

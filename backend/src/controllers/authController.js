@@ -925,11 +925,12 @@ export const lookupCustomerByPhone = async (req, res) => {
 
         let defAddr = customer.addresses && customer.addresses.length > 0 ? customer.addresses[0] : null;
         res.status(200).json({ 
+            id: customer._id,
             displayName: customer.displayName || '',
             type: defAddr ? defAddr.type : 'Home',
             address: defAddr ? defAddr.address : (customer.address || ''),
             city: defAddr ? defAddr.city : (customer.city || ''),
-            state: customer.state || '', // User model doesn't store state in addresses array by default
+            state: defAddr ? (defAddr.state || '') : (customer.state || ''),
             pincode: defAddr ? defAddr.pincode : (customer.pincode || ''),
             lat: defAddr ? defAddr.location?.lat : (customer.location?.lat || null),
             lng: defAddr ? defAddr.location?.lng : (customer.location?.lng || null),

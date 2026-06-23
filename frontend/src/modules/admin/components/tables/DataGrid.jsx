@@ -18,7 +18,8 @@ export default function DataGrid({
     showFilter = true,
     showSearch = true,
     showHeader = true,
-    onDownload
+    onDownload,
+    minWidth = '800px'
 }) {
     const [searchTerm, setSearchTerm] = React.useState('');
 
@@ -88,7 +89,7 @@ export default function DataGrid({
 
             {/* Main Table Engine */}
             <div className="overflow-x-auto relative z-10">
-                <table className="w-full border-collapse text-left min-w-[800px]">
+                <table className="w-full border-collapse text-left" style={{ minWidth }}>
                     <thead className={cn(
                         "bg-slate-50/50 border-b border-slate-200",
                         stickyHeader && "sticky top-0 z-20"

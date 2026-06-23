@@ -141,6 +141,14 @@ export default function Orders() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 10;
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [backendCustomerNames, setBackendCustomerNames] = useState([]);
+  const [backendServiceZones, setBackendServiceZones] = useState([]);
+  
   // Modal states for Service Items JSON
   const [itemsModalOpen, setItemsModalOpen] = useState(false);
   const [selectedOrderItems, setSelectedOrderItems] = useState([]);
@@ -148,11 +156,36 @@ export default function Orders() {
 
   const tabs = useMemo(() => ['All', 'Placed', 'Processing', 'Delivered', 'Cancelled'], []);
 
-  const fetchAllOrders = async () => {
+  const fetchAllOrders = async (currentPage = page, filters = {
+    selectedZone,
+    selectedCustomer,
+    selectedStatus,
+    startDate,
+    endDate,
+    activeTab
+  }) => {
     try {
       setLoading(true);
-      const res = await orderApi.getAllOrders();
-      setAllOrders(res);
+      const res = await orderApi.getAllOrders(currentPage, itemsPerPage, {
+        zone: filters.selectedZone,
+        customer: filters.selectedCustomer,
+        status: filters.selectedStatus,
+        startDate: filters.startDate,
+        endDate: filters.endDate,
+        activeTab: filters.activeTab
+      });
+      
+      if (res && res.data) {
+        setAllOrders(res.data);
+        setTotalOrders(res.pagination.total);
+        setTotalPages(res.pagination.totalPages);
+        setBackendCustomerNames(res.filterOptions.customerNames);
+        setBackendServiceZones(res.filterOptions.serviceZones);
+      } else {
+        setAllOrders(res || []);
+        setTotalOrders(res ? res.length : 0);
+        setTotalPages(1);
+      }
     } catch (err) {
       console.error('Fetch all orders error:', err);
     } finally {
@@ -190,69 +223,110 @@ export default function Orders() {
       }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     console.log('Exporting PDF for:', activeTab);
-    const doc = new jsPDF();
-    
-    // Add Branding / Header
-    doc.setFontSize(20);
-    doc.text('EZOFLIFE - ORDER REPORT', 14, 22);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
-    doc.text(`Category: ${activeTab} Orders`, 14, 35);
-    
-    // Prepare Table Data
-    const tableColumn = ["Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Gross Service Cost", "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"];
-    const tableRows = flattenedOrders.map(row => [
-      row.serviceZone || 'N/A',
-      row.orderId || row._id.slice(-6).toUpperCase(),
-      row.customer?.displayName || 'Unknown',
-      row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A',
-      row.singleItem ? JSON.stringify([{ item: row.singleItem.name, qty: row.singleItem.quantity, rate: row.singleItem.price }]) : '-',
-      row.status,
-      "-",
-      "-",
-      "-",
-      JSON.stringify(generateStatusHistory(row).map(h => ({
-        status: h.status,
-        time: h.timestamp ? new Date(h.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'
-      }))),
-      JSON.stringify(generateStatusDurations(generateStatusHistory(row))),
-      (() => {
-        const completedEntry = generateStatusHistory(row).find(h => (h.status || '').toUpperCase() === 'DELIVERED');
-        return completedEntry?.timestamp ? new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
-      })(),
-      calculateTotalTurnaroundTime(row) || '-',
-      `Rs. ${row.grossServiceCost || 0}`,
-      `Rs. ${row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0)}`,
-      `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
-      `Rs. ${Math.round(((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
-      `Rs. ${row.totalAmount}`,
-      `Rs. ${Math.round((row.grossServiceCost || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100))}`,
-      `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100))}`,
-      (() => {
-        const gstPercent = row.tier === 'Heritage' ? 18 : 5;
-        const platformGst = (row.priceBreakdown?.platformFee || 0) * (gstPercent / 100);
-        const vendorGst = ((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * (gstPercent / 100);
-        return `Rs. ${Math.round(platformGst + vendorGst)}`;
-      })(),
-      row.vendor?.shopDetails?.shopName || 'N/A',
-      new Date(row.createdAt).toLocaleDateString()
-    ]);
-    
-    // Generate Table
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 45,
-      styles: { fontSize: 8, font: 'helvetica' },
-      headStyles: { fillColor: [15, 23, 42], textColor: 255 }, // Slate-900
-      alternateRowStyles: { fillColor: [248, 250, 252] } // Slate-50
-    });
-    
-    doc.save(`EzofLife_Orders_${activeTab}_${new Date().getTime()}.pdf`);
-    console.log('PDF Download Started');
+    try {
+      setLoading(true);
+      // Fetch all matching orders (without pagination limit) for export
+      const allMatching = await orderApi.getAllOrders(undefined, undefined, {
+        zone: selectedZone,
+        customer: selectedCustomer,
+        status: selectedStatus,
+        startDate,
+        endDate,
+        activeTab
+      });
+
+      const doc = new jsPDF();
+      
+      // Add Branding / Header
+      doc.setFontSize(20);
+      doc.text('EZOFLIFE - ORDER REPORT', 14, 22);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+      doc.text(`Category: ${activeTab} Orders`, 14, 35);
+      
+      // Flatten fetched orders for export
+      const listForExport = [];
+      const ordersToFlatten = Array.isArray(allMatching) ? allMatching : (allMatching?.data || []);
+      ordersToFlatten.forEach(order => {
+        if (!order.items || order.items.length === 0) {
+          listForExport.push({
+            ...order,
+            uniqueRowId: `${order._id}_none`,
+            singleItem: null,
+            grossServiceCost: 0
+          });
+        } else {
+          order.items.forEach((item, index) => {
+            listForExport.push({
+              ...order,
+              uniqueRowId: `${order._id}_${item._id || index}`,
+              singleItem: item,
+              grossServiceCost: (item.quantity || 0) * (item.price || 0)
+            });
+          });
+        }
+      });
+
+      // Prepare Table Data
+      const tableColumn = ["Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Gross Service Cost", "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"];
+      const tableRows = listForExport.map(row => [
+        row.serviceZone || 'N/A',
+        row.orderId || row._id.slice(-6).toUpperCase(),
+        row.customer?.displayName || 'Unknown',
+        row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A',
+        row.singleItem ? JSON.stringify([{ item: row.singleItem.name, qty: row.singleItem.quantity, rate: row.singleItem.price }]) : '-',
+        row.status,
+        "-",
+        "-",
+        "-",
+        JSON.stringify(generateStatusHistory(row).map(h => ({
+          status: h.status,
+          time: h.timestamp ? new Date(h.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'
+        }))),
+        JSON.stringify(generateStatusDurations(generateStatusHistory(row))),
+        (() => {
+          const completedEntry = generateStatusHistory(row).find(h => (h.status || '').toUpperCase() === 'DELIVERED');
+          return completedEntry?.timestamp ? new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+        })(),
+        calculateTotalTurnaroundTime(row) || '-',
+        `Rs. ${row.grossServiceCost || 0}`,
+        `Rs. ${row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0)}`,
+        `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+        `Rs. ${Math.round(((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+        `Rs. ${row.totalAmount}`,
+        `Rs. ${Math.round((row.grossServiceCost || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+        `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100))}`,
+        (() => {
+          const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+          const platformGst = (row.priceBreakdown?.platformFee || 0) * (gstPercent / 100);
+          const vendorGst = ((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * (gstPercent / 100);
+          return `Rs. ${Math.round(platformGst + vendorGst)}`;
+        })(),
+        row.vendor?.shopDetails?.shopName || 'N/A',
+        new Date(row.createdAt).toLocaleDateString()
+      ]);
+      
+      // Generate Table
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 45,
+        styles: { fontSize: 8, font: 'helvetica' },
+        headStyles: { fillColor: [15, 23, 42], textColor: 255 }, // Slate-900
+        alternateRowStyles: { fillColor: [248, 250, 252] } // Slate-50
+      });
+      
+      doc.save(`EzofLife_Orders_${activeTab}_${new Date().getTime()}.pdf`);
+      console.log('PDF Download Started');
+    } catch (err) {
+      console.error('Export PDF error:', err);
+      alert('Error exporting PDF');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClearAllOrders = async () => {
@@ -301,33 +375,20 @@ export default function Orders() {
   };
 
   useEffect(() => {
-    fetchAllOrders();
+    fetchAllOrders(page);
+  }, [page, selectedZone, selectedCustomer, selectedStatus, startDate, endDate, activeTab]);
+
+  useEffect(() => {
     fetchZones();
   }, []);
 
   const uniqueZonesList = useMemo(() => {
-    const uniqueNames = new Set();
-    const list = [];
-    zones.forEach(z => {
-      const name = (z.zoneName || '').trim();
-      if (name && !uniqueNames.has(name.toLowerCase())) {
-        uniqueNames.add(name.toLowerCase());
-        list.push(z);
-      }
-    });
-    return list;
-  }, [zones]);
+    return backendServiceZones.map((name, idx) => ({ _id: idx, zoneName: name }));
+  }, [backendServiceZones]);
 
   const uniqueCustomersList = useMemo(() => {
-    const names = new Set();
-    allOrders.forEach(o => {
-      const name = (o.customer?.displayName || '').trim();
-      if (name) {
-        names.add(name);
-      }
-    });
-    return Array.from(names).sort();
-  }, [allOrders]);
+    return backendCustomerNames;
+  }, [backendCustomerNames]);
 
   const statusesList = useMemo(() => [
     'ORDER_PLACED', 
@@ -342,45 +403,7 @@ export default function Orders() {
     'CANCELLED'
   ], []);
 
-  const filteredOrders = useMemo(() => {
-    let list = allOrders;
-    
-    if (selectedStatus) {
-      list = list.filter(o => (o.status || '').toUpperCase() === selectedStatus.toUpperCase());
-    } else {
-      if (activeTab === 'Placed') {
-        list = allOrders.filter(o => o.status === 'ORDER_PLACED');
-      } else if (activeTab === 'Processing') {
-        list = allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(o.status));
-      } else if (activeTab === 'Delivered') {
-        list = allOrders.filter(o => o.status === 'DELIVERED');
-      } else if (activeTab === 'Cancelled') {
-        list = allOrders.filter(o => o.status === 'CANCELLED');
-      }
-    }
-
-    if (selectedZone) {
-      list = list.filter(o => (o.serviceZone || '').trim().toLowerCase() === selectedZone.trim().toLowerCase());
-    }
-
-    if (selectedCustomer) {
-      list = list.filter(o => (o.customer?.displayName || '').trim().toLowerCase() === selectedCustomer.trim().toLowerCase());
-    }
-
-    if (startDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      list = list.filter(o => new Date(o.createdAt) >= start);
-    }
-
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      list = list.filter(o => new Date(o.createdAt) <= end);
-    }
-
-    return list;
-  }, [activeTab, allOrders, selectedZone, selectedCustomer, selectedStatus, startDate, endDate]);
+  const filteredOrders = allOrders;
 
   const flattenedOrders = useMemo(() => {
     const list = [];
@@ -686,7 +709,10 @@ export default function Orders() {
             <div className="relative flex items-center">
               <select
                 value={selectedZone}
-                onChange={(e) => setSelectedZone(e.target.value)}
+                onChange={(e) => {
+                  setSelectedZone(e.target.value);
+                  setPage(1);
+                }}
                 className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
               >
                 <option value="">Zone</option>
@@ -703,7 +729,10 @@ export default function Orders() {
             <div className="relative flex items-center">
               <select
                 value={selectedCustomer}
-                onChange={(e) => setSelectedCustomer(e.target.value)}
+                onChange={(e) => {
+                  setSelectedCustomer(e.target.value);
+                  setPage(1);
+                }}
                 className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
               >
                 <option value="">Customer</option>
@@ -720,7 +749,10 @@ export default function Orders() {
             <div className="relative flex items-center">
               <select
                 value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setPage(1);
+                }}
                 className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
               >
                 <option value="">Status</option>
@@ -741,7 +773,10 @@ export default function Orders() {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
                 className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
               />
             </div>
@@ -750,7 +785,10 @@ export default function Orders() {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
                 className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
               />
             </div>
@@ -759,6 +797,7 @@ export default function Orders() {
                 onClick={() => {
                   setStartDate('');
                   setEndDate('');
+                  setPage(1);
                 }}
                 className="text-[9px] font-bold uppercase tracking-wider text-rose-600 hover:text-rose-700 px-3 py-1.5 transition-all bg-rose-50 hover:bg-rose-100/50 border border-rose-100 rounded-md"
               >
@@ -769,11 +808,21 @@ export default function Orders() {
         </div>
 
         {/* Order List */}
-        <DataGrid 
-          showHeader={false}
-          columns={orderColumns}
-          data={flattenedOrders}
-        />
+        <div className="w-full overflow-x-auto">
+          <DataGrid 
+            showHeader={false}
+            columns={orderColumns}
+            data={flattenedOrders}
+            minWidth="3200px"
+            loading={loading}
+            pagination={{
+              page,
+              totalPages,
+              total: totalOrders
+            }}
+            onPageChange={(newPage) => setPage(newPage)}
+          />
+        </div>
       </div>
 
       {/* Items List Modal */}

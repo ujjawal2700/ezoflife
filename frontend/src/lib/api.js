@@ -1256,9 +1256,14 @@ export const orderApi = {
             throw error;
         }
     },
-    getAllOrders: async () => {
+    getAllOrders: async (page = 1, limit = 10, filters = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/orders/all`);
+            const queryParams = new URLSearchParams({
+                page,
+                limit,
+                ...filters
+            }).toString();
+            const response = await fetch(`${BASE_URL}/orders/all?${queryParams}`);
             return await response.json();
         } catch (error) {
             console.error('Get All Orders Error:', error);

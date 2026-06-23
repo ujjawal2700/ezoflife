@@ -44,6 +44,7 @@ const getTomorrowDateString = () => {
 const WalkInOrderPage = () => {
     const navigate = useNavigate();
     const [customerPhone, setCustomerPhone] = useState('');
+    const [customerId, setCustomerId] = useState(null);
     const [customerName, setCustomerName] = useState('');
     const [tempName, setTempName] = useState('');
     const [otpValue, setOtpValue] = useState('');
@@ -579,6 +580,7 @@ const WalkInOrderPage = () => {
                         setTempName(dispName);
                         setCustomerName(dispName);
                         setIsVerified(true);
+                        setCustomerId(lookupRes.id || null);
                         
                         let rawAddress = lookupRes.address || '';
                         let cCity = lookupRes.city || '';
@@ -639,10 +641,12 @@ const WalkInOrderPage = () => {
                         setTempName(lookupRes.displayName);
                         setIsVerified(false);
                         setSavedCustomerAddress(null);
+                        setCustomerId(null);
                     } else {
                         setTempName('');
                         setIsVerified(false);
                         setSavedCustomerAddress(null);
+                        setCustomerId(null);
                     }
                 } catch (err) {
                     console.error('Lookup Phone Error:', err);
@@ -655,7 +659,14 @@ const WalkInOrderPage = () => {
                     setTempName('');
                     setIsVerified(false);
                     setSavedCustomerAddress(null);
+                    setCustomerId(null);
                 }
+            } else {
+                setIsVerified(false);
+                setCustomerId(null);
+                setSavedCustomerAddress(null);
+                setTempName('');
+                setCustomerName('');
             }
         }
     };
@@ -695,6 +706,7 @@ const WalkInOrderPage = () => {
                 setCustomerName(tempName.trim());
                 setIsVerified(true);
                 setShowOtpField(false);
+                setCustomerId(res.user?._id || res.user?.id || null);
                 toast.success(`Customer verified: ${tempName.trim()}`);
             } else {
                 toast.error(res.message || 'Verification failed');
@@ -900,7 +912,7 @@ const WalkInOrderPage = () => {
 
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    const handleCollectAndPrint = async () => {
+    const handleCollectAndPrint = async (razorpayPaymentId = null) => {
         if (!customerPhone || items.length === 0) return;
         
         if (enableDelivery && !isAddressComplete) {
@@ -926,6 +938,8 @@ const WalkInOrderPage = () => {
                 vendorId,
                 orderType: 'Walk-In',
                 riderDropOff: enableDelivery,
+                deliveryMode: enableDelivery ? (isExpress ? 'Express' : 'Normal') : 'Normal',
+                tier: selectedTier,
                 dropAddress: dropAddressStr,
                 deliveryTime: enableDelivery ? deliveryTime : 'N/A',
                 addressDetails: enableDelivery ? addressDetails : null,
@@ -941,6 +955,7 @@ const WalkInOrderPage = () => {
                 customerPhotos: uniquePhotos,
                 deliveryCharge: enableDelivery ? calculatedLogisticFee : 0,
                 logisticPaymentStatus: enableDelivery ? 'Paid Online' : 'N/A',
+                logisticPaymentId: razorpayPaymentId,
                 discountAmount: discount,
                 promoApplied: isPromoApplied ? promoCode : null
             };
@@ -949,16 +964,8 @@ const WalkInOrderPage = () => {
             setCreatedOrder(response);
             setShowReviewModal(false);
             
-            if (enableDelivery) {
-                setShowInvoice(true);
-                toast.success('Walk-In Order Created!');
-                setTimeout(() => {
-                    window.print();
-                }, 600);
-            } else {
-                toast.success('Order Started Successfully!');
-                navigate('/vendor/dashboard', { state: { initialTab: 'In Progress' } });
-            }
+            toast.success('Order Started Successfully!');
+            navigate('/vendor/dashboard', { state: { initialTab: 'In Progress' } });
         } catch (err) {
             console.error('Walk-In Creation Failure:', err);
             toast.error('Failed to generate order');
@@ -1010,7 +1017,7 @@ const WalkInOrderPage = () => {
                                         <div className="flex-1">
                                             <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">Delivery Mode</p>
                                             <p className="text-[10px] font-black text-white uppercase">
-                                                {enableDelivery ? 'Shiprocket' : 'Normal (Self)'}
+                                                {enableDelivery ? (isExpress ? 'Express' : 'Normal') : 'Normal (Self)'}
                                             </p>
                                         </div>
                                     </div>
@@ -1132,13 +1139,74 @@ const WalkInOrderPage = () => {
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
                                     type="button"
-                                    onClick={() => {
-                                        toast.loading('Simulating Payment Gateway for Logistic Fee...', { duration: 2000 });
-                                        setTimeout(() => {
-                                            handleCollectAndPrint();
-                                        }, 2000);
+                                    onClick={async () => {
+                                        const loadScript = (src) => {
+                                            return new Promise((resolve) => {
+                                                if (window.Razorpay) {
+                                                    resolve(true);
+                                                    return;
+                                                }
+                                                const script = document.createElement('script');
+                                                script.src = src;
+                                                script.onload = () => resolve(true);
+                                                script.onerror = () => resolve(false);
+                                                document.body.appendChild(script);
+                                            });
+                                        };
+
+                                        const loaded = await loadScript('https://checkout.razorpay.com/v1/checkout.js');
+                                        if (!loaded) {
+                                            toast.error('Razorpay SDK failed to load');
+                                            return;
+                                        }
+
+                                        setIsProcessing(true);
+                                        const rzpToast = toast.loading('Initiating Payment...');
+                                        try {
+                                            const rzpOrder = await orderApi.createRazorpayOrder({
+                                                amount: calculatedLogisticFee
+                                            });
+                                            
+                                            toast.dismiss(rzpToast);
+
+                                            if (!rzpOrder || !rzpOrder.id) {
+                                                toast.error('Failed to create payment order');
+                                                setIsProcessing(false);
+                                                return;
+                                            }
+
+                                            const options = {
+                                                key: rzpOrder.keyId,
+                                                amount: rzpOrder.amount,
+                                                currency: rzpOrder.currency,
+                                                name: 'EzOfLife',
+                                                description: `Walk-In Order Logistic Fee`,
+                                                order_id: rzpOrder.id,
+                                                handler: async function (response) {
+                                                    toast.success('Payment Received!');
+                                                    await handleCollectAndPrint(response.razorpay_payment_id);
+                                                },
+                                                prefill: {
+                                                    name: customerName || '',
+                                                    contact: customerPhone || ''
+                                                },
+                                                theme: { color: '#000000' },
+                                                modal: {
+                                                    ondismiss: function() {
+                                                        setIsProcessing(false);
+                                                    }
+                                                }
+                                            };
+
+                                            const paymentObject = new window.Razorpay(options);
+                                            paymentObject.open();
+                                        } catch (err) {
+                                            toast.dismiss(rzpToast);
+                                            toast.error('Payment initiation failed');
+                                            setIsProcessing(false);
+                                        }
                                     }}
-                                    disabled={isProcessing}
+                                    disabled={isProcessing || !calculatedLogisticFee}
                                     className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl transition-all text-center flex flex-col items-center justify-center gap-0.5"
                                 >
                                     <span>PAY NOW LOGISTIC FEE ONLY</span>
@@ -1297,6 +1365,10 @@ const WalkInOrderPage = () => {
                                 onClick={() => {
                                     setCustomerPhone('');
                                     setTempName('');
+                                    setCustomerName('');
+                                    setIsVerified(false);
+                                    setCustomerId(null);
+                                    setSavedCustomerAddress(null);
                                 }}
                                 className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:text-rose-700"
                             >
@@ -1349,7 +1421,6 @@ const WalkInOrderPage = () => {
                                     />
                                 </button>
                             </div>
-
 
                         </>
                     )}
@@ -1462,7 +1533,7 @@ const WalkInOrderPage = () => {
                 </section>
 
                 {/* Service Selection */}
-                <section className={`space-y-4 transition-all duration-300 ${customerPhone.length !== 10 || tempName.trim().length === 0 ? 'opacity-40 pointer-events-none' : ''}`}>
+                <section className={`space-y-4 transition-all duration-300 ${!isVerified ? 'opacity-40 pointer-events-none' : ''}`}>
 
                     {/* Consolidated Control Row (Tier & Schedule) */}
                     <div className="flex flex-row items-center justify-between gap-2 mb-4 px-0 w-full">
@@ -1758,7 +1829,7 @@ const WalkInOrderPage = () => {
                                     <div className="space-y-1 col-span-2 border-t border-slate-100 pt-3">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Delivery Mode</p>
                                         <p className="text-sm font-bold text-slate-800 tracking-tight text-wrap">
-                                            {createdOrder.riderDropOff ? `Shiprocket Delivery (Address: ${createdOrder.dropAddress})` : 'Self Delivery / Customer'}
+                                            {createdOrder.riderDropOff ? `${createdOrder.deliveryMode || (isExpress ? 'Express' : 'Normal')} Delivery (Address: ${createdOrder.dropAddress})` : 'Self Delivery / Customer'}
                                         </p>
                                     </div>
                                 </div>
@@ -1847,7 +1918,7 @@ const WalkInOrderPage = () => {
                                     </div>
 
                                     <div className="text-[10px] font-mono border-b border-slate-200 pb-4 space-y-0.5">
-                                        <p>DELIVERY MODE: {createdOrder.riderDropOff ? 'SHIPROCKET DELIVERY' : 'SELF / CUSTOMER'}</p>
+                                        <p>DELIVERY MODE: {createdOrder.riderDropOff ? `${(createdOrder.deliveryMode || (isExpress ? 'Express' : 'Normal')).toUpperCase()} DELIVERY` : 'SELF / CUSTOMER'}</p>
                                         {createdOrder.riderDropOff && (
                                             <p className="break-all whitespace-normal">DELIVERY ADDR: {createdOrder.dropAddress}</p>
                                         )}
@@ -1976,94 +2047,6 @@ const WalkInOrderPage = () => {
                                                 <span className="text-slate-900">WALK-IN STORE</span>
                                                 <span className="material-symbols-outlined text-slate-400 text-sm">lock</span>
                                             </button>
-                                        </div>
-
-                                        {/* Date Dropdown */}
-                                        <div className="relative">
-                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
-                                            <button 
-                                                onClick={() => setOpenDropdown(openDropdown === 'pickupDate' ? null : 'pickupDate')}
-                                                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
-                                            >
-                                                <span className={selectedPickupDate ? 'text-slate-900' : 'text-slate-300'}>
-                                                    {selectedPickupDate || 'Select Date'}
-                                                </span>
-                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'pickupDate' ? 'rotate-180' : ''}`}>expand_more</span>
-                                            </button>
-                                            
-                                            <AnimatePresence>
-                                                {openDropdown === 'pickupDate' && (
-                                                    <motion.div 
-                                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
-                                                    >
-                                                        <div className="max-h-32 overflow-y-auto font-sans">
-                                                            {availableDates.slice(0, 6).map((d, i) => (
-                                                                <button 
-                                                                    key={i}
-                                                                    onClick={() => {
-                                                                        setSelectedPickupDate(`${d.day}, ${d.date}`);
-                                                                        setOpenDropdown(null);
-                                                                    }}
-                                                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
-                                                                >
-                                                                    {d.day}, {d.date}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
-                                        </div>
-
-                                        {/* Time Dropdown */}
-                                        <div className="relative">
-                                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
-                                            <button 
-                                                onClick={() => setOpenDropdown(openDropdown === 'pickupTime' ? null : 'pickupTime')}
-                                                className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
-                                            >
-                                                <span className={selectedPickupTime ? 'text-slate-900' : 'text-slate-300'}>
-                                                    {selectedPickupTime || 'Select Time'}
-                                                </span>
-                                                <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'pickupTime' ? 'rotate-180' : ''}`}>expand_more</span>
-                                            </button>
-                                            
-                                            <AnimatePresence>
-                                                {openDropdown === 'pickupTime' && (
-                                                    <motion.div 
-                                                        initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                                                        className="absolute z-[6100] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
-                                                    >
-                                                        <div className="max-h-32 overflow-y-auto font-sans">
-                                                            {WALK_IN_TIME_SLOTS.filter(slot => {
-                                                                if (!selectedPickupDate || !selectedPickupDate.startsWith('TODAY')) return true;
-                                                                const [timePart] = slot.split(' - ');
-                                                                const [time, modifier] = timePart.split(' ');
-                                                                let [hours] = time.split(':');
-                                                                let h = parseInt(hours, 10);
-                                                                if (h === 12) h = 0;
-                                                                if (modifier === 'PM') h += 12;
-                                                                const now = new Date();
-                                                                const slotTime = new Date();
-                                                                slotTime.setHours(h, 0, 0, 0);
-                                                                return slotTime > new Date(now.getTime() + 60 * 60 * 1000);
-                                                            }).map((slot) => (
-                                                                <button 
-                                                                    key={slot}
-                                                                    onClick={() => {
-                                                                        setSelectedPickupTime(slot);
-                                                                        setOpenDropdown(null);
-                                                                    }}
-                                                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
-                                                                >
-                                                                    {slot}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
                                         </div>
                                     </div>
                                 </div>
@@ -2578,6 +2561,52 @@ const WalkInOrderPage = () => {
                                             return;
                                         }
                                         
+                                        // Save address instantly to DB if customerId exists
+                                        if (customerId) {
+                                            const rawType = addressDetails.type || 'HOME';
+                                            const formattedType = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+                                            const formattedAddress = `${addressDetails.flatNo ? addressDetails.flatNo + ', ' : ''}${addressDetails.street}`;
+                                            
+                                            const newAddressObj = {
+                                                type: formattedType,
+                                                address: formattedAddress,
+                                                city: addressDetails.city || '',
+                                                state: addressDetails.state || '',
+                                                pincode: addressDetails.pincode || '',
+                                                location: {
+                                                    lat: Number(addressDetails.lat) || 0,
+                                                    lng: Number(addressDetails.lng) || 0
+                                                },
+                                                isDefault: true
+                                            };
+
+                                            const updatedSavedAddress = {
+                                                type: formattedType,
+                                                flatNo: addressDetails.flatNo,
+                                                street: addressDetails.street,
+                                                city: addressDetails.city || '',
+                                                state: addressDetails.state || '',
+                                                pincode: addressDetails.pincode || '',
+                                                lat: Number(addressDetails.lat) || 0,
+                                                lng: Number(addressDetails.lng) || 0
+                                            };
+                                            setSavedCustomerAddress(updatedSavedAddress);
+
+                                            authApi.updateProfile(customerId, {
+                                                address: formattedAddress,
+                                                location: {
+                                                    lat: Number(addressDetails.lat) || 0,
+                                                    lng: Number(addressDetails.lng) || 0
+                                                },
+                                                addresses: [newAddressObj]
+                                            }).then(() => {
+                                                console.log('Customer address instantly persisted to DB successfully.');
+                                            }).catch((err) => {
+                                                console.error('Failed to persist customer address to DB:', err);
+                                                toast.error('Could not save address to customer profile on server');
+                                            });
+                                        }
+
                                         // Mock Logistic Fee API Simulation
                                         setIsCalculatingFee(true);
                                         const mockLoadingToast = toast.loading('Calculating Logistic Fee...');

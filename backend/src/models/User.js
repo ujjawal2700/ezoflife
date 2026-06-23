@@ -47,6 +47,7 @@ const userSchema = new mongoose.Schema({
         type: { type: String, enum: ['Home', 'Office', 'Other'], default: 'Home' },
         address: { type: String, required: true },
         city: { type: String, default: '' },
+        state: { type: String, default: '' },
         pincode: { type: String, default: '' },
         location: {
             lat: { type: Number, default: 0 },
