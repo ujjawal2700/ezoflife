@@ -39,6 +39,7 @@ import AdminSupplierRequestDetailPage from '../pages/AdminSupplierRequestDetailP
 import AdminVendorRequestDetailPage from '../pages/AdminVendorRequestDetailPage';
 import AdminBrandInquiries from '../pages/AdminBrandInquiries';
 import VendorServiceRequests from '../pages/VendorServiceRequests';
+import SupplierProductRequests from '../pages/SupplierProductRequests';
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
@@ -131,6 +132,7 @@ const AdminRoutes = () => {
         <Route path="/vendors/approvals" element={<OnboardingApprovals />} />
         <Route path="/vendors/requests/:id" element={<AdminVendorRequestDetailPage />} />
         <Route path="/vendor-service-requests" element={<VendorServiceRequests />} />
+        <Route path="/supplier-product-requests" element={<SupplierProductRequests />} />
         <Route path="/payments" element={<Payouts />} />
         <Route path="/pricing" element={<PricingConfig />} />
         <Route path="/services" element={<Services />} />

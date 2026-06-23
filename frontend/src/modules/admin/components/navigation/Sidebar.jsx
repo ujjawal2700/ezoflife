@@ -54,6 +54,7 @@ const navItems = [
                 ]
             },
             { icon: ClipboardList, label: 'Vendor Service Request', path: '/admin/vendor-service-requests' },
+            { icon: ClipboardList, label: 'Supplier Product Request', path: '/admin/supplier-product-requests' },
             { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
             { 
                 icon: CreditCard, 

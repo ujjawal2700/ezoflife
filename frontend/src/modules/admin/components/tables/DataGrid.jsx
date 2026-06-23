@@ -19,7 +19,8 @@ export default function DataGrid({
     showSearch = true,
     showHeader = true,
     onDownload,
-    minWidth = '800px'
+    minWidth = '800px',
+    maxHeight
 }) {
     const [searchTerm, setSearchTerm] = React.useState('');
 
@@ -88,7 +89,10 @@ export default function DataGrid({
             )}
 
             {/* Main Table Engine */}
-            <div className="overflow-x-auto relative z-10">
+            <div 
+                className="overflow-x-auto overflow-y-auto relative z-10"
+                style={maxHeight ? { maxHeight } : undefined}
+            >
                 <table className="w-full border-collapse text-left" style={{ minWidth }}>
                     <thead className={cn(
                         "bg-slate-50/50 border-b border-slate-200",

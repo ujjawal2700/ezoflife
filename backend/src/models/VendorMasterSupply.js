@@ -54,6 +54,15 @@ const vendorMasterSupplySchema = new mongoose.Schema({
         enum: ['y', 'n'],
         default: 'y'
     },
+    approvalStatus: {
+        type: String,
+        enum: ['Pending', 'Approved', 'Rejected'],
+        default: 'Pending'
+    },
+    adminMessage: {
+        type: String,
+        default: ''
+    },
     deliveryFrequency: {
         type: String,
         trim: true,
@@ -79,7 +88,11 @@ const vendorMasterSupplySchema = new mongoose.Schema({
     },
     images: [{
         type: String
-    }]
+    }],
+    description: {
+        type: String,
+        default: ''
+    }
 }, { timestamps: true });
 
 const VendorMasterSupply = mongoose.model('VendorMasterSupply', vendorMasterSupplySchema);

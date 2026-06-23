@@ -368,8 +368,8 @@ const Dashboard = () => {
     const categorizedOrders = useMemo(() => {
         return {
             'Available': [], // Pool orders are handled separately via poolOrders state
-            'In Progress': allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING'].includes(o.status)),
-            'Ready': allOrders.filter(o => ['READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(o.status))
+            'In Progress': allOrders.filter(o => ['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY'].includes(o.status)),
+            'Ready': allOrders.filter(o => ['DELIVERED'].includes(o.status))
         };
     }, [allOrders]);
 

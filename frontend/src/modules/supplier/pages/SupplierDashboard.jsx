@@ -274,8 +274,7 @@ const SupplierDashboard = () => {
 
     const newRequestsCount = useMemo(() => {
         return orders.filter(o => 
-            ['SUBMITTED', 'Confirmed', 'Open', 'Pending'].includes(o.status) && 
-            isToday(o.createdAt)
+            ['SUBMITTED', 'Confirmed', 'Open', 'Pending'].includes(o.status)
         ).length;
     }, [orders]);
 
@@ -383,9 +382,9 @@ const SupplierDashboard = () => {
                                 { label: 'Total Payouts received', value: `₹${totalPayoutsReceived.toLocaleString('en-IN')}` },
                                 { label: 'Ready for delivery', value: readyForDeliveryCount },
                             ].map((stat, idx) => (
-                                <div key={idx} className={`flex items-center justify-between py-1.5 px-5 rounded-full border min-h-[38px] transition-colors ${stat.highlight ? 'bg-red-500/10 border-red-500/50 hover:bg-red-500/20' : 'bg-black border-white hover:border-white/80'}`}>
+                                <div key={idx} className={`flex items-center justify-between py-2 px-4 rounded-2xl border min-h-[44px] transition-colors ${stat.highlight ? 'bg-red-500/10 border-red-500/50 hover:bg-red-500/20' : 'bg-black border-white hover:border-white/80'}`}>
                                     <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                        <span className={`text-[11px] font-medium leading-tight line-clamp-1 ${stat.highlight ? 'text-red-400' : 'text-zinc-300'}`}>
+                                        <span className={`text-[10px] font-bold leading-snug line-clamp-2 ${stat.highlight ? 'text-red-400' : 'text-zinc-300'}`}>
                                             {stat.label}
                                         </span>
                                     </div>
@@ -583,7 +582,7 @@ const SupplierDashboard = () => {
 
                                             {/* Dark summary box */}
                                             <div className="bg-[#090F21] text-white rounded-[1.8rem] p-5 shadow-xl relative overflow-hidden group border border-white/5">
-                                                <div className="absolute right-0 top-0 p-4 opacity-[0.03] rotate-12 pointer-events-none">
+                                                <div className="absolute right-0 top-0 p-4 opacity-[0.03] pointer-events-none">
                                                     <span className="material-symbols-outlined text-[60px]">local_shipping</span>
                                                 </div>
                                                 
@@ -637,31 +636,24 @@ const SupplierDashboard = () => {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Vendor Address Row */}
-                                                    <div className="mt-1 pt-3 border-t border-white/10 flex items-start gap-2">
-                                                        <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0 mt-0.5">location_on</span>
-                                                        <div className="min-w-0 flex-1">
-                                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">VENDOR ADDRESS</p>
-                                                            <p className="text-[10px] font-black text-white leading-relaxed break-words">
-                                                                {order.shippingAddress || order.vendor?.shopDetails?.address || 'N/A'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Row 2: Price at the bottom right corner */}
-                                                    <div className="flex justify-end mt-1.5">
-                                                        <div className="text-right shrink-0">
-                                                            <span className="text-[22px] font-black text-white tracking-tight">₹{order.totalAmount}</span>
+                                                            {/* Vendor Address */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">location_on</span>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">VENDOR ADDRESS</p>
+                                                                    <p className="text-[10px] font-black text-white uppercase truncate" title={order.shippingAddress || order.vendor?.shopDetails?.address || 'N/A'}>
+                                                                        {order.shippingAddress || order.vendor?.shopDetails?.address || 'N/A'}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* More Button */}
-                                            <div className="flex justify-end mt-1">
+                                            {/* Bottom Row: Price and More Button */}
+                                            <div className="flex items-center justify-between px-1 mt-1">
+                                                <span className="text-[20px] font-black text-slate-900">₹{order.totalAmount}</span>
                                                 <button 
                                                     onClick={() => {
                                                         setSelectedOrder(order);

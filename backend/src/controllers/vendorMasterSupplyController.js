@@ -45,7 +45,33 @@ const populateDeliveryFrequencies = async (supplies) => {
         supplyObj.zoneName = '-';
         
         logToFile(`supplyObj details: ID=${supplyObj._id}, supplierId=${supplyObj.supplierId}, supplierFacilityName=${supplyObj.supplierFacilityName}`);
+        let hasMasterProduct = false;
         if (supplyObj.supplierId && supplyObj.supplierId !== '-') {
+            // The category MUST be active for the buttons to show.
+            if (supplyObj.categoryId && supplyObj.categoryId.isActive === true) {
+                hasMasterProduct = true;
+                
+                // Find template item to fallback images & description
+                const templateItem = await VendorMasterSupply.findOne({ 
+                    materialName: { $regex: new RegExp(`^${supplyObj.materialName.trim()}$`, 'i') }, 
+                    supplierId: '-' 
+                });
+                if (templateItem) {
+                    if (!supplyObj.images || supplyObj.images.length === 0) {
+                        supplyObj.images = templateItem.images || [];
+                    }
+                    if (!supplyObj.description || supplyObj.description.trim() === '') {
+                        supplyObj.description = templateItem.description || '';
+                    }
+                }
+            }
+        } else {
+            hasMasterProduct = true;
+        }
+        supplyObj.hasMasterProduct = hasMasterProduct;
+
+        if (supplyObj.supplierId && supplyObj.supplierId !== '-') {
+
             const zone = await SupplierServiceZone.findOne({ supplierId: supplyObj.supplierId });
             if (zone) {
                 supplyObj.zoneName = zone.zoneName;
@@ -75,15 +101,40 @@ export const vendorMasterSupplyController = {
     create: async (req, res) => {
         try {
             const { 
-                materialName, categoryId, hsnCode, gst, brand, quantity, 
+                materialName, categoryId, categoryName, subCategoryName, hsnCode, gst, brand, quantity, 
                 wholesaleRate, bulkDiscount, bulkThreshold, isActive, 
-                deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName 
+                deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName,
+                description, images
             } = req.body;
             
-            // 1. Fetch category
-            const category = await VendorSupplyCategory.findById(categoryId);
+            // 1. Fetch or create category
+            let category = null;
+            if (categoryId) {
+                category = await VendorSupplyCategory.findById(categoryId);
+            } else if (categoryName && subCategoryName) {
+                const mainCat = categoryName.trim();
+                const subCat = subCategoryName.trim();
+                
+                category = await VendorSupplyCategory.findOne({
+                    mainCategory: { $regex: new RegExp(`^${mainCat}$`, 'i') },
+                    subCategory: { $regex: new RegExp(`^${subCat}$`, 'i') }
+                });
+                
+                if (!category) {
+                    const lastCategory = await VendorSupplyCategory.findOne({ excelCategoryId: { $ne: null } }).sort({ excelCategoryId: -1 });
+                    const nextId = (lastCategory?.excelCategoryId || 0) + 1;
+                    category = new VendorSupplyCategory({
+                        mainCategory: mainCat,
+                        subCategory: subCat,
+                        excelCategoryId: nextId,
+                        isActive: false
+                    });
+                    await category.save();
+                }
+            }
+
             if (!category) {
-                return res.status(404).json({ message: 'Selected Category does not exist' });
+                return res.status(404).json({ message: 'Selected Category does not exist and no categoryName/subCategoryName provided' });
             }
 
             // 2. Determine serial number
@@ -95,7 +146,7 @@ export const vendorMasterSupplyController = {
 
             const supply = new VendorMasterSupply({
                 skuId,
-                categoryId,
+                categoryId: category._id,
                 hsnCode,
                 gst,
                 brand,
@@ -105,11 +156,14 @@ export const vendorMasterSupplyController = {
                 bulkDiscount,
                 bulkThreshold,
                 isActive: isActive || 'y',
+                approvalStatus: supplierId === '-' ? 'Approved' : 'Pending',
                 deliveryFrequency,
                 movFreeDelivery,
                 supplierId,
                 supplierFacilityName,
-                serialNumber: nextSerial
+                serialNumber: nextSerial,
+                description: description || '',
+                images: images || []
             });
 
             await supply.save();
@@ -142,9 +196,12 @@ export const vendorMasterSupplyController = {
 
     getAll: async (req, res) => {
         try {
-            const { page, limit, materialName, categoryId, isActive, brand, supplierId, isTemplate, deliveryFrequency, wholesaleRate } = req.query;
+            const { page, limit, materialName, categoryId, isActive, brand, supplierId, isTemplate, deliveryFrequency, wholesaleRate, approvalStatus } = req.query;
             
             let query = {};
+            if (approvalStatus) {
+                query.approvalStatus = approvalStatus;
+            }
             if (materialName) {
                 query.materialName = { $regex: materialName, $options: 'i' };
             }
@@ -236,7 +293,9 @@ export const vendorMasterSupplyController = {
             const { 
                 materialName, categoryId, hsnCode, gst, brand, quantity, 
                 wholesaleRate, bulkDiscount, bulkThreshold, isActive, 
-                deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName 
+                approvalStatus, adminMessage,
+                deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName,
+                description, images
             } = req.body;
 
             const existing = await VendorMasterSupply.findById(id);
@@ -247,7 +306,9 @@ export const vendorMasterSupplyController = {
             const updates = { 
                 materialName, hsnCode, gst, brand, quantity, 
                 wholesaleRate, bulkDiscount, bulkThreshold, isActive, 
-                deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName 
+                approvalStatus, adminMessage,
+                deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName,
+                description, images
             };
 
             // If category changed, update skuId
@@ -451,6 +512,7 @@ export const vendorMasterSupplyController = {
             // 4. Find all active supplies in VendorMasterSupply belonging to these suppliers
             const query = {
                 isActive: 'y',
+                approvalStatus: { $in: ['Approved', null, undefined] },
                 supplierId: { $in: supplierIds }
             };
 

@@ -11,19 +11,17 @@ const parseSupplierInfo = (facilityName, phoneFromItem) => {
     let name = facilityName || '';
     let phone = phoneFromItem || '';
 
-    // Extract 10-digit number from name if phone is not already provided
-    if (!phone) {
-        const match = name.match(/\b\d{10}\b/);
-        if (match) {
-            phone = match[0];
-            name = name.replace(match[0], '').trim();
-        } else {
-            // Also try matching any sequence of 4-9 digits at the end if it's a test suffix
-            const shortMatch = name.match(/\b\d{4,9}\b/);
-            if (shortMatch) {
-                phone = shortMatch[0];
-                name = name.replace(shortMatch[0], '').trim();
-            }
+    // Find and strip any 10-digit phone number from the name
+    const match = name.match(/\b\d{10}\b/);
+    if (match) {
+        if (!phone) phone = match[0];
+        name = name.replace(match[0], '').trim();
+    } else {
+        // Also try matching any sequence of 4-9 digits at the end if it's a test suffix
+        const shortMatch = name.match(/\b\d{4,9}\b/);
+        if (shortMatch) {
+            if (!phone) phone = shortMatch[0];
+            name = name.replace(shortMatch[0], '').trim();
         }
     }
     

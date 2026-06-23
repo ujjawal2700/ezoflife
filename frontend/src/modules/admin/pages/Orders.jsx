@@ -965,12 +965,13 @@ export default function Orders() {
         </div>
 
         {/* Order List */}
-        <div className="w-full overflow-x-auto">
+        <div className="w-full">
           <DataGrid 
             showHeader={false}
             columns={orderColumns}
             data={flattenedOrders}
             minWidth="3200px"
+            maxHeight="calc(100vh - 280px)"
             loading={loading}
             pagination={{
               page,

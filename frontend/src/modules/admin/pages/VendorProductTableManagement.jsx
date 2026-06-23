@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { vendorMasterSupplyApi, vendorSupplyCategoryApi } from '../../../lib/api';
+import { vendorMasterSupplyApi, vendorSupplyCategoryApi, mediaApi } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
@@ -31,7 +31,9 @@ const VendorProductTableManagement = () => {
         deliveryFrequency: 'Weekly',
         movFreeDelivery: '0',
         supplierId: 'SUP-001',
-        supplierFacilityName: 'Main Facility'
+        supplierFacilityName: 'Main Facility',
+        description: '',
+        images: []
     });
 
     const [filters, setFilters] = useState({
@@ -282,7 +284,9 @@ const VendorProductTableManagement = () => {
                 deliveryFrequency: supply.deliveryFrequency || 'Weekly',
                 movFreeDelivery: supply.movFreeDelivery || '0',
                 supplierId: supply.supplierId || 'SUP-001',
-                supplierFacilityName: supply.supplierFacilityName || 'Main Facility'
+                supplierFacilityName: supply.supplierFacilityName || 'Main Facility',
+                description: supply.description || '',
+                images: supply.images || []
             });
         } else {
             setEditingSupply(null);
@@ -300,10 +304,50 @@ const VendorProductTableManagement = () => {
                 deliveryFrequency: '-',
                 movFreeDelivery: '0',
                 supplierId: '-',
-                supplierFacilityName: '-'
+                supplierFacilityName: '-',
+                description: '',
+                images: []
             });
         }
         setIsModalOpen(true);
+    };
+
+    const [uploadingImages, setUploadingImages] = useState(false);
+
+    const handleImageUpload = async (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length === 0) return;
+        
+        setUploadingImages(true);
+        try {
+            const uploadedUrls = [];
+            for (const file of files) {
+                const formDataPayload = new FormData();
+                formDataPayload.append('media', file);
+                const res = await mediaApi.upload(formDataPayload);
+                if (res.url) {
+                    uploadedUrls.push(res.url);
+                }
+            }
+            setFormData(prev => ({
+                ...prev,
+                images: [...(prev.images || []), ...uploadedUrls]
+            }));
+            toast.success('Images uploaded successfully!');
+        } catch (error) {
+            console.error('Upload Error:', error);
+            toast.error('Failed to upload images');
+        } finally {
+            setUploadingImages(false);
+            e.target.value = ''; // Reset file input
+        }
+    };
+
+    const handleRemoveImage = (indexToRemove) => {
+        setFormData(prev => ({
+            ...prev,
+            images: (prev.images || []).filter((_, idx) => idx !== indexToRemove)
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -414,6 +458,36 @@ const VendorProductTableManagement = () => {
             key: 'materialName',
             render: (val) => (
                 <span className="font-bold uppercase tracking-tight text-slate-800 whitespace-nowrap">{val}</span>
+            )
+        },
+        {
+            header: 'Images',
+            key: 'images',
+            render: (val) => {
+                if (!val || val.length === 0) {
+                    return <span className="text-slate-400 text-[10px] italic">No images</span>;
+                }
+                return (
+                    <div className="flex items-center gap-1 max-w-[120px] overflow-x-auto py-1">
+                        {val.map((url, idx) => (
+                            <img 
+                                key={idx} 
+                                src={url} 
+                                alt="supply preview" 
+                                className="w-8 h-8 rounded border border-slate-200 object-cover flex-shrink-0"
+                            />
+                        ))}
+                    </div>
+                );
+            }
+        },
+        {
+            header: 'Description',
+            key: 'description',
+            render: (val) => (
+                <span className="text-[10px] text-slate-500 font-medium line-clamp-2 max-w-[200px]" title={val}>
+                    {val || '—'}
+                </span>
             )
         },
         {
@@ -629,6 +703,53 @@ const VendorProductTableManagement = () => {
                                         <option value="y">Active (Y)</option>
                                         <option value="n">Inactive (N)</option>
                                     </select>
+                                </div>
+
+                                <div className="space-y-1.5 col-span-2">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Description</label>
+                                    <textarea
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        placeholder="Enter detailed description of the supply product..."
+                                        rows={3}
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-2 col-span-2">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Images</label>
+                                    <div className="flex flex-wrap gap-3 p-4 border border-dashed border-slate-200 rounded-sm bg-slate-50/50">
+                                        {formData.images && formData.images.map((url, idx) => (
+                                            <div key={idx} className="relative w-20 h-20 group border border-slate-200 rounded-sm bg-white overflow-hidden shadow-sm">
+                                                <img src={url} alt="product" className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveImage(idx)}
+                                                    className="absolute -top-1.5 -right-1.5 bg-red-500 hover:bg-red-650 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                                    title="Remove Image"
+                                                >
+                                                    <X size={10} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <label className={`w-20 h-20 flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-sm cursor-pointer hover:bg-white hover:border-slate-900 transition-all relative ${uploadingImages ? 'pointer-events-none opacity-50' : ''}`}>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                            />
+                                            {uploadingImages ? (
+                                                <Loader2 size={16} className="animate-spin text-slate-400" />
+                                            ) : (
+                                                <>
+                                                    <Plus size={16} className="text-slate-400" />
+                                                    <span className="text-[8px] font-black text-slate-400 uppercase mt-1">Upload</span>
+                                                </>
+                                            )}
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 

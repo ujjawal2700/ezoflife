@@ -33,6 +33,30 @@ const SupplierOrderDetails = () => {
         'Cancelled': { label: 'Cancelled by Buyer', emoji: '💣', color: 'bg-red-50 text-red-600 border-red-200' }
     };
 
+    const formatB2BDate = (dateInput) => {
+        if (!dateInput) return 'N/A';
+        const d = new Date(dateInput);
+        if (isNaN(d.getTime())) return 'N/A';
+        const day = d.getDate();
+        const month = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
+        const year = d.getFullYear();
+        return `${day} ${month} ${year}`;
+    };
+
+    const formatReceivedDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/A';
+        const day = date.getDate();
+        const month = date.toLocaleString('en-US', { month: 'short' });
+        let hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${day} ${month}, ${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    };
+
     const getStatusLabel = (status) => b2bStatusMapSupplier[status]?.label || status;
     const getStatusIcon = (status) => b2bStatusMapSupplier[status]?.emoji || '📥';
     const getStatusColor = (status) => b2bStatusMapSupplier[status]?.color || 'bg-slate-500 text-white';
@@ -164,6 +188,16 @@ const SupplierOrderDetails = () => {
         return '';
     };
 
+    const resolveImageUrl = (img) => {
+        if (!img) return '';
+        if (typeof img === 'string') {
+            if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:')) return img;
+            return `${UPLOADS_URL}${img}`;
+        }
+        if (img.url) return img.url;
+        return '';
+    };
+
     if (loading) {
         return (
             <div className="bg-[#F8FAFC] font-body min-h-screen flex flex-col overflow-x-hidden">
@@ -283,62 +317,59 @@ const SupplierOrderDetails = () => {
 
                 {/* DARK CONCISE ORDER SUMMARY CARD */}
                 <div className="px-6 pb-4">
-                    <div className="bg-slate-950 text-white rounded-[1.8rem] p-4.5 shadow-xl relative overflow-hidden group border border-white/5">
-                        <div className="absolute right-0 top-0 p-4 opacity-[0.03] rotate-12 pointer-events-none">
-                            <span className="material-symbols-outlined text-[60px]">receipt_long</span>
+                    <div className="bg-slate-950 text-white rounded-[1.8rem] p-5 shadow-xl relative overflow-hidden group border border-white/5">
+                        <div className="absolute right-0 top-0 p-4 opacity-[0.03] pointer-events-none">
+                            <span className="material-symbols-outlined text-[60px]">local_shipping</span>
                         </div>
                         
-                        <div className="grid grid-cols-[1.1fr_1.4fr] gap-3.5 relative z-10">
-                            {/* Left Side: Tier & Mode */}
-                            <div className="space-y-3.5">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                        <span className="material-symbols-outlined text-white/60 text-[12px]">workspace_premium</span>
+                        <div className="relative z-10 flex flex-col gap-4 text-left">
+                            <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                                {/* Left Column */}
+                                <div className="space-y-4">
+                                    {/* Submitted Date */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">schedule</span>
+                                        <div className="min-w-0">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">DATE & TIME RECEIVED</p>
+                                            <p className="text-[10px] font-black text-white uppercase truncate">
+                                                {formatReceivedDate(order.createdAt)}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Tier</p>
-                                        <p className="text-[10px] font-black text-white uppercase">B2B Wholesale</p>
+                                    {/* Delivery Date */}
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">calendar_today</span>
+                                        <div className="min-w-0">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TIME FOR DELIVERY</p>
+                                            <p className="text-[10px] font-black text-white uppercase truncate">
+                                                {order.deliveryDate ? formatB2BDate(order.deliveryDate) : 'N/A'}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                        <span className="material-symbols-outlined text-white/60 text-[12px]">bolt</span>
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-0.5">Delivery Mode</p>
-                                        <p className="text-[10px] font-black text-white uppercase">Consolidated</p>
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* Right Side: Cycle ID, Delivery Day & Price */}
-                            <div className="space-y-3.5 flex flex-col justify-between">
-                                <div className="space-y-3.5">
+                                {/* Right Column */}
+                                <div className="space-y-4">
+                                    {/* Vendor Name */}
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                            <span className="material-symbols-outlined text-white/60 text-[12px]">calendar_today</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0 text-left">
-                                            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1.5 whitespace-nowrap">Cycle ID</p>
-                                            <p className="text-[9px] font-black text-white uppercase truncate mt-0.5">
-                                                {order.cycleId || 'N/A'}
+                                        <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">store</span>
+                                        <div className="min-w-0">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">VENDOR NAME</p>
+                                            <p className="text-[10px] font-black text-white uppercase truncate">
+                                                {order.vendor?.displayName || 'UNKNOWN VENDOR'}
                                             </p>
                                         </div>
                                     </div>
+                                    {/* Vendor Location */}
                                     <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
-                                            <span className="material-symbols-outlined text-white/60 text-[12px]">local_shipping</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0 text-left">
-                                            <p className="text-[7px] font-black text-white/30 uppercase tracking-widest leading-none mb-1.5 whitespace-nowrap">Delivery Day</p>
-                                            <p className="text-[9px] font-black text-white uppercase truncate mt-0.5">
-                                                {order.deliveryDay || 'N/A'}
+                                        <span className="material-symbols-outlined text-white/70 text-[20px] shrink-0">location_on</span>
+                                        <div className="min-w-0">
+                                            <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">VENDOR LOCATION</p>
+                                            <p className="text-[10px] font-black text-white uppercase truncate">
+                                                {order.vendor?.shopDetails?.city || order.city || 'Local'}
                                             </p>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex justify-end items-end mt-auto">
-                                    <span className="text-[18px] font-black text-white tracking-tight">₹{order.totalAmount}</span>
                                 </div>
                             </div>
                         </div>
@@ -369,11 +400,51 @@ const SupplierOrderDetails = () => {
                 {/* PRODUCT DETAIL ITEMS */}
                 <section className="flex flex-col gap-4">
                     {order.items?.map((item, i) => {
+                        const itemImages = item.materialId?.images || [];
+                        const description = item.materialId?.description || '';
                         return (
-                            <div key={i} className="bg-white rounded-3xl border border-slate-100 p-5 shadow-sm">
-                                <div className="flex justify-between items-center bg-slate-50 px-3 py-2 rounded-xl border border-slate-100">
-                                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-wide leading-none">{item.name}</p>
-                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-200/60 px-2.5 py-1 rounded-md">QTY: {item.quantity}</span>
+                            <div key={i} className="bg-white rounded-[2rem] border border-slate-100 p-5 shadow-sm space-y-4">
+                                <div className="flex justify-between items-center bg-slate-50 px-4 py-3 rounded-2xl border border-slate-100">
+                                    <p className="text-xs font-black text-slate-800 uppercase tracking-wide leading-none">{item.name}</p>
+                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest bg-slate-200/60 px-2.5 py-1 rounded-md leading-none">QTY: {item.quantity}</span>
+                                </div>
+
+                                {/* Images Slider */}
+                                {itemImages.length > 0 && (
+                                    <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                                        {itemImages.map((img, imgIdx) => {
+                                            const resolvedUrl = resolveImageUrl(img);
+                                            return (
+                                                <img
+                                                    key={imgIdx}
+                                                    src={resolvedUrl}
+                                                    alt={`${item.name}-${imgIdx}`}
+                                                    className="w-16 h-16 rounded-xl object-cover border border-slate-100 cursor-pointer shadow-sm active:scale-95 transition-transform shrink-0"
+                                                    onClick={() => setSelectedImage(resolvedUrl)}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Description */}
+                                {description && (
+                                    <div className="bg-slate-50/50 rounded-2xl p-3.5 border border-slate-100/50">
+                                        <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1.5">Description</p>
+                                        <p className="text-[10px] font-bold text-slate-600 leading-relaxed">{description}</p>
+                                    </div>
+                                )}
+
+                                {/* Price breakdown */}
+                                <div className="flex justify-between items-center pt-2.5 border-t border-slate-50">
+                                    <div>
+                                        <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Unit Price</p>
+                                        <p className="text-[11px] font-black text-slate-800">₹{item.price}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[7.5px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Price</p>
+                                        <p className="text-[11px] font-black text-slate-900 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">₹{item.price * item.quantity}</p>
+                                    </div>
                                 </div>
                             </div>
                         );

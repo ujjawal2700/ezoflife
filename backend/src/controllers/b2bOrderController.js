@@ -615,7 +615,27 @@ export const getB2BOrderById = async (req, res) => {
             .populate('supplier', 'displayName phone supplierDetails location')
             .populate('items.materialId');
         if (!order) return res.status(404).json({ message: 'Order not found' });
-        res.status(200).json(order);
+
+        const orderObj = order.toObject();
+        const VendorMasterSupply = (await import('../models/VendorMasterSupply.js')).default;
+        
+        for (const item of orderObj.items) {
+            if (item.materialId) {
+                if (!item.materialId.images || item.materialId.images.length === 0 || !item.materialId.description || item.materialId.description.trim() === '') {
+                    const templateItem = await VendorMasterSupply.findOne({ materialName: item.materialId.materialName, supplierId: '-' });
+                    if (templateItem) {
+                        if (!item.materialId.images || item.materialId.images.length === 0) {
+                            item.materialId.images = templateItem.images || [];
+                        }
+                        if (!item.materialId.description || item.materialId.description.trim() === '') {
+                            item.materialId.description = templateItem.description || '';
+                        }
+                    }
+                }
+            }
+        }
+
+        res.status(200).json(orderObj);
     } catch (err) {
         console.error('Fetch B2B Order Error:', err);
         res.status(500).json({ message: 'Error fetching order details' });

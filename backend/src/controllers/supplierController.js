@@ -339,6 +339,7 @@ export const finalApproveApplication = async (req, res) => {
                             bulkDiscount: selectedItem.bulkDiscount || 0,
                             bulkThreshold: selectedItem.bulkThreshold || 0,
                             isActive: 'y',
+                            approvalStatus: 'Approved',
                             deliveryFrequency: (application.deliveryFrequency && application.deliveryFrequency.length > 0)
                                 ? application.deliveryFrequency.join(', ')
                                 : '-',
