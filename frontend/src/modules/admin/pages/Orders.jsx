@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, Search, Download, Filter, FileText, PlusCircle, ExternalLink, User, Store, Calendar, ArrowRight, Eye, Edit3, Trash2, ChevronDown } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
@@ -140,6 +141,7 @@ export default function Orders() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
   
   // Pagination State
   const [page, setPage] = useState(1);
@@ -293,7 +295,7 @@ export default function Orders() {
         })(),
         calculateTotalTurnaroundTime(row) || '-',
         `Rs. ${row.grossServiceCost || 0}`,
-        `Rs. ${row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0)}`,
+        `Rs. ${row.orderType === 'Walk-In' ? (row.deliveryCharge || 0) : (row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0))}`,
         `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
         `Rs. ${Math.round(((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
         `Rs. ${row.totalAmount}`,
@@ -324,6 +326,123 @@ export default function Orders() {
     } catch (err) {
       console.error('Export PDF error:', err);
       alert('Error exporting PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportFile = async (format) => {
+    console.log(`Exporting ${format} for:`, activeTab);
+    try {
+      setLoading(true);
+      // Fetch all matching orders (without pagination limit) for export
+      const allMatching = await orderApi.getAllOrders(undefined, undefined, {
+        zone: selectedZone,
+        customer: selectedCustomer,
+        status: selectedStatus,
+        startDate,
+        endDate,
+        activeTab
+      });
+
+      const listForExport = [];
+      const ordersToFlatten = Array.isArray(allMatching) ? allMatching : (allMatching?.data || []);
+      ordersToFlatten.forEach(order => {
+        if (!order.items || order.items.length === 0) {
+          listForExport.push({
+            ...order,
+            uniqueRowId: `${order._id}_none`,
+            singleItem: null,
+            grossServiceCost: 0
+          });
+        } else {
+          order.items.forEach((item, index) => {
+            listForExport.push({
+              ...order,
+              uniqueRowId: `${order._id}_${item._id || index}`,
+              singleItem: item,
+              grossServiceCost: (item.quantity || 0) * (item.price || 0)
+            });
+          });
+        }
+      });
+
+      const headers = [
+        "Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", 
+        "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", 
+        "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", 
+        "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Gross Service Cost", 
+        "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", 
+        "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"
+      ];
+      
+      const rows = listForExport.map(row => [
+        row.serviceZone || 'N/A',
+        row.orderId || row._id.slice(-6).toUpperCase(),
+        row.customer?.displayName || 'Unknown',
+        row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A',
+        row.singleItem ? JSON.stringify([{ item: row.singleItem.name, qty: row.singleItem.quantity, rate: row.singleItem.price }]) : '-',
+        row.status,
+        "-",
+        "-",
+        "-",
+        JSON.stringify(generateStatusHistory(row).map(h => ({
+          status: h.status,
+          time: h.timestamp ? new Date(h.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'
+        }))),
+        JSON.stringify(generateStatusDurations(generateStatusHistory(row))),
+        (() => {
+          const completedEntry = generateStatusHistory(row).find(h => (h.status || '').toUpperCase() === 'DELIVERED');
+          return completedEntry?.timestamp ? new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
+        })(),
+        calculateTotalTurnaroundTime(row) || '-',
+        row.grossServiceCost || 0,
+        row.orderType === 'Walk-In' ? (row.deliveryCharge || 0) : (row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0)),
+        Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100)),
+        Math.round(((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * ((row.tier === 'Heritage' ? 18 : 5) / 100)),
+        row.totalAmount,
+        Math.round((row.grossServiceCost || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100)),
+        Math.round((row.priceBreakdown?.platformFee || 0) * (1 + (row.tier === 'Heritage' ? 18 : 5) / 100)),
+        (() => {
+          const gstPercent = row.tier === 'Heritage' ? 18 : 5;
+          const platformGst = (row.priceBreakdown?.platformFee || 0) * (gstPercent / 100);
+          const vendorGst = ((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * (gstPercent / 100);
+          return Math.round(platformGst + vendorGst);
+        })(),
+        row.vendor?.shopDetails?.shopName || 'N/A',
+        new Date(row.createdAt).toLocaleDateString()
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Auto-fit column widths to prevent text clipping in Excel
+      ws['!cols'] = headers.map((header, colIndex) => {
+        let maxLen = header.length;
+        rows.forEach(row => {
+          const val = row[colIndex];
+          if (val !== undefined && val !== null) {
+            const strVal = String(val);
+            if (strVal.length > maxLen) {
+              maxLen = strVal.length;
+            }
+          }
+        });
+        // Set column width with a minimum of 12 and maximum of 50 characters (caps JSON/history fields)
+        return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Orders Detail');
+
+      if (format === 'excel') {
+        XLSX.writeFile(wb, `EzofLife_Orders_Detail_${activeTab}_${new Date().getTime()}.xlsx`);
+      } else if (format === 'csv') {
+        XLSX.writeFile(wb, `EzofLife_Orders_Detail_${activeTab}_${new Date().getTime()}.csv`, { bookType: 'csv' });
+      }
+      console.log(`${format.toUpperCase()} Download Finished`);
+    } catch (err) {
+      console.error(`Export ${format} error:`, err);
+      alert(`Error exporting to ${format}`);
     } finally {
       setLoading(false);
     }
@@ -595,7 +714,7 @@ export default function Orders() {
       key: 'priceBreakdown',
       align: 'right',
       render: (val, row) => {
-        const fee = val?.logisticsFee !== undefined ? val.logisticsFee : (row.deliveryCharge || 0);
+        const fee = row.orderType === 'Walk-In' ? (row.deliveryCharge || 0) : (val?.logisticsFee !== undefined ? val.logisticsFee : (row.deliveryCharge || 0));
         return (
           <span className="font-bold text-slate-900 tabular-nums text-xs">
             ₹{fee.toLocaleString()}
@@ -696,7 +815,45 @@ export default function Orders() {
       <PageHeader 
         title="" 
         actions={[
-          { label: 'Export Order List', icon: FileText, variant: 'secondary', onClick: handleExportPDF }
+          {
+            customComponent: (
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  <FileText size={13} />
+                  Export Order Detail
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${showExportDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showExportDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
+                    <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left">
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('excel');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        Excel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('csv');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          }
         ]}
       />
 

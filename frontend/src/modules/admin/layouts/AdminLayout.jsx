@@ -23,7 +23,7 @@ export default function AdminLayout() {
         <TopBar onMenuClick={() => setIsMobileOpen(true)} />
 
         {/* Dynamic Context Delivery (Page Content) */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden relative no-scrollbar bg-slate-50/50">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50/50">
             <Suspense fallback={
                 <div className="h-full w-full flex items-center justify-center p-20 animate-pulse bg-white transition-all">
                     <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin shadow-black/5" />

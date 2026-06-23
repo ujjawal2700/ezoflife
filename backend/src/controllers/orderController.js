@@ -845,7 +845,7 @@ export const getAllOrders = async (req, res) => {
             });
         }
         
-        res.status(200).json(ordersWithZone);
+        res.status(200).json(filtered);
     } catch (err) {
         console.error('Error fetching all orders:', err);
         res.status(500).json({ message: 'Error fetching all orders' });

@@ -1256,11 +1256,13 @@ export const orderApi = {
             throw error;
         }
     },
-    getAllOrders: async (page = 1, limit = 10, filters = {}) => {
+    getAllOrders: async (page, limit, filters = {}) => {
         try {
+            const params = {};
+            if (page !== undefined && page !== null && page !== '') params.page = page;
+            if (limit !== undefined && limit !== null && limit !== '') params.limit = limit;
             const queryParams = new URLSearchParams({
-                page,
-                limit,
+                ...params,
                 ...filters
             }).toString();
             const response = await fetch(`${BASE_URL}/orders/all?${queryParams}`);

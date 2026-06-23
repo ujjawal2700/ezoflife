@@ -22,22 +22,27 @@ export default function PageHeader({ title, showBack = false, actions = [] }) {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                    {actions.map((action, i) => (
-                        <button
-                            key={i}
-                            onClick={action.onClick}
-                            className={`px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${
-                                action.variant === 'primary' 
-                                ? 'bg-slate-900 text-white hover:bg-black' 
-                                : action.variant === 'rose'
-                                ? 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                            } ${action.className || ''}`}
-                        >
-                            {action.icon && <action.icon size={13} />}
-                            {action.label}
-                        </button>
-                    ))}
+                    {actions.map((action, i) => {
+                        if (action.customComponent) {
+                            return <React.Fragment key={i}>{action.customComponent}</React.Fragment>;
+                        }
+                        return (
+                            <button
+                                key={i}
+                                onClick={action.onClick}
+                                className={`px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${
+                                    action.variant === 'primary' 
+                                    ? 'bg-slate-900 text-white hover:bg-black' 
+                                    : action.variant === 'rose'
+                                    ? 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white'
+                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                } ${action.className || ''}`}
+                            >
+                                {action.icon && <action.icon size={13} />}
+                                {action.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
         </div>
