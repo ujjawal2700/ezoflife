@@ -39,6 +39,7 @@ import categoryRoutes from './src/routes/categoryRoutes.js';
 import vendorSupplyCategoryRoutes from './src/routes/vendorSupplyCategoryRoutes.js';
 import vendorMasterSupplyRoutes from './src/routes/vendorMasterSupplyRoutes.js';
 import supplierServiceZoneRoutes from './src/routes/supplierServiceZoneRoutes.js';
+import dashboardAnalyticsRoutes from './src/routes/dashboardAnalyticsRoutes.js';
 
 import legalRoutes from './src/routes/legalRoutes.js';
 import supplierRoutes from './src/routes/supplierRoutes.js';
@@ -109,6 +110,7 @@ app.get('/api/admin/config', getSystemConfig);
 // ─── Protected Admin Routes (JWT required) ────────────────────────────────────
 // All routes below require a valid Admin JWT in Authorization: Bearer <token>
 app.post('/api/admin/config', verifyAdmin, updateSystemConfig);
+app.use('/api/admin/dashboard-analytics', verifyAdmin, dashboardAnalyticsRoutes);
 app.use('/api/admin', verifyAdmin, adminRoutes);
 app.post('/api/admin/force-clear-orders', verifyAdmin, async (req, res) => {
     try {

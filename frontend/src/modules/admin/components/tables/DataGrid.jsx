@@ -20,7 +20,9 @@ export default function DataGrid({
     showHeader = true,
     onDownload,
     minWidth = '800px',
-    maxHeight
+    maxHeight,
+    showTotalEntities = true,
+    leftContent
 }) {
     const [searchTerm, setSearchTerm] = React.useState('');
 
@@ -49,13 +51,18 @@ export default function DataGrid({
             {showHeader && (
                 <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white z-20">
                     <div className="flex items-center flex-wrap gap-3">
-                        <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />
-                        <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
-                            {title}
-                        </h3>
-                        <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
-                            {pagination ? pagination.total : data.length} TOTAL ENTITIES
-                        </span>
+                        {title && <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />}
+                        {title && (
+                            <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
+                                {title}
+                            </h3>
+                        )}
+                        {showTotalEntities && (
+                            <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
+                                {pagination ? pagination.total : data.length} TOTAL ENTITIES
+                            </span>
+                        )}
+                        {leftContent}
                     </div>
                     <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
                         {showSearch && (

@@ -91,3 +91,15 @@ export const getPartnershipFilters = async (req, res) => {
     }
 };
 
+export const deletePartnershipInquiry = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const inquiry = await PartnershipInquiry.findByIdAndDelete(id);
+        if (!inquiry) return res.status(404).json({ message: 'Partnership inquiry not found' });
+        res.status(200).json({ message: 'Partnership inquiry deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+

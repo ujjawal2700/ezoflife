@@ -1,12 +1,32 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { vendorMasterSupplyApi, vendorSupplyCategoryApi, mediaApi } from '../../../lib/api';
+import { vendorMasterSupplyApi, vendorSupplyCategoryApi, mediaApi, supplierServiceZoneApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 
 const SupplierMySupplies = () => {
     const navigate = useNavigate();
+
+    // Retrieve logged-in supplier user
+    const user = useMemo(() => {
+        try {
+            return JSON.parse(
+                localStorage.getItem('supplierData') || 
+                localStorage.getItem('userData') || 
+                localStorage.getItem('user') || 
+                '{}'
+            );
+        } catch (e) {
+            return {};
+        }
+    }, []);
+
+    // Suffix-based supplier ID generation
+    const supplierCode = useMemo(() => {
+        const phone = user.phone || '';
+        return `SUP-${phone ? phone.slice(-4) : '001'}`;
+    }, [user]);
 
     const [supplies, setSupplies] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -19,6 +39,119 @@ const SupplierMySupplies = () => {
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [editingSupply, setEditingSupply] = useState(null);
     const [categories, setCategories] = useState([]);
+    
+    // States and helper functions for custom category/subcategory creation
+    const [selectedCategoryOption, setSelectedCategoryOption] = useState('');
+    const [customCategoryName, setCustomCategoryName] = useState('');
+    const [selectedSubCategoryOption, setSelectedSubCategoryOption] = useState('');
+    const [customSubCategoryName, setCustomSubCategoryName] = useState('');
+
+    const [adminTemplates, setAdminTemplates] = useState([]);
+    const [selectedProductOption, setSelectedProductOption] = useState('');
+    const [customProductName, setCustomProductName] = useState('');
+    const [zones, setZones] = useState([]);
+    const [allSuppliesList, setAllSuppliesList] = useState([]);
+
+    const myZoneName = useMemo(() => {
+        const myZoneRecord = zones.find(z => z.supplierId === supplierCode);
+        return myZoneRecord ? myZoneRecord.zoneName : '';
+    }, [zones, supplierCode]);
+
+    const zoneSupplierIds = useMemo(() => {
+        if (!myZoneName) return [];
+        return zones
+            .filter(z => z.zoneName && z.zoneName.toLowerCase() === myZoneName.toLowerCase())
+            .map(z => z.supplierId);
+    }, [zones, myZoneName]);
+
+    const zoneProductNames = useMemo(() => {
+        if (zoneSupplierIds.length === 0) return [];
+        const filtered = allSuppliesList.filter(s => 
+            zoneSupplierIds.includes(s.supplierId) && 
+            (s.approvalStatus === 'Approved' || !s.approvalStatus) && 
+            s.isActive === 'y'
+        );
+        return Array.from(new Set(filtered.map(s => s.materialName)));
+    }, [allSuppliesList, zoneSupplierIds]);
+
+    const uniqueTemplateNames = useMemo(() => {
+        const set = new Set();
+        const lowerZoneProductNames = zoneProductNames.map(name => name.toLowerCase());
+        adminTemplates.forEach(t => {
+            if (t.materialName) {
+                // Only show templates active in the supplier's zone. Fallback to all if zone is new.
+                if (zoneProductNames.length === 0 || lowerZoneProductNames.includes(t.materialName.toLowerCase())) {
+                    set.add(t.materialName);
+                }
+            }
+        });
+        return Array.from(set).sort();
+    }, [adminTemplates, zoneProductNames]);
+
+    const handleProductSelect = (val) => {
+        setSelectedProductOption(val);
+        if (val && val !== 'Other') {
+            const matched = adminTemplates.find(t => t.materialName?.toLowerCase() === val.toLowerCase());
+            if (matched) {
+                setCreateForm(prev => ({
+                    ...prev,
+                    materialName: val,
+                    brand: matched.brand || 'Generic',
+                    hsnCode: matched.hsnCode || '-',
+                    gst: matched.gst || 18,
+                    quantity: matched.quantity || '-',
+                    wholesaleRate: matched.wholesaleRate || 0,
+                    bulkDiscount: matched.bulkDiscount || 0,
+                    bulkThreshold: matched.bulkThreshold || 0,
+                    movFreeDelivery: matched.movFreeDelivery || 0,
+                    deliveryFrequency: matched.deliveryFrequency || '-',
+                    description: matched.description || '',
+                    images: matched.images || [],
+                    isActive: matched.isActive || 'y'
+                }));
+                setSelectedCategoryOption(matched.categoryId?.mainCategory || 'Generic');
+                setSelectedSubCategoryOption(matched.categoryId?.subCategory || 'General');
+            }
+        } else {
+            setCreateForm(prev => ({
+                ...prev,
+                materialName: '',
+                brand: 'Generic',
+                hsnCode: '-',
+                gst: 18,
+                quantity: '-',
+                wholesaleRate: 0,
+                bulkDiscount: 0,
+                bulkThreshold: 0,
+                movFreeDelivery: 0,
+                deliveryFrequency: '-',
+                description: '',
+                images: [],
+                isActive: 'y'
+            }));
+            setSelectedCategoryOption('');
+            setCustomCategoryName('');
+            setSelectedSubCategoryOption('');
+            setCustomSubCategoryName('');
+            setCustomProductName('');
+        }
+    };
+
+    const uniqueMainCategories = useMemo(() => {
+        const set = new Set();
+        categories.forEach(c => {
+            if (c.mainCategory) set.add(c.mainCategory);
+        });
+        return Array.from(set).sort();
+    }, [categories]);
+
+    const subCategoriesForSelectedMain = useMemo(() => {
+        if (!selectedCategoryOption || selectedCategoryOption === 'Other') return [];
+        const subs = categories
+            .filter(c => c.mainCategory === selectedCategoryOption && c.subCategory)
+            .map(c => c.subCategory);
+        return Array.from(new Set(subs)).sort();
+    }, [categories, selectedCategoryOption]);
     const [editForm, setEditForm] = useState({
         wholesaleRate: 0,
         bulkDiscount: 0,
@@ -118,7 +251,16 @@ const SupplierMySupplies = () => {
 
     const handleCreateSubmit = async (e) => {
         e.preventDefault();
-        if (!createForm.materialName || !createForm.categoryName || !createForm.subCategoryName || !createForm.wholesaleRate) {
+        
+        const finalProductName = selectedProductOption === 'Other' ? customProductName : selectedProductOption;
+        const finalCategory = selectedProductOption === 'Other' 
+            ? customCategoryName 
+            : (selectedCategoryOption === 'Other' ? customCategoryName : selectedCategoryOption);
+        const finalSubCategory = selectedProductOption === 'Other' 
+            ? customSubCategoryName 
+            : ((selectedCategoryOption === 'Other' || selectedSubCategoryOption === 'Other') ? customSubCategoryName : selectedSubCategoryOption);
+
+        if (!finalProductName || !finalCategory || !finalSubCategory || !createForm.wholesaleRate) {
             toast.error('Please fill all required fields');
             return;
         }
@@ -132,9 +274,9 @@ const SupplierMySupplies = () => {
             
             const payload = {
                 skuId: `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
-                materialName: createForm.materialName,
-                categoryName: createForm.categoryName,
-                subCategoryName: createForm.subCategoryName,
+                materialName: finalProductName,
+                categoryName: finalCategory,
+                subCategoryName: finalSubCategory,
                 wholesaleRate: Number(createForm.wholesaleRate) || 0,
                 bulkDiscount: Number(createForm.bulkDiscount) || 0,
                 bulkThreshold: Number(createForm.bulkThreshold) || 0,
@@ -174,6 +316,12 @@ const SupplierMySupplies = () => {
                     images: [],
                     isActive: 'y'
                 });
+                setSelectedProductOption('');
+                setCustomProductName('');
+                setSelectedCategoryOption('');
+                setCustomCategoryName('');
+                setSelectedSubCategoryOption('');
+                setCustomSubCategoryName('');
                 fetchSupplies();
                 setActiveTab('requests');
             } else {
@@ -239,7 +387,8 @@ const SupplierMySupplies = () => {
                 description: editForm.description,
                 images: editForm.images,
                 isActive: editForm.isActive,
-                categoryId: editForm.categoryId
+                categoryId: editForm.categoryId,
+                approvalStatus: 'Pending'
             };
             
             const response = await vendorMasterSupplyApi.update(editingSupply._id, payload);
@@ -307,7 +456,8 @@ const SupplierMySupplies = () => {
                             bulkThreshold: Number(item.bulkThreshold) || 0,
                             movFreeDelivery: Number(item.movFreeDelivery) || 0,
                             gst: Number(item.gst) || 18,
-                            categoryId: item.categoryId?._id || item.categoryId
+                            categoryId: item.categoryId?._id || item.categoryId,
+                            approvalStatus: 'Pending'
                         };
                         updates.push(vendorMasterSupplyApi.update(item._id, payload));
                     }
@@ -330,25 +480,7 @@ const SupplierMySupplies = () => {
         }
     };
 
-    // Retrieve logged-in supplier user
-    const user = useMemo(() => {
-        try {
-            return JSON.parse(
-                localStorage.getItem('supplierData') || 
-                localStorage.getItem('userData') || 
-                localStorage.getItem('user') || 
-                '{}'
-            );
-        } catch (e) {
-            return {};
-        }
-    }, []);
 
-    // Suffix-based supplier ID generation
-    const supplierCode = useMemo(() => {
-        const phone = user.phone || '';
-        return `SUP-${phone ? phone.slice(-4) : '001'}`;
-    }, [user]);
 
     const fetchCategories = async () => {
         try {
@@ -374,10 +506,40 @@ const SupplierMySupplies = () => {
         }
     };
 
+    const fetchAdminTemplates = async () => {
+        try {
+            const data = await vendorMasterSupplyApi.getAll({ supplierId: '-' });
+            setAdminTemplates(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error('Failed to fetch admin templates:', err);
+        }
+    };
+
+    const fetchZones = async () => {
+        try {
+            const list = await supplierServiceZoneApi.getAll();
+            setZones(Array.isArray(list) ? list : []);
+        } catch (err) {
+            console.error('Failed to fetch zones:', err);
+        }
+    };
+
+    const fetchAllSuppliesList = async () => {
+        try {
+            const list = await vendorMasterSupplyApi.getAll({ isTemplate: 'n' });
+            setAllSuppliesList(Array.isArray(list) ? list : []);
+        } catch (err) {
+            console.error('Failed to fetch all supplies:', err);
+        }
+    };
+
     useEffect(() => {
         if (supplierCode) {
             fetchSupplies();
             fetchCategories();
+            fetchAdminTemplates();
+            fetchZones();
+            fetchAllSuppliesList();
         }
     }, [supplierCode]);
 
@@ -594,220 +756,250 @@ const SupplierMySupplies = () => {
                           animate={{ opacity: 1 }} 
                           exit={{ opacity: 0 }} 
                           onClick={() => setEditingSupply(null)}
-                          className="absolute inset-0 bg-slate-955/60 backdrop-blur-md" 
+                          className="absolute inset-0 bg-black/60 backdrop-blur-md" 
                         />
                         <motion.div 
                           initial={{ opacity: 0, scale: 0.95, y: 20 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                          className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
+                          className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl border border-slate-100 flex flex-col space-y-6 overflow-hidden relative text-left"
                         >
-                          <div className="p-8 bg-slate-900 text-white">
-                              <h3 className="text-xl font-black uppercase tracking-tighter">Edit Supply Item</h3>
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">Modify your product configurations</p>
-                          </div>
-                          
-                          <div className="p-8 space-y-6 text-xs font-bold text-slate-600 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                               <div>
-                                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Product Name (Non-Editable)</p>
-                                   <p className="font-bold text-slate-900 text-sm bg-slate-50 border border-slate-100 rounded-2xl p-4">{editingSupply.materialName}</p>
-                               </div>
+                            {/* Close Button */}
+                            <button 
+                                onClick={() => setEditingSupply(null)}
+                                className="absolute right-6 top-6 w-10 h-10 rounded-full bg-slate-55 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-colors hover:scale-105 active:scale-95"
+                            >
+                                <span className="material-symbols-outlined text-sm">close</span>
+                            </button>
 
-                               <div className="grid grid-cols-2 gap-4">
-                                   <div className="space-y-2">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Category</label>
-                                       <select
-                                         value={editForm.categoryId}
-                                         onChange={(e) => setEditForm({...editForm, categoryId: e.target.value})}
-                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
-                                       >
-                                           <option value="">Select Category</option>
-                                           {categories.map((cat) => (
-                                               <option key={cat._id} value={cat._id}>
-                                                   {cat.mainCategory} → {cat.subCategory}
-                                               </option>
-                                           ))}
-                                       </select>
-                                   </div>
+                            <div className="space-y-1">
+                                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-950 leading-none">EDIT PRODUCT</h3>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">MODIFY YOUR PRODUCT CONFIGURATIONS</p>
+                            </div>
+                           
+                            <div className="space-y-4 text-left max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                                <div className="space-y-1.5 text-left">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PRODUCT NAME (NON-EDITABLE)</label>
+                                    <input 
+                                        type="text" 
+                                        disabled 
+                                        value={editingSupply.materialName} 
+                                        className="w-full px-5 py-3.5 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-500 outline-none cursor-not-allowed"
+                                    />
+                                </div>
 
-                                   <div className="space-y-2">
-                                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                                       <select
-                                         value={editForm.isActive}
-                                         onChange={(e) => setEditForm({...editForm, isActive: e.target.value})}
-                                         className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
-                                       >
-                                           <option value="y">Active</option>
-                                           <option value="n">Inactive</option>
-                                       </select>
-                                   </div>
-                               </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">CATEGORY</label>
+                                        <select
+                                          value={editForm.categoryId}
+                                          onChange={(e) => setEditForm({...editForm, categoryId: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
+                                        >
+                                            <option value="">Select Category</option>
+                                            {categories.map((cat) => (
+                                                <option key={cat._id} value={cat._id}>
+                                                    {cat.mainCategory}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">SUB CATEGORY</label>
+                                        <input 
+                                            type="text" 
+                                            disabled 
+                                            value={(() => {
+                                                const selectedCat = categories.find(c => c._id === editForm.categoryId);
+                                                return selectedCat ? selectedCat.subCategory : '-';
+                                            })()} 
+                                            className="w-full px-5 py-3.5 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-bold text-slate-500 outline-none cursor-not-allowed"
+                                        />
+                                    </div>
+                                </div>
 
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Brand</label>
-                                      <input 
-                                        type="text"
-                                        value={editForm.brand}
-                                        onChange={(e) => setEditForm({...editForm, brand: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">BRAND</label>
+                                        <input 
+                                          type="text"
+                                          value={editForm.brand}
+                                          onChange={(e) => setEditForm({...editForm, brand: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">HSN CODE</label>
+                                        <input 
+                                          type="text"
+                                          value={editForm.hsnCode}
+                                          onChange={(e) => setEditForm({...editForm, hsnCode: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+                                </div>
 
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">HSN Code</label>
-                                      <input 
-                                        type="text"
-                                        value={editForm.hsnCode}
-                                        onChange={(e) => setEditForm({...editForm, hsnCode: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
-                              </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">GST PERCENTAGE (%)</label>
+                                        <select
+                                          value={editForm.gst}
+                                          onChange={(e) => setEditForm({...editForm, gst: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
+                                        >
+                                            <option value="0">0%</option>
+                                            <option value="5">5%</option>
+                                            <option value="12">12%</option>
+                                            <option value="18">18%</option>
+                                            <option value="28">28%</option>
+                                        </select>
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PACK SIZE / UNIT</label>
+                                        <input 
+                                          type="text"
+                                          value={editForm.quantity}
+                                          onChange={(e) => setEditForm({...editForm, quantity: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+                                </div>
 
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Percentage (%)</label>
-                                      <select
-                                        value={editForm.gst}
-                                        onChange={(e) => setEditForm({...editForm, gst: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
-                                      >
-                                          <option value="0">0%</option>
-                                          <option value="5">5%</option>
-                                          <option value="12">12%</option>
-                                          <option value="18">18%</option>
-                                          <option value="28">28%</option>
-                                      </select>
-                                  </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">WHOLESALE RATE (₹)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300">₹</span>
+                                            <input 
+                                              type="number"
+                                              value={editForm.wholesaleRate}
+                                              onChange={(e) => setEditForm({...editForm, wholesaleRate: e.target.value})}
+                                              className="w-full pl-8 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">BULK DISCOUNT (%)</label>
+                                        <input 
+                                          type="number"
+                                          value={editForm.bulkDiscount}
+                                          onChange={(e) => setEditForm({...editForm, bulkDiscount: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+                                </div>
 
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pack Size / Quantity</label>
-                                      <input 
-                                        type="text"
-                                        value={editForm.quantity}
-                                        onChange={(e) => setEditForm({...editForm, quantity: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
-                              </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">MIN BULK QTY</label>
+                                        <input 
+                                          type="number"
+                                          value={editForm.bulkThreshold}
+                                          onChange={(e) => setEditForm({...editForm, bulkThreshold: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">MOV FOR FREE DELIVERY (₹)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300">₹</span>
+                                            <input 
+                                              type="number"
+                                              value={editForm.movFreeDelivery}
+                                              onChange={(e) => setEditForm({...editForm, movFreeDelivery: e.target.value})}
+                                              className="w-full pl-8 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Wholesale Rate (₹)</label>
-                                      <input 
-                                        type="number"
-                                        value={editForm.wholesaleRate}
-                                        onChange={(e) => setEditForm({...editForm, wholesaleRate: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">DELIVERY FREQUENCY</label>
+                                        <input 
+                                          type="text"
+                                          value={editForm.deliveryFrequency}
+                                          onChange={(e) => setEditForm({...editForm, deliveryFrequency: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5 text-left">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">STATUS</label>
+                                        <select
+                                          value={editForm.isActive}
+                                          onChange={(e) => setEditForm({...editForm, isActive: e.target.value})}
+                                          className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
+                                        >
+                                            <option value="y">Active</option>
+                                            <option value="n">Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
 
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bulk Discount (%)</label>
-                                      <input 
-                                        type="number"
-                                        value={editForm.bulkDiscount}
-                                        onChange={(e) => setEditForm({...editForm, bulkDiscount: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
-                              </div>
+                                <div className="space-y-1.5 text-left">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PRODUCT DESCRIPTION</label>
+                                    <textarea 
+                                      value={editForm.description}
+                                      onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                                      rows={2}
+                                      placeholder="Enter detailed description..."
+                                      className="w-full px-5 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all resize-none"
+                                    />
+                                </div>
 
-                              <div className="grid grid-cols-2 gap-4">
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Min Bulk Qty</label>
-                                      <input 
-                                        type="number"
-                                        value={editForm.bulkThreshold}
-                                        onChange={(e) => setEditForm({...editForm, bulkThreshold: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
+                                <div className="space-y-1.5 text-left">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PRODUCT IMAGES</label>
+                                    <div className="flex flex-wrap gap-3 p-4 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                                        {editForm.images && editForm.images.map((url, idx) => (
+                                            <div key={idx} className="relative w-16 h-16 group border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
+                                                <img src={url} alt="product" className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveEditImage(idx)}
+                                                    className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-sm flex items-center justify-center"
+                                                    title="Remove Image"
+                                                >
+                                                    <span className="material-symbols-outlined text-[12px] font-bold">close</span>
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <label className={`w-16 h-16 flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-white hover:border-slate-900 transition-all relative ${uploadingEditImages ? 'pointer-events-none opacity-50' : ''}`}>
+                                            <input
+                                                type="file"
+                                                multiple
+                                                accept="image/*"
+                                                onChange={handleEditImageUpload}
+                                                className="hidden"
+                                            />
+                                            {uploadingEditImages ? (
+                                                <Loader2 size={16} className="animate-spin text-slate-400" />
+                                            ) : (
+                                                <>
+                                                    <span className="material-symbols-outlined text-slate-400 text-[18px]">add</span>
+                                                    <span className="text-[7px] font-black text-slate-400 uppercase mt-0.5">Upload</span>
+                                                </>
+                                            )}
+                                        </label>
+                                    </div>
+                                </div>
 
-                                  <div className="space-y-2">
-                                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">MOV for Free Delivery (₹)</label>
-                                      <input 
-                                        type="number"
-                                        value={editForm.movFreeDelivery}
-                                        onChange={(e) => setEditForm({...editForm, movFreeDelivery: e.target.value})}
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                      />
-                                  </div>
-                              </div>
-
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Delivery Frequency</label>
-                                  <input 
-                                    type="text"
-                                    value={editForm.deliveryFrequency}
-                                    onChange={(e) => setEditForm({...editForm, deliveryFrequency: e.target.value})}
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                  />
-                              </div>
-
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Description</label>
-                                  <textarea 
-                                    value={editForm.description}
-                                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                                    rows={3}
-                                    placeholder="Enter detailed description..."
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                  />
-                              </div>
-
-                              <div className="space-y-2">
-                                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Product Images</label>
-                                  <div className="flex flex-wrap gap-3 p-4 border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                                      {editForm.images && editForm.images.map((url, idx) => (
-                                          <div key={idx} className="relative w-16 h-16 group border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
-                                              <img src={url} alt="product" className="w-full h-full object-cover" />
-                                              <button
-                                                  type="button"
-                                                  onClick={() => handleRemoveEditImage(idx)}
-                                                  className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-650 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-sm flex items-center justify-center"
-                                                  title="Remove Image"
-                                              >
-                                                  <span className="material-symbols-outlined text-[12px] font-bold">close</span>
-                                              </button>
-                                          </div>
-                                      ))}
-                                      <label className={`w-16 h-16 flex flex-col items-center justify-center border border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-white hover:border-slate-900 transition-all relative ${uploadingEditImages ? 'pointer-events-none opacity-50' : ''}`}>
-                                          <input
-                                              type="file"
-                                              multiple
-                                              accept="image/*"
-                                              onChange={handleEditImageUpload}
-                                              className="hidden"
-                                          />
-                                          {uploadingEditImages ? (
-                                              <Loader2 size={16} className="animate-spin text-slate-400" />
-                                          ) : (
-                                              <>
-                                                  <span className="material-symbols-outlined text-slate-400 text-[18px]">add</span>
-                                                  <span className="text-[7px] font-black text-slate-400 uppercase mt-0.5">Upload</span>
-                                              </>
-                                          )}
-                                      </label>
-                                  </div>
-                              </div>
-
-                              <div className="flex gap-3 pt-4">
-                                  <button 
-                                    onClick={() => setEditingSupply(null)}
-                                    className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all"
-                                  >
-                                    Cancel
-                                  </button>
-                                  <button 
-                                    onClick={handleSaveEdit}
-                                    className="flex-1 py-4 bg-slate-950 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
-                                  >
-                                    Save Changes
-                                  </button>
-                              </div>
-                          </div>
+                                <div className="flex gap-3 pt-4">
+                                    <button 
+                                      type="button"
+                                      onClick={() => setEditingSupply(null)}
+                                      className="flex-1 py-4 bg-slate-50 text-slate-450 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 transition-all hover:scale-[1.02] active:scale-95"
+                                    >
+                                      Cancel
+                                    </button>
+                                    <button 
+                                      type="button"
+                                      onClick={handleSaveEdit}
+                                      className="flex-1 py-4 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all"
+                                    >
+                                      Save Changes
+                                    </button>
+                                </div>
+                            </div>
                         </motion.div>
                     </div>
                 )}
@@ -843,40 +1035,96 @@ const SupplierMySupplies = () => {
                             </div>
                           
                             <form onSubmit={handleCreateSubmit} className="space-y-4 text-left max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
-                                <div className="space-y-1.5 text-left">
+                                <div className="space-y-1.5 text-left font-sans">
                                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PRODUCT NAME</label>
-                                    <input 
-                                        type="text"
+                                    <select 
                                         required
-                                        value={createForm.materialName}
-                                        onChange={(e) => setCreateForm({...createForm, materialName: e.target.value})}
-                                        placeholder="e.g. Liquid Softener 5L"
-                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
-                                    />
+                                        value={selectedProductOption}
+                                        onChange={(e) => handleProductSelect(e.target.value)}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
+                                    >
+                                        <option value="">Select Product</option>
+                                        {uniqueTemplateNames.map((name, idx) => (
+                                            <option key={idx} value={name}>
+                                                {name}
+                                            </option>
+                                        ))}
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    {selectedProductOption === 'Other' && (
+                                        <input 
+                                            type="text"
+                                            required
+                                            value={customProductName}
+                                            onChange={(e) => setCustomProductName(e.target.value)}
+                                            placeholder="Write Custom Product Name"
+                                            className="w-full px-5 py-3.5 mt-2 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
+                                        />
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1.5 text-left">
+                                    <div className="space-y-1.5 text-left font-sans">
                                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">CATEGORY</label>
-                                        <input 
-                                            type="text"
+                                        <select
                                             required
-                                            value={createForm.categoryName}
-                                            onChange={(e) => setCreateForm({...createForm, categoryName: e.target.value})}
-                                            placeholder="e.g. Dry Cleaning"
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
-                                        />
+                                            value={selectedCategoryOption}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setSelectedCategoryOption(val);
+                                                setSelectedSubCategoryOption('');
+                                                setCustomSubCategoryName('');
+                                            }}
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
+                                        >
+                                            <option value="">Select Category</option>
+                                            {uniqueMainCategories.map((cat, idx) => (
+                                                <option key={idx} value={cat}>
+                                                    {cat}
+                                                </option>
+                                            ))}
+                                            <option value="Other">Other (Create New Category)</option>
+                                        </select>
+                                        {selectedCategoryOption === 'Other' && (
+                                            <input 
+                                                type="text"
+                                                required
+                                                value={customCategoryName}
+                                                onChange={(e) => setCustomCategoryName(e.target.value)}
+                                                placeholder="Write Category Name"
+                                                className="w-full px-5 py-3.5 mt-2 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
+                                            />
+                                        )}
                                     </div>
-                                    <div className="space-y-1.5 text-left">
+                                    <div className="space-y-1.5 text-left font-sans">
                                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">SUB CATEGORY</label>
-                                        <input 
-                                            type="text"
+                                        <select
                                             required
-                                            value={createForm.subCategoryName}
-                                            onChange={(e) => setCreateForm({...createForm, subCategoryName: e.target.value})}
-                                            placeholder="e.g. Winter Wear"
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
-                                        />
+                                            value={selectedSubCategoryOption}
+                                            disabled={!selectedCategoryOption}
+                                            onChange={(e) => setSelectedSubCategoryOption(e.target.value)}
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">Select Sub Category</option>
+                                            {subCategoriesForSelectedMain.map((sub, idx) => (
+                                                <option key={idx} value={sub}>
+                                                    {sub}
+                                                </option>
+                                            ))}
+                                            {selectedCategoryOption && (
+                                                <option value="Other">Other (Create New Sub Category)</option>
+                                            )}
+                                        </select>
+                                        {selectedSubCategoryOption === 'Other' && (
+                                            <input 
+                                                type="text"
+                                                required
+                                                value={customSubCategoryName}
+                                                onChange={(e) => setCustomSubCategoryName(e.target.value)}
+                                                placeholder="Write Sub Category Name"
+                                                className="w-full px-5 py-3.5 mt-2 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
+                                            />
+                                        )}
                                     </div>
                                 </div>
 
@@ -1119,7 +1367,7 @@ const SupplierMySupplies = () => {
                         </button>
                         {activeTab === 'catalog' && (
                             <button 
-                                onClick={() => editMode ? handleGlobalSave() : setEditMode(true)}
+                                onClick={() => setEditMode(!editMode)}
                                 className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
                             >
                                 {editMode ? 'Save' : 'Edit'}
@@ -1248,7 +1496,12 @@ const SupplierMySupplies = () => {
                                         <thead>
                                             <tr className="border-b border-slate-100 bg-slate-50/50">
                                                 {activeTab === 'catalog' ? (
-                                                    <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-24">Status</th>
+                                                    <>
+                                                        {editMode && (
+                                                            <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-20">Edit</th>
+                                                        )}
+                                                        <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-24">Status</th>
+                                                    </>
                                                 ) : (
                                                     <>
                                                         <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 text-center w-28">Request Status</th>
@@ -1284,23 +1537,33 @@ const SupplierMySupplies = () => {
                                                         className={`hover:bg-slate-50/50 transition-colors ${editMode ? 'cursor-default' : 'cursor-pointer'}`}
                                                     >
                                                         {activeTab === 'catalog' ? (
-                                                            <td className="p-4">
-                                                                <div className="flex items-center justify-center gap-2">
-                                                                    <div 
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (!editMode) return;
-                                                                            toggleSupplyStatusLocal(item._id);
-                                                                        }}
-                                                                        className={`w-10 h-5 rounded-full relative transition-all duration-300 ${!editMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${isActive ? 'bg-slate-900' : 'bg-slate-200'}`}
-                                                                    >
-                                                                        <motion.div 
-                                                                            animate={{ x: isActive ? 22 : 2 }}
-                                                                            className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
-                                                                        />
+                                                            <>
+                                                                {editMode && (
+                                                                    <td className="p-4 text-center">
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleOpenEditModal(item);
+                                                                            }}
+                                                                            className="px-4 py-1.5 bg-slate-900 hover:bg-primary text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-md shadow-slate-900/10 inline-block mx-auto"
+                                                                        >
+                                                                            Edit
+                                                                        </button>
+                                                                    </td>
+                                                                )}
+                                                                <td className="p-4">
+                                                                    <div className="flex items-center justify-center gap-2">
+                                                                        <div 
+                                                                            className={`w-10 h-5 rounded-full relative transition-all duration-300 opacity-50 cursor-not-allowed ${isActive ? 'bg-slate-900' : 'bg-slate-200'}`}
+                                                                        >
+                                                                            <motion.div 
+                                                                                animate={{ x: isActive ? 22 : 2 }}
+                                                                                className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
+                                                                            />
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            </td>
+                                                                </td>
+                                                            </>
                                                         ) : (
                                                             <>
                                                                 <td className="p-4 text-center">
@@ -1345,189 +1608,60 @@ const SupplierMySupplies = () => {
                                                             </div>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <input 
-                                                                    type="text" 
-                                                                    value={item.description || ''} 
-                                                                    onChange={(e) => handleInlineChange(item._id, 'description', e.target.value)} 
-                                                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all min-w-[150px]" 
-                                                                />
-                                                            ) : (
-                                                                <span className="text-[10px] text-slate-500 font-medium line-clamp-2 max-w-[200px]" title={item.description}>
-                                                                    {item.description || '—'}
-                                                                </span>
-                                                            )}
+                                                            <span className="text-[10px] text-slate-500 font-medium line-clamp-2 max-w-[200px]" title={item.description}>
+                                                                {item.description || '—'}
+                                                            </span>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <input 
-                                                                    type="text" 
-                                                                    value={item.brand || ''} 
-                                                                    onChange={(e) => handleInlineChange(item._id, 'brand', e.target.value)} 
-                                                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all min-w-[80px]" 
-                                                                />
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                                                                    {item.brand || 'Generic'}
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                                {item.brand || 'Generic'}
+                                                            </span>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <select
-                                                                    value={item.categoryId?._id || item.categoryId || ''}
-                                                                    onChange={(e) => handleInlineChange(item._id, 'categoryId', e.target.value)}
-                                                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-2 py-1.5 text-[10px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer min-w-[120px]"
-                                                                >
-                                                                    <option value="">Select Category</option>
-                                                                    {categories.map((cat) => (
-                                                                        <option key={cat._id} value={cat._id}>
-                                                                            {cat.mainCategory}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                                                                    {item.categoryId?.mainCategory || 'Generic'}
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                                {item.categoryId?.mainCategory || 'Generic'}
+                                                            </span>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                                                                    {(() => {
-                                                                        const selectedCat = categories.find(c => c._id === (item.categoryId?._id || item.categoryId));
-                                                                        return selectedCat ? selectedCat.subCategory : (item.categoryId?.subCategory || 'General');
-                                                                    })()}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                                                                    {item.categoryId?.subCategory || 'General'}
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                                {item.categoryId?.subCategory || 'General'}
+                                                            </span>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <input 
-                                                                    type="text" 
-                                                                    value={item.quantity || ''} 
-                                                                    onChange={(e) => handleInlineChange(item._id, 'quantity', e.target.value)} 
-                                                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all min-w-[80px]" 
-                                                                />
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
-                                                                    {item.quantity || '—'}
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+                                                                {item.quantity || '—'}
+                                                            </span>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1.5 min-w-[80px]">
-                                                                    <span className="text-[10px] font-black text-slate-400">₹</span>
-                                                                    <input 
-                                                                        type="number" 
-                                                                        value={item.wholesaleRate || 0} 
-                                                                        onChange={(e) => handleInlineChange(item._id, 'wholesaleRate', e.target.value)} 
-                                                                        className="w-full bg-transparent border-none text-[10px] font-bold text-slate-900 outline-none p-0"
-                                                                    />
+                                                            <div className="text-xs font-black text-slate-900 bg-slate-50 px-3 py-2 rounded-xl inline-block border border-slate-100">
+                                                                ₹{item.wholesaleRate || 0}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <span className="text-xs font-bold text-slate-700">
+                                                                {item.gst || 18}%
+                                                                <span className="text-[10px] text-slate-400 font-bold ml-1">({item.hsnCode || '-'})</span>
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            {item.bulkDiscount || item.bulkThreshold ? (
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-xs font-black text-slate-900">{item.bulkDiscount || 0}% Off</span>
+                                                                    <span className="text-[9px] text-slate-400 font-bold">Min: {item.bulkThreshold || 0} Units</span>
                                                                 </div>
                                                             ) : (
-                                                                <div className="text-xs font-black text-slate-900 bg-slate-50 px-3 py-2 rounded-xl inline-block border border-slate-100">
-                                                                    ₹{item.wholesaleRate || 0}
-                                                                </div>
+                                                                <span className="text-xs font-bold text-slate-400">—</span>
                                                             )}
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <div className="flex flex-col gap-1 min-w-[80px]">
-                                                                    <select
-                                                                        value={item.gst || 18}
-                                                                        onChange={(e) => handleInlineChange(item._id, 'gst', e.target.value)}
-                                                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all cursor-pointer"
-                                                                    >
-                                                                        <option value="0">0%</option>
-                                                                        <option value="5">5%</option>
-                                                                        <option value="12">12%</option>
-                                                                        <option value="18">18%</option>
-                                                                        <option value="28">28%</option>
-                                                                    </select>
-                                                                    <input 
-                                                                        type="text" 
-                                                                        value={item.hsnCode || ''} 
-                                                                        placeholder="HSN"
-                                                                        onChange={(e) => handleInlineChange(item._id, 'hsnCode', e.target.value)} 
-                                                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-700">
-                                                                    {item.gst || 18}%
-                                                                    <span className="text-[10px] text-slate-400 font-bold ml-1">({item.hsnCode || '-'})</span>
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                                                                {item.deliveryFrequency || 'Weekly'}
+                                                            </span>
                                                         </td>
                                                         <td className="p-4">
-                                                            {editMode ? (
-                                                                <div className="flex flex-col gap-1 min-w-[85px]">
-                                                                    <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1">
-                                                                        <input 
-                                                                            type="number" 
-                                                                            value={item.bulkDiscount || 0} 
-                                                                            placeholder="%"
-                                                                            onChange={(e) => handleInlineChange(item._id, 'bulkDiscount', e.target.value)} 
-                                                                            className="w-full bg-transparent border-none text-[10px] font-bold text-slate-900 outline-none p-0"
-                                                                        />
-                                                                        <span className="text-[10px] font-black text-slate-400">%</span>
-                                                                    </div>
-                                                                    <input 
-                                                                        type="number" 
-                                                                        value={item.bulkThreshold || 0} 
-                                                                        placeholder="Min Qty"
-                                                                        onChange={(e) => handleInlineChange(item._id, 'bulkThreshold', e.target.value)} 
-                                                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 text-[9px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                item.bulkDiscount || item.bulkThreshold ? (
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-xs font-black text-slate-900">{item.bulkDiscount || 0}% Off</span>
-                                                                        <span className="text-[9px] text-slate-400 font-bold">Min: {item.bulkThreshold || 0} Units</span>
-                                                                    </div>
-                                                                ) : (
-                                                                    <span className="text-xs font-bold text-slate-400">—</span>
-                                                                )
-                                                            )}
-                                                        </td>
-                                                        <td className="p-4">
-                                                            {editMode ? (
-                                                                <input 
-                                                                    type="text" 
-                                                                    value={item.deliveryFrequency || ''} 
-                                                                    onChange={(e) => handleInlineChange(item._id, 'deliveryFrequency', e.target.value)} 
-                                                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 text-[10px] font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all min-w-[80px]" 
-                                                                />
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                                                                    {item.deliveryFrequency || 'Weekly'}
-                                                                </span>
-                                                            )}
-                                                        </td>
-                                                        <td className="p-4">
-                                                            {editMode ? (
-                                                                <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1.5 min-w-[80px]">
-                                                                    <span className="text-[10px] font-black text-slate-400">₹</span>
-                                                                    <input 
-                                                                        type="number" 
-                                                                        value={item.movFreeDelivery || 0} 
-                                                                        onChange={(e) => handleInlineChange(item._id, 'movFreeDelivery', e.target.value)} 
-                                                                        className="w-full bg-transparent border-none text-[10px] font-bold text-slate-900 outline-none p-0"
-                                                                    />
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-xs font-bold text-slate-900 tabular-nums">
-                                                                    {item.movFreeDelivery ? `₹${item.movFreeDelivery}` : '—'}
-                                                                </span>
-                                                            )}
+                                                            <span className="text-xs font-bold text-slate-900 tabular-nums">
+                                                                {item.movFreeDelivery ? `₹${item.movFreeDelivery}` : '—'}
+                                                            </span>
                                                         </td>
                                                     </tr>
                                                 );

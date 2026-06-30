@@ -91,6 +91,18 @@ const PartnershipInquiries = () => {
         toast.success('Excel downloaded successfully');
     };
 
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this partnership inquiry?')) return;
+        try {
+            await partnershipApi.delete(id);
+            toast.success('Inquiry deleted successfully');
+            fetchInquiries();
+            fetchFilters();
+        } catch (error) {
+            toast.error('Failed to delete inquiry');
+        }
+    };
+
     const columns = useMemo(() => [
         {
             header: 'Brand',
@@ -160,6 +172,20 @@ const PartnershipInquiries = () => {
                     <p className="text-xs font-bold text-slate-600">{new Date(val).toLocaleDateString('en-GB')}</p>
                     <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(val).toLocaleTimeString()}</p>
                 </div>
+            )
+        },
+        {
+            header: 'Actions',
+            key: '_id',
+            align: 'right',
+            render: (val) => (
+                <button 
+                    onClick={() => handleDelete(val)}
+                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-sm hover:bg-slate-50 transition-all cursor-pointer"
+                    title="Delete Inquiry"
+                >
+                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                </button>
             )
         }
     ], []);

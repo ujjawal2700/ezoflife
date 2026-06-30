@@ -31,7 +31,6 @@ import RoleDetails from '../pages/RoleDetails';
 import Suppliers from '../pages/Suppliers';
 import AdminAdvertisementPage from '../pages/AdminAdvertisementPage';
 import B2BEscrowManagement from '../pages/B2BEscrowManagement';
-import VendorRankingEngine from '../pages/VendorRankingEngine';
 import AdminLegalPage from '../pages/AdminLegalPage';
 import ServiceAreas from '../pages/ServiceAreas';
 import AdminSupplierRequestsPage from '../pages/AdminSupplierRequestsPage';
@@ -160,7 +159,6 @@ const AdminRoutes = () => {
         <Route path="/vendor-supply-pricing/zones" element={<SupplierServiceZoneManagement />} />
 
 
-        <Route path="/vendor-ranking" element={<VendorRankingEngine />} />
         <Route path="/privacy-policy" element={<AdminLegalPage type="privacy-policy" />} />
         <Route path="/terms-conditions" element={<AdminLegalPage type="terms-conditions" />} />
         <Route path="/geofencing" element={<ServiceAreas />} />

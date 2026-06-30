@@ -459,7 +459,12 @@ const OrdersHistoryPage = () => {
                       className="bg-white rounded-[2rem] p-5 relative overflow-hidden group shadow-[0_15px_40px_rgba(0,0,0,0.04)] border border-slate-100 mb-4"
                     >
                       <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
-                        <h3 className="text-lg font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
+                        <div className="space-y-1">
+                          <h3 className="text-lg font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                            {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
                         <p className="text-lg font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
                       </div>
 
@@ -470,7 +475,9 @@ const OrdersHistoryPage = () => {
                         </div>
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100/50">
                           <span className="material-symbols-outlined text-xs text-primary">schedule</span>
-                          <p className="text-[9px] font-black text-slate-900">{order.pickupSlot?.time?.split(',')[0] || order.deliverySlot?.time?.split(',')[0] || 'Today'}</p>
+                          <p className="text-[9px] font-black text-slate-900">
+                            {new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                          </p>
                         </div>
                       </div>
 

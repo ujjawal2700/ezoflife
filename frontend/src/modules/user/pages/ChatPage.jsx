@@ -83,7 +83,8 @@ const ChatPage = () => {
         };
 
         initChat();
-        socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+        const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+        socketRef.current = io(socketUrl);
         
         return () => {
             if (socketRef.current) socketRef.current.disconnect();

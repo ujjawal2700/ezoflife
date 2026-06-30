@@ -7,9 +7,12 @@ import {
   RotateCw,
   MessageSquare,
   AlertTriangle,
-  FolderOpen
+  FolderOpen,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
 import { serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 
@@ -32,6 +35,9 @@ export default function VendorServiceRequests() {
     basePrice: 0,
     message: ''
   });
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -78,7 +84,6 @@ export default function VendorServiceRequests() {
     }
   };
 
-  // Filter requests based on vendor name, item name, and price
   const filteredData = useMemo(() => {
     return requests.filter(req => {
       const vendorName = req.vendorId?.shopDetails?.name || req.vendorId?.displayName || 'Unknown Vendor';
@@ -86,9 +91,28 @@ export default function VendorServiceRequests() {
       const matchesItemName = !selectedItemName || req.name === selectedItemName;
       const matchesPrice = !selectedPrice || String(req.basePrice) === selectedPrice;
       
-      return matchesVendor && matchesItemName && matchesPrice;
+      let matchesDate = true;
+      if (req.createdAt) {
+        const reqDate = new Date(req.createdAt);
+        reqDate.setHours(0, 0, 0, 0);
+
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (reqDate < start) matchesDate = false;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (reqDate > end) matchesDate = false;
+        }
+      } else if (startDate || endDate) {
+        matchesDate = false;
+      }
+
+      return matchesVendor && matchesItemName && matchesPrice && matchesDate;
     });
-  }, [requests, selectedVendorName, selectedItemName, selectedPrice]);
+  }, [requests, selectedVendorName, selectedItemName, selectedPrice, startDate, endDate]);
 
   const uniqueVendorNames = useMemo(() => {
     const names = requests.map(r => r.vendorId?.shopDetails?.name || r.vendorId?.displayName || 'Unknown Vendor').filter(Boolean);
@@ -113,29 +137,148 @@ export default function VendorServiceRequests() {
 
   useEffect(() => {
     setPage(1); // Reset page on filter changes
-  }, [selectedVendorName, selectedItemName, selectedPrice]);
+  }, [selectedVendorName, selectedItemName, selectedPrice, startDate, endDate]);
+
+  const handleExportFile = (format) => {
+    console.log(`Exporting ${format} for vendor service requests`);
+    try {
+      const headers = [
+        "Vendor Name", "Vendor Phone", "Item Name", "Category", 
+        "Sub Category", "Price", "Unit", "Description"
+      ];
+      
+      const rows = filteredData.map(row => [
+        row.vendorId?.shopDetails?.name || row.vendorId?.displayName || 'Unknown Vendor',
+        row.vendorId?.phone || '',
+        row.name || '',
+        row.category || '',
+        row.subCategory || 'N/A',
+        row.basePrice || 0,
+        row.unit || 'kg',
+        row.description || 'No description provided.'
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Auto-fit column widths to prevent text clipping in Excel
+      ws['!cols'] = headers.map((header, colIndex) => {
+        let maxLen = header.length;
+        rows.forEach(row => {
+          const val = row[colIndex];
+          if (val !== undefined && val !== null) {
+            const strVal = String(val);
+            if (strVal.length > maxLen) {
+              maxLen = strVal.length;
+            }
+          }
+        });
+        // Set column width with a minimum of 12 and maximum of 50 characters
+        return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Service Requests');
+
+      if (format === 'excel') {
+        XLSX.writeFile(wb, `Vendor_Service_Requests_${new Date().getTime()}.xlsx`);
+      } else if (format === 'csv') {
+        XLSX.writeFile(wb, `Vendor_Service_Requests_${new Date().getTime()}.csv`, { bookType: 'csv' });
+      }
+      toast.success(`${format.toUpperCase()} export downloaded successfully`);
+    } catch (err) {
+      console.error(`Export ${format} error:`, err);
+      toast.error(`Error exporting to ${format}`);
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50/50 pb-20 font-sans">
-      <PageHeader title="Vendor Service Request" />
+      <PageHeader 
+        title="" 
+        actions={[
+          {
+            customComponent: (
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  <FileText size={13} />
+                  Export Service Requests
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${showExportDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showExportDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
+                    <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left">
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('excel');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        Excel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('csv');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          }
+        ]}
+      />
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         {/* Table Container */}
         <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
           
-          {/* Header Bar with Filters */}
           <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />
-              <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
-                Custom Service Requests
-              </h3>
-              <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
-                {filteredData.length} REQUESTS
-              </span>
+            {/* Date Filters on the Left */}
+            <div className="flex items-center gap-2">
+              <input 
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+              />
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
+              <input 
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+              />
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setPage(1);
+                  }}
+                  className="px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 rounded-sm transition-all text-[9px] font-black uppercase tracking-wider"
+                >
+                  Clear
+                </button>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 justify-end">
               {/* Vendor Name Filter */}
               <select
                 value={selectedVendorName}
@@ -173,12 +316,14 @@ export default function VendorServiceRequests() {
               </select>
 
               {/* Reset Button */}
-              {(selectedVendorName || selectedItemName || selectedPrice) && (
+              {(selectedVendorName || selectedItemName || selectedPrice || startDate || endDate) && (
                 <button
                   onClick={() => {
                     setSelectedVendorName('');
                     setSelectedItemName('');
                     setSelectedPrice('');
+                    setStartDate('');
+                    setEndDate('');
                   }}
                   className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white cursor-pointer"
                 >

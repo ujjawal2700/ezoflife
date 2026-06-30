@@ -493,30 +493,134 @@ export const getDashboardStats = async (req, res) => {
         startOfToday.setHours(0, 0, 0, 0);
 
         const Ticket = (await import('../models/Ticket.js')).default;
+        const ServiceArea = (await import('../models/ServiceArea.js')).default;
+        const MasterService = (await import('../models/MasterService.js')).default;
+        const Service = (await import('../models/Service.js')).default;
+        const Advertisement = (await import('../models/Advertisement.js')).default;
+        const Material = (await import('../models/Material.js')).default;
+        const JobApplication = (await import('../models/JobApplication.js')).default;
+
+        // Group orders by month for the last 6 months
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1);
+        sixMonthsAgo.setHours(0, 0, 0, 0);
 
         const [
             totalOrders,
             activeRiders,
             pendingIssues,
-            todayOrders
+            todayOrders,
+            totalRevenueOrders,
+            totalVendors,
+            approvedVendors,
+            rejectedVendors,
+            totalSuppliers,
+            approvedSuppliers,
+            rejectedSuppliers,
+            totalGeofences,
+            activeGeofences,
+            totalServices,
+            masterServices,
+            totalTickets,
+            resolvedTickets,
+            unresolvedTickets,
+            totalAds,
+            activeAds,
+            inactiveAds,
+            totalProducts,
+            activeProducts,
+            outOfStockProducts,
+            totalCareerRequests,
+            pendingCareerRequests,
+            reviewedCareerRequests,
+            totalServiceRequests,
+            pendingServiceRequests,
+            approvedServiceRequests,
+            rejectedServiceRequests,
+            monthlyRevenueOrders
         ] = await Promise.all([
             Order.countDocuments({}),
             User.countDocuments({ role: 'Rider', isOnline: true }),
             Ticket.countDocuments({ status: 'Open' }),
-            Order.find({ createdAt: { $gte: startOfToday } }).select('totalAmount status deliverySlot')
+            Order.find({ createdAt: { $gte: startOfToday } }).select('totalAmount status deliverySlot'),
+            Order.find({ status: { $ne: 'Cancelled' } }).select('totalAmount'),
+            
+            User.countDocuments({ role: 'Vendor' }),
+            User.countDocuments({ role: 'Vendor', status: 'approved' }),
+            User.countDocuments({ role: 'Vendor', status: 'rejected' }),
+            
+            User.countDocuments({ role: 'Supplier' }),
+            User.countDocuments({ role: 'Supplier', status: 'approved' }),
+            User.countDocuments({ role: 'Supplier', status: 'rejected' }),
+            
+            ServiceArea.countDocuments({}),
+            ServiceArea.countDocuments({ isActive: true }),
+            
+            MasterService.countDocuments({}),
+            MasterService.countDocuments({ isActive: true }),
+            
+            Ticket.countDocuments({}),
+            Ticket.countDocuments({ status: { $in: ['Resolved', 'Closed'] } }),
+            Ticket.countDocuments({ status: { $in: ['Open', 'In Progress'] } }),
+            
+            Advertisement.countDocuments({}),
+            Advertisement.countDocuments({ isActive: true }),
+            Advertisement.countDocuments({ isActive: false }),
+            
+            Material.countDocuments({}),
+            Material.countDocuments({ status: 'active' }),
+            Material.countDocuments({ status: 'out_of_stock' }),
+            
+            JobApplication.countDocuments({}),
+            JobApplication.countDocuments({ status: 'Pending' }),
+            JobApplication.countDocuments({ status: { $ne: 'Pending' } }),
+            
+            Service.countDocuments({ isMaster: false }),
+            Service.countDocuments({ isMaster: false, approvalStatus: 'Pending' }),
+            Service.countDocuments({ isMaster: false, approvalStatus: 'Approved' }),
+            Service.countDocuments({ isMaster: false, approvalStatus: 'Rejected' }),
+            
+            Order.find({
+                status: { $ne: 'Cancelled' },
+                createdAt: { $gte: sixMonthsAgo }
+            }).select('totalAmount createdAt')
         ]);
 
         const todayRevenue = todayOrders.reduce((acc, order) => acc + (order.totalAmount || 0), 0);
-        
+        const totalRevenue = totalRevenueOrders.reduce((acc, order) => acc + (order.totalAmount || 0), 0);
+
         // Simple logic for delayed: status not Delivered and it's from yesterday or earlier
-        // (Improving this would require parsing deliverySlot.date string, but for now we check createdAt)
-        const yesterday = new Date(startOfToday);
-        yesterday.setDate(yesterday.getDate() - 1);
-        
         const delayedOrders = await Order.countDocuments({
             status: { $nin: ['Delivered', 'Cancelled'] },
-            createdAt: { $lt: startOfToday } // Simplified delayed logic: not delivered and older than today
+            createdAt: { $lt: startOfToday }
         });
+
+        // Initialize last 6 months for chart
+        const monthsList = [];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date();
+            d.setMonth(d.getMonth() - i);
+            monthsList.push({
+                name: monthNames[d.getMonth()],
+                year: d.getFullYear(),
+                monthIndex: d.getMonth(),
+                revenue: 0
+            });
+        }
+
+        monthlyRevenueOrders.forEach(order => {
+            const orderDate = new Date(order.createdAt);
+            const monthIdx = orderDate.getMonth();
+            const year = orderDate.getFullYear();
+            const targetMonth = monthsList.find(m => m.monthIndex === monthIdx && m.year === year);
+            if (targetMonth) {
+                targetMonth.revenue += (order.totalAmount || 0);
+            }
+        });
+
+        const revenueTrend = monthsList.map(m => ({ name: m.name, revenue: m.revenue }));
 
         res.status(200).json({
             stats: {
@@ -525,9 +629,56 @@ export const getDashboardStats = async (req, res) => {
                 todayRevenue,
                 pendingIssues,
                 delayedOrders,
-                // Keep some legacy fields for compatibility if needed
                 totalUsers: await User.countDocuments({ role: 'Customer' }),
-                activeVendors: await User.countDocuments({ role: 'Vendor', status: 'approved' })
+                activeVendors: await User.countDocuments({ role: 'Vendor', status: 'approved' }),
+
+                // Live dashboard enhanced stats
+                totalRevenue,
+                revenueTrend,
+                vendors: {
+                    total: totalVendors,
+                    approved: approvedVendors,
+                    rejected: rejectedVendors
+                },
+                suppliers: {
+                    total: totalSuppliers,
+                    approved: approvedSuppliers,
+                    rejected: rejectedSuppliers
+                },
+                geofences: {
+                    total: totalGeofences,
+                    active: activeGeofences
+                },
+                services: {
+                    total: totalServices,
+                    masterActive: masterServices
+                },
+                tickets: {
+                    total: totalTickets,
+                    resolved: resolvedTickets,
+                    unresolved: unresolvedTickets
+                },
+                advertisements: {
+                    total: totalAds,
+                    active: activeAds,
+                    inactive: inactiveAds
+                },
+                products: {
+                    total: totalProducts,
+                    active: activeProducts,
+                    outOfStock: outOfStockProducts
+                },
+                careerRequests: {
+                    total: totalCareerRequests,
+                    pending: pendingCareerRequests,
+                    reviewed: reviewedCareerRequests
+                },
+                serviceRequests: {
+                    total: totalServiceRequests,
+                    pending: pendingServiceRequests,
+                    approved: approvedServiceRequests,
+                    rejected: rejectedServiceRequests
+                }
             }
         });
     } catch (err) {

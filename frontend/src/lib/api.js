@@ -1878,6 +1878,18 @@ export const mediaApi = {
             console.error('Get Inquiry Filters Error:', error);
             throw error;
         }
+    },
+    deleteInquiry: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/media/inquiries/${id}`, {
+                method: 'DELETE',
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Delete Inquiry Error:', error);
+            throw error;
+        }
     }
 };
 
@@ -1918,6 +1930,18 @@ export const partnershipApi = {
             return await response.json();
         } catch (error) {
             console.error('Get Partnership Filters Error:', error);
+            throw error;
+        }
+    },
+    delete: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/partnerships/${id}`, {
+                method: 'DELETE',
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Delete Partnership Inquiry Error:', error);
             throw error;
         }
     }
@@ -2336,3 +2360,36 @@ export const vendorPaymentApi = {
         }
     }
 };
+
+export const dashboardApi = {
+    getAnalytics: async (filters = {}) => {
+        try {
+            const queryParams = new URLSearchParams();
+            Object.entries(filters).forEach(([key, val]) => {
+                if (val !== undefined && val !== null && val !== '') {
+                    queryParams.append(key, val);
+                }
+            });
+            const url = `${BASE_URL}/admin/dashboard-analytics${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            const response = await fetch(url, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Get Dashboard Analytics Error:', error);
+            throw error;
+        }
+    },
+    getFilters: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/dashboard-analytics/filters`, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Get Dashboard Filters Error:', error);
+            throw error;
+        }
+    }
+};
+

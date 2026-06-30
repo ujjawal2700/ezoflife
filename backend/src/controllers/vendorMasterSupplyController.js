@@ -47,22 +47,27 @@ const populateDeliveryFrequencies = async (supplies) => {
         logToFile(`supplyObj details: ID=${supplyObj._id}, supplierId=${supplyObj.supplierId}, supplierFacilityName=${supplyObj.supplierFacilityName}`);
         let hasMasterProduct = false;
         if (supplyObj.supplierId && supplyObj.supplierId !== '-') {
-            // The category MUST be active for the buttons to show.
-            if (supplyObj.categoryId && supplyObj.categoryId.isActive === true) {
+            // Check if there is an admin template with the same materialName
+            const templateItem = await VendorMasterSupply.findOne({ 
+                materialName: { $regex: new RegExp(`^${supplyObj.materialName.trim()}$`, 'i') }, 
+                supplierId: '-' 
+            });
+
+            if (templateItem) {
+                // If it is template-based, approve/reject buttons are directly available
                 hasMasterProduct = true;
                 
-                // Find template item to fallback images & description
-                const templateItem = await VendorMasterSupply.findOne({ 
-                    materialName: { $regex: new RegExp(`^${supplyObj.materialName.trim()}$`, 'i') }, 
-                    supplierId: '-' 
-                });
-                if (templateItem) {
-                    if (!supplyObj.images || supplyObj.images.length === 0) {
-                        supplyObj.images = templateItem.images || [];
-                    }
-                    if (!supplyObj.description || supplyObj.description.trim() === '') {
-                        supplyObj.description = templateItem.description || '';
-                    }
+                // Fallback images & description from template if empty
+                if (!supplyObj.images || supplyObj.images.length === 0) {
+                    supplyObj.images = templateItem.images || [];
+                }
+                if (!supplyObj.description || supplyObj.description.trim() === '') {
+                    supplyObj.description = templateItem.description || '';
+                }
+            } else {
+                // For completely new products, require category to be active first
+                if (supplyObj.categoryId && supplyObj.categoryId.isActive === true) {
+                    hasMasterProduct = true;
                 }
             }
         } else {

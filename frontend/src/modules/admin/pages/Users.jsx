@@ -2,13 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Users as UsersIcon, Mail, Phone, MoreHorizontal, ShieldAlert, UserCheck, 
   Activity, Zap, Search, Filter, Eye, Edit2, Trash2, CheckCircle, XCircle, 
-  UserPlus, Landmark, X, Save, Check, Ban, Clock, Info, RotateCw 
+  UserPlus, X, Save, Check, Ban, Clock, Info, RotateCw, ChevronDown, FileText
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { adminApi, BASE_URL, serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
-import MetricRow from '../components/cards/MetricRow';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -16,17 +16,22 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All'); 
+  const [selectedName, setSelectedName] = useState('All');
+  const [selectedLocation, setSelectedLocation] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
   
   // Modals state
   const [editingUser, setEditingUser] = useState(null);
-  const [viewingBank, setViewingBank] = useState(null);
   const [rejectionModal, setRejectionModal] = useState(null); // { userId, serviceId }
   const [rejectionReason, setRejectionReason] = useState('');
   const [customServices, setCustomServices] = useState([]); // Services from 'Service' collection for current editing user
   const [isSaving, setIsSaving] = useState(false);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
 
   const tabs = ['All', 'Customer', 'Vendor', 'Supplier'];
 
@@ -63,6 +68,11 @@ export default function Users() {
   useEffect(() => {
     fetchUsers();
     setPage(1); // Reset page on tab change
+    setSelectedName('All');
+    setSelectedLocation('All');
+    setSelectedStatus('All');
+    setStartDate('');
+    setEndDate('');
   }, [activeTab]);
 
   useEffect(() => {
@@ -195,77 +205,99 @@ export default function Users() {
     }
   };
 
+  const uniqueNames = useMemo(() => {
+    const names = users.map(u => u.displayName).filter(Boolean);
+    return ['All', ...new Set(names)].sort();
+  }, [users]);
+
+  const uniqueLocations = useMemo(() => {
+    const locations = users.map(u => u.address).filter(Boolean);
+    return ['All', ...new Set(locations)].sort();
+  }, [users]);
+
   const filteredUsers = useMemo(() => {
-    return users.filter(u => 
-        (u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-         u.phone?.includes(searchQuery) ||
-         u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-  }, [users, searchQuery]);
+    return users.filter(u => {
+      const matchName = selectedName === 'All' || u.displayName === selectedName;
+      const matchLocation = selectedLocation === 'All' || u.address === selectedLocation;
+      
+      let matchStatus = true;
+      if (selectedStatus !== 'All') {
+        const userStatusText = u.status === 'approved' ? 'Active' : u.status === 'rejected' ? 'Blocked' : 'Pending';
+        if (userStatusText !== selectedStatus) matchStatus = false;
+      }
+
+      let matchDate = true;
+      if (u.createdAt) {
+        const userDate = new Date(u.createdAt);
+        userDate.setHours(0, 0, 0, 0);
+        
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (userDate < start) matchDate = false;
+        }
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (userDate > end) matchDate = false;
+        }
+      } else if (startDate || endDate) {
+        matchDate = false;
+      }
+      
+      return matchName && matchLocation && matchStatus && matchDate;
+    });
+  }, [users, selectedName, selectedLocation, selectedStatus, startDate, endDate]);
 
   const paginatedUsers = useMemo(() => {
     return filteredUsers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   }, [filteredUsers, page]);
 
-  const stats = useMemo(() => [
-    { label: 'Total Base', value: users.length, change: 'Across All Roles', trend: 'up', icon: UsersIcon },
-    { label: 'Verified Accounts', value: users.filter(u => u.status === 'approved').length, change: 'Active Status', trend: 'up', icon: CheckCircle },
-    { label: 'Flagged/Blocked', value: users.filter(u => u.status === 'rejected').length, change: 'Needs Review', trend: 'down', icon: XCircle },
-    { label: 'Active Sessions', value: 'Live', change: 'Online Now', trend: 'up', icon: Activity }
-  ], [users]);
-
   const columns = useMemo(() => [
     { 
-      header: 'Identity', 
+      header: 'Name', 
       key: 'displayName',
-      render: (val, row) => (
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center relative">
-             <img src={`https://ui-avatars.com/api/?name=${val || row.phone}&background=f1f5f9&color=64748b&bold=true`} alt={val} className="w-full h-full object-cover" />
-             {row.isOnline && (
-               <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>
-             )}
-          </div>
-          <div className="flex flex-col">
-            <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight leading-none mb-1">
-              {val || 'Unnamed User'}
-            </span>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em] opacity-60 tabular-nums">
-                {row.phone}
-              </span>
-              <span className="text-[9px] text-primary font-black uppercase tracking-[0.2em] opacity-80">
-                {row.role}
-              </span>
-            </div>
-          </div>
-        </div>
+      render: (val) => (
+        <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
+          {val || 'Unnamed User'}
+        </span>
       )
     },
-    { 
-      header: 'Business Info', 
-      key: 'shopDetails',
-      render: (_, row) => (
-        <div className="flex flex-col gap-0.5">
-           <span className="text-[10px] font-black text-slate-900 uppercase">
-             {row.role === 'Vendor' ? row.shopDetails?.name : row.role === 'Supplier' ? row.supplierDetails?.businessName : 'Personal Account'}
-           </span>
-           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest truncate max-w-[150px]">
-             {row.address || 'No Address Set'}
-           </span>
-        </div>
+    {
+      header: 'Contact Number',
+      key: 'phone',
+      render: (val) => (
+        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider tabular-nums">
+          {val || 'N/A'}
+        </span>
+      )
+    },
+    {
+      header: 'Role',
+      key: 'role',
+      render: (val) => (
+        <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
+          {val || 'Customer'}
+        </span>
+      )
+    },
+
+    {
+      header: 'Location',
+      key: 'address',
+      render: (val) => (
+        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate max-w-[200px]" title={val}>
+          {val || 'No Address Set'}
+        </span>
       )
     },
     { 
       header: 'Registration', 
       key: 'createdAt',
       render: (val) => (
-        <div className="flex flex-col">
-           <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
-             {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-           </span>
-           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-[0.2em]">Joined Platform</span>
-        </div>
+        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
+          {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
       )
     },
     { 
@@ -279,15 +311,6 @@ export default function Users() {
       align: 'right',
       render: (_, row) => (
         <div className="flex items-center justify-end gap-2">
-          {/* Bank Details Button */}
-          <button 
-            onClick={() => setViewingBank(row)}
-            title="Bank Details" 
-            className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm"
-          >
-            <Landmark size={14} />
-          </button>
-
           <button 
             onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))} // Deep clone for editing
             title="Edit Full Profile" 
@@ -316,56 +339,217 @@ export default function Users() {
     }
   ], [users]);
 
+  const handleExportFile = (format) => {
+    try {
+      const headers = [
+        "Name", "Contact Number", "Role", "Location", "Registration Date", "Status"
+      ];
+      
+      const rows = filteredUsers.map(u => [
+        u.displayName || 'Unnamed User',
+        u.phone || 'N/A',
+        u.role || 'Customer',
+        u.address || 'No Address Set',
+        new Date(u.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+        u.status === 'approved' ? 'Active' : u.status === 'rejected' ? 'Blocked' : 'Pending'
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Auto-fit column widths to prevent text clipping in Excel
+      ws['!cols'] = headers.map((header, colIndex) => {
+        let maxLen = header.length;
+        rows.forEach(row => {
+          const val = row[colIndex];
+          if (val !== undefined && val !== null) {
+            const strVal = String(val);
+            if (strVal.length > maxLen) {
+              maxLen = strVal.length;
+            }
+          }
+        });
+        return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Users");
+
+      if (format === 'excel') {
+        XLSX.writeFile(wb, `${activeTab}_Users_Export_${new Date().getTime()}.xlsx`);
+      } else if (format === 'csv') {
+        XLSX.writeFile(wb, `${activeTab}_Users_Export_${new Date().getTime()}.csv`, { bookType: 'csv' });
+      }
+      toast.success(`${format.toUpperCase()} export downloaded successfully`);
+    } catch (err) {
+      console.error(`Export ${format} error:`, err);
+      toast.error(`Error exporting to ${format}`);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
       <PageHeader 
-        title="User Management" 
+        title="" 
         actions={[
-          { label: 'Audit Export', icon: Zap, variant: 'secondary', className: 'hidden sm:flex' },
-          { label: 'Clear All', icon: Trash2, variant: 'rose', onClick: handleClearAll, className: 'hidden md:flex' },
-          { label: 'Register Now', icon: UserPlus, variant: 'primary', className: 'flex-1 sm:flex-none' }
+          {
+            customComponent: (
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  <FileText size={13} />
+                  Export Users List
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${showExportDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showExportDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
+                    <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left">
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('excel');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        Excel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('csv');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          }
         ]}
       />
 
-      <div className="bg-white border-b border-slate-200 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-x divide-slate-100 max-w-[1600px] mx-auto w-full">
-            {stats.map((stat, i) => (
-                <MetricRow key={i} {...stat} />
-            ))}
-        </div>
-      </div>
+
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-            <div className="bg-white p-1 rounded-xl border border-slate-200 flex gap-1 shadow-sm">
-                {tabs.map(tab => (
-                    <button 
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all rounded-lg ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
-                    >
-                        {tab}s
-                    </button>
-                ))}
-            </div>
-            
-            <div className="relative w-full md:w-80">
-                <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" />
-                <input 
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="SEARCH BY NAME, PHONE, EMAIL..."
-                    className="w-full bg-white border border-slate-200 p-3.5 pl-11 rounded-xl text-[10px] font-bold tracking-widest focus:border-slate-900 outline-none transition-all uppercase shadow-sm"
-                />
-            </div>
-        </div>
-
         <DataGrid 
-          title={`${activeTab} Index`.toUpperCase()}
+          title=""
+          showTotalEntities={false}
+          leftContent={
+            <div className="flex items-center gap-2">
+              <input 
+                type="date"
+                value={startDate}
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+              />
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
+              <input 
+                type="date"
+                value={endDate}
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  setPage(1);
+                }}
+                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+              />
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setPage(1);
+                  }}
+                  className="px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 rounded-sm transition-all text-[9px] font-black uppercase tracking-wider"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          }
           columns={columns}
           data={paginatedUsers}
           loading={loading}
+          showSearch={false}
+          showFilter={false}
+          actions={
+            <div className="flex items-center gap-3 justify-end">
+              {/* Role Filter */}
+              <div className="relative flex items-center w-[160px]">
+                  <select
+                      value={activeTab}
+                      onChange={(e) => setActiveTab(e.target.value)}
+                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      {tabs.map(tab => (
+                          <option key={tab} value={tab}>{tab}s</option>
+                      ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+              </div>
+
+              {/* Name Filter */}
+              <div className="relative flex items-center w-[160px]">
+                  <select
+                      value={selectedName}
+                      onChange={(e) => {
+                          setSelectedName(e.target.value);
+                          setPage(1);
+                      }}
+                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      <option value="All">All Names</option>
+                      {uniqueNames.filter(name => name !== 'All').map(name => (
+                          <option key={name} value={name}>{name}</option>
+                      ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+              </div>
+
+              {/* Location Filter */}
+              <div className="relative flex items-center w-[160px]">
+                  <select
+                      value={selectedLocation}
+                      onChange={(e) => {
+                          setSelectedLocation(e.target.value);
+                          setPage(1);
+                      }}
+                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      <option value="All">All Locations</option>
+                      {uniqueLocations.filter(loc => loc !== 'All').map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
+                      ))}
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative flex items-center w-[130px]">
+                  <select
+                      value={selectedStatus}
+                      onChange={(e) => {
+                          setSelectedStatus(e.target.value);
+                          setPage(1);
+                      }}
+                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      <option value="All">All Statuses</option>
+                      <option value="Active">Active</option>
+                      <option value="Blocked">Blocked</option>
+                      <option value="Pending">Pending</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+              </div>
+            </div>
+          }
           pagination={{
             page,
             totalPages: Math.ceil(filteredUsers.length / itemsPerPage) || 1,
@@ -686,73 +870,7 @@ export default function Users() {
         )}
       </AnimatePresence>
 
-      {/* Bank View Modal */}
-      <AnimatePresence>
-        {viewingBank && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                <motion.div 
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    onClick={() => setViewingBank(null)}
-                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-                />
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
-                >
-                    <div className="p-8 bg-amber-600 text-white flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                                <Landmark size={24} />
-                            </div>
-                            <h3 className="text-xl font-black uppercase tracking-tighter">Settlement Profile</h3>
-                        </div>
-                        <button onClick={() => setViewingBank(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
-                            <X size={20} />
-                        </button>
-                    </div>
 
-                    <div className="p-10 space-y-8">
-                        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                             <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
-                                <UsersIcon size={20} className="text-slate-400" />
-                             </div>
-                             <div className="flex flex-col">
-                                <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{viewingBank.displayName}</span>
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{viewingBank.role} · {viewingBank.phone}</span>
-                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-6">
-                            <div className="flex flex-col gap-1">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</span>
-                                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black text-slate-900 uppercase">{viewingBank.bankDetails?.accountHolder || 'NOT SET'}</div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</span>
-                                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black text-slate-900 uppercase">{viewingBank.bankDetails?.bankName || 'NOT SET'}</div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">A/C Number</span>
-                                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black text-slate-900 tabular-nums">{viewingBank.bankDetails?.accountNumber || 'NOT SET'}</div>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">IFSC Code</span>
-                                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black text-slate-900 tabular-nums uppercase">{viewingBank.bankDetails?.ifscCode || 'NOT SET'}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-8 bg-slate-50 border-t border-slate-100 text-center">
-                        <button onClick={() => setViewingBank(null)} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all">Close Snapshot</button>
-                    </div>
-                </motion.div>
-            </div>
-        )}
-      </AnimatePresence>
 
       {/* Custom Rejection Modal */}
       <AnimatePresence>

@@ -21,9 +21,11 @@ import {
   LayoutGrid,
   Filter,
   MoreVertical,
-  ExternalLink
+  ExternalLink,
+  ChevronDown
 } from 'lucide-react';
 import { adminApi } from '../../../lib/api';
+import * as XLSX from 'xlsx';
 import PageHeader from '../components/common/PageHeader';
 
 export default function OnboardingApprovals() {
@@ -39,12 +41,15 @@ export default function OnboardingApprovals() {
   const [isProcessing, setIsProcessing] = useState(null);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [showDocSelector, setShowDocSelector] = useState(null);
+  const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
 
   const [selectedVendor, setSelectedVendor] = useState('');
   const [selectedBusiness, setSelectedBusiness] = useState('');
   const [selectedPhone, setSelectedPhone] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Fetch full unfiltered pending list for dropdowns
   const fetchUnfiltered = async () => {
@@ -172,7 +177,27 @@ export default function OnboardingApprovals() {
     return [...new Set(phones)].sort();
   }, [allUnfilteredTabItems]);
 
-  const filteredData = allTabItems;
+  const filteredData = useMemo(() => {
+    return allTabItems.filter(item => {
+      const originalUser = rawUsers.find(u => u._id === item.id);
+      if (!originalUser || !originalUser.createdAt) return !startDate && !endDate;
+      
+      const userDate = new Date(originalUser.createdAt);
+      userDate.setHours(0, 0, 0, 0);
+
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (userDate < start) return false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (userDate > end) return false;
+      }
+      return true;
+    });
+  }, [allTabItems, rawUsers, startDate, endDate]);
 
   const paginatedData = useMemo(() => {
     return filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -180,10 +205,102 @@ export default function OnboardingApprovals() {
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
 
+  const handleExportFile = (format) => {
+    console.log(`Exporting ${format} for onboarding approvals (${activeTab})`);
+    try {
+      const headers = [
+        "Name", "Business/Shop Name", "Contact Number", 
+        "Location Address", "Application Date", "Verification Status", "Role"
+      ];
+      
+      const rows = filteredData.map(row => [
+        row.vendorName || '',
+        row.shopName || '',
+        row.phone || '',
+        row.address || '',
+        row.date || '',
+        row.status || 'Pending',
+        row.role || ''
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Auto-fit column widths to prevent text clipping in Excel
+      ws['!cols'] = headers.map((header, colIndex) => {
+        let maxLen = header.length;
+        rows.forEach(row => {
+          const val = row[colIndex];
+          if (val !== undefined && val !== null) {
+            const strVal = String(val);
+            if (strVal.length > maxLen) {
+              maxLen = strVal.length;
+            }
+          }
+        });
+        // Set column width with a minimum of 12 and maximum of 50 characters
+        return { wch: Math.min(Math.max(maxLen + 3, 12), 50) };
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, `${activeTab} Onboarding`);
+
+      if (format === 'excel') {
+        XLSX.writeFile(wb, `${activeTab}_Onboarding_Approvals_${new Date().getTime()}.xlsx`);
+      } else if (format === 'csv') {
+        XLSX.writeFile(wb, `${activeTab}_Onboarding_Approvals_${new Date().getTime()}.csv`, { bookType: 'csv' });
+      }
+      alert(`${format.toUpperCase()} export downloaded successfully`);
+    } catch (err) {
+      console.error(`Export ${format} error:`, err);
+      alert(`Error exporting to ${format}`);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50/50 pb-20">
       <PageHeader 
-        title="Vendor Onboarding" 
+        title="" 
+        actions={[
+          {
+            customComponent: (
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportDropdown(!showExportDropdown)}
+                  className="px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  <FileText size={13} />
+                  Export Onboarding Requests
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${showExportDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showExportDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
+                    <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left">
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('excel');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        Excel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportFile('csv');
+                        }}
+                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                      >
+                        CSV
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          }
+        ]}
       />
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
@@ -192,16 +309,43 @@ export default function OnboardingApprovals() {
         <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
             {/* Grid Header Strip with Filters on the Right */}
             <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />
-                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
-                        Pending Approvals
-                    </h3>
-                    <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
-                        {filteredData.length} REQUESTS
-                    </span>
+                {/* Date Filters on the Left */}
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  />
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
+                  <input 
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  />
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => {
+                        setStartDate('');
+                        setEndDate('');
+                        setPage(1);
+                      }}
+                      className="px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 rounded-sm transition-all text-[9px] font-black uppercase tracking-wider"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+
+                {/* Dropdown Filters on the Right */}
+                <div className="flex flex-wrap items-center gap-2 justify-end">
                     <select
                         value={selectedVendor}
                         onChange={(e) => setSelectedVendor(e.target.value)}

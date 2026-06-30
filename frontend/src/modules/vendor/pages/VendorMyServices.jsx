@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -14,6 +14,17 @@ const VendorMyServices = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [creating, setCreating] = useState(false);
+    const [activeTab, setActiveTab] = useState('active'); // 'active' | 'pending'
+
+    const filteredServices = useMemo(() => {
+        return services.filter(service => {
+            if (activeTab === 'active') {
+                return service.approvalStatus === 'Approved' || service.approvalStatus === null || service.approvalStatus === undefined;
+            } else {
+                return service.approvalStatus === 'Pending' || service.approvalStatus === 'Rejected';
+            }
+        });
+    }, [services, activeTab]);
     const [newService, setNewService] = useState({
         name: '',
         category: '',
@@ -176,26 +187,25 @@ const VendorMyServices = () => {
         }
     }, [vendorId]);
 
-    const toggleService = (idx) => {
+    const toggleService = (serviceId) => {
         if (!editMode) return;
-        const newServices = [...services];
-        const target = newServices[idx];
-        
-        if (target.approvalStatus !== 'Approved') {
-            alert(target.approvalStatus === 'Rejected' ? 'This service was rejected by the Admin.' : 'This service is waiting for Admin approval. You cannot activate it yet.');
-            return;
-        }
-
-        const newStatus = !target.active;
-        target.active = newStatus;
-        setServices(newServices);
-
-        if (newStatus === false) {
-            toast('If you save this service as inactive, you will not receive notifications for it.', {
-                icon: '⚠️',
-                duration: 4000
-            });
-        }
+        setServices(prev => prev.map(item => {
+            if ((item._id || item.id) === serviceId) {
+                if (item.approvalStatus !== 'Approved') {
+                    alert(item.approvalStatus === 'Rejected' ? 'This service was rejected by the Admin.' : 'This service is waiting for Admin approval. You cannot activate it yet.');
+                    return item;
+                }
+                const newStatus = !item.active;
+                if (newStatus === false) {
+                    toast('If you save this service as inactive, you will not receive notifications for it.', {
+                        icon: '⚠️',
+                        duration: 4000
+                    });
+                }
+                return { ...item, active: newStatus };
+            }
+            return item;
+        }));
     };
 
     const handleCreateService = async (e) => {
@@ -239,10 +249,13 @@ const VendorMyServices = () => {
         }
     };
 
-    const updatePrice = (idx, price) => {
-        const newServices = [...services];
-        newServices[idx].basePrice = Number(price);
-        setServices(newServices);
+    const updatePrice = (serviceId, price) => {
+        setServices(prev => prev.map(item => {
+            if ((item._id || item.id) === serviceId) {
+                return { ...item, basePrice: Number(price) };
+            }
+            return item;
+        }));
     };
 
     const handleGlobalSave = async () => {
@@ -396,15 +409,49 @@ const VendorMyServices = () => {
                                 >
                                     Create
                                 </button>
-                                <button 
-                                    onClick={() => editMode ? handleGlobalSave() : setEditMode(true)}
-                                    className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
-                                >
-                                    {editMode ? 'Save' : 'Edit'}
-                                </button>
+                                {activeTab === 'active' && (
+                                    <button 
+                                        onClick={() => editMode ? handleGlobalSave() : setEditMode(true)}
+                                        className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
+                                    >
+                                        {editMode ? 'Save' : 'Edit'}
+                                    </button>
+                                )}
                             </div>
                         </header>
 
+                        {/* Tabs */}
+                        <div className="flex gap-6 border-b border-slate-100 pb-0.5 mt-2">
+                            <button
+                                onClick={() => {
+                                    setActiveTab('active');
+                                    setEditMode(false);
+                                }}
+                                className={`text-xs font-black uppercase tracking-widest pb-3 px-1 relative transition-colors ${
+                                    activeTab === 'active' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-800'
+                                }`}
+                            >
+                                Active Services
+                                {activeTab === 'active' && (
+                                    <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setActiveTab('pending');
+                                    setEditMode(false);
+                                }}
+                                className={`text-xs font-black uppercase tracking-widest pb-3 px-1 relative transition-colors ${
+                                    activeTab === 'pending' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-800'
+                                }`}
+                            >
+                                Service Requests
+                                {activeTab === 'pending' && (
+                                    <motion.div layoutId="activeTabUnderline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+                                )}
+                            </button>
+                        </div>
+ 
                         <section className="space-y-6">
                             <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
                                 <div className="overflow-x-auto">
@@ -423,12 +470,12 @@ const VendorMyServices = () => {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-50">
-                                            {services.map((service, idx) => {
+                                            {filteredServices.map((service) => {
                                                 const pricingInfo = service.pricingInfo || {};
                                                 const areaMultiplier = pricingInfo.areaMultiplier !== undefined ? pricingInfo.areaMultiplier : 1;
                                                 const surgeMultiplier = pricingInfo.surgeMultiplier !== undefined ? pricingInfo.surgeMultiplier : 1;
                                                 const heritageMultiplier = pricingInfo.heritageMultiplier !== undefined ? pricingInfo.heritageMultiplier : 1;
-
+ 
                                                 const basePrice = service.basePrice || 0;
                                                 const baseNormal = Math.round(basePrice * areaMultiplier);
                                                 const baseExpress = Math.round(basePrice * areaMultiplier * surgeMultiplier);
@@ -437,7 +484,7 @@ const VendorMyServices = () => {
                                                 
                                                 const isPending = service.approvalStatus === 'Pending';
                                                 const isRejected = service.approvalStatus === 'Rejected';
-
+ 
                                                 return (
                                                     <tr key={service.id || service._id} className="hover:bg-slate-50/50 transition-colors">
                                                         <td className="p-4">
@@ -448,7 +495,7 @@ const VendorMyServices = () => {
                                                                     <span className="text-[8px] font-black text-rose-500 bg-rose-50 px-2 py-1 rounded uppercase tracking-wider border border-rose-100">Rejected</span>
                                                                 ) : (
                                                                     <div 
-                                                                        onClick={() => toggleService(idx)}
+                                                                        onClick={() => toggleService(service._id || service.id)}
                                                                         className={`w-10 h-5 rounded-full relative transition-all duration-300 ${!editMode ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
                                                                     >
                                                                         <motion.div 

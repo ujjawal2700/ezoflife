@@ -141,7 +141,6 @@ const navItems = [
                     { label: 'Role Details', path: '/admin/careers/role-details' },
                 ]
             },
-            { icon: Star, label: 'Ranking Engine', path: '/admin/vendor-ranking' },
         ]
     },
 
