@@ -79,25 +79,16 @@ const WalletPage = () => {
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="max-w-xl mx-auto px-6 pt-10 space-y-10"
+                className="max-w-xl mx-auto px-6 pt-16 space-y-10"
             >
                 {/* Balance Display */}
-                <motion.section variants={itemVariants} className="relative">
+                <motion.section variants={itemVariants} className="relative mt-8">
                     <div className="bg-slate-950 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">Available Credits</p>
-                        <h2 className="text-5xl font-black tracking-tighter tabular-nums mb-10">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">Available Balance</p>
+                        <h2 className="text-5xl font-black tracking-tighter tabular-nums mb-2">
                             ₹{balance.toLocaleString('en-IN')}
                         </h2>
-                        
-                        <div className="flex gap-4">
-                            <button className="flex-1 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-blue-600/20 active:scale-95 transition-all">
-                                Add Money
-                            </button>
-                            <button className="flex-1 py-4 bg-white/10 border border-white/20 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] active:scale-95 transition-all">
-                                Redeem Code
-                            </button>
-                        </div>
                     </div>
                 </motion.section>
 
