@@ -87,7 +87,7 @@ const PromotionManagerPage = () => {
 
     const handleCreateOrUpdate = async () => {
         try {
-            if (!formData.title || !formData.code || !formData.discountValue || !formData.expiryDate) {
+            if (!formData.code || !formData.discountValue || !formData.expiryDate) {
                 alert('Please fill all mandatory fields');
                 return;
             }
