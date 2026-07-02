@@ -680,7 +680,7 @@ const SupplierMySupplies = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="border border-slate-100 p-4 rounded-2xl flex flex-col justify-center">
                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Wholesale Rate</span>
-                                    <span className="text-lg font-black text-slate-900">₹{supply.wholesaleRate || 0} <span className="text-[10px] text-slate-400 font-bold uppercase">/ {supply.quantity}</span></span>
+                                    <span className="text-lg font-black text-slate-900">₹{supply.wholesaleRate || 0} <span className="text-[10px] text-slate-400 font-bold uppercase">(Stock: {supply.quantity})</span></span>
                                 </div>
                                 <div className="border border-slate-100 p-4 rounded-2xl flex flex-col justify-center">
                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">GST & HSN</span>
@@ -855,11 +855,12 @@ const SupplierMySupplies = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-1.5 text-left">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PACK SIZE / UNIT</label>
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">AVAILABLE STOCK</label>
                                         <input 
                                           type="text"
                                           value={editForm.quantity}
                                           onChange={(e) => setEditForm({...editForm, quantity: e.target.value})}
+                                          placeholder="e.g. 500"
                                           className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
                                         />
                                     </div>
@@ -1167,12 +1168,12 @@ const SupplierMySupplies = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-1.5 text-left">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">PACK SIZE / UNIT</label>
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">AVAILABLE STOCK</label>
                                         <input 
                                             type="text"
                                             value={createForm.quantity}
                                             onChange={(e) => setCreateForm({...createForm, quantity: e.target.value})}
-                                            placeholder="e.g. 5 Liters / Per Kg"
+                                            placeholder="e.g. 500"
                                             className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all placeholder:text-slate-300"
                                         />
                                     </div>
@@ -1514,7 +1515,7 @@ const SupplierMySupplies = () => {
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Brand</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Category</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400">Sub Category</th>
-                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Quantity</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Available Stock</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-32">Wholesale Rate</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-24">GST</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-36">Bulk Discount</th>

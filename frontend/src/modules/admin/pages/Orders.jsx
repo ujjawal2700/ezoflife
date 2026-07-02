@@ -279,7 +279,7 @@ export default function Orders() {
         row.orderId || row._id.slice(-6).toUpperCase(),
         row.customer?.displayName || 'Unknown',
         row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A',
-        row.singleItem ? JSON.stringify([{ item: row.singleItem.name, qty: row.singleItem.quantity, rate: row.singleItem.price }]) : '-',
+        row.singleItem ? `${row.singleItem.name} (Qty: ${row.singleItem.quantity}, Rate: Rs. ${row.singleItem.price})` : '-',
         row.status,
         "-",
         "-",
@@ -381,7 +381,7 @@ export default function Orders() {
         row.orderId || row._id.slice(-6).toUpperCase(),
         row.customer?.displayName || 'Unknown',
         row.createdAt ? new Date(row.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A',
-        row.singleItem ? JSON.stringify([{ item: row.singleItem.name, qty: row.singleItem.quantity, rate: row.singleItem.price }]) : '-',
+        row.singleItem ? `${row.singleItem.name} (Qty: ${row.singleItem.quantity}, Rate: Rs. ${row.singleItem.price})` : '-',
         row.status,
         "-",
         "-",
@@ -584,19 +584,13 @@ export default function Orders() {
     { 
       header: 'Service Items JSON', 
       key: 'singleItem',
-      wrap: true, // Enforce multi-line wrapping in the table cell
+      wrap: true, 
       render: (val, row) => {
         if (!val) return <span className="text-slate-400 font-bold">-</span>;
-        const displayItem = [{
-          item: val.name,
-          qty: val.quantity,
-          rate: val.price
-        }];
-        const jsonStr = JSON.stringify(displayItem);
         return (
           <div className="flex items-start gap-2 max-w-[300px]">
-            <span className="font-mono text-[9px] text-slate-600 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded block whitespace-normal break-all">
-              {jsonStr}
+            <span className="font-bold text-[10px] text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded block whitespace-normal break-words">
+              {val.name} (Qty: {val.quantity}, Rate: ₹{val.price})
             </span>
             {row.items && row.items.length > 1 && (
               <button
@@ -990,7 +984,7 @@ export default function Orders() {
           <div className="bg-white rounded-lg p-6 shadow-2xl relative z-10 w-full max-w-lg border border-slate-100 flex flex-col gap-4 text-left">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-800">
-                Order Items JSON - {selectedOrderIdForItems}
+                Order Items - {selectedOrderIdForItems}
               </h3>
               <button 
                 onClick={() => setItemsModalOpen(false)} 
@@ -1000,14 +994,13 @@ export default function Orders() {
               </button>
             </div>
             
-            <div className="max-h-[60vh] overflow-y-auto font-mono text-[11px] bg-slate-50 p-4 border border-slate-200 rounded text-slate-800 whitespace-pre">
-              {JSON.stringify(selectedOrderItems.map(i => ({
-                item: i.name,
-                quantity: i.quantity,
-                rate: i.price
-              })), null, 2)}
+            <div className="max-h-[60vh] overflow-y-auto bg-slate-50 p-4 border border-slate-200 rounded text-slate-800 flex flex-col gap-2">
+              {selectedOrderItems.map((i, idx) => (
+                <div key={idx} className="text-[11px] font-bold text-slate-700 border-b border-slate-200/50 pb-1.5 last:border-0 last:pb-0">
+                  {idx + 1}. {i.name} (Qty: {i.quantity}, Rate: ₹{i.price})
+                </div>
+              ))}
             </div>
-            
             <div className="flex justify-end pt-2">
               <button 
                 onClick={() => setItemsModalOpen(false)}

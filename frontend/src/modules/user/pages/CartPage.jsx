@@ -259,6 +259,27 @@ const CartPage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Online'); // Default to Online
   const [showPromoDropdown, setShowPromoDropdown] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
+
+  useEffect(() => {
+    const fetchWallet = async () => {
+      try {
+        const userRaw = localStorage.getItem('user');
+        if (userRaw) {
+          const user = JSON.parse(userRaw);
+          const userId = user._id || user.id;
+          if (userId) {
+            const profile = await authApi.getProfile(userId);
+            setWalletBalance(profile?.walletBalance || 0);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching wallet balance:', err);
+      }
+    };
+    fetchWallet();
+  }, []);
 
   const timeInfo = useMemo(() => {
     const now = new Date();
@@ -457,6 +478,11 @@ const CartPage = () => {
 
   const finalTotal = useMemo(() => Math.max(0, grandTotal - discount), [grandTotal, discount]);
 
+  const remainingPayable = useMemo(() => {
+    const balanceUsed = useWallet ? Math.min(walletBalance, finalTotal) : 0;
+    return Math.max(0, finalTotal - balanceUsed);
+  }, [useWallet, walletBalance, finalTotal]);
+
   const priceBreakdown = useMemo(() => {
     const baseWithArea = cartItems.reduce((acc, item) => {
         return acc + (getItemPrice(item) * (quantities[item._id || item.id] || 0) * areaMultiplier);
@@ -538,7 +564,9 @@ const CartPage = () => {
         }
       }
 
-      if (paymentMethod === 'Online' && finalTotal > 0) {
+      const amountToPay = Math.round(remainingPayable);
+
+      if (paymentMethod === 'Online' && amountToPay > 0) {
         const loadScript = (src) => {
           return new Promise((resolve) => {
             const script = document.createElement('script');
@@ -556,7 +584,7 @@ const CartPage = () => {
         }
 
         const rzpOrder = await orderApi.createRazorpayOrder({
-          amount: Math.round(finalTotal)
+          amount: amountToPay
         });
 
         console.log('📦 [CART] Razorpay Order received from backend:', rzpOrder);
@@ -588,7 +616,8 @@ const CartPage = () => {
         const paymentObject = new window.Razorpay(options);
         paymentObject.open();
       } else {
-        await finalizeOrder(userId, null, 'COD');
+        const actualMethod = amountToPay === 0 ? 'Online' : 'COD';
+        await finalizeOrder(userId, null, actualMethod);
       }
     } catch (err) {
       alert('Error initiating order');
@@ -607,6 +636,7 @@ const CartPage = () => {
       });
 
       const mergedPhotos = Array.from(new Set([...garmentPhotos, ...allItemPhotos]));
+      const amountToPay = Math.round(remainingPayable);
 
       const orderData = {
         customerId: userId,
@@ -628,8 +658,9 @@ const CartPage = () => {
         dropAddress: isSameAddress ? (selectedPickupAddress?.address || '') : (selectedDropAddress?.address || ''),
         dropLocation: isSameAddress ? (selectedPickupAddress?.location || defaultCenter) : (selectedDropAddress?.location || defaultCenter),
         totalAmount: finalTotal,
-        paymentStatus: method === 'Online' ? 'Paid' : 'Pending',
-        paymentMethod: method,
+        paymentStatus: (method === 'Online' || amountToPay === 0) ? 'Paid' : 'Pending',
+        paymentMethod: amountToPay === 0 ? 'Wallet' : method,
+        useWallet: useWallet,
         razorpayPaymentId: paymentId,
         deliveryMode: isExpress ? 'Express' : 'Normal',
         deliveryCharge: normalLogisticsConfig,
@@ -915,6 +946,24 @@ const CartPage = () => {
                     Promo applied! Saved ₹{discount.toFixed(0)}
                   </p>
                 )}
+
+                {walletBalance > 0 && (
+                  <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl p-4 mt-4 relative z-20">
+                    <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-lg text-emerald-400">account_balance_wallet</span>
+                      <div className="text-left">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-white">Use Wallet Balance</p>
+                        <p className="text-[8px] font-bold text-white/40 uppercase tracking-wider">Available: ₹{walletBalance.toFixed(0)}</p>
+                      </div>
+                    </div>
+                    <input 
+                      type="checkbox" 
+                      checked={useWallet} 
+                      onChange={(e) => setUseWallet(e.target.checked)}
+                      className="w-4 h-4 rounded text-blue-600 focus:ring-0 accent-blue-600 cursor-pointer"
+                    />
+                  </div>
+                )}
               </div>
             </div>
             
@@ -922,7 +971,12 @@ const CartPage = () => {
               <div className="flex flex-col">
                 <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Total Payable Amount</p>
                 <div className="flex items-baseline gap-2">
-                    <p className="text-3xl font-black tracking-tighter text-white">₹{finalTotal.toFixed(0)}</p>
+                    <p className="text-3xl font-black tracking-tighter text-white">₹{remainingPayable.toFixed(0)}</p>
+                    {useWallet && (
+                      <span className="text-[7px] font-black text-emerald-400 uppercase tracking-widest">
+                        (₹{Math.min(walletBalance, finalTotal).toFixed(0)} from wallet)
+                      </span>
+                    )}
                 </div>
               </div>
               

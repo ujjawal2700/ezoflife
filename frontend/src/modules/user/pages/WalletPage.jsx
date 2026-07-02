@@ -38,14 +38,7 @@ const WalletPage = () => {
                             status: 'Credited'
                         }));
 
-                    // Fallback default list if no transactions yet
-                    if (cashbackTxList.length > 0) {
-                        setTransactions(cashbackTxList);
-                    } else {
-                        setTransactions([
-                            { id: 'SYS-WELCOME', type: 'Welcome Bonus', amount: 50, date: 'Today', status: 'Success' }
-                        ]);
-                    }
+                    setTransactions(cashbackTxList);
                 } catch (err) {
                     console.error('Failed to load wallet data:', err);
                 } finally {
@@ -84,7 +77,6 @@ const WalletPage = () => {
                 {/* Balance Display */}
                 <motion.section variants={itemVariants} className="relative mt-8">
                     <div className="bg-slate-950 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl -mr-10 -mt-10"></div>
                         <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">Available Balance</p>
                         <h2 className="text-5xl font-black tracking-tighter tabular-nums mb-2">
                             ₹{balance.toLocaleString('en-IN')}
@@ -104,6 +96,11 @@ const WalletPage = () => {
                             <div className="flex justify-center py-10">
                                 <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
                             </div>
+                        ) : transactions.length === 0 ? (
+                            <div className="text-center py-10 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                <span className="material-symbols-outlined text-3xl text-slate-200 mb-2">receipt_long</span>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No promotion cashback history yet</p>
+                            </div>
                         ) : transactions.map((tx, i) => (
                             <motion.div 
                                 variants={itemVariants}
@@ -111,7 +108,7 @@ const WalletPage = () => {
                                 className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tx.amount > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 text-slate-900">
                                         <span className="material-symbols-outlined text-[20px]">
                                             {tx.type.includes('Cashback') || tx.type.includes('Promo') ? 'celebration' : 'account_balance_wallet'}
                                         </span>
@@ -122,7 +119,7 @@ const WalletPage = () => {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-base font-black tracking-tighter tabular-nums ${tx.amount > 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+                                    <p className="text-base font-black tracking-tighter tabular-nums text-slate-900">
                                         {tx.amount > 0 ? '+' : ''}₹{tx.amount}
                                     </p>
                                     <p className="text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">{tx.status}</p>
@@ -130,18 +127,6 @@ const WalletPage = () => {
                             </motion.div>
                         ))}
                     </div>
-                </motion.section>
-
-                {/* Referral Promo */}
-                <motion.section variants={itemVariants} className="bg-blue-50/50 border border-blue-100/50 p-8 rounded-[2.5rem] flex flex-col items-center text-center">
-                    <span className="material-symbols-outlined text-3xl text-blue-600 mb-4">celebration</span>
-                    <h3 className="text-sm font-black uppercase tracking-widest mb-2">Refer a Friend</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed mb-6">
-                        Earn ₹100 SPINZYT Credits for <br/> every friend who completes a wash.
-                    </p>
-                    <button className="px-8 py-3 bg-white border border-blue-100 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm active:scale-95 transition-all">
-                        Invite Contacts
-                    </button>
                 </motion.section>
             </motion.main>
         </div>

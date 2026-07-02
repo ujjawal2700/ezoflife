@@ -205,7 +205,6 @@ const MaterialRequestPage = () => {
     };
 
     const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-
     const { itemSubtotal, totalDeliveryCharges, grandTotal, supplierTotals } = useMemo(() => {
         let subTotal = 0;
         const supplierGroups = {};
@@ -214,7 +213,12 @@ const MaterialRequestPage = () => {
             if (qty > 0) {
                 const item = materials.find(m => m._id === id);
                 if (item) {
-                    const itemTotal = (item.price || 0) * qty;
+                    const hasBulkDiscount = item.bulkThreshold > 0 && qty >= item.bulkThreshold && item.bulkDiscount > 0;
+                    const finalItemPrice = hasBulkDiscount 
+                        ? item.price - (item.price * item.bulkDiscount / 100)
+                        : item.price;
+                    
+                    const itemTotal = finalItemPrice * qty;
                     subTotal += itemTotal;
                     
                     if (!supplierGroups[item.supplierId]) {
@@ -505,26 +509,54 @@ const MaterialRequestPage = () => {
                                                                         )}
                                                                     </div>
                                                                 );
-                                                            })()}
+                                                            })()}                                                            {/* Stock & Delivery Info */}
+                                                            <div className="flex flex-col gap-1.5 mt-2">
+                                                                <div className="flex flex-wrap gap-1.5">
+                                                                    <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-[8px] font-bold text-slate-600 uppercase">
+                                                                        Rate: ₹{item.wholesaleRate} + {item.gst}% GST
+                                                                    </span>
+                                                                    {item.bulkDiscount > 0 && (
+                                                                        <span className="bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded text-[8px] font-bold text-emerald-600 uppercase">
+                                                                            Bulk: {item.bulkDiscount}% Off (Min {item.bulkThreshold})
+                                                                        </span>
+                                                                    )}
+                                                                </div>
 
-                                                            {/* Stock & Delivery Info */}
-                                                            <div className="flex flex-col gap-0.5">
                                                                 <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                                    Status: {item.stock || 'AVAILABLE'}
+                                                                    Status: {item.stock || 'AVAILABLE'} (Stock: {item.quantity})
                                                                 </p>
                                                                 {item.movFreeDelivery > 0 && (
-                                                                    <p className="text-[9px] xs:text-[10px] sm:text-[11px] font-black text-emerald-500 uppercase tracking-widest">
-                                                                        Free delivery over ₹{item.movFreeDelivery}
-                                                                    </p>
+                                                                    <div className="text-[9px] xs:text-[10px] sm:text-[11px] uppercase tracking-widest">
+                                                                        {(supplierTotals[item.supplierId]?.totalAmount || 0) >= item.movFreeDelivery ? (
+                                                                            <span className="font-black text-emerald-500">Free Delivery Unlocked!</span>
+                                                                        ) : (
+                                                                            <span className="font-bold text-slate-500">
+                                                                                Add ₹{(item.movFreeDelivery - (supplierTotals[item.supplierId]?.totalAmount || 0)).toFixed(0)} more for Free Delivery
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                         </div>
 
                                                         {/* Bottom Row: Price and Counter */}
                                                         <div className="flex items-center justify-between gap-4 mt-2 sm:mt-4">
-                                                            <p className="text-base xs:text-lg sm:text-xl md:text-2xl font-black text-slate-900">
-                                                                ₹{item.price}
-                                                            </p>
+                                                            <div className="flex flex-col">
+                                                                {item.bulkDiscount > 0 && (cart[item._id] || 0) >= item.bulkThreshold ? (
+                                                                    <div className="flex items-baseline gap-1.5">
+                                                                        <p className="text-base xs:text-lg sm:text-xl md:text-2xl font-black text-slate-900">
+                                                                            ₹{(item.price - (item.price * item.bulkDiscount / 100)).toFixed(2)}
+                                                                        </p>
+                                                                        <p className="text-[10px] sm:text-xs font-bold text-slate-400 line-through">
+                                                                            ₹{item.price}
+                                                                        </p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <p className="text-base xs:text-lg sm:text-xl md:text-2xl font-black text-slate-900">
+                                                                        ₹{item.price}
+                                                                    </p>
+                                                                )}
+                                                            </div>
                                                             
                                                             <div className="flex items-center bg-slate-50 rounded-2xl p-1 gap-2.5 border border-slate-100 shrink-0">
                                                                 <button 

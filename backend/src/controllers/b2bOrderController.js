@@ -2,15 +2,55 @@ import B2BOrder from '../models/B2BOrder.js';
 import User from '../models/User.js';
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
+import VendorMasterSupply from '../models/VendorMasterSupply.js';
+import SystemConfig from '../models/SystemConfig.js';
+import { getNextDeliveryDate, generateCycleId, isBeforeCutoff, DAYS } from '../utils/cycleHelper.js';
+import admin from '../utils/firebaseAdmin.js';
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
     key_secret: process.env.RAZORPAY_KEY_SECRET || 'rzp_test_secret_placeholder'
 });
 
+const decreaseSupplyStock = async (order) => {
+    try {
+        console.log(`📦 [STOCK_DECREASE] Processing order #${order.b2bOrderId || order._id}`);
+        for (const item of order.items) {
+            if (!item.materialId) continue;
+            const supply = await VendorMasterSupply.findById(item.materialId);
+            if (supply) {
+                const orderedQty = Number(item.quantity) || 0;
+                if (orderedQty <= 0) continue;
+
+                const currentStockStr = (supply.quantity || '0').trim();
+                
+                // Parse number and potential text unit
+                const match = currentStockStr.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+                if (match) {
+                    const currentNum = parseFloat(match[1]);
+                    const unitSuffix = match[2] || '';
+                    
+                    const newNum = Math.max(0, currentNum - orderedQty);
+                    supply.quantity = unitSuffix ? `${newNum} ${unitSuffix}` : `${newNum}`;
+                    
+                    await supply.save();
+                    console.log(`✅ [STOCK_DECREASE] Material "${supply.materialName}" stock reduced: ${currentStockStr} -> ${supply.quantity} (Ordered: ${orderedQty})`);
+                } else {
+                    // Fallback: Try raw number parse
+                    const currentNum = parseFloat(currentStockStr) || 0;
+                    const newNum = Math.max(0, currentNum - orderedQty);
+                    supply.quantity = `${newNum}`;
+                    await supply.save();
+                    console.log(`✅ [STOCK_DECREASE] Material "${supply.materialName}" stock reduced: ${currentNum} -> ${newNum} (Ordered: ${orderedQty})`);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('❌ [STOCK_DECREASE_ERROR] Failed to decrease stock:', err);
+    }
+};
+
 // Place B2B Order with Aggregation & Cycle Logic
-import SystemConfig from '../models/SystemConfig.js';
-import { getNextDeliveryDate, generateCycleId, isBeforeCutoff, DAYS } from '../utils/cycleHelper.js';
 
 export const placeB2BOrder = async (req, res) => {
     console.log('\n🚨 [B2B_ORDER_INCOMING] ----------------------------------------');
@@ -188,6 +228,7 @@ export const placeB2BOrder = async (req, res) => {
                     order.status = 'SUBMITTED';
                     order.paymentStatus = 'Paid';
                     await order.save();
+                    await decreaseSupplyStock(order);
                 }
             }
         }
@@ -226,6 +267,7 @@ export const verifyPlatformFeePayment = async (req, res) => {
             order.status = 'SUBMITTED';
             order.paymentStatus = 'Paid';
             await order.save();
+            await decreaseSupplyStock(order);
             
             // Notify supplier if pre-assigned
             if (order.supplier) {
@@ -337,8 +379,6 @@ export const getVendorOrders = async (req, res) => {
         res.status(500).json({ message: 'Error fetching vendor orders' });
     }
 };
-
-import admin from '../utils/firebaseAdmin.js';
 
 // Update B2B Order Status (Claiming from Pool)
 export const updateB2BStatus = async (req, res) => {

@@ -390,8 +390,21 @@ export const createOrder = async (req, res) => {
         finalPriceBreakdown.gstAmount = finalGst;
 
         const finalTotal = finalV + finalGst;
-        const calculatedAdvance = (finalTotal * (multipliers.advancePerc / 100));
-        const calculatedDue = finalTotal - calculatedAdvance;
+        
+        let walletDeduction = 0;
+        if (req.body.useWallet) {
+            const customerUser = await User.findById(customerId);
+            if (customerUser && customerUser.walletBalance > 0) {
+                walletDeduction = Math.min(customerUser.walletBalance, finalTotal);
+                customerUser.walletBalance = Math.max(0, customerUser.walletBalance - walletDeduction);
+                await customerUser.save();
+                console.log(`💸 [WALLET] Deducted ₹${walletDeduction} from customer ${customerUser.phone} for order`);
+            }
+        }
+
+        const remainingTotal = Math.max(0, finalTotal - walletDeduction);
+        const calculatedAdvance = (remainingTotal * (multipliers.advancePerc / 100));
+        const calculatedDue = remainingTotal - calculatedAdvance;
 
         // B2B Promotions priority discovery & matching
         const serviceArea = await ServiceArea.findOne({
@@ -487,6 +500,7 @@ export const createOrder = async (req, res) => {
             deliveryCharge: Number(deliveryCharge) || 0,
             promoApplied: req.body.promoApplied || null,
             discountAmount: req.body.discountAmount || 0,
+            walletAmountDeducted: Math.round(walletDeduction),
             specialInstructions: specialInstructions || '',
             customerPhotos: customerPhotos || [],
             priceBreakdown: finalPriceBreakdown,

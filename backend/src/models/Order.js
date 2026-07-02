@@ -112,7 +112,11 @@ const orderSchema = new mongoose.Schema({
         ref: 'Promotion',
         default: null
     },
-    discountAmount: {
+     discountAmount: {
+        type: Number,
+        default: 0
+    },
+    walletAmountDeducted: {
         type: Number,
         default: 0
     },

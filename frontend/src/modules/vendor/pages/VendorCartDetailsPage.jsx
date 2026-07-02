@@ -49,35 +49,50 @@ const VendorCartDetailsPage = () => {
             if (qty > 0) {
                 const item = materials.find(m => m._id === id);
                 if (item) {
-                    const finalPrice = item.price || 0;
-                    const wholesaleRate = item.wholesaleRate || finalPrice;
+                    const originalWholesale = item.wholesaleRate || item.price || 0;
                     const gstPercent = item.gst || 18;
+                    const finalPriceOriginal = item.price || 0;
+                    
+                    const hasBulkDiscount = item.bulkThreshold > 0 && qty >= item.bulkThreshold && item.bulkDiscount > 0;
+                    const wholesaleRate = hasBulkDiscount 
+                        ? originalWholesale - (originalWholesale * item.bulkDiscount / 100)
+                        : originalWholesale;
+                    
+                    const finalPrice = hasBulkDiscount 
+                        ? finalPriceOriginal - (finalPriceOriginal * item.bulkDiscount / 100)
+                        : finalPriceOriginal;
+
                     const gstAmount = (wholesaleRate * gstPercent) / 100;
                     const basePriceWithGst = wholesaleRate + gstAmount;
                     
                     const itemWholesaleTotal = wholesaleRate * qty;
                     const itemGstTotal = gstAmount * qty;
-                    const itemPlatformFee = (finalPrice - basePriceWithGst) * qty;
-                    const itemTotalFinal = finalPrice * qty;
-                    
-                    subTotal += itemWholesaleTotal;
-                    gstTotal += itemGstTotal;
+                    const itemTotalFinal = basePriceWithGst * qty;
+                    const itemPlatformFee = (item.platformFeePercent || 0) * itemWholesaleTotal / 100;
                     
                     const itemData = {
+                        ...item,
+                        qty,
+                        wholesaleRate,
+                        totalPrice: itemTotalFinal,
+                        gstAmount: itemGstTotal
+                    };
+
+                    subTotal += itemWholesaleTotal;
+                    gstTotal += itemGstTotal;
+                    items.push(Object.assign(itemData, {
                         materialId: id,
-                        name: item.name,
                         quantity: qty,
-                        price: finalPrice, // this goes to backend
+                        price: finalPrice,
                         wholesaleRate: wholesaleRate,
                         basePrice: basePriceWithGst,
-                        supplierPlatformMultiplier: item.supplierPlatformMultiplier || 1.0,
-                        image: item.images?.[0] || null,
-                        supplierFacilityName: item.supplierFacilityName,
-                        deliveryFrequency: item.deliveryFrequency
-                    };
-                    
-                    items.push(itemData);
-                    
+                        originalWholesale: originalWholesale,
+                        bulkDiscount: item.bulkDiscount || 0,
+                        bulkThreshold: item.bulkThreshold || 0,
+                        hasBulkDiscount: hasBulkDiscount
+                    }));
+
+
                     if (!supplierGroups[item.supplierId]) {
                         supplierGroups[item.supplierId] = {
                             supplierId: item.supplierId,
@@ -358,33 +373,44 @@ const VendorCartDetailsPage = () => {
                                 EDIT
                             </button>
                         </div>
-
                         <div className="space-y-3">
                             {orderItems.map((item, idx) => (
-                                <div key={idx} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-slate-200 shadow-sm relative overflow-hidden">
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
-                                        {item.image ? (
-                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="material-symbols-outlined text-slate-300">inventory_2</span>
-                                        )}
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex flex-col gap-1 min-w-0">
-                                                <h3 className="font-black text-[11px] text-slate-900 uppercase tracking-tight truncate">{item.name}</h3>
-                                            </div>
-                                            <div className="flex flex-col items-end shrink-0">
-                                                <p className="text-sm font-black text-slate-900 tracking-tighter">
-                                                    ₹{item.wholesaleRate * item.quantity}
-                                                </p>
-                                            </div>
+                                <div key={idx} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-slate-200 shadow-sm relative overflow-hidden justify-between">
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
+                                            {item.image ? (
+                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-slate-300">inventory_2</span>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col min-w-0 gap-0.5">
+                                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight truncate max-w-[150px] sm:max-w-[200px]">{item.name}</span>
+                                            {item.hasBulkDiscount && (
+                                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded w-max">
+                                                    {item.bulkDiscount}% Bulk Discount Applied
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-
-                                    <div className="flex items-center gap-3 shrink-0 pl-2">
-                                        <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-100">
+                                    <div className="flex items-center gap-4 shrink-0">
+                                        <div className="text-right flex flex-col items-end">
+                                            {item.hasBulkDiscount ? (
+                                                <>
+                                                    <p className="text-sm font-black text-slate-900 tracking-tighter">
+                                                        ₹{(item.wholesaleRate * item.quantity).toFixed(2)}
+                                                    </p>
+                                                    <p className="text-[10px] font-bold text-slate-400 line-through">
+                                                        ₹{(item.originalWholesale * item.quantity).toFixed(2)}
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <p className="text-sm font-black text-slate-900 tracking-tighter">
+                                                    ₹{(item.wholesaleRate * item.quantity).toFixed(2)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 shrink-0">
                                             <span className="text-[11px] font-black text-slate-900">Qty: {item.quantity}</span>
                                         </div>
                                     </div>
@@ -393,7 +419,6 @@ const VendorCartDetailsPage = () => {
                         </div>
                     </div>
                 </div>
-
             </motion.main>
         </motion.div>
     );

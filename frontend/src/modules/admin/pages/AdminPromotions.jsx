@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Tag, Check, X, FileText, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
-import { promotionApi } from '../../../lib/api';
+import { promotionApi, masterServiceApi, serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ const AdminPromotions = () => {
     const [showExportDropdown, setShowExportDropdown] = useState(false);
     const [rejectionModal, setRejectionModal] = useState(null);
     const [rejectionReason, setRejectionReason] = useState('');
+    const [serviceMap, setServiceMap] = useState({});
+    const [selectedPromoServices, setSelectedPromoServices] = useState(null);
 
     const fetchPromotions = async () => {
         try {
@@ -34,6 +36,32 @@ const AdminPromotions = () => {
 
     useEffect(() => {
         fetchPromotions();
+        
+        const fetchServicesMap = async () => {
+            try {
+                const [masterRes, customRes] = await Promise.all([
+                    masterServiceApi.getAll(),
+                    serviceApi.getAll()
+                ]);
+                const map = {};
+                if (Array.isArray(masterRes)) {
+                    masterRes.forEach(s => {
+                        const id = s._id || s.id;
+                        map[id] = s.itemName || s.name;
+                    });
+                }
+                if (Array.isArray(customRes)) {
+                    customRes.forEach(s => {
+                        const id = s._id || s.id;
+                        map[id] = s.name || s.itemName;
+                    });
+                }
+                setServiceMap(map);
+            } catch (err) {
+                console.error('Error fetching services map for admin:', err);
+            }
+        };
+        fetchServicesMap();
     }, []);
 
     const handleApprove = async (id) => {
@@ -99,12 +127,18 @@ const AdminPromotions = () => {
             header: 'Vendor Name',
             key: 'vendorName',
             render: (_, row) => (
-                <div className="flex flex-col">
-                    <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
-                        {row.vendorId?.shopDetails?.shopName || row.vendorId?.name || 'Platform'}
-                    </span>
-                    <span className="text-[9px] font-bold text-slate-400">{row.vendorId?.phone || 'N/A'}</span>
-                </div>
+                <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
+                    {row.vendorId?.shopDetails?.name || row.vendorId?.shopDetails?.shopName || row.vendorId?.displayName || row.vendorId?.name || 'Platform'}
+                </span>
+            )
+        },
+        {
+            header: 'Contact Number',
+            key: 'vendorPhone',
+            render: (_, row) => (
+                <span className="text-[10px] font-bold text-slate-900 tracking-wider font-mono">
+                    {row.vendorId?.phone || 'N/A'}
+                </span>
             )
         },
         {
@@ -134,9 +168,48 @@ const AdminPromotions = () => {
             key: 'geofence',
             render: (_, row) => (
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
-                    {row.geofence_id?.name || 'Global (All Areas)'}
+                    {row.geofence_id?.areaName || row.geofence_id?.name || 'Global (All Areas)'}
                 </span>
             )
+        },
+        {
+            header: 'Services',
+            key: 'services',
+            render: (_, row) => {
+                if (row.scope_type === 'GLOBAL_ORDER' || !row.selected_services || row.selected_services.length === 0) {
+                    return (
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide">
+                            All Services
+                        </span>
+                    );
+                }
+                
+                const getServiceName = (svc) => {
+                    if (typeof svc === 'object' && svc !== null) {
+                        return svc.name || svc.itemName;
+                    }
+                    return serviceMap[svc] || `Service ${svc.slice(-4)}`;
+                };
+
+                const serviceNames = row.selected_services.map(svc => getServiceName(svc));
+
+                if (serviceNames.length <= 2) {
+                    return (
+                        <span className="text-[10px] text-slate-900 font-bold uppercase tracking-tight">
+                            {serviceNames.join(', ')}
+                        </span>
+                    );
+                }
+
+                return (
+                    <button 
+                        onClick={() => setSelectedPromoServices(serviceNames)}
+                        className="text-blue-600 hover:text-blue-800 font-black text-[10px] uppercase tracking-wide underline focus:outline-none"
+                    >
+                        {serviceNames.length} Services
+                    </button>
+                );
+            }
         },
         {
             header: 'Min. Order',
@@ -222,7 +295,7 @@ const AdminPromotions = () => {
                 </div>
             )
         }
-    ], [promotions]);
+    ], [promotions, serviceMap]);
 
     const handleExport = (format) => {
         try {
@@ -231,12 +304,12 @@ const AdminPromotions = () => {
             ];
             
             const rows = filteredPromotions.map(promo => [
-                promo.vendorId?.shopDetails?.shopName || promo.vendorId?.name || 'Platform',
+                promo.vendorId?.shopDetails?.name || promo.vendorId?.shopDetails?.shopName || promo.vendorId?.displayName || promo.vendorId?.name || 'Platform',
                 promo.vendorId?.phone || 'N/A',
                 promo.code || '',
                 promo.discountValue || promo.discount_value || 0,
                 promo.discountType || 'Percentage',
-                promo.geofence_id?.name || 'Global (All Areas)',
+                promo.geofence_id?.areaName || promo.geofence_id?.name || 'Global (All Areas)',
                 promo.minOrderValue || promo.min_order_value || 0,
                 promo.usageLimit || 100,
                 new Date(promo.start_date || promo.createdAt).toLocaleDateString(),
@@ -432,6 +505,43 @@ const AdminPromotions = () => {
                                     Submit Rejection
                                 </button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Selected Services Modal */}
+            <AnimatePresence>
+                {selectedPromoServices && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedPromoServices(null)}
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-[2rem] shadow-2xl p-8 max-w-sm w-full relative z-10 border border-slate-100 text-left"
+                        >
+                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 mb-4">Target Services</h3>
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                                {selectedPromoServices.map((name, index) => (
+                                    <div key={index} className="flex items-center gap-2 py-2 px-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <span className="material-symbols-outlined text-sm text-slate-400">check_circle</span>
+                                        <span className="text-xs font-bold text-slate-700">{name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <button 
+                                onClick={() => setSelectedPromoServices(null)}
+                                className="w-full mt-6 py-3.5 bg-slate-950 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-colors"
+                            >
+                                Close
+                            </button>
                         </motion.div>
                     </div>
                 )}
