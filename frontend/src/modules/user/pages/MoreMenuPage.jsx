@@ -18,6 +18,7 @@ const MoreMenuPage = () => {
           title: "Partnerships & Updates",
           icon: "handshake",
           items: [
+             { icon: "account_balance_wallet", title: "Wallet", desc: "Manage credits & cashback", path: "/user/profile/wallet", color: "primary" },
             ...(!isPartner ? [
               { icon: "storefront", title: "Become a Vendor", desc: "Onboard Physical Shop", path: "/user/become-vendor" },
               { icon: "factory", title: "Become a Supplier", desc: "Distribute Materials", path: "/user/become-supplier" }
