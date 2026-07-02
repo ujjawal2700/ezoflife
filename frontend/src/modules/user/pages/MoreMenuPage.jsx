@@ -18,13 +18,13 @@ const MoreMenuPage = () => {
           title: "Partnerships & Updates",
           icon: "handshake",
           items: [
-             { icon: "account_balance_wallet", title: "Wallet", desc: "Manage credits & cashback", path: "/user/profile/wallet", color: "primary" },
             ...(!isPartner ? [
               { icon: "storefront", title: "Become a Vendor", desc: "Onboard Physical Shop", path: "/user/become-vendor" },
               { icon: "factory", title: "Become a Supplier", desc: "Distribute Materials", path: "/user/become-supplier" }
             ] : []),
             { icon: "campaign", title: "Advertise with us", desc: "Digital Media Kit", path: "/user/advertise", color: "primary" },
             { icon: "handshake", title: "Partner with us", desc: "Logistics & Alliances", path: "/user/partnerships", color: "tertiary" },
+            { icon: "account_balance_wallet", title: "Wallet", desc: "Manage credits & cashback", path: "/user/profile/wallet", color: "primary" },
             { icon: "notifications", title: "Notifications", desc: "View Alerts & Updates", path: "/user/notifications", color: "primary" },
 
             { icon: "reviews", title: "App Feedback", desc: "Share your experience", path: "/user/feedback", color: "tertiary" },
