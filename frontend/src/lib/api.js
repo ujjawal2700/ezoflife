@@ -2088,6 +2088,43 @@ export const promotionApi = {
             console.error('Delete Promo Error:', error);
             throw error;
         }
+    },
+    adminList: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/promotions/admin/list`);
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to fetch admin promotions');
+            return result;
+        } catch (error) {
+            console.error('Admin Get Promos Error:', error);
+            throw error;
+        }
+    },
+    adminApprove: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/promotions/admin/${id}/approve`, { method: 'PATCH' });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to approve promotion');
+            return result;
+        } catch (error) {
+            console.error('Admin Approve Promo Error:', error);
+            throw error;
+        }
+    },
+    adminReject: async (id, rejection_reason) => {
+        try {
+            const response = await fetch(`${BASE_URL}/promotions/admin/${id}/reject`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ rejection_reason })
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to reject promotion');
+            return result;
+        } catch (error) {
+            console.error('Admin Reject Promo Error:', error);
+            throw error;
+        }
     }
 };
 

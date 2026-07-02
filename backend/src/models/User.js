@@ -177,7 +177,11 @@ const userSchema = new mongoose.Schema({
         orderNotes: { type: String, default: '' },
         itemPhotos: { type: Map, of: [String], default: {} }
     },
-    rejectionFlags: [String]
+    rejectionFlags: [String],
+    walletBalance: {
+        type: Number,
+        default: 0
+    }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);

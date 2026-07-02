@@ -2,7 +2,25 @@ import Promotion from '../models/Promotion.js';
 
 export const createPromotion = async (req, res) => {
     try {
-        const promotion = new Promotion(req.body);
+        const promoData = { ...req.body };
+        if (promoData.owner_type === 'PLATFORM') {
+            promoData.approval_status = 'APPROVED';
+        } else {
+            promoData.approval_status = 'PENDING';
+        }
+        
+        // Map camelCase fields to snake_case fields if passed
+        if (promoData.discountType) {
+            promoData.discount_type = promoData.discountType;
+        }
+        if (promoData.discountValue) {
+            promoData.discount_value = promoData.discountValue;
+        }
+        if (promoData.minOrderValue) {
+            promoData.min_order_value = promoData.minOrderValue;
+        }
+
+        const promotion = new Promotion(promoData);
         await promotion.save();
         res.status(201).json(promotion);
     } catch (error) {
@@ -16,7 +34,9 @@ export const getVendorPromotions = async (req, res) => {
         if (!vendorId || vendorId === 'undefined') {
             return res.status(400).json({ message: 'Valid Vendor ID is required' });
         }
-        const promotions = await Promotion.find({ vendorId }).sort({ createdAt: -1 });
+        const promotions = await Promotion.find({ vendorId })
+            .populate('selected_services')
+            .sort({ createdAt: -1 });
         res.json(promotions);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -52,18 +72,20 @@ export const validatePromotion = async (req, res) => {
         const { code, vendorId, orderValue } = req.body;
         const promo = await Promotion.findOne({ 
             code: code.toUpperCase(), 
-            vendorId,
             status: 'Active',
-            expiryDate: { $gte: new Date() }
+            approval_status: 'APPROVED',
+            expiryDate: { $gte: new Date() },
+            owner_type: 'PLATFORM'
         });
 
         if (!promo) {
             return res.status(404).json({ message: 'Invalid or expired promo code' });
         }
 
-        if (orderValue < promo.minOrderValue) {
+        const minVal = promo.min_order_value !== undefined ? promo.min_order_value : (promo.minOrderValue || 0);
+        if (orderValue < minVal) {
             return res.status(400).json({ 
-                message: `Minimum order value of ₹${promo.minOrderValue} required for this code` 
+                message: `Minimum order value of ₹${minVal} required for this code` 
             });
         }
 
@@ -88,16 +110,81 @@ export const getApplicablePromos = async (req, res) => {
             return res.json([]);
         }
 
+        const User = (await import('../models/User.js')).default;
+        const ServiceArea = (await import('../models/ServiceArea.js')).default;
+
+        const vendor = await User.findById(vendorId);
+        let geofenceId = null;
+        if (vendor && vendor.location?.lat) {
+            const serviceArea = await ServiceArea.findOne({
+                isActive: true,
+                boundary: {
+                    $geoIntersects: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [Number(vendor.location.lng), Number(vendor.location.lat)]
+                        }
+                    }
+                }
+            });
+            if (serviceArea) {
+                geofenceId = serviceArea._id;
+            }
+        }
+
         const promos = await Promotion.find({ 
-            vendorId, 
             status: 'Active',
-            expiryDate: { $gte: new Date() }
+            approval_status: 'APPROVED',
+            expiryDate: { $gte: new Date() },
+            owner_type: 'PLATFORM',
+            $or: [{ geofence_id: geofenceId }, { geofence_id: null }]
         });
         
         console.log(`✅ [PROMO] Found ${promos.length} active promos for Vendor: ${vendorId}`);
         res.json(promos);
     } catch (error) {
         console.error('❌ [PROMO] Fetch Error:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getAllPromotions = async (req, res) => {
+    try {
+        const promotions = await Promotion.find({})
+            .populate('vendorId', 'name email phone shopDetails')
+            .populate('selected_services')
+            .populate('geofence_id')
+            .sort({ createdAt: -1 });
+        res.json(promotions);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const approvePromotion = async (req, res) => {
+    try {
+        const promotion = await Promotion.findById(req.params.id);
+        if (!promotion) return res.status(404).json({ message: 'Promotion not found' });
+
+        promotion.approval_status = 'APPROVED';
+        await promotion.save();
+        res.json(promotion);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const rejectPromotion = async (req, res) => {
+    try {
+        const { rejection_reason } = req.body;
+        const promotion = await Promotion.findById(req.params.id);
+        if (!promotion) return res.status(404).json({ message: 'Promotion not found' });
+
+        promotion.approval_status = 'REJECTED';
+        promotion.rejection_reason = rejection_reason || 'Rejected by administrator';
+        await promotion.save();
+        res.json(promotion);
+    } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };

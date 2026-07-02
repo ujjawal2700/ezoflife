@@ -200,6 +200,23 @@ const orderSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    allocation_status: {
+        type: String,
+        enum: ['NONE', 'PROMO_EXCLUSIVE', 'GENERAL_POOL'],
+        default: 'NONE'
+    },
+    allocation_expires_at: {
+        type: Date,
+        default: null
+    },
+    ledger: {
+        vendorNetPayout: { type: Number, default: 0 },
+        customerWalletCredit: { type: Number, default: 0 },
+        platformFee: { type: Number, default: 0 },
+        spinzytCombinedRevenue: { type: Number, default: 0 },
+        appliedPromoValue: { type: Number, default: 0 },
+        promoOwnerType: { type: String, enum: ['PLATFORM', 'VENDOR', 'NONE'], default: 'NONE' }
+    },
     statusHistory: [
         {
             status: { type: String, required: true },

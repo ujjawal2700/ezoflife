@@ -18,7 +18,6 @@ import PricingConfig from '../pages/PricingConfig';
 import HelpDesk from '../pages/HelpDesk';
 import DisputeCenter from '../pages/DisputeCenter';
 import Riders from '../pages/Riders';
-import B2BLeads from '../pages/B2BLeads';
 import MaterialConfig from '../pages/MaterialConfig';
 import FAQManagement from '../pages/FAQManagement';
 import FeedbackManagement from '../pages/FeedbackManagement';
@@ -39,6 +38,10 @@ import AdminVendorRequestDetailPage from '../pages/AdminVendorRequestDetailPage'
 import AdminBrandInquiries from '../pages/AdminBrandInquiries';
 import VendorServiceRequests from '../pages/VendorServiceRequests';
 import SupplierProductRequests from '../pages/SupplierProductRequests';
+import AdminPromotions from '../pages/AdminPromotions';
+import AdminCreatePromotion from '../pages/AdminCreatePromotion';
+import AdminPromotionTable from '../pages/AdminPromotionTable';
+import AdminGeofencePromotion from '../pages/AdminGeofencePromotion';
 
 import MasterServiceManagement from '../pages/MasterServiceManagement';
 import CategoryManagement from '../pages/CategoryManagement';
@@ -140,7 +143,6 @@ const AdminRoutes = () => {
         <Route path="/help-desk" element={<HelpDesk />} />
         <Route path="/dispute-center" element={<DisputeCenter />} />
         <Route path="/users" element={<Users />} />
-        <Route path="/b2b-leads" element={<B2BLeads />} />
         <Route path="/b2b-escrow" element={<B2BEscrowManagement />} />
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/materials" element={<MaterialConfig />} />
@@ -173,6 +175,10 @@ const AdminRoutes = () => {
         <Route path="/supplier-requests/:id" element={<AdminSupplierRequestDetailPage />} />
         <Route path="/invoice-settings" element={<AdminInvoiceSettings />} />
         <Route path="/referral-settings" element={<ReferralManagement />} />
+        <Route path="/promotions" element={<AdminPromotions />} />
+        <Route path="/create-promotion" element={<AdminCreatePromotion />} />
+        <Route path="/promotion-table" element={<AdminPromotionTable />} />
+        <Route path="/geofence-promotion" element={<AdminGeofencePromotion />} />
         <Route path="/settings" element={<AdminSettings />} />
 
         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

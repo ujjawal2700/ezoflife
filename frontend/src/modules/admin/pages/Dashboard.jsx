@@ -28,13 +28,14 @@ export default function Dashboard() {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
 
-    // Cascading options loaded from backend
-    const [filterOptions, setFilterOptions] = useState({
-        states: ['Madhya Pradesh', 'Maharashtra', 'Delhi'],
-        cities: ['Indore', 'Bhopal', 'Mumbai', 'Pune', 'New Delhi'],
-        pincodes: ['452001', '452010', '400001', '110001'],
-        geofences: ['Indore Zone Alpha', 'Indore Zone Beta', 'Indore Zone Gamma', 'Mumbai Main Zone', 'Delhi NCR Zone']
+    // Cascading geography mappings
+    const [geographyMap, setGeographyMap] = useState({
+        stateCityMap: {},
+        cityPincodeMap: {},
+        geofenceMap: {}
     });
+
+    const [statesList, setStatesList] = useState(['Madhya Pradesh', 'Maharashtra']);
 
     // Fetch cascading dropdown filters
     const fetchFilters = async () => {
@@ -42,12 +43,12 @@ export default function Dashboard() {
             setFilterLoading(true);
             const res = await dashboardApi.getFilters();
             if (res && res.success && res.data) {
-                setFilterOptions(prev => ({
-                    states: res.data.states?.length ? res.data.states : prev.states,
-                    cities: res.data.cities?.length ? res.data.cities : prev.cities,
-                    pincodes: res.data.pincodes?.length ? res.data.pincodes : prev.pincodes,
-                    geofences: res.data.geofences?.length ? res.data.geofences : prev.geofences
-                }));
+                setGeographyMap({
+                    stateCityMap: res.data.stateCityMap || {},
+                    cityPincodeMap: res.data.cityPincodeMap || {},
+                    geofenceMap: res.data.geofenceMap || {}
+                });
+                setStatesList(res.data.states?.length ? res.data.states : ['Madhya Pradesh', 'Maharashtra']);
             }
         } catch (err) {
             console.error('Failed to fetch filters:', err);
@@ -55,6 +56,34 @@ export default function Dashboard() {
             setFilterLoading(false);
         }
     };
+
+    // Dynamically calculate cascading filters
+    const availableCities = useMemo(() => {
+        if (!selectedState) {
+            const allCities = [];
+            Object.values(geographyMap.stateCityMap).forEach(list => allCities.push(...list));
+            return Array.from(new Set(allCities)).sort();
+        }
+        return geographyMap.stateCityMap[selectedState] || [];
+    }, [selectedState, geographyMap.stateCityMap]);
+
+    const availablePincodes = useMemo(() => {
+        if (!selectedCity) {
+            const allPincodes = [];
+            Object.values(geographyMap.cityPincodeMap).forEach(list => allPincodes.push(...list));
+            return Array.from(new Set(allPincodes)).sort();
+        }
+        return geographyMap.cityPincodeMap[selectedCity] || [];
+    }, [selectedCity, geographyMap.cityPincodeMap]);
+
+    const availableGeofences = useMemo(() => {
+        if (!selectedCity) {
+            const allGeofences = [];
+            Object.values(geographyMap.geofenceMap).forEach(list => allGeofences.push(...list));
+            return Array.from(new Set(allGeofences)).sort();
+        }
+        return geographyMap.geofenceMap[selectedCity] || [];
+    }, [selectedCity, geographyMap.geofenceMap]);
 
     // Fetch analytics data
     const fetchAnalytics = async () => {
@@ -158,7 +187,7 @@ export default function Dashboard() {
                                 className="bg-slate-50 border border-slate-200 text-slate-800 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                             >
                                 <option value="">All States</option>
-                                {filterOptions.states.map(s => <option key={s} value={s}>{s}</option>)}
+                                {statesList.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col">
@@ -169,7 +198,7 @@ export default function Dashboard() {
                                 className="bg-slate-50 border border-slate-200 text-slate-800 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                             >
                                 <option value="">All Cities</option>
-                                {filterOptions.cities.map(c => <option key={c} value={c}>{c}</option>)}
+                                {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col">
@@ -180,7 +209,7 @@ export default function Dashboard() {
                                 className="bg-slate-50 border border-slate-200 text-slate-800 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                             >
                                 <option value="">All Pincodes</option>
-                                {filterOptions.pincodes.map(p => <option key={p} value={p}>{p}</option>)}
+                                {availablePincodes.map(p => <option key={p} value={p}>{p}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col">
@@ -191,7 +220,7 @@ export default function Dashboard() {
                                 className="bg-slate-50 border border-slate-200 text-slate-800 text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-slate-100 transition-colors"
                             >
                                 <option value="">All Geofences</option>
-                                {filterOptions.geofences.map(g => <option key={g} value={g}>{g}</option>)}
+                                {availableGeofences.map(g => <option key={g} value={g}>{g}</option>)}
                             </select>
                         </div>
                         <div className="flex flex-col col-span-2 md:col-span-1">

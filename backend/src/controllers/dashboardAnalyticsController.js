@@ -487,36 +487,104 @@ export const getDashboardAnalytics = async (req, res) => {
 
 export const getDashboardFilters = async (req, res) => {
     try {
-        // Collect distinct states, cities, pincodes from User addresses AND ServiceArea geofences
-        const userStates = await User.distinct('addresses.state');
-        const userCities = await User.distinct('addresses.city');
-        const userPincodes = await User.distinct('addresses.pincode');
+        const capitalize = (str) => {
+            if (!str) return '';
+            return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        };
 
-        const serviceAreaCities = await ServiceArea.distinct('city');
-        const serviceAreaPincodes = await ServiceArea.distinct('pincodes');
-        const serviceAreaNames = await ServiceArea.distinct('areaName');
+        const getStateForCity = (city) => {
+            const c = city.toLowerCase();
+            if (c === 'indore' || c === 'bhopal') return 'Madhya Pradesh';
+            if (c === 'nashik' || c === 'mumbai' || c === 'pune') return 'Maharashtra';
+            return 'Madhya Pradesh'; // default fallback
+        };
 
-        // Deduplicate and merge regional details
-        const statesSet = new Set(userStates.filter(Boolean));
-        
-        // Add default states based on geofence cities if Nashik exists
-        if (serviceAreaCities.some(c => c && c.toLowerCase() === 'nashik')) {
-            statesSet.add('Maharashtra');
+        const stateCityMap = {};
+        const cityPincodeMap = {};
+        const geofenceMap = {};
+        const allStates = new Set();
+
+        // 1. Process ServiceAreas (Geofences)
+        const serviceAreas = await ServiceArea.find({}).lean();
+        for (const area of serviceAreas) {
+            if (!area.city) continue;
+            const normalizedCity = capitalize(area.city.trim());
+            const normalizedState = getStateForCity(normalizedCity);
+
+            allStates.add(normalizedState);
+
+            if (!stateCityMap[normalizedState]) stateCityMap[normalizedState] = new Set();
+            stateCityMap[normalizedState].add(normalizedCity);
+
+            if (!cityPincodeMap[normalizedCity]) cityPincodeMap[normalizedCity] = new Set();
+            if (area.pincodes) {
+                area.pincodes.forEach(p => {
+                    if (p) cityPincodeMap[normalizedCity].add(p.trim());
+                });
+            }
+
+            if (!geofenceMap[normalizedCity]) geofenceMap[normalizedCity] = new Set();
+            if (area.areaName) {
+                geofenceMap[normalizedCity].add(capitalize(area.areaName.trim()));
+            }
         }
-        if (serviceAreaCities.some(c => c && c.toLowerCase() === 'indore')) {
-            statesSet.add('Madhya Pradesh');
+
+        // 2. Process Users (Customers, Vendors, Suppliers)
+        const users = await User.find({ role: { $in: ['Customer', 'Vendor', 'Supplier'] } }).lean();
+        for (const u of users) {
+            if (u.addresses) {
+                u.addresses.forEach(addr => {
+                    if (addr.state && addr.city) {
+                        const s = capitalize(addr.state.trim());
+                        const c = capitalize(addr.city.trim());
+                        allStates.add(s);
+                        if (!stateCityMap[s]) stateCityMap[s] = new Set();
+                        stateCityMap[s].add(c);
+
+                        if (addr.pincode) {
+                            if (!cityPincodeMap[c]) cityPincodeMap[c] = new Set();
+                            cityPincodeMap[c].add(addr.pincode.trim());
+                        }
+                    }
+                });
+            }
+            const details = u.shopDetails || u.supplierDetails;
+            if (details && details.city && details.state) {
+                const s = capitalize(details.state.trim());
+                const c = capitalize(details.city.trim());
+                allStates.add(s);
+                if (!stateCityMap[s]) stateCityMap[s] = new Set();
+                stateCityMap[s].add(c);
+
+                if (details.pincode) {
+                    if (!cityPincodeMap[c]) cityPincodeMap[c] = new Set();
+                    cityPincodeMap[c].add(details.pincode.trim());
+                }
+            }
         }
 
-        const citiesSet = new Set([...userCities.filter(Boolean), ...serviceAreaCities.filter(Boolean)]);
-        const pincodesSet = new Set([...userPincodes.filter(Boolean), ...serviceAreaPincodes.flat().filter(Boolean)]);
+        // Format mapping response
+        const formattedStateCityMap = {};
+        const formattedCityPincodeMap = {};
+        const formattedGeofenceMap = {};
+
+        Object.keys(stateCityMap).forEach(s => {
+            formattedStateCityMap[s] = Array.from(stateCityMap[s]).sort();
+        });
+        Object.keys(cityPincodeMap).forEach(c => {
+            formattedCityPincodeMap[c] = Array.from(cityPincodeMap[c]).sort();
+        });
+        Object.keys(geofenceMap).forEach(c => {
+            formattedGeofenceMap[c] = Array.from(geofenceMap[c]).sort();
+        });
 
         res.status(200).json({
             success: true,
             data: {
-                states: Array.from(statesSet).sort(),
-                cities: Array.from(citiesSet).sort(),
-                pincodes: Array.from(pincodesSet).sort(),
-                geofences: serviceAreaNames.filter(Boolean).sort()
+                states: Array.from(allStates).sort(),
+                stateCityMap: formattedStateCityMap,
+                cityPincodeMap: formattedCityPincodeMap,
+                geofenceMap: formattedGeofenceMap
             }
         });
     } catch (err) {

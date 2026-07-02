@@ -10,27 +10,29 @@ async function run() {
         await mongoose.connect(MONGO_URI);
         console.log('Connected to MongoDB');
         
-        const phone = '7623212121';
+        const phoneNumbers = ['3344556677', '9966554422'];
         const role = 'Customer';
         const otp = '123456';
         const expiry = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
         
-        const updatedUser = await User.findOneAndUpdate(
-            { phone },
-            { 
-                phone,
-                role,
-                otp,
-                otpExpiry: expiry,
-                displayName: 'Test Customer',
-                status: 'approved',
-                customerType: 'individual',
-                isProfileComplete: true
-            },
-            { upsert: true, new: true }
-        );
-        
-        console.log('User created/updated successfully:', updatedUser);
+        for (const phone of phoneNumbers) {
+            const updatedUser = await User.findOneAndUpdate(
+                { phone },
+                { 
+                    phone,
+                    role,
+                    otp,
+                    otpExpiry: expiry,
+                    displayName: `Customer ${phone}`,
+                    status: 'approved',
+                    customerType: 'individual',
+                    isProfileComplete: true
+                },
+                { upsert: true, new: true }
+            );
+            
+            console.log(`User ${phone} created/updated successfully:`, updatedUser);
+        }
     } catch (err) {
         console.error('Error:', err);
     } finally {

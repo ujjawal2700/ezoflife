@@ -110,7 +110,6 @@ const VendorLayout = () => {
         '/vendor/cart-details',
         '/vendor/order/', // Hide on order details
         '/vendor/fulfillment',
-        '/vendor/promotions',
         '/vendor/reviews',
         '/vendor/material-request/track'
     ];

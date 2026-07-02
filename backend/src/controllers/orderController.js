@@ -393,6 +393,83 @@ export const createOrder = async (req, res) => {
         const calculatedAdvance = (finalTotal * (multipliers.advancePerc / 100));
         const calculatedDue = finalTotal - calculatedAdvance;
 
+        // B2B Promotions priority discovery & matching
+        const serviceArea = await ServiceArea.findOne({
+            isActive: true,
+            boundary: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [Number(pickupLocation.lng), Number(pickupLocation.lat)]
+                    }
+                }
+            }
+        });
+        const serviceAreaId = serviceArea ? serviceArea._id : null;
+
+        const Promotion = (await import('../models/Promotion.js')).default;
+        const serviceIds = items.map(item => item.serviceId);
+
+        const matchingVendorPromos = await Promotion.find({
+            owner_type: 'VENDOR',
+            status: 'Active',
+            approval_status: 'APPROVED',
+            start_date: { $lte: new Date() },
+            expiryDate: { $gte: new Date() },
+            $or: [
+                { min_order_value: { $lte: finalPriceBreakdown.baseWithArea } },
+                { minOrderValue: { $lte: finalPriceBreakdown.baseWithArea } }
+            ],
+            $or: [
+                { geofence_id: serviceAreaId },
+                { geofence_id: null }
+            ],
+            $or: [
+                { scope_type: 'GLOBAL_ORDER' },
+                { scope_type: 'SELECTED_SERVICES', selected_services: { $in: serviceIds } }
+            ]
+        });
+
+        let allocationStatus = 'NONE';
+        let allocationExpiresAt = null;
+        let priorityVendorIds = [];
+
+        if (matchingVendorPromos.length > 0) {
+            priorityVendorIds = matchingVendorPromos.map(p => p.vendorId?.toString()).filter(Boolean);
+            if (priorityVendorIds.length > 0) {
+                allocationStatus = 'PROMO_EXCLUSIVE';
+                allocationExpiresAt = new Date(Date.now() + 120 * 1000);
+            }
+        }
+
+        // Apply Platform Promo calculation immediately at checkout if applied
+        let appliedPromo = null;
+        let finalLedger = {
+            vendorNetPayout: 0,
+            customerWalletCredit: 0,
+            platformFee: 0,
+            spinzytCombinedRevenue: 0,
+            appliedPromoValue: 0,
+            promoOwnerType: 'NONE'
+        };
+
+        if (req.body.promoApplied) {
+            appliedPromo = await Promotion.findById(req.body.promoApplied);
+            if (appliedPromo && appliedPromo.owner_type === 'PLATFORM') {
+                const promoValue = req.body.discountAmount || 0;
+                const retailValue = finalTotal + promoValue;
+                const standardFee = retailValue * 0.10;
+                finalLedger = {
+                    vendorNetPayout: retailValue - standardFee,
+                    customerWalletCredit: 0,
+                    platformFee: standardFee,
+                    spinzytCombinedRevenue: standardFee - promoValue,
+                    appliedPromoValue: promoValue,
+                    promoOwnerType: 'PLATFORM'
+                };
+            }
+        }
+
         const newOrder = new Order({
             customer: customerId,
             items,
@@ -419,28 +496,26 @@ export const createOrder = async (req, res) => {
             deliveryStatus: 'none',
             serviceTime: maxServiceTime,
             fallbackEnabled: fallbackEnabled,
-            pickupStatus: 'none'
+            pickupStatus: 'none',
+            allocation_status: allocationStatus,
+            allocation_expires_at: allocationExpiresAt,
+            ledger: finalLedger
         });
 
         await newOrder.save();
 
-        // Commented out to avoid broadcasting to vendors with inactive services
-        // const io = getIO();
-        // io.to('vendors_pool').emit('new_order_available', {
-        //     orderId: newOrder._id,
-        //     displayId: newOrder.orderId,
-        //     distance: 'Global'
-        // });
-        // logToFile(`Global broadcast sent for Order ${newOrder.orderId}`);
-
         const io = getIO();
-        const serviceIds = items.map(item => item.serviceId);
         const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds);
+        
+        // Filter nearby vendors if priority allocation is active
+        const targetVendors = allocationStatus === 'PROMO_EXCLUSIVE'
+            ? nearbyVendors.filter(v => priorityVendorIds.includes(v.id.toString()))
+            : nearbyVendors;
 
-        const notifications = nearbyVendors.map(vendor => ({
+        const notifications = targetVendors.map(vendor => ({
             recipient: vendor.id,
             role: 'vendor',
-            title: 'New Order Available',
+            title: allocationStatus === 'PROMO_EXCLUSIVE' ? 'Priority Order Available' : 'New Order Available',
             message: `A new laundry request at ${pickupAddress}. Distance: ${vendor.distance}km.`,
             type: 'order_available',
             orderId: newOrder._id
@@ -450,7 +525,7 @@ export const createOrder = async (req, res) => {
             try {
                 await Notification.insertMany(notifications);
                 
-                nearbyVendors.forEach(v => {
+                targetVendors.forEach(v => {
                     logToFile(`Broadcasting to vendor room: user_${v.id}`);
                     io.to(`user_${v.id}`).emit('new_order_available', {
                         orderId: newOrder._id,
@@ -460,16 +535,18 @@ export const createOrder = async (req, res) => {
                         tier: newOrder.items[0]?.tier || 'Essential',
                         deliveryMode: newOrder.deliveryMode,
                         notes: newOrder.specialInstructions,
-                        totalAmount: newOrder.totalAmount
+                        totalAmount: newOrder.totalAmount,
+                        allocation_status: allocationStatus,
+                        allocation_expires_at: allocationExpiresAt
                     });
                 });
+
                 // --- REAL FIREBASE PUSH NOTIFICATION FOR VENDORS ---
                 try {
                     const admin = (await import('../utils/firebaseAdmin.js')).default;
-                    const vendorIds = nearbyVendors.map(v => v.id);
-                    console.log(`📡 [FCM_DEBUG] Found ${vendorIds.length} nearby vendors:`, vendorIds);
+                    const vendorIds = targetVendors.map(v => v.id);
+                    console.log(`📡 [FCM_DEBUG] Found ${vendorIds.length} B2B target vendors:`, vendorIds);
                     
-                    // Filter: Only notify APPROVED vendors
                     const vendorUsers = await User.find({ 
                         _id: { $in: vendorIds },
                         status: 'approved'
@@ -477,11 +554,11 @@ export const createOrder = async (req, res) => {
 
                     for (const vendorUser of vendorUsers) {
                         if (vendorUser.fcmToken) {
-                            console.log(`🚀 [FCM_PUSH] Sending New Order to Vendor: ${vendorUser.phone} | Token: ${vendorUser.fcmToken.substring(0, 15)}...`);
+                            console.log(`🚀 [FCM_PUSH] Sending New Order to Vendor: ${vendorUser.phone}`);
                             const message = {
                                 notification: {
-                                    title: 'New Order Available! 🧺',
-                                    body: `you have received new order`
+                                    title: allocationStatus === 'PROMO_EXCLUSIVE' ? 'Priority Order Available! 🚨' : 'New Order Available! 🧺',
+                                    body: allocationStatus === 'PROMO_EXCLUSIVE' ? `Exclusive priority match for your promotion!` : `you have received new order`
                                 },
                                 data: {
                                     orderId: newOrder._id.toString(),
@@ -490,9 +567,6 @@ export const createOrder = async (req, res) => {
                                 token: vendorUser.fcmToken
                             };
                             await admin.messaging().send(message);
-                            console.log(`🚀 [FCM_PUSH] Vendor Push Success for ${vendorUser.phone}`);
-                        } else {
-                            console.log(`⚠️ [FCM_PUSH] Vendor ${vendorUser.phone} has NO FCM Token`);
                         }
                     }
                 } catch (pushErr) {
@@ -503,13 +577,43 @@ export const createOrder = async (req, res) => {
             }
         }
 
+        // Set fallback timeout if in priority exclusive window
+        if (allocationStatus === 'PROMO_EXCLUSIVE') {
+            setTimeout(async () => {
+                try {
+                    const o = await Order.findById(newOrder._id);
+                    if (o && o.allocation_status === 'PROMO_EXCLUSIVE' && !o.vendor) {
+                        o.allocation_status = 'GENERAL_POOL';
+                        await o.save();
+
+                        // Notify ALL nearby vendors that it is in the general pool
+                        const allNearby = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds);
+                        allNearby.forEach(v => {
+                            io.to(`user_${v.id}`).emit('new_order_available', {
+                                orderId: o._id,
+                                displayId: o.orderId,
+                                distance: v.distance,
+                                items: o.items,
+                                tier: o.tier || 'Essential',
+                                deliveryMode: o.deliveryMode,
+                                notes: o.specialInstructions,
+                                totalAmount: o.totalAmount,
+                                allocation_status: 'GENERAL_POOL'
+                            });
+                        });
+                        console.log(`🕒 [FALLBACK] Expiry timer fired: Order ${o.orderId} released to GENERAL_POOL`);
+                    }
+                } catch (e) {
+                    console.error('Error in exclusive allocation fallback timer:', e);
+                }
+            }, 120 * 1000);
+        }
+
         console.log(`\n\n========================================`);
         console.log(`🛍️ NEW ORDER CREATED SUCCESSFULLY!`);
         console.log(`ORDER ID: ${newOrder.orderId}`);
         console.log(`DB STATUS SAVED AS: ${newOrder.status}`);
-        console.log(`----------------------------------------`);
-        console.log(`CUSTOMER APP VIEW: "Placed"`);
-        console.log(`VENDOR APP VIEW: "New Order"`);
+        console.log(`ALLOCATION STATUS: ${newOrder.allocation_status}`);
         console.log(`========================================\n\n`);
 
         res.status(201).json(newOrder);
@@ -872,6 +976,19 @@ export const getPoolOrders = async (req, res) => {
         const vLat = vendor.location?.lat || 0;
         const vLng = vendor.location?.lng || 0;
 
+        // Auto-release expired exclusive allocations on-the-fly
+        await Order.updateMany(
+            {
+                status: 'ORDER_PLACED',
+                vendor: null,
+                allocation_status: 'PROMO_EXCLUSIVE',
+                allocation_expires_at: { $lte: new Date() }
+            },
+            {
+                $set: { allocation_status: 'GENERAL_POOL' }
+            }
+        );
+
         // Auto-reject orders older than 1 hour
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
         const expiredResult = await Order.updateMany(
@@ -894,10 +1011,56 @@ export const getPoolOrders = async (req, res) => {
             createdAt: { $gte: oneHourAgo }
         }).populate('customer', 'displayName address location');
         
-        const pool = orders.filter(order => {
-            if (!order.pickupLocation?.lat) return false;
+        const Promotion = (await import('../models/Promotion.js')).default;
+        const ServiceArea = (await import('../models/ServiceArea.js')).default;
+
+        const pool = [];
+        for (const order of orders) {
+            if (!order.pickupLocation?.lat) continue;
             const dist = calculateHaversineDistance(vLat, vLng, order.pickupLocation.lat, order.pickupLocation.lng);
-            if (dist > 3) return false; // 3km radius
+            if (dist > 3) continue; // 3km radius
+
+            // Enforce exclusive priority window visibility check
+            if (order.allocation_status === 'PROMO_EXCLUSIVE' && order.allocation_expires_at > new Date()) {
+                const serviceIds = order.items.map(item => item.serviceId);
+                
+                // Get Service Area
+                const orderArea = await ServiceArea.findOne({
+                    isActive: true,
+                    boundary: {
+                        $geoIntersects: {
+                            $geometry: {
+                                type: 'Point',
+                                coordinates: [Number(order.pickupLocation.lng), Number(order.pickupLocation.lat)]
+                            }
+                        }
+                    }
+                });
+                const serviceAreaId = orderArea ? orderArea._id : null;
+
+                const matchingPromo = await Promotion.findOne({
+                    vendorId: vendor._id,
+                    owner_type: 'VENDOR',
+                    status: 'Active',
+                    approval_status: 'APPROVED',
+                    start_date: { $lte: new Date() },
+                    expiryDate: { $gte: new Date() },
+                    $or: [
+                        { min_order_value: { $lte: order.priceBreakdown?.baseWithArea || order.totalAmount || 0 } },
+                        { minOrderValue: { $lte: order.priceBreakdown?.baseWithArea || order.totalAmount || 0 } }
+                    ],
+                    $or: [
+                        { geofence_id: serviceAreaId },
+                        { geofence_id: null }
+                    ],
+                    $or: [
+                        { scope_type: 'GLOBAL_ORDER' },
+                        { scope_type: 'SELECTED_SERVICES', selected_services: { $in: serviceIds } }
+                    ]
+                });
+
+                if (!matchingPromo) continue; // Skip order if vendor has no matching priority promo
+            }
 
             // Check if vendor deactivated or doesn't offer any of the order's services
             const serviceIds = order.items.map(item => item.serviceId);
@@ -906,14 +1069,16 @@ export const getPoolOrders = async (req, res) => {
                 const vendorService = vendorServices.find(vs => vs.id === sId || vs._id?.toString() === sId);
                 return vendorService && vendorService.active !== false && vendorService.status === 'approved';
             });
-            return hasAllServices;
-        }).map(o => ({
-            ...o._doc,
-            distance: calculateHaversineDistance(vLat, vLng, o.pickupLocation.lat, o.pickupLocation.lng).toFixed(2),
-            tier: o.tier || o.items[0]?.tier || 'Essential',
-            deliveryMode: o.deliveryMode || 'Normal',
-            notes: o.specialInstructions
-        }));
+            if (!hasAllServices) continue;
+
+            pool.push({
+                ...order._doc,
+                distance: dist.toFixed(2),
+                tier: order.tier || order.items[0]?.tier || 'Essential',
+                deliveryMode: order.deliveryMode || 'Normal',
+                notes: order.specialInstructions
+            });
+        }
 
         res.status(200).json(pool);
     } catch (err) {
@@ -945,6 +1110,101 @@ export const vendorAcceptOrder = async (req, res) => {
             return res.status(400).json({ message: 'You cannot accept this order because some services are inactive or not offered by you.' });
         }
 
+        // B2B Promotions priority window claim verification
+        const Promotion = (await import('../models/Promotion.js')).default;
+        const ServiceArea = (await import('../models/ServiceArea.js')).default;
+
+        let appliedPromo = null;
+        let finalLedger = order.ledger || {
+            vendorNetPayout: 0,
+            customerWalletCredit: 0,
+            platformFee: 0,
+            spinzytCombinedRevenue: 0,
+            appliedPromoValue: 0,
+            promoOwnerType: 'NONE'
+        };
+
+        if (order.allocation_status === 'PROMO_EXCLUSIVE' && order.allocation_expires_at > new Date()) {
+            // Must have matching Vendor-funded promotion
+            const orderArea = await ServiceArea.findOne({
+                isActive: true,
+                boundary: {
+                    $geoIntersects: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [Number(order.pickupLocation.lng), Number(order.pickupLocation.lat)]
+                        }
+                    }
+                }
+            });
+            const serviceAreaId = orderArea ? orderArea._id : null;
+
+            const matchingPromo = await Promotion.findOne({
+                vendorId: vendor._id,
+                owner_type: 'VENDOR',
+                status: 'Active',
+                approval_status: 'APPROVED',
+                start_date: { $lte: new Date() },
+                expiryDate: { $gte: new Date() },
+                $or: [
+                    { min_order_value: { $lte: order.priceBreakdown?.baseWithArea || order.totalAmount || 0 } },
+                    { minOrderValue: { $lte: order.priceBreakdown?.baseWithArea || order.totalAmount || 0 } }
+                ],
+                $or: [
+                    { geofence_id: serviceAreaId },
+                    { geofence_id: null }
+                ],
+                $or: [
+                    { scope_type: 'GLOBAL_ORDER' },
+                    { scope_type: 'SELECTED_SERVICES', selected_services: { $in: serviceIds } }
+                ]
+            });
+
+            if (!matchingPromo) {
+                return res.status(400).json({ message: 'This order is currently in an exclusive priority window for promotional vendors.' });
+            }
+
+            // Apply Branch A (Vendor-Funded) calculations
+            appliedPromo = matchingPromo;
+            const promoVal = matchingPromo.discountType === 'Percentage' || matchingPromo.discountType === 'PERCENTAGE'
+                ? (order.totalAmount * matchingPromo.discountValue) / 100
+                : matchingPromo.discountValue;
+
+            const standardFee = order.totalAmount * 0.10;
+            const finalPromoValue = Math.min(promoVal, order.totalAmount - standardFee);
+            const customerCashback = finalPromoValue * 0.50;
+
+            finalLedger = {
+                vendorNetPayout: order.totalAmount - standardFee - finalPromoValue,
+                customerWalletCredit: customerCashback,
+                platformFee: standardFee,
+                spinzytCombinedRevenue: standardFee + customerCashback,
+                appliedPromoValue: finalPromoValue,
+                promoOwnerType: 'VENDOR'
+            };
+
+            // Credit the customer's wallet balance
+            const customerUser = await User.findById(order.customer);
+            if (customerUser) {
+                customerUser.walletBalance = (customerUser.walletBalance || 0) + customerCashback;
+                await customerUser.save();
+                console.log(`🎁 [WALLET] Credited ₹${customerCashback} cashback to customer ${customerUser.phone}`);
+            }
+        } else if (order.ledger && order.ledger.promoOwnerType === 'PLATFORM') {
+            // Already populated during order creation under Branch B
+        } else {
+            // No promo applied, run standard B2B split (10% platform fee, 90% vendor payout)
+            const standardFee = order.totalAmount * 0.10;
+            finalLedger = {
+                vendorNetPayout: order.totalAmount - standardFee,
+                customerWalletCredit: 0,
+                platformFee: standardFee,
+                spinzytCombinedRevenue: standardFee,
+                appliedPromoValue: 0,
+                promoOwnerType: 'NONE'
+            };
+        }
+
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         
         order.vendor = vendorId;
@@ -952,6 +1212,11 @@ export const vendorAcceptOrder = async (req, res) => {
         order.pickupOtp = pickupOtp;
         order.pickupStatus = 'scheduled';
         order.nearbyRiders = [];
+        order.ledger = finalLedger;
+        if (appliedPromo) {
+            order.promoApplied = appliedPromo._id;
+            order.discountAmount = finalLedger.appliedPromoValue;
+        }
 
         // Remove availability notifications for other vendors
         await Notification.deleteMany({ orderId: id, type: 'order_available' });
@@ -959,6 +1224,7 @@ export const vendorAcceptOrder = async (req, res) => {
         await order.save();
 
         const updatedOrder = await Order.findById(id).populate('customer', 'displayName phone address location');
+        const nearbyRiders = order.nearbyRiders || [];
 
 
         // Socket.io updates

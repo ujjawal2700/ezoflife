@@ -123,7 +123,17 @@ const navItems = [
             { icon: Rocket, label: 'Splash Ads', path: '/admin/ads' },
             { icon: MessageSquare, label: 'Advertise', path: '/admin/advertise' },
             { icon: Share2, label: 'Referral Settings', path: '/admin/referral-settings' },
-            { icon: FileText, label: 'B2B Leads', path: '/admin/b2b-leads' },
+            { 
+                icon: Tags, 
+                label: 'Promotions', 
+                path: '/admin/promotions',
+                subItems: [
+                    { label: 'Vendor Promotion', path: '/admin/promotions' },
+                    { label: 'Create Promotion', path: '/admin/create-promotion' },
+                    { label: 'Promotion Table', path: '/admin/promotion-table' },
+                    { label: 'Geofence Promotion', path: '/admin/geofence-promotion' }
+                ]
+            },
             { icon: Handshake, label: 'Partnerships', path: '/admin/partnerships' },
             { icon: Star, label: 'Customer Feedback', path: '/admin/feedback' },
         ]
