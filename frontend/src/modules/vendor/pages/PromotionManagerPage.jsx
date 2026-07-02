@@ -67,8 +67,19 @@ const PromotionManagerPage = () => {
 
     const fetchServices = async () => {
         try {
-            const data = await serviceApi.getAll({ vendorId });
-            setServices(data || []);
+            const profile = await authApi.getProfile(vendorId);
+            if (profile?.shopDetails?.services) {
+                const approvedServices = profile.shopDetails.services
+                    .filter(s => s.status === 'approved')
+                    .map(s => ({
+                        _id: s.id,
+                        name: s.name,
+                        icon: s.icon
+                    }));
+                setServices(approvedServices);
+            } else {
+                setServices([]);
+            }
         } catch (e) {
             console.error('Fetch services error:', e);
         }
