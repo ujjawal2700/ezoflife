@@ -619,7 +619,7 @@ export const getUserProfile = async (req, res) => {
                 const master = masterServices.find(m => m._id.toString() === svc.id || m.id === svc.id);
                 return {
                     ...svc,
-                    name: master ? master.name : `Service ${svc.id.slice(-4)}`,
+                    name: master ? master.itemName : `Service ${svc.id.slice(-4)}`,
                     icon: master ? master.icon : 'local_laundry_service'
                 };
             });
