@@ -12,7 +12,8 @@ import {
     updateJobStatus,
     updateApplicationStatus,
     deleteApplication,
-    getAppliedJobIds
+    getAppliedJobIds,
+    getApplicantApplications
 } from '../controllers/jobController.js';
 import { 
     getRoleTemplates, 
@@ -42,6 +43,7 @@ router.get('/active', getAllActiveJobs);
 router.post('/apply', upload.single('resume'), applyToJob);
 router.get('/vendor/:vendorId/applications', getVendorApplications);
 router.get('/applicant/:applicantId/applied-job-ids', getAppliedJobIds);
+router.get('/applicant/:applicantId/applications', getApplicantApplications);
 router.patch('/applications/:id/status', updateApplicationStatus);
 router.delete('/applications/:id', deleteApplication);
 router.patch('/:id/status', updateJobStatus);

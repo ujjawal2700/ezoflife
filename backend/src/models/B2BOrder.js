@@ -81,6 +81,10 @@ const b2bOrderSchema = new mongoose.Schema({
     deliveryOtp: {
         type: String,
         required: false
+    },
+    stockDecreased: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

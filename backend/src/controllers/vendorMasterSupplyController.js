@@ -574,6 +574,7 @@ export const vendorMasterSupplyController = {
                     category: item.categoryId?.mainCategory || 'Other',
                     subCategory: item.categoryId?.subCategory || 'General',
                     brand: item.brand || 'Generic',
+                    description: item.description || '',
                     quantity: item.quantity || '1 Unit',
                     supplierId: item.supplierId,
                     supplierFacilityName: supplierUserObj?.displayName || item.supplierFacilityName || item.supplierId,

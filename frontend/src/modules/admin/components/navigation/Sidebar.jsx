@@ -62,10 +62,8 @@ const navItems = [
                 path: '/admin/payments',
                 subItems: [
                     { label: 'Customer Payments', path: '/admin/payments?tab=customer' },
-                    { label: 'Customer Analytics', path: '/admin/customer-payments' },
                     { label: 'Vendor Payouts', path: '/admin/payments?tab=vendor' },
                     { label: 'Supplier Payouts', path: '/admin/payments?tab=supplier' },
-                    { label: 'Pending COD', path: '/admin/payments?tab=cod' },
                     { label: 'Refunds', path: '/admin/payments?tab=refunds' },
                 ]
             },

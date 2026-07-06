@@ -10,6 +10,7 @@ const LaborRequestPage = () => {
     const [activeTab, setActiveTab] = useState('Jobs');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [viewingApplication, setViewingApplication] = useState(null);
+    const [selectedJobFilter, setSelectedJobFilter] = useState(null);
 
     // Live Data States
     const [myJobs, setMyJobs] = useState([]);
@@ -121,7 +122,12 @@ const LaborRequestPage = () => {
                                 {['Jobs', 'Applications'].map((tab) => (
                                     <button 
                                         key={tab}
-                                        onClick={() => setActiveTab(tab)}
+                                        onClick={() => {
+                                            setActiveTab(tab);
+                                            if (tab === 'Applications') {
+                                                setSelectedJobFilter(null);
+                                            }
+                                        }}
                                         className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
                                     >
                                         {tab}
@@ -135,62 +141,113 @@ const LaborRequestPage = () => {
                                 <div className="space-y-4">
                                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">My Posted Jobs</h3>
                                     {myJobs.map(job => (
-                                        <div key={job._id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:border-indigo-100 transition-all group">
+                                        <div key={job._id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:border-slate-200 transition-all group">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div>
                                                     <span className={`text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${job.status === 'Active' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-100 text-slate-500'}`}>
                                                         {job.status}
                                                     </span>
-                                                    <h4 className="text-base font-black text-slate-900 mt-2 tracking-tight">{job.title}</h4>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{job.category} • Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
+                                                    <div className="flex items-center gap-2 mt-2">
+                                                        <h4 className="text-base font-black text-slate-900 tracking-tight">{job.title}</h4>
+                                                        <span className="font-bold text-slate-900 font-mono text-[9px] bg-slate-100 px-1.5 py-0.5 rounded shrink-0">
+                                                            {job.jobCode || `JOB-${job._id.slice(-4).toUpperCase()}`}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{job.category} • Posted on {new Date(job.createdAt).toLocaleDateString()}</p>
                                                 </div>
-                                                <button className="material-symbols-outlined text-slate-300 hover:text-indigo-500">more_vert</button>
+                                                <button className="material-symbols-outlined text-slate-300 hover:text-slate-900">more_vert</button>
                                             </div>
                                             <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                                <div className="flex items-center gap-2">
+                                                <div 
+                                                    className="flex items-center gap-2 cursor-pointer"
+                                                    onClick={() => {
+                                                        setSelectedJobFilter(job._id);
+                                                        setActiveTab('Applications');
+                                                    }}
+                                                >
                                                     <div className="flex -space-x-2">
                                                         {[1,2,3].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-white bg-slate-200"></div>)}
                                                     </div>
-                                                    <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{job.applicantsCount || 0} Applicants</p>
+                                                    <p className="text-[9px] font-black text-slate-900 uppercase tracking-widest hover:underline">{job.applicantsCount || 0} Applicants</p>
                                                 </div>
-                                                <button onClick={() => setActiveTab('Applications')} className="text-[9px] font-black text-slate-900 uppercase tracking-widest hover:underline">View All</button>
+                                                <button 
+                                                    onClick={() => {
+                                                        setSelectedJobFilter(job._id);
+                                                        setActiveTab('Applications');
+                                                    }} 
+                                                    className="text-[9px] font-black text-slate-900 uppercase tracking-widest hover:underline"
+                                                >
+                                                    View All
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Recent Applications</h3>
-                                    {applications.map(app => (
-                                        <div 
-                                            key={app._id} 
-                                            onClick={() => setViewingApplication(app)}
-                                            className="bg-white p-5 rounded-[2.2rem] border border-slate-100 shadow-sm flex items-center justify-between group hover:border-indigo-100 transition-all cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 shadow-inner overflow-hidden">
-                                                    {app.applicant?.profileImage ? (
-                                                        <img src={app.applicant.profileImage} alt="" className="w-full h-full object-cover" />
-                                                    ) : (
-                                                        <span className="material-symbols-outlined">person</span>
-                                                    )}
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-sm font-black text-slate-900 tracking-tight">{app.applicantName || app.applicant?.displayName || 'Candidate'}</h4>
-                                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest line-clamp-1">For: {app.job?.title || 'Job Posting'}</p>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-[8px] font-black text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full">{app.experience} Exp</span>
-                                                        <span className="text-[8px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full flex items-center gap-1 uppercase">
-                                                            {app.status}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <button className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-all">
-                                                <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                                    {selectedJobFilter && (
+                                        <div className="flex justify-between items-center bg-slate-100/50 p-4 rounded-[1.5rem] border border-slate-200/50 mb-2">
+                                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                                                {myJobs.find(j => j._id === selectedJobFilter)?.title || 'Selected Job'}
+                                            </p>
+                                            <button 
+                                                onClick={() => setSelectedJobFilter(null)}
+                                                className="w-7 h-7 bg-slate-200/60 hover:bg-slate-200 text-slate-600 rounded-full flex items-center justify-center transition-all"
+                                                title="Clear Filter"
+                                            >
+                                                <span className="material-symbols-outlined text-[16px]">close</span>
                                             </button>
                                         </div>
-                                    ))}
+                                    )}
+
+                                    {(() => {
+                                        const filteredApps = selectedJobFilter 
+                                            ? applications.filter(app => {
+                                                const jId = app.job?._id || app.job || app.jobId?._id || app.jobId;
+                                                return jId === selectedJobFilter;
+                                            })
+                                            : applications;
+
+                                        if (filteredApps.length === 0) {
+                                            return (
+                                                <div className="bg-white p-12 rounded-[2.2rem] border border-slate-100 shadow-sm text-center opacity-40">
+                                                    <span className="material-symbols-outlined text-4xl mb-2">inbox</span>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest">No applications found</p>
+                                                </div>
+                                            );
+                                        }
+
+                                        return filteredApps.map(app => (
+                                            <div 
+                                                key={app._id} 
+                                                onClick={() => setViewingApplication(app)}
+                                                className="bg-white p-5 rounded-[2.2rem] border border-slate-100 shadow-sm flex items-center justify-between group hover:border-slate-200 transition-all cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-900 shadow-inner overflow-hidden">
+                                                        {app.applicant?.profileImage ? (
+                                                            <img src={app.applicant.profileImage} alt="" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span className="material-symbols-outlined">person</span>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-black text-slate-900 tracking-tight">{app.applicantName || app.applicant?.displayName || 'Candidate'}</h4>
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest line-clamp-1">For: {app.job?.title || 'Job Posting'}</p>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <span className="text-[8px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full">{app.experience} Exp</span>
+                                                            <span className="text-[8px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full flex items-center gap-1 uppercase">
+                                                                {app.status === 'Pending' ? 'Submitted' : app.status === 'Reviewed' ? 'Shortlisted' : app.status}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <button className="w-10 h-10 bg-slate-50 text-slate-400 rounded-xl flex items-center justify-center group-hover:bg-slate-900 group-hover:text-white transition-all">
+                                                    <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                                                </button>
+                                            </div>
+                                        ));
+                                    })()}
                                 </div>
                             )}
                         </main>
@@ -394,7 +451,7 @@ const LaborRequestPage = () => {
                             <div className="p-8 pb-32">
                                 <div className="flex justify-between items-start mb-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-16 h-16 bg-indigo-50 rounded-[2rem] flex items-center justify-center text-indigo-500 overflow-hidden shadow-inner">
+                                        <div className="w-16 h-16 bg-slate-100 rounded-[2rem] flex items-center justify-center text-slate-900 overflow-hidden shadow-inner">
                                             {viewingApplication.applicant?.profileImage ? (
                                                 <img src={viewingApplication.applicant.profileImage} alt="" className="w-full h-full object-cover" />
                                             ) : (
@@ -403,7 +460,7 @@ const LaborRequestPage = () => {
                                         </div>
                                         <div>
                                             <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{viewingApplication.applicantName || viewingApplication.applicant?.displayName}</h3>
-                                            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-2">Candidate Details</p>
+                                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mt-2">Candidate Details</p>
                                         </div>
                                     </div>
                                     <button onClick={() => setViewingApplication(null)} className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center hover:bg-slate-200 transition-colors">
@@ -426,10 +483,10 @@ const LaborRequestPage = () => {
                                     <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100">
                                         <div className="flex items-center justify-between mb-4">
                                             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Experience & Profile</p>
-                                            <span className="px-3 py-1 bg-indigo-500 text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-indigo-500/20">{viewingApplication.experience || 'Fresher'} Exp</span>
+                                            <span className="px-3 py-1 bg-slate-950 text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-950/10">{viewingApplication.experience || 'Fresher'} Exp</span>
                                         </div>
                                         <p className="text-xs text-slate-500 font-bold leading-relaxed italic">
-                                            "This candidate is interested in the <span className="text-indigo-500 font-black">{viewingApplication.job?.title}</span> role. Please review their attached documents before making a decision."
+                                            "This candidate is interested in the <span className="text-slate-950 font-black underline">{viewingApplication.job?.title}</span> role. Please review their attached documents before making a decision."
                                         </p>
                                     </div>
 
@@ -440,7 +497,7 @@ const LaborRequestPage = () => {
                                                 href={`${UPLOADS_URL}${viewingApplication.resumeLink}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="flex items-center justify-between bg-indigo-500 p-5 rounded-[2rem] text-white group hover:bg-indigo-600 transition-all shadow-xl shadow-indigo-500/30"
+                                                className="flex items-center justify-between bg-slate-950 p-5 rounded-[2rem] text-white group hover:bg-slate-900 transition-all shadow-xl shadow-slate-950/10"
                                             >
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-10 h-10 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -455,6 +512,45 @@ const LaborRequestPage = () => {
                                             </a>
                                         </div>
                                     )}
+
+                                    {/* Action Buttons for Vendor (Job Tracking) */}
+                                    <div className="space-y-3 pt-4 border-t border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Update Application Status (Job Tracking)</p>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {[
+                                                { label: 'Submitted', value: 'Pending', icon: 'send' },
+                                                { label: 'Shortlisted', value: 'Reviewed', icon: 'bookmark' },
+                                                { label: 'Interview', value: 'Interview', icon: 'forum' },
+                                                { label: 'Rejected', value: 'Rejected', icon: 'cancel' }
+                                            ].map(opt => {
+                                                const isActive = (viewingApplication.status || 'Pending') === opt.value;
+                                                return (
+                                                    <button
+                                                        key={opt.value}
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            try {
+                                                                await jobApi.updateApplicationStatus(viewingApplication._id, opt.value);
+                                                                toast.success(`Application status updated to ${opt.label}!`);
+                                                                setViewingApplication(null);
+                                                                fetchLiveHub();
+                                                            } catch (err) {
+                                                                toast.error('Failed to update status');
+                                                            }
+                                                        }}
+                                                        className={`py-3 px-4 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all border ${
+                                                            isActive
+                                                            ? 'bg-slate-900 text-white border-slate-900 shadow-lg'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                                                        }`}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[16px]">{opt.icon}</span>
+                                                        {opt.label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>

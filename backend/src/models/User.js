@@ -131,6 +131,7 @@ const userSchema = new mongoose.Schema({
     },
     // Vendor Onboarding Expanded Fields (Phase 2)
     ownerName: { type: String, default: '' },
+    businessName: { type: String, default: '' },
     businessType: { type: String, default: '' },
     facilityName: { type: String, default: '' },
     panNumber: { type: String, default: '' },

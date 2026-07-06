@@ -1428,6 +1428,7 @@ const SupplierMySupplies = () => {
                                                 <th className="p-4 w-28"><div className="h-3 w-16 bg-slate-200 rounded"></div></th>
                                                 <th className="p-4 w-32"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
                                                 <th className="p-4 w-24"><div className="h-3 w-16 bg-slate-200 rounded"></div></th>
+                                                <th className="p-4 w-24"><div className="h-3 w-16 bg-slate-200 rounded"></div></th>
                                                 <th className="p-4 w-36"><div className="h-3 w-24 bg-slate-200 rounded"></div></th>
                                                 <th className="p-4 w-28"><div className="h-3 w-20 bg-slate-200 rounded"></div></th>
                                                 <th className="p-4 w-24"><div className="h-3 w-16 bg-slate-200 rounded"></div></th>
@@ -1478,6 +1479,9 @@ const SupplierMySupplies = () => {
                                                     <td className="p-4">
                                                         <div className="w-16 h-3 bg-slate-100 rounded"></div>
                                                     </td>
+                                                    <td className="p-4">
+                                                        <div className="w-16 h-3 bg-slate-100 rounded"></div>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -1518,6 +1522,7 @@ const SupplierMySupplies = () => {
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Available Stock</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-32">Wholesale Rate</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-24">GST</th>
+                                                <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-24">HSN</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-36">Bulk Discount</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-28">Frequency</th>
                                                 <th className="p-4 text-[10px] font-black uppercase tracking-wider text-slate-400 w-24">MOV</th>
@@ -1641,7 +1646,11 @@ const SupplierMySupplies = () => {
                                                         <td className="p-4">
                                                             <span className="text-xs font-bold text-slate-700">
                                                                 {item.gst || 18}%
-                                                                <span className="text-[10px] text-slate-400 font-bold ml-1">({item.hsnCode || '-'})</span>
+                                                            </span>
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <span className="text-xs font-bold text-slate-700">
+                                                                {item.hsnCode && item.hsnCode !== '-' ? item.hsnCode : '—'}
                                                             </span>
                                                         </td>
                                                         <td className="p-4">

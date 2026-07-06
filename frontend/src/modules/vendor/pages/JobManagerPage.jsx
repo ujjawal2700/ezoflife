@@ -161,13 +161,18 @@ const JobManagerPage = () => {
                                     >
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">
-                                                <h3 className="text-lg font-black text-slate-900 leading-none">{job.title}</h3>
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${getStatusStyle(job.status)}`}>
-                                                        {job.status}
-                                                    </span>
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{job.type}</span>
-                                                </div>
+                                                 <div className="flex items-center gap-2">
+                                                     <h3 className="text-lg font-black text-slate-900 leading-none">{job.title}</h3>
+                                                     <span className="font-bold text-indigo-600 font-mono text-[9px] bg-indigo-50 px-1.5 py-0.5 rounded shrink-0">
+                                                         {job.jobCode || `JOB-${job._id.slice(-4).toUpperCase()}`}
+                                                     </span>
+                                                 </div>
+                                                 <div className="flex items-center gap-2 mt-2">
+                                                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase border ${getStatusStyle(job.status)}`}>
+                                                         {job.status}
+                                                     </span>
+                                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{job.type}</span>
+                                                 </div>
                                             </div>
                                         </div>
                                         

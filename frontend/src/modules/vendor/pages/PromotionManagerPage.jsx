@@ -85,9 +85,39 @@ const PromotionManagerPage = () => {
         }
     };
 
+    const triggerAutogenerateCode = async () => {
+        if (!vendorId) return;
+        try {
+            const data = await promotionApi.autogenerateCode(vendorId);
+            if (data?.code) {
+                setFormData(prev => ({ ...prev, code: data.code }));
+            }
+        } catch (err) {
+            console.error('Autogenerate Code failed:', err);
+        }
+    };
+
+    const handleEditClick = (promo) => {
+        setEditingPromo(promo);
+        setFormData({
+            title: promo.title,
+            code: promo.code,
+            discountType: (promo.discountType === 'Flat' || promo.discount_type === 'FLAT_AMOUNT') ? 'Flat' : 'Percentage',
+            discountValue: promo.discountValue !== undefined ? promo.discountValue : promo.discount_value,
+            minOrderValue: promo.minOrderValue !== undefined ? promo.minOrderValue : promo.min_order_value,
+            usageLimit: promo.usageLimit || 100,
+            expiryDate: promo.expiryDate ? new Date(promo.expiryDate).toISOString().split('T')[0] : '',
+            start_date: promo.start_date ? new Date(promo.start_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            scope_type: promo.scope_type || 'GLOBAL_ORDER',
+            selected_services: Array.isArray(promo.selected_services) ? promo.selected_services.map(s => s._id || s) : [],
+            is_exclusive_window_eligible: promo.is_exclusive_window_eligible ?? true
+        });
+        setIsCreating(true);
+    };
+
     const handleCreateOrUpdate = async () => {
         try {
-            if (!formData.code || !formData.discountValue || !formData.expiryDate) {
+            if (!formData.code || formData.discountValue === undefined || !formData.expiryDate) {
                 alert('Please fill all mandatory fields');
                 return;
             }
@@ -128,7 +158,7 @@ const PromotionManagerPage = () => {
                 is_exclusive_window_eligible: formData.is_exclusive_window_eligible
             };
 
-            console.log('🚀 Creating Promotion with payload:', payload);
+            console.log('🚀 Creating/Updating Promotion with payload:', payload);
 
             if (!payload.vendorId) {
                 console.error('❌ Vendor ID is missing in promotion payload');
@@ -136,9 +166,16 @@ const PromotionManagerPage = () => {
                 return;
             }
 
-            const response = await promotionApi.create(payload);
-            console.log('✅ Promotion created successfully:', response);
+            if (editingPromo) {
+                const response = await promotionApi.update(editingPromo._id, payload);
+                console.log('✅ Promotion updated successfully:', response);
+            } else {
+                const response = await promotionApi.create(payload);
+                console.log('✅ Promotion created successfully:', response);
+            }
+
             setIsCreating(false);
+            setEditingPromo(null);
             setFormData({
                 title: '',
                 code: '',
@@ -175,7 +212,24 @@ const PromotionManagerPage = () => {
                 </button>
                 <div className="flex items-center gap-3">
                     <button 
-                        onClick={() => { setEditingPromo(null); setIsCreating(true); }}
+                        onClick={async () => { 
+                            setEditingPromo(null); 
+                            setFormData({
+                                title: '',
+                                code: '',
+                                discountType: 'Percentage',
+                                discountValue: 0,
+                                minOrderValue: 0,
+                                usageLimit: 100,
+                                expiryDate: '',
+                                start_date: new Date().toISOString().split('T')[0],
+                                scope_type: 'GLOBAL_ORDER',
+                                selected_services: [],
+                                is_exclusive_window_eligible: true
+                            });
+                            setIsCreating(true); 
+                            await triggerAutogenerateCode();
+                        }}
                         className="px-4 py-2.5 bg-slate-900 text-white rounded-xl flex items-center justify-center min-w-[80px] shadow-md shadow-slate-900/20 hover:scale-105 transition-all text-[10px] font-black uppercase tracking-widest"
                     >
                         Create
@@ -316,13 +370,11 @@ const PromotionManagerPage = () => {
                                 )}
 
                                 {editMode && (
-                                    <div className="flex gap-3 mt-4">
+                                    <div className="flex gap-2 mt-4">
                                         <motion.button 
                                             whileTap={{ scale: 0.95 }}
                                             onClick={() => handleToggleStatus(promo._id)}
-                                            className={`flex-1 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                                                promo.status === 'Active' ? 'bg-slate-50 text-slate-900 border border-slate-200' : 'bg-primary/5 text-primary border border-primary/10'
-                                            }`}
+                                            className="flex-1 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all bg-slate-50 text-slate-900 border border-slate-200"
                                         >
                                             <div className="flex items-center justify-center gap-2">
                                                 <span className="material-symbols-outlined text-sm">{promo.status === 'Active' ? 'pause_circle' : 'play_circle'}</span>
@@ -331,26 +383,11 @@ const PromotionManagerPage = () => {
                                         </motion.button>
                                         <motion.button 
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={async () => {
-                                                if (window.confirm('Are you sure you want to delete this promotion?')) {
-                                                    try {
-                                                        const res = await fetch(`${BASE_URL}/promotion/${promo._id}`, { method: 'DELETE' });
-                                                        if (res.ok) {
-                                                            fetchPromos();
-                                                        } else {
-                                                            alert('Failed to delete promotion');
-                                                        }
-                                                    } catch (err) {
-                                                        console.error(err);
-                                                    }
-                                                }
-                                            }}
-                                            className="px-4 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 animate-fade-in"
+                                            onClick={() => handleEditClick(promo)}
+                                            className="flex-1 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white border border-slate-900 hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                                         >
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span className="material-symbols-outlined text-sm">delete</span>
-                                                Delete
-                                            </div>
+                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                            Edit
                                         </motion.button>
                                     </div>
                                 )}
@@ -384,20 +421,35 @@ const PromotionManagerPage = () => {
                             </button>
 
                             <div className="space-y-1">
-                                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-950 leading-none">Create Promotion</h3>
+                                <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-950 leading-none">
+                                    {editingPromo ? 'Edit Promotion' : 'Create Promotion'}
+                                </h3>
                             </div>
 
                             <div className="space-y-4 text-left">
 
                                 {/* Discount Code */}
                                 <div className="space-y-1.5 text-left">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Discount Code</label>
+                                    <div className="flex justify-between items-center px-1">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Discount Code</label>
+                                        {!editingPromo && (
+                                            <button 
+                                                type="button" 
+                                                onClick={triggerAutogenerateCode}
+                                                className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline flex items-center gap-1"
+                                            >
+                                                <span className="material-symbols-outlined text-[10px]">auto_awesome</span>
+                                                Auto-generate (+1)
+                                            </button>
+                                        )}
+                                    </div>
                                     <input 
                                         type="text" 
                                         value={formData.code}
                                         onChange={(e) => setFormData({...formData, code: e.target.value.toUpperCase()})}
                                         placeholder="e.g. FESTIVE50" 
-                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 font-mono tracking-[0.1em]" 
+                                        disabled={!!editingPromo}
+                                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 font-mono tracking-[0.1em] disabled:opacity-60 disabled:cursor-not-allowed" 
                                     />
                                 </div>
 
@@ -408,7 +460,8 @@ const PromotionManagerPage = () => {
                                         <select 
                                             value={formData.discountType}
                                             onChange={(e) => setFormData({...formData, discountType: e.target.value})}
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 cursor-pointer"
+                                            disabled={!!editingPromo}
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             <option value="Percentage">Percentage</option>
                                             <option value="Flat">Flat ₹</option>
@@ -446,7 +499,8 @@ const PromotionManagerPage = () => {
                                             type="date" 
                                             value={formData.start_date}
                                             onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300" 
+                                            disabled={!!editingPromo}
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 disabled:opacity-60 disabled:cursor-not-allowed" 
                                         />
                                     </div>
                                     <div className="space-y-1.5 text-left">
@@ -455,7 +509,8 @@ const PromotionManagerPage = () => {
                                             type="date" 
                                             value={formData.expiryDate}
                                             onChange={(e) => setFormData({...formData, expiryDate: e.target.value})}
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300" 
+                                            disabled={!!editingPromo}
+                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-primary/20 transition-all placeholder:text-slate-300 disabled:opacity-60 disabled:cursor-not-allowed" 
                                         />
                                     </div>
                                 </div>
@@ -466,15 +521,17 @@ const PromotionManagerPage = () => {
                                     <div className="flex bg-slate-50 border border-slate-100 p-1 rounded-2xl gap-1 h-[48px]">
                                         <button 
                                             type="button"
-                                            onClick={() => setFormData({ ...formData, scope_type: 'GLOBAL_ORDER' })}
-                                            className={`flex-1 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all ${formData.scope_type === 'GLOBAL_ORDER' ? 'bg-primary text-white shadow-sm' : 'text-slate-400'}`}
+                                            onClick={() => !editingPromo && setFormData({ ...formData, scope_type: 'GLOBAL_ORDER' })}
+                                            disabled={!!editingPromo}
+                                            className={`flex-1 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all ${formData.scope_type === 'GLOBAL_ORDER' ? 'bg-primary text-white shadow-sm' : 'text-slate-400'} disabled:opacity-60 disabled:cursor-not-allowed`}
                                         >
                                             Global (All)
                                         </button>
                                         <button 
                                             type="button"
-                                            onClick={() => setFormData({ ...formData, scope_type: 'SELECTED_SERVICES' })}
-                                            className={`flex-1 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all ${formData.scope_type === 'SELECTED_SERVICES' ? 'bg-primary text-white shadow-sm' : 'text-slate-400'}`}
+                                            onClick={() => !editingPromo && setFormData({ ...formData, scope_type: 'SELECTED_SERVICES' })}
+                                            disabled={!!editingPromo}
+                                            className={`flex-1 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all ${formData.scope_type === 'SELECTED_SERVICES' ? 'bg-primary text-white shadow-sm' : 'text-slate-400'} disabled:opacity-60 disabled:cursor-not-allowed`}
                                         >
                                             Selected Services
                                         </button>
@@ -493,13 +550,15 @@ const PromotionManagerPage = () => {
                                                     <input 
                                                         type="checkbox"
                                                         checked={isChecked}
+                                                        disabled={!!editingPromo}
                                                         onChange={() => {
+                                                            if (editingPromo) return;
                                                             const nextSelected = isChecked
                                                                 ? formData.selected_services.filter(sid => sid !== id)
                                                                 : [...formData.selected_services, id];
                                                             setFormData({ ...formData, selected_services: nextSelected });
                                                         }}
-                                                        className="rounded text-primary focus:ring-primary/20 border-slate-300"
+                                                        className="rounded text-primary focus:ring-primary/20 border-slate-300 disabled:opacity-60 disabled:cursor-not-allowed"
                                                     />
                                                     {s.name || s.itemName}
                                                 </label>
@@ -531,7 +590,7 @@ const PromotionManagerPage = () => {
                                         className="w-full py-4 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 transition-all shadow-xl shadow-slate-950/15 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
                                     >
                                         <span className="material-symbols-outlined text-[16px]">rocket_launch</span>
-                                        <span>Activate Campaign</span>
+                                        <span>{editingPromo ? 'Save Details' : 'Activate Campaign'}</span>
                                     </button>
                                 </div>
                             </div>

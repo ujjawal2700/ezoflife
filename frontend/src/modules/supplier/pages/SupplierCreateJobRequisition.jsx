@@ -445,7 +445,7 @@ const SupplierCreateJobRequisition = () => {
                   </div>
                   <h2 className="text-sm font-black text-slate-950 uppercase tracking-wider">Role Information</h2>
                 </div>
-                <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0">
+                <div className="flex items-center gap-1.5 bg-slate-100 border border-slate-200 text-slate-900 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0">
                   <span className="material-symbols-outlined text-[10px]">auto_awesome</span>
                   Auto Filled
                 </div>
@@ -453,7 +453,7 @@ const SupplierCreateJobRequisition = () => {
 
               {loadingRole ? (
                 <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Retrieving Template...</p>
                 </div>
               ) : (
@@ -473,7 +473,7 @@ const SupplierCreateJobRequisition = () => {
                       type="text"
                       readOnly
                       value={roleName}
-                      className="w-full bg-indigo-50/30 border border-indigo-100/30 text-slate-800 font-black rounded-2xl p-4 text-sm outline-none cursor-not-allowed"
+                      className="w-full bg-slate-50 border border-slate-100 text-slate-800 font-black rounded-2xl p-4 text-sm outline-none cursor-not-allowed"
                     />
                   </div>
 
@@ -493,7 +493,7 @@ const SupplierCreateJobRequisition = () => {
                       readOnly
                       value={roleDescription}
                       placeholder="Pre-populated job description..."
-                      className="w-full bg-indigo-50/30 border border-indigo-100/30 text-slate-600 font-bold rounded-2xl p-4 text-xs outline-none resize-none leading-relaxed cursor-not-allowed"
+                      className="w-full bg-slate-50 border border-slate-100 text-slate-600 font-bold rounded-2xl p-4 text-xs outline-none resize-none leading-relaxed cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -712,7 +712,7 @@ const SupplierCreateJobRequisition = () => {
                 readOnly
                 value={responsibility}
                 placeholder="Pre-populated job responsibilities..."
-                className="w-full bg-indigo-50/30 border border-indigo-100/30 text-slate-600 font-bold rounded-2xl p-4 text-xs outline-none resize-none leading-relaxed cursor-not-allowed"
+                className="w-full bg-slate-50 border border-slate-100 text-slate-600 font-bold rounded-2xl p-4 text-xs outline-none resize-none leading-relaxed cursor-not-allowed"
               />
             </div>
 
@@ -763,7 +763,7 @@ const SupplierCreateJobRequisition = () => {
 
               <div className="flex justify-between items-center relative z-10">
                 <h3 className="text-lg font-black uppercase tracking-tight text-slate-950 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-indigo-500">rate_review</span>
+                  <span className="material-symbols-outlined text-slate-900">rate_review</span>
                   Requisition Preview
                 </h3>
                 <button 
@@ -865,8 +865,8 @@ const SupplierCreateJobRequisition = () => {
                     {/* Header */}
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping" />
-                        <span className="text-[8px] font-black text-indigo-500 uppercase tracking-widest">Active Broadcasting</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-900 animate-ping" />
+                        <span className="text-[8px] font-black text-slate-900 uppercase tracking-widest">Active Broadcasting</span>
                       </div>
                       <h4 className="text-xl font-black text-slate-900 mt-2 tracking-tight leading-none uppercase">{roleName || selectedRoleKey}</h4>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">{companyName}</p>

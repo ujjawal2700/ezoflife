@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { adminApi } from '../../../lib/api';
+import { adminApi, referralApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
 const ReferralPage = () => {
@@ -73,7 +73,23 @@ const ReferralPage = () => {
         }
     };
 
-    const triggerReferral = (type) => {
+    const recordReferralInDb = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const referrerId = user._id || user.id;
+            if (referrerId) {
+                await referralApi.create({
+                    referrer: referrerId,
+                    referredPhone: phoneNumber
+                });
+            }
+        } catch (err) {
+            console.error('Failed to log referral to DB:', err);
+        }
+    };
+
+    const triggerReferral = async (type) => {
+        await recordReferralInDb();
         const fullMessage = `${config.REFERRAL_MESSAGE} ${config.REFERRAL_DOWNLOAD_LINK}`;
         const encodedMsg = encodeURIComponent(fullMessage);
         

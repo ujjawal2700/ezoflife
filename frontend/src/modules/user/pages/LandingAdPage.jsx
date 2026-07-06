@@ -9,6 +9,14 @@ const LandingAdPage = () => {
     const [activeAd, setActiveAd] = useState(null);
     const [timeLeft, setTimeLeft] = useState(30);
 
+    const getFullAdUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('/uploads/')) {
+            return UPLOADS_URL.replace('/uploads/', '') + url;
+        }
+        return `${UPLOADS_URL}${url}`;
+    };
+
     const fetchActiveAd = async () => {
         try {
             const data = await adApi.getActive();
@@ -97,7 +105,7 @@ const LandingAdPage = () => {
                     {activeAd ? (
                         activeAd.type === 'video' ? (
                             <video 
-                                src={`${UPLOADS_URL}${activeAd.url}`} 
+                                src={getFullAdUrl(activeAd.url)} 
                                 autoPlay 
                                 muted 
                                 loop 
@@ -106,7 +114,7 @@ const LandingAdPage = () => {
                             />
                         ) : (
                             <img 
-                                src={`${UPLOADS_URL}${activeAd.url}`} 
+                                src={getFullAdUrl(activeAd.url)} 
                                 alt={activeAd.title} 
                                 className="w-full h-full object-cover"
                             />

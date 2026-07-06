@@ -19,9 +19,10 @@ const AdminBrandInquiries = () => {
         try {
             setLoading(true);
             const data = await mediaApi.getAllInquiries(currentFilters);
-            setInquiries(data);
+            setInquiries(Array.isArray(data) ? data : []);
         } catch (error) {
             toast.error('Failed to fetch inquiries');
+            setInquiries([]);
         } finally {
             setLoading(false);
         }
@@ -56,30 +57,33 @@ const AdminBrandInquiries = () => {
     };
 
     const paginatedInquiries = useMemo(() => {
-        return inquiries.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+        const list = Array.isArray(inquiries) ? inquiries : [];
+        return list.slice((page - 1) * itemsPerPage, page * itemsPerPage);
     }, [inquiries, page]);
 
-    const totalPages = Math.ceil(inquiries.length / itemsPerPage) || 1;
+    const totalPages = Math.ceil((Array.isArray(inquiries) ? inquiries.length : 0) / itemsPerPage) || 1;
 
     const pagination = useMemo(() => ({
         page,
         totalPages,
-        total: inquiries.length
-    }), [page, totalPages, inquiries.length]);
+        total: Array.isArray(inquiries) ? inquiries.length : 0
+    }), [page, totalPages, inquiries]);
 
     const handleDownload = () => {
-        if (!inquiries || inquiries.length === 0) {
+        const list = Array.isArray(inquiries) ? inquiries : [];
+        if (list.length === 0) {
             toast.error('No inquiries available to download');
             return;
         }
-        const headers = ['Brand', 'Email', 'Contact', 'Location', 'Budget (INR)', 'Timeline', 'Submitted At'];
-        const rows = inquiries.map(item => [
+        const headers = ['Brand', 'Email', 'Contact', 'Location', 'Budget (INR)', 'Timeline', 'Status', 'Submitted At'];
+        const rows = list.map(item => [
             item.brandName || '',
             item.email || '',
             item.phone || '',
             item.location || '',
             item.budget || '',
             item.timeline || '',
+            item.status || 'New Application',
             new Date(item.createdAt).toLocaleString()
         ]);
 
@@ -161,20 +165,52 @@ const AdminBrandInquiries = () => {
             )
         },
         {
+            header: 'Status',
+            key: 'status',
+            render: (val) => {
+                const status = val || 'New Application';
+                let colors = 'bg-slate-100 text-slate-800 border-slate-200'; // Default / New Application
+                if (status === 'Requested More Info') {
+                    colors = 'bg-amber-50 text-amber-700 border-amber-200';
+                } else if (status === 'Scheduled Meeting') {
+                    colors = 'bg-blue-50 text-blue-700 border-blue-200';
+                } else if (status === 'Final Proposal') {
+                    colors = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                }
+                return (
+                    <span className={`px-2.5 py-1 text-[9px] font-black rounded-full uppercase tracking-wider border whitespace-nowrap ${colors}`}>
+                        {status}
+                    </span>
+                );
+            }
+        },
+        {
             header: 'Actions',
             key: '_id',
             align: 'right',
-            render: (val) => (
-                <button 
-                    onClick={() => handleDelete(val)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 rounded-sm hover:bg-slate-50 transition-all cursor-pointer"
-                    title="Delete Inquiry"
+            render: (val, row) => (
+                <select
+                    value={row.status || 'New Application'}
+                    onChange={async (e) => {
+                        const newStatus = e.target.value;
+                        try {
+                            await mediaApi.updateInquiryStatus(val, newStatus);
+                            toast.success('Stage updated successfully');
+                            fetchInquiries();
+                        } catch (error) {
+                            toast.error('Failed to update stage');
+                        }
+                    }}
+                    className="px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:border-slate-900 transition-all outline-none cursor-pointer uppercase tracking-wider"
                 >
-                    <span className="material-symbols-outlined text-[16px]">delete</span>
-                </button>
+                    <option value="New Application">New Application</option>
+                    <option value="Requested More Info">Requested More Info</option>
+                    <option value="Scheduled Meeting">Scheduled Meeting</option>
+                    <option value="Final Proposal">Final Proposal</option>
+                </select>
             )
         }
-    ], []);
+    ], [fetchInquiries]);
 
     return (
         <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
@@ -186,7 +222,7 @@ const AdminBrandInquiries = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                             <select
                                 value={filters.brandName}
                                 onChange={(e) => handleFilterChange('brandName', e.target.value)}

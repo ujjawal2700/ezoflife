@@ -47,6 +47,7 @@ const MaterialRequestPage = () => {
     const [showInvoice, setShowInvoice] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [chatModal, setChatModal] = useState({ isOpen: false, order: null, step: 'select', selectedProduct: null, message: '' });
+    const [detailModal, setDetailModal] = useState({ isOpen: false, item: null });
     
     const [orderChatMessages, setOrderChatMessages] = useState([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -438,41 +439,51 @@ const MaterialRequestPage = () => {
                                                 <motion.div 
                                                     key={item._id}
                                                     layout
-                                                    className="bg-white py-4 xs:py-5 sm:py-6 pr-4 xs:pr-5 sm:pr-6 pl-0 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-4 sm:gap-6 hover:border-primary/20 transition-all group w-full overflow-hidden"
+                                                    className="bg-white py-4 xs:py-5 sm:py-6 pl-3 pr-4 xs:pl-4 xs:pr-5 sm:px-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex items-start gap-3 sm:gap-6 hover:border-primary/20 transition-all group w-full overflow-hidden"
                                                 >
-                                                    {/* Left: Large Image Container */}
-                                                    <div 
-                                                        onClick={() => navigate('/vendor/product-images', { state: { images: item.images?.length ? item.images : (item.image ? [item.image] : []), name: item.name } })}
-                                                        className="w-[150px] xs:w-[180px] sm:w-[220px] md:w-[260px] h-[210px] xs:h-[240px] sm:h-[270px] md:h-[300px] rounded-r-[2.2rem] rounded-l-none bg-slate-50 overflow-hidden shrink-0 border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
-                                                    >
-                                                        <AnimatePresence initial={false}>
-                                                            {displayImage ? (
-                                                                <motion.img 
-                                                                    key={displayImage}
-                                                                    src={displayImage} 
-                                                                    alt={item.name} 
-                                                                    initial={{ x: '100%' }}
-                                                                    animate={{ x: 0 }}
-                                                                    exit={{ x: '-100%' }}
-                                                                    transition={{ type: "tween", duration: 0.5, ease: "easeInOut" }}
-                                                                    className="w-full h-full object-cover absolute top-0 left-0 hover:scale-105 transition-transform duration-500" 
-                                                                />
-                                                            ) : (
-                                                                <span className="material-symbols-outlined text-7xl xs:text-8xl sm:text-9xl md:text-[7rem] text-slate-200 z-10">inventory_2</span>
+                                                    {/* Left: Image & More Button Column */}
+                                                    <div className="flex flex-col items-center gap-3 shrink-0 w-[130px] xs:w-[150px] sm:w-[200px] md:w-[240px]">
+                                                        <div 
+                                                            onClick={() => navigate('/vendor/product-images', { state: { images: item.images?.length ? item.images : (item.image ? [item.image] : []), name: item.name } })}
+                                                            className="w-full h-[220px] xs:h-[250px] sm:h-[280px] md:h-[310px] rounded-[2rem] bg-slate-50 overflow-hidden border border-slate-100/50 flex items-center justify-center relative cursor-pointer"
+                                                        >
+                                                            <AnimatePresence initial={false}>
+                                                                {displayImage ? (
+                                                                    <motion.img 
+                                                                        key={displayImage}
+                                                                        src={displayImage} 
+                                                                        alt={item.name} 
+                                                                        initial={{ x: '100%' }}
+                                                                        animate={{ x: 0 }}
+                                                                        exit={{ x: '-100%' }}
+                                                                        transition={{ type: "tween", duration: 0.5, ease: "easeInOut" }}
+                                                                        className="w-full h-full object-cover absolute top-0 left-0 hover:scale-105 transition-transform duration-500" 
+                                                                     />
+                                                                ) : (
+                                                                    <span className="material-symbols-outlined text-5xl xs:text-6xl sm:text-7xl md:text-[6rem] text-slate-200 z-10">inventory_2</span>
+                                                                )}
+                                                            </AnimatePresence>
+                                                            {item.images && item.images.length > 1 && (
+                                                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm z-10">
+                                                                    {item.images.map((_, idx) => (
+                                                                        <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${(imageIndex % item.images.length) === idx ? 'bg-primary scale-125' : 'bg-slate-300'}`} />
+                                                                    ))}
+                                                                </div>
                                                             )}
-                                                        </AnimatePresence>
-                                                        {item.images && item.images.length > 1 && (
-                                                            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm z-10">
-                                                                {item.images.map((_, idx) => (
-                                                                    <div key={idx} className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${(imageIndex % item.images.length) === idx ? 'bg-primary scale-125' : 'bg-slate-300'}`} />
-                                                                ))}
-                                                            </div>
-                                                        )}
+                                                        </div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setDetailModal({ isOpen: true, item })}
+                                                            className="w-full py-2.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 hover:bg-primary shadow-md shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-1"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[12px]">info</span>
+                                                            More
+                                                        </button>
                                                     </div>
                                                     
                                                     {/* Right: Details Column */}
-                                                    <div className="flex-1 min-w-0 flex flex-col justify-between h-[210px] xs:h-[240px] sm:h-[270px] md:h-[300px] py-2 md:py-4">
-                                                        <div className="space-y-2.5 sm:space-y-4">
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-between py-2 md:py-4 gap-4 self-stretch">
+                                                        <div className="space-y-2 sm:space-y-3">
                                                             {/* Subcategory & Delivery Info */}
                                                             <div className="flex items-center gap-1.5 flex-wrap">
                                                                 {item.nextDeliveryDate && (
@@ -483,98 +494,79 @@ const MaterialRequestPage = () => {
                                                                 )}
                                                             </div>
 
-                                                            {/* Title / Name */}
-                                                            <h3 className="text-sm xs:text-base sm:text-lg md:text-xl font-black text-slate-900 leading-snug tracking-tight line-clamp-2 md:line-clamp-3 uppercase">
-                                                                {item.name}
-                                                            </h3>
+                                                            {/* Product Name & Brand Name Row */}
+                                                            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                                                                <h3 className="text-sm xs:text-base sm:text-lg md:text-xl font-black text-slate-900 leading-snug tracking-tight uppercase">
+                                                                    {item.name}
+                                                                </h3>
+                                                                {item.brand && (
+                                                                    <span className="text-[10px] xs:text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">
+                                                                        {item.brand}
+                                                                    </span>
+                                                                )}
+                                                            </div>
 
-                                                            {/* Supplier Info */}
-                                                            {(() => {
-                                                                const { name, phone } = parseSupplierInfo(item.supplierFacilityName, item.supplierPhone);
-                                                                return (
-                                                                    <div className="flex flex-col gap-1.5">
-                                                                        <div className="flex items-center gap-1.5 text-slate-400">
-                                                                            <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">store</span>
-                                                                            <span className="text-[10px] xs:text-xs sm:text-sm font-bold uppercase tracking-wider truncate max-w-[150px] sm:max-w-[250px]">
-                                                                                {name}
-                                                                            </span>
-                                                                        </div>
-                                                                        {phone && (
-                                                                            <div className="flex items-center gap-1.5 text-slate-400">
-                                                                                <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">call</span>
-                                                                                <span className="text-[10px] xs:text-xs sm:text-sm font-bold uppercase tracking-wider">
-                                                                                    {phone}
+                                                            {/* Stock, Wholesale, Bulk & Description Details */}
+                                                            <div className="space-y-1.5">
+                                                                {/* Available Stock */}
+                                                                <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                                    Available Stock: <span className="font-black text-slate-900">{item.quantity}</span>
+                                                                </p>
+                                                                {/* Wholesale Rate */}
+                                                                <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                                    Wholesale Rate: <span className="font-black text-slate-900">₹{item.wholesaleRate}</span>
+                                                                </p>
+                                                                {/* Bulk Discount */}
+                                                                {item.bulkDiscount > 0 && (
+                                                                    <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                                                        Bulk Discount: <span className="font-black text-emerald-600">{item.bulkDiscount}% OFF</span> <span className="text-[8px] sm:text-[10px] text-slate-400 font-medium">(Min Order: {item.bulkThreshold} Qty)</span>
+                                                                    </p>
+                                                                )}
+                                                                {/* Description */}
+                                                                {item.description && (
+                                                                    <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-500 leading-relaxed line-clamp-2">
+                                                                        Description: <span className="font-medium text-slate-600">{item.description}</span>
+                                                                    </p>
+                                                                )}
+                                                                {/* Supplier Info */}
+                                                                {(() => {
+                                                                    const { name } = parseSupplierInfo(item.supplierFacilityName, item.supplierPhone);
+                                                                    return (
+                                                                        <div className="flex flex-col gap-1 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                                                            <div className="flex items-center gap-1 text-slate-400">
+                                                                                <span className="material-symbols-outlined text-[12px] xs:text-[14px]">store</span>
+                                                                                <span className="text-[9px] xs:text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-600 truncate max-w-[150px] sm:max-w-[250px]">
+                                                                                    Supplier: {name}
                                                                                 </span>
                                                                             </div>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })()}                                                            {/* Stock & Delivery Info */}
-                                                            <div className="flex flex-col gap-1.5 mt-2">
-                                                                <div className="flex flex-wrap gap-1.5">
-                                                                    <span className="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-[8px] font-bold text-slate-600 uppercase">
-                                                                        Rate: ₹{item.wholesaleRate} + {item.gst}% GST
-                                                                    </span>
-                                                                    {item.bulkDiscount > 0 && (
-                                                                        <span className="bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded text-[8px] font-bold text-emerald-600 uppercase">
-                                                                            Bulk: {item.bulkDiscount}% Off (Min {item.bulkThreshold})
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-
-                                                                <p className="text-[9px] xs:text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest">
-                                                                    Status: {item.stock || 'AVAILABLE'} (Stock: {item.quantity})
-                                                                </p>
-                                                                {item.movFreeDelivery > 0 && (
-                                                                    <div className="text-[9px] xs:text-[10px] sm:text-[11px] uppercase tracking-widest">
-                                                                        {(supplierTotals[item.supplierId]?.totalAmount || 0) >= item.movFreeDelivery ? (
-                                                                            <span className="font-black text-emerald-500">Free Delivery Unlocked!</span>
-                                                                        ) : (
-                                                                            <span className="font-bold text-slate-500">
-                                                                                Add ₹{(item.movFreeDelivery - (supplierTotals[item.supplierId]?.totalAmount || 0)).toFixed(0)} more for Free Delivery
-                                                                            </span>
-                                                                        )}
-                                                                    </div>
-                                                                )}
+                                                                        </div>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                         </div>
 
                                                         {/* Bottom Row: Price and Counter */}
-                                                        <div className="flex items-center justify-between gap-4 mt-2 sm:mt-4">
-                                                            <div className="flex flex-col">
-                                                                {item.bulkDiscount > 0 && (cart[item._id] || 0) >= item.bulkThreshold ? (
-                                                                    <div className="flex items-baseline gap-1.5">
-                                                                        <p className="text-base xs:text-lg sm:text-xl md:text-2xl font-black text-slate-900">
-                                                                            ₹{(item.price - (item.price * item.bulkDiscount / 100)).toFixed(2)}
-                                                                        </p>
-                                                                        <p className="text-[10px] sm:text-xs font-bold text-slate-400 line-through">
-                                                                            ₹{item.price}
-                                                                        </p>
-                                                                    </div>
-                                                                ) : (
-                                                                    <p className="text-base xs:text-lg sm:text-xl md:text-2xl font-black text-slate-900">
-                                                                        ₹{item.price}
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                            
-                                                            <div className="flex items-center bg-slate-50 rounded-2xl p-1 gap-2.5 border border-slate-100 shrink-0">
+                                                        <div className="flex items-center justify-between gap-3 mt-auto pt-2 border-t border-slate-50/50 w-full overflow-hidden">
+                                                            <p className="text-sm xs:text-base sm:text-lg md:text-xl font-black text-slate-900 shrink-0">
+                                                                ₹{item.price}
+                                                            </p>
+                                                            <div className="flex items-center bg-slate-50 rounded-xl p-0.5 gap-1.5 border border-slate-100 shrink-0">
                                                                 <button 
                                                                     disabled={Number(item.price) === 0}
                                                                     onClick={() => updateQuantity(item._id, -1)}
-                                                                    className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
+                                                                    className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-slate-400"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-[16px] xs:text-[18px] sm:text-[20px]">remove</span>
+                                                                    <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">remove</span>
                                                                 </button>
-                                                                <span className="text-xs xs:text-sm sm:text-base font-black text-slate-900 w-4 xs:w-6 text-center tabular-nums">
+                                                                <span className="text-xs xs:text-sm sm:text-base font-black text-slate-900 w-3 xs:w-5 text-center tabular-nums">
                                                                     {cart[item._id] || 0}
                                                                 </span>
                                                                 <button 
                                                                     disabled={Number(item.price) === 0}
                                                                     onClick={() => updateQuantity(item._id, 1)}
-                                                                    className="w-8 h-8 xs:w-9 xs:h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
+                                                                    className="w-7 h-7 xs:w-8 xs:h-8 sm:w-10 sm:h-10 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/10 hover:bg-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-900"
                                                                 >
-                                                                    <span className="material-symbols-outlined text-[16px] xs:text-[18px] sm:text-[20px]">add</span>
+                                                                    <span className="material-symbols-outlined text-[14px] xs:text-[16px] sm:text-[18px]">add</span>
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -970,6 +962,147 @@ const MaterialRequestPage = () => {
                                     </div>
                                 </>
                             )}
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* More Details Modal */}
+            <AnimatePresence>
+                {detailModal.isOpen && detailModal.item && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            onClick={() => setDetailModal({ isOpen: false, item: null })}
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-lg rounded-[2.5rem] overflow-hidden relative z-10 shadow-2xl flex flex-col max-h-[85vh]"
+                        >
+                            {/* Modal Header */}
+                            <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-slate-100">
+                                <div>
+                                    <h3 className="font-black text-lg text-slate-900 tracking-tight uppercase">Product Details</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Specifications & Supplier Info</p>
+                                </div>
+                                <button 
+                                    onClick={() => setDetailModal({ isOpen: false, item: null })} 
+                                    className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-lg">close</span>
+                                </button>
+                            </div>
+
+                            {/* Modal Body */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 text-left">
+                                {/* Image Showcase */}
+                                <div className="w-full h-48 bg-slate-50 rounded-[1.8rem] overflow-hidden border border-slate-100 flex items-center justify-center relative">
+                                    {detailModal.item.images && detailModal.item.images.length > 0 ? (
+                                        <img 
+                                            src={detailModal.item.images[0]} 
+                                            alt={detailModal.item.name} 
+                                            className="w-full h-full object-cover" 
+                                        />
+                                    ) : detailModal.item.image ? (
+                                        <img 
+                                            src={detailModal.item.image} 
+                                            alt={detailModal.item.name} 
+                                            className="w-full h-full object-cover" 
+                                        />
+                                    ) : (
+                                        <span className="material-symbols-outlined text-6xl text-slate-200">inventory_2</span>
+                                    )}
+                                </div>
+
+                                {/* General Details */}
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-start gap-4">
+                                        <div>
+                                            <h4 className="text-lg font-black text-slate-900 uppercase leading-tight">{detailModal.item.name}</h4>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                                Category: {detailModal.item.category} / {detailModal.item.subCategory}
+                                            </p>
+                                        </div>
+                                        {detailModal.item.brand && (
+                                            <span className="px-3 py-1 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-wider">
+                                                {detailModal.item.brand}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Description */}
+                                    {detailModal.item.description && (
+                                        <div className="bg-slate-50 p-4 rounded-[1.4rem] border border-slate-100 space-y-1">
+                                            <h5 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Description</h5>
+                                            <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                                                {detailModal.item.description}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Commercial Details (Wholesale, Stock, Bulk) */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-slate-50 p-4 rounded-[1.4rem] border border-slate-100">
+                                        <h5 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Wholesale Rate</h5>
+                                        <p className="text-lg font-black text-slate-900 mt-1">₹{detailModal.item.wholesaleRate}</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">+GST & markup</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-4 rounded-[1.4rem] border border-slate-100">
+                                        <h5 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Available Stock</h5>
+                                        <p className="text-lg font-black text-slate-900 mt-1">{detailModal.item.quantity}</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">In storage</p>
+                                    </div>
+                                </div>
+
+                                {/* Bulk Discount Structure */}
+                                {detailModal.item.bulkDiscount > 0 && (
+                                    <div className="bg-emerald-50/50 p-4 rounded-[1.4rem] border border-emerald-100 flex items-center justify-between">
+                                        <div>
+                                            <h5 className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Bulk Incentive</h5>
+                                            <p className="text-xs text-emerald-800 font-bold mt-0.5">Min Order: {detailModal.item.bulkThreshold} Units</p>
+                                        </div>
+                                        <span className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-black uppercase tracking-wider shadow-md shadow-emerald-600/10">
+                                            {detailModal.item.bulkDiscount}% OFF
+                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Supplier Contact */}
+                                {(() => {
+                                    const { name, phone } = parseSupplierInfo(detailModal.item.supplierFacilityName, detailModal.item.supplierPhone);
+                                    return (
+                                        <div className="border-t border-slate-100 pt-5 space-y-3">
+                                            <h5 className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Supplier Information</h5>
+                                            <div className="flex flex-col gap-2 bg-slate-50 p-4 rounded-[1.4rem] border border-slate-100">
+                                                <div className="flex items-center gap-2.5 text-slate-600">
+                                                    <span className="material-symbols-outlined text-[18px]">store</span>
+                                                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">{name}</span>
+                                                </div>
+                                                {phone && (
+                                                    <div className="flex items-center gap-2.5 text-slate-600">
+                                                        <span className="material-symbols-outlined text-[18px]">call</span>
+                                                        <span className="text-xs font-black tracking-wider text-slate-800">{phone}</span>
+                                                    </div>
+                                                )}
+                                                {detailModal.item.nextDeliveryDate && (
+                                                    <div className="flex items-center gap-2.5 text-slate-600">
+                                                        <span className="material-symbols-outlined text-[18px]">local_shipping</span>
+                                                        <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                                                            Est. Delivery: {detailModal.item.nextDeliveryDate}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
                         </motion.div>
                     </div>
                 )}

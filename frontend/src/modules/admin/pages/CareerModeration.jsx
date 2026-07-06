@@ -20,6 +20,7 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editingJob, setEditingJob] = useState(null);
     const [viewingApp, setViewingApp] = useState(null);
+    const [selectedJobIdForApps, setSelectedJobIdForApps] = useState(null);
     
     // Form & View controllers
     const [viewMode, setViewMode] = useState('Jobs'); // 'Jobs' or 'Applications'
@@ -45,18 +46,41 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
         skills: ['Punctual']
     });
     const [newSkill, setNewSkill] = useState('');
+    const [templates, setTemplates] = useState([]);
 
     useEffect(() => {
         fetchJobs();
         fetchApplications();
+        fetchTemplates();
         loadAdminConfigs();
     }, [creatorFilter]);
 
+    const fetchTemplates = async () => {
+        try {
+            const data = await jobApi.getRoleTemplates();
+            // Filter templates where targetRole is Admin
+            const adminTemplates = (Array.isArray(data) ? data : []).filter(t => t.targetRole === 'Admin');
+            setTemplates(adminTemplates);
+        } catch (error) {
+            console.error('Fetch templates error:', error);
+        }
+    };
+
     const loadAdminConfigs = () => {
         // Load addresses from settings
+        let defaultLocation = '';
         const savedAddresses = localStorage.getItem('admin_addresses');
         if (savedAddresses) {
-            setAdminAddresses(JSON.parse(savedAddresses));
+            try {
+                const parsed = JSON.parse(savedAddresses);
+                setAdminAddresses(parsed);
+                if (parsed && parsed.length > 0) {
+                    const firstAddr = parsed[0].address || '';
+                    defaultLocation = firstAddr.split(',')[0].trim();
+                }
+            } catch (e) {
+                console.error(e);
+            }
         } else {
             setAdminAddresses([
                 { id: '1', type: 'HQ', address: 'Gurgaon (HQ)' },
@@ -73,6 +97,20 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                 setForm(prev => ({ ...prev, companyName: profile.companyName }));
             }
         }
+        
+        // Resolve city name (from settings addresses, or profile, or default to Gurgaon)
+        if (!defaultLocation) {
+            const adminRaw = localStorage.getItem('adminData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+            try {
+                const adminData = JSON.parse(adminRaw);
+                defaultLocation = adminData.city || adminData.shopDetails?.city || adminData.supplierDetails?.city || '';
+            } catch (e) {
+                console.error(e);
+            }
+        }
+        
+        const city = defaultLocation || 'Gurgaon';
+        setForm(prev => ({ ...prev, location: city }));
     };
 
     const fetchJobs = async () => {
@@ -121,13 +159,31 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
             await fetchJobs();
             setIsCreating(false);
             toast.success('Corporate Job Posted Successfully');
+            let defaultLocation = '';
+            const savedAddresses = localStorage.getItem('admin_addresses');
+            if (savedAddresses) {
+                try {
+                    const parsed = JSON.parse(savedAddresses);
+                    if (parsed && parsed.length > 0) {
+                        const firstAddr = parsed[0].address || '';
+                        defaultLocation = firstAddr.split(',')[0].trim();
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            if (!defaultLocation) {
+                const cityRaw = adminData.city || adminData.shopDetails?.city || adminData.supplierDetails?.city || '';
+                defaultLocation = cityRaw;
+            }
+            const city = defaultLocation || 'Gurgaon';
             setForm({ 
                 title: '', 
                 companyName: adminCompany, 
                 description: '', 
                 requirements: '', 
                 experience: '1-2 Years',
-                location: adminAddresses[0]?.address || 'Gurgaon (HQ)', 
+                location: city, 
                 type: 'Full-time', 
                 salary: 'As per Industry',
                 skills: ['Punctual']
@@ -237,11 +293,13 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
 
     const filteredApps = useMemo(() => {
         return applications.filter(app => {
+            const matchesJob = !selectedJobIdForApps || 
+                (app.job?._id === selectedJobIdForApps || app.jobId?._id === selectedJobIdForApps || app.job === selectedJobIdForApps || app.jobId === selectedJobIdForApps);
             const matchesStatus = !appFilterStatus || app.status === appFilterStatus;
             const matchesRole = !appFilterRole || (app.job?.title === appFilterRole || app.jobId?.title === appFilterRole);
-            return matchesStatus && matchesRole;
+            return matchesJob && matchesStatus && matchesRole;
         });
-    }, [applications, appFilterStatus, appFilterRole]);
+    }, [applications, appFilterStatus, appFilterRole, selectedJobIdForApps]);
 
     // XLSX Downloads
     const handleDownloadJobs = () => {
@@ -286,6 +344,7 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
     // DataGrid Column Configurations
     const jobColumns = [
         { header: 'S.No', key: 'sNo', width: '60px', render: (val, row) => jobs.indexOf(row) + 1 },
+        { header: 'ID', key: 'jobCode', render: (val, row) => <span className="font-bold text-indigo-600 font-mono text-[10px] bg-indigo-50/50 px-1.5 py-0.5 rounded">{row.jobCode || `JOB-${row._id.slice(-4).toUpperCase()}`}</span> },
         { 
             header: 'Title', 
             key: 'title', 
@@ -299,38 +358,26 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
         { header: 'Company Name', key: 'companyName', render: (val, row) => row.companyName || (row.vendor?.displayName || 'Vendor Partner') },
         { header: 'Location', key: 'location' },
         { header: 'Salary', key: 'salary' },
-        { 
-            header: 'Status', 
-            key: 'status', 
-            render: (val) => {
-                const s = val || 'Open';
-                const style = s === 'Open' || s === 'Active' 
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                    : s === 'Paused' 
-                    ? 'bg-amber-50 text-amber-600 border border-amber-100' 
-                    : s === 'Draft' 
-                    ? 'bg-slate-100 text-slate-500 border border-slate-200' 
-                    : 'bg-rose-50 text-rose-600 border border-rose-100';
-                return (
-                    <span className={`px-2.5 py-1 rounded-sm text-[9px] font-black uppercase tracking-wider ${style}`}>
-                        {s}
-                    </span>
-                );
-            }
-        },
         {
             header: 'Actions',
             key: '_id',
             align: 'right',
             render: (id, row) => (
                 <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <button 
+                        onClick={() => {
+                            setSelectedJobIdForApps(id);
+                            setViewMode('Applications');
+                        }} 
+                        className="p-1 hover:bg-slate-100 text-slate-500 hover:text-slate-900 rounded" 
+                        title="View Candidates/Applications"
+                    >
+                        <Eye size={13} />
+                    </button>
                     {creatorFilter === 'Admin' ? (
                         <>
                             <button onClick={() => handleEdit(row)} className="p-1 hover:bg-slate-100 text-blue-600 rounded" title="Edit Post">
                                 <Edit2 size={13} />
-                            </button>
-                            <button onClick={() => handleDeleteJob(id)} className="p-1 hover:bg-slate-100 text-rose-500 rounded" title="Delete Post">
-                                <Trash2 size={13} />
                             </button>
                         </>
                     ) : (
@@ -376,16 +423,24 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
             key: 'status', 
             render: (val) => {
                 const s = val || 'Pending';
-                const style = s === 'Approved' 
+                const style = s === 'Approved' || s === 'Selected'
                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                    : s === 'Recommended' 
+                    : s === 'Reviewed' 
                     ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
+                    : s === 'Interview' 
+                    ? 'bg-violet-50 text-violet-600 border border-violet-100' 
                     : s === 'Rejected' 
                     ? 'bg-rose-50 text-rose-600 border border-rose-100' 
                     : 'bg-amber-50 text-amber-600 border border-amber-100';
+                
+                let displayStatus = s;
+                if (s === 'Pending') displayStatus = 'Submitted';
+                else if (s === 'Reviewed') displayStatus = 'Shortlisted';
+                else if (s === 'Approved' || s === 'Selected') displayStatus = 'Hired';
+
                 return (
                     <span className={`px-2.5 py-1 rounded-sm text-[9px] font-black uppercase tracking-wider ${style}`}>
-                        {s === 'Recommended' ? 'Pending Admin' : s}
+                        {displayStatus}
                     </span>
                 );
             }
@@ -395,20 +450,20 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
             key: '_id',
             align: 'right',
             render: (id, row) => (
-                <div className="flex justify-end items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => setViewingApp(row)} className="p-1 hover:bg-slate-100 text-slate-500 rounded" title="View Application">
                         <Eye size={13} />
                     </button>
-                    {row.status !== 'Approved' && (
-                        <button onClick={() => handleUpdateApplicationStatus(id, 'Approved')} className="p-1 hover:bg-slate-100 text-emerald-600 rounded" title="Confirm Hire">
-                            <Check size={13} />
-                        </button>
-                    )}
-                    {row.status !== 'Rejected' && (
-                        <button onClick={() => handleUpdateApplicationStatus(id, 'Rejected')} className="p-1 hover:bg-slate-100 text-rose-500 rounded" title="Reject Application">
-                            <X size={13} />
-                        </button>
-                    )}
+                    <select
+                        value={row.status || 'Pending'}
+                        onChange={(e) => handleUpdateApplicationStatus(id, e.target.value)}
+                        className="bg-white border border-slate-200 rounded p-1 text-[9px] font-black uppercase tracking-wider text-slate-600 cursor-pointer"
+                    >
+                        <option value="Pending">Submitted</option>
+                        <option value="Reviewed">Shortlisted</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Rejected">Rejected</option>
+                    </select>
                     <button onClick={() => handleDeleteApplication(id)} className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded" title="Delete record">
                         <Trash2 size={13} />
                     </button>
@@ -418,7 +473,7 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
     ];
 
     return (
-        <div className="admin-theme flex flex-col min-h-screen">
+        <div className="admin-theme flex flex-col min-h-screen bg-slate-50/50 pb-20">
             {/* Header Strip */}
             <PageHeader 
                 title={`${creatorFilter} Posts`} 
@@ -494,20 +549,6 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                         <option key={role} value={role}>{role}</option>
                                     ))}
                                 </select>
-                                
-                                {/* Status Filter */}
-                                <select
-                                    value={jobFilterStatus}
-                                    onChange={(e) => setJobFilterStatus(e.target.value)}
-                                    className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
-                                >
-                                    <option value="">All Status</option>
-                                    <option value="Open">Open</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Paused">Paused</option>
-                                    <option value="Closed">Closed</option>
-                                    <option value="Draft">Draft</option>
-                                </select>
                             </div>
                         }
                     />
@@ -522,6 +563,14 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                         onDownload={handleDownloadApps}
                         actions={
                             <div className="flex items-center gap-2">
+                                {selectedJobIdForApps && (
+                                    <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-1 rounded-sm text-[9px] font-black uppercase tracking-wider">
+                                        <span>Filtered Job ID: {jobs.find(j => j._id === selectedJobIdForApps)?.jobCode || `JOB-${selectedJobIdForApps.slice(-4).toUpperCase()}`}</span>
+                                        <button onClick={() => setSelectedJobIdForApps(null)} className="hover:text-indigo-900 transition-colors flex items-center justify-center shrink-0" title="Clear Job Filter">
+                                            <X size={10} />
+                                        </button>
+                                    </div>
+                                )}
                                 {/* Job Title Filter */}
                                 <select
                                     value={appFilterRole}
@@ -563,6 +612,28 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                 Create Corporate Career Post
                             </h2>
                             <form onSubmit={handleAdminCreate} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Role Template (Auto-Fill Description)</label>
+                                    <select 
+                                        onChange={e => {
+                                            const selectedTpl = templates.find(t => t._id === e.target.value);
+                                            if (selectedTpl) {
+                                                setForm(prev => ({ 
+                                                    ...prev, 
+                                                    title: selectedTpl.name, 
+                                                    description: selectedTpl.description 
+                                                }));
+                                            }
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold focus:bg-white outline-none cursor-pointer"
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Select Description Template...</option>
+                                        {templates.map(tpl => (
+                                            <option key={tpl._id} value={tpl._id}>{tpl.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Title</label>
@@ -613,22 +684,14 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                         <option value="As per Industry">As per Industry</option>
                                     </select>
                                 </div>
-                                <div className="space-y-1.5">
+                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Location</label>
-                                    <select 
+                                    <input 
                                         required 
                                         value={form.location} 
                                         onChange={e => setForm({...form, location: e.target.value})} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold outline-none cursor-pointer"
-                                    >
-                                        <option value="" disabled>Select Office Location</option>
-                                        {adminAddresses.map(addr => (
-                                            <option key={addr.id} value={addr.address}>
-                                                {addr.type}: {addr.address}
-                                            </option>
-                                        ))}
-                                        <option value="Remote">Remote</option>
-                                    </select>
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-semibold focus:bg-white outline-none focus:ring-2 focus:ring-slate-900/5 transition-all" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Skills & Qualifications</label>
@@ -665,7 +728,7 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                 </div>
                                 <div className="flex gap-3 pt-4 border-t border-slate-100">
                                     <button type="button" onClick={() => setIsCreating(false)} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-colors">Cancel</button>
-                                    <button type="submit" className="flex-[2] py-4 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all">Push Live</button>
+                                    <button type="submit" className="flex-[2] py-4 bg-slate-900 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-black transition-all">Save</button>
                                 </div>
                             </form>
                         </motion.div>
@@ -684,6 +747,28 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                 Edit Corporate Job Post
                             </h2>
                             <form onSubmit={handleUpdate} className="space-y-5">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Role Template (Auto-Fill Description)</label>
+                                    <select 
+                                        onChange={e => {
+                                            const selectedTpl = templates.find(t => t._id === e.target.value);
+                                            if (selectedTpl) {
+                                                setForm(prev => ({ 
+                                                    ...prev, 
+                                                    title: selectedTpl.name, 
+                                                    description: selectedTpl.description 
+                                                }));
+                                            }
+                                        }}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold focus:bg-white outline-none cursor-pointer"
+                                        defaultValue=""
+                                    >
+                                        <option value="" disabled>Select Description Template...</option>
+                                        {templates.map(tpl => (
+                                            <option key={tpl._id} value={tpl._id}>{tpl.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Title</label>
@@ -736,20 +821,12 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-slate-400 ml-3 uppercase">Location</label>
-                                    <select 
+                                    <input 
                                         required 
                                         value={form.location} 
                                         onChange={e => setForm({...form, location: e.target.value})} 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold outline-none cursor-pointer"
-                                    >
-                                        <option value="" disabled>Select Office Location</option>
-                                        {adminAddresses.map(addr => (
-                                            <option key={addr.id} value={addr.address}>
-                                                {addr.type}: {addr.address}
-                                            </option>
-                                        ))}
-                                        <option value="Remote">Remote</option>
-                                    </select>
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-semibold focus:bg-white outline-none focus:ring-2 focus:ring-slate-900/5 transition-all" 
+                                    />
                                 </div>
                                 <div className="flex gap-3 pt-4 border-t border-slate-100">
                                     <button type="button" onClick={() => { setIsEditing(false); setEditingJob(null); }} className="flex-1 py-4 bg-slate-100 text-slate-400 rounded-xl font-bold text-[10px] uppercase tracking-widest hover:bg-slate-200 transition-colors">Cancel</button>

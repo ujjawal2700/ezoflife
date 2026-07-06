@@ -1,7 +1,7 @@
 import express from 'express';
 import upload from '../middleware/upload.js';
 import localUpload from '../middleware/localUpload.js';
-import { uploadMedia, uploadMultipleMedia, getMediaHistory, getLatestMedia, submitInquiry, getAllInquiries, getInquiryFilters, deleteInquiry } from '../controllers/mediaController.js';
+import { uploadMedia, uploadMultipleMedia, getMediaHistory, getLatestMedia, submitInquiry, getAllInquiries, getInquiryFilters, deleteInquiry, updateInquiryStatus, getMyInquiries } from '../controllers/mediaController.js';
 
 const router = express.Router();
 
@@ -42,8 +42,10 @@ import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 // Ad Inquiries
 router.post('/inquiry', submitInquiry);
+router.get('/inquiries/my', getMyInquiries);
 router.get('/inquiries/filters', verifyAdmin, getInquiryFilters);
 router.get('/inquiries', verifyAdmin, getAllInquiries);
 router.delete('/inquiries/:id', verifyAdmin, deleteInquiry);
+router.put('/inquiries/:id/status', verifyAdmin, updateInquiryStatus);
 
 export default router;

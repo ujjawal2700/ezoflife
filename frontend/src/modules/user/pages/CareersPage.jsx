@@ -45,6 +45,9 @@ const CareersPage = () => {
     const [isApplied, setIsApplied] = useState(false);
     const [jobs, setJobs] = useState([]);
     const [appliedJobIds, setAppliedJobIds] = useState([]);
+    const [myApplications, setMyApplications] = useState([]);
+    const [viewingAppStatus, setViewingAppStatus] = useState(null);
+    const [activeTab, setActiveTab] = useState('Jobs'); // 'Jobs' or 'Applied'
     const [loading, setLoading] = useState(true);
     const [isApplying, setIsApplying] = useState(null);
     const [viewingJobDetails, setViewingJobDetails] = useState(null);
@@ -72,6 +75,9 @@ const CareersPage = () => {
                 try {
                     const appliedIds = await jobApi.getAppliedJobIds(applicantId);
                     setAppliedJobIds(Array.isArray(appliedIds) ? appliedIds : []);
+
+                    const apps = await jobApi.getApplicantApplications(applicantId);
+                    setMyApplications(Array.isArray(apps) ? apps : []);
                 } catch (e) {
                     console.error('Fetch applied job IDs error:', e);
                 }
@@ -186,229 +192,340 @@ const CareersPage = () => {
             </header>
 
             <main className="px-4 max-w-2xl mx-auto">
-                {/* Search + Filters */}
-                <motion.div initial="hidden" animate="visible" variants={itemVariants} className="space-y-3 mb-6">
-                    {/* Main Search */}
-                    <div className="relative flex items-center bg-white rounded-2xl px-4 py-3 shadow-sm border border-outline-variant/10 transition-all">
-                        <span className="material-symbols-outlined text-outline-variant mr-3 text-[20px]">search</span>
-                        <input 
-                            type="text" 
-                            placeholder="Search by keyboard"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold w-full placeholder:text-outline-variant/40"
-                        />
-                        {searchQuery && (
-                            <button onClick={() => setSearchQuery('')} className="text-slate-300 hover:text-slate-500">
-                                <span className="material-symbols-outlined text-[18px]">close</span>
-                            </button>
+                {/* Switcher Tabs */}
+                <div className="bg-slate-100 p-1.5 rounded-2xl flex w-full mb-6 border border-slate-200/40 shadow-sm">
+                    <button 
+                        onClick={() => setActiveTab('Jobs')}
+                        className={`flex-1 py-3 items-center justify-center gap-2 flex rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            activeTab === 'Jobs' 
+                            ? 'bg-white text-slate-900 shadow-sm font-black' 
+                            : 'text-slate-400 hover:text-slate-700'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[16px]">work</span>
+                        Active Jobs
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('Applied')}
+                        className={`flex-1 py-3 items-center justify-center gap-2 flex rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                            activeTab === 'Applied' 
+                            ? 'bg-white text-slate-900 shadow-sm font-black' 
+                            : 'text-slate-400 hover:text-slate-700'
+                        }`}
+                    >
+                        <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
+                        Submitted Jobs
+                        {myApplications.length > 0 && (
+                            <span className="bg-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded-full ml-1 animate-pulse">
+                                {myApplications.length}
+                            </span>
                         )}
-                    </div>
+                    </button>
+                </div>
 
-                    {/* Name & Salary Filters */}
-                    <div className="grid grid-cols-2 gap-2">
-                        {/* Name Filter */}
-                        <div className="relative flex items-center bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-outline-variant/10 transition-all">
-                            <span className="material-symbols-outlined text-outline-variant mr-2 text-[16px]">badge</span>
-                            <input 
-                                type="text" 
-                                placeholder="Filter by Name"
-                                value={nameFilter}
-                                onChange={(e) => setNameFilter(e.target.value)}
-                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-[11px] font-semibold w-full placeholder:text-outline-variant/40"
-                            />
-                            {nameFilter && (
-                                <button onClick={() => setNameFilter('')} className="text-slate-300 hover:text-slate-500 shrink-0">
-                                    <span className="material-symbols-outlined text-[14px]">close</span>
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Salary Custom Dropdown */}
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setSalaryOpen(prev => !prev)}
-                                className="w-full flex items-center bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-outline-variant/10 transition-all gap-2"
-                            >
-                                <span className="material-symbols-outlined text-outline-variant text-[16px] shrink-0">payments</span>
-                                <span className={`text-[11px] font-semibold flex-1 text-left truncate ${salaryFilter ? 'text-slate-700' : 'text-outline-variant/60'}`}>
-                                    {salaryLabel}
-                                </span>
-                                <span className={`material-symbols-outlined text-outline-variant text-[14px] shrink-0 transition-transform duration-200 ${salaryOpen ? 'rotate-180' : ''}`}>expand_more</span>
-                            </button>
-
-                            {/* Dropdown Panel — opens upward, constrained inside screen */}
-                            <AnimatePresence>
-                                {salaryOpen && (
-                                    <>
-                                        {/* Backdrop to close */}
-                                        <div
-                                            className="fixed inset-0 z-[40]"
-                                            onClick={() => setSalaryOpen(false)}
-                                        />
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                                            transition={{ duration: 0.15 }}
-                                            className="absolute right-0 top-[calc(100%+6px)] z-[50] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[160px]"
-                                        >
-                                            {SALARY_OPTIONS.map(opt => (
-                                                <button
-                                                    key={opt.value}
-                                                    type="button"
-                                                    onClick={() => { setSalaryFilter(opt.value); setSalaryOpen(false); }}
-                                                    className={`w-full text-left px-4 py-2.5 text-[11px] font-semibold transition-colors ${
-                                                        salaryFilter === opt.value
-                                                            ? 'bg-primary text-white'
-                                                            : 'text-slate-700 hover:bg-slate-50'
-                                                    }`}
-                                                >
-                                                    {opt.label}
-                                                </button>
-                                            ))}
-                                        </motion.div>
-                                    </>
+                {activeTab === 'Jobs' ? (
+                    <>
+                        {/* Search + Filters */}
+                        <motion.div initial="hidden" animate="visible" variants={itemVariants} className="space-y-3 mb-6">
+                            {/* Main Search */}
+                            <div className="relative flex items-center bg-white rounded-2xl px-4 py-3 shadow-sm border border-outline-variant/10 transition-all">
+                                <span className="material-symbols-outlined text-outline-variant mr-3 text-[20px]">search</span>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search by keyboard"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="bg-transparent border-none focus:ring-0 p-0 text-sm font-semibold w-full placeholder:text-outline-variant/40"
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} className="text-slate-300 hover:text-slate-500">
+                                        <span className="material-symbols-outlined text-[18px]">close</span>
+                                    </button>
                                 )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
+                            </div>
 
-                    {/* Active filter chips */}
-                    {(nameFilter || salaryFilter || searchQuery) && (
-                        <div className="flex flex-wrap gap-2">
-                            {searchQuery && (
-                                <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
-                                    <span className="material-symbols-outlined text-[12px]">search</span>
-                                    {searchQuery}
-                                    <button onClick={() => setSearchQuery('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
-                                </span>
-                            )}
-                            {nameFilter && (
-                                <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
-                                    <span className="material-symbols-outlined text-[12px]">badge</span>
-                                    {nameFilter}
-                                    <button onClick={() => setNameFilter('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
-                                </span>
-                            )}
-                            {salaryFilter && (
-                                <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
-                                    <span className="material-symbols-outlined text-[12px]">payments</span>
-                                    {salaryLabel}
-                                    <button onClick={() => setSalaryFilter('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </motion.div>
+                            {/* Name & Salary Filters */}
+                            <div className="grid grid-cols-2 gap-2">
+                                {/* Name Filter */}
+                                <div className="relative flex items-center bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-outline-variant/10 transition-all">
+                                    <span className="material-symbols-outlined text-outline-variant mr-2 text-[16px]">badge</span>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Filter by Name"
+                                        value={nameFilter}
+                                        onChange={(e) => setNameFilter(e.target.value)}
+                                        className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-[11px] font-semibold w-full placeholder:text-outline-variant/40"
+                                    />
+                                    {nameFilter && (
+                                        <button onClick={() => setNameFilter('')} className="text-slate-300 hover:text-slate-500 shrink-0">
+                                            <span className="material-symbols-outlined text-[14px]">close</span>
+                                        </button>
+                                    )}
+                                </div>
 
-                {/* Result Count */}
-                {!loading && (
-                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-40 mb-4 px-1">
-                        {filteredJobs.length} {filteredJobs.length === 1 ? 'Opening' : 'Openings'} Found
-                    </p>
-                )}
+                                {/* Salary Custom Dropdown */}
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSalaryOpen(prev => !prev)}
+                                        className="w-full flex items-center bg-white rounded-2xl px-3 py-2.5 shadow-sm border border-outline-variant/10 transition-all gap-2"
+                                    >
+                                        <span className="material-symbols-outlined text-outline-variant text-[16px] shrink-0">payments</span>
+                                        <span className={`text-[11px] font-semibold flex-1 text-left truncate ${salaryFilter ? 'text-slate-700' : 'text-outline-variant/60'}`}>
+                                            {salaryLabel}
+                                        </span>
+                                        <span className={`material-symbols-outlined text-outline-variant text-[14px] shrink-0 transition-transform duration-200 ${salaryOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                                    </button>
 
-                {/* Job List */}
-                {loading ? (
-                    <div className="py-20 flex flex-col items-center justify-center text-on-surface-variant opacity-40">
-                        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Prospecting Opportunities...</p>
-                    </div>
+                                    {/* Dropdown Panel — opens upward, constrained inside screen */}
+                                    <AnimatePresence>
+                                        {salaryOpen && (
+                                            <>
+                                                {/* Backdrop to close */}
+                                                <div
+                                                    className="fixed inset-0 z-[40]"
+                                                    onClick={() => setSalaryOpen(false)}
+                                                />
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                                                    transition={{ duration: 0.15 }}
+                                                    className="absolute right-0 top-[calc(100%+6px)] z-[50] bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden min-w-[160px]"
+                                                >
+                                                    {SALARY_OPTIONS.map(opt => (
+                                                        <button
+                                                            key={opt.value}
+                                                            type="button"
+                                                            onClick={() => { setSalaryFilter(opt.value); setSalaryOpen(false); }}
+                                                            className={`w-full text-left px-4 py-2.5 text-[11px] font-semibold transition-colors ${
+                                                                salaryFilter === opt.value
+                                                                    ? 'bg-primary text-white'
+                                                                    : 'text-slate-700 hover:bg-slate-50'
+                                                            }`}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            </>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
+                            {/* Active filter chips */}
+                            {(nameFilter || salaryFilter || searchQuery) && (
+                                <div className="flex flex-wrap gap-2">
+                                    {searchQuery && (
+                                        <span className="inline-flex items-center gap-1 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                                            <span className="material-symbols-outlined text-[12px]">search</span>
+                                            {searchQuery}
+                                            <button onClick={() => setSearchQuery('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
+                                        </span>
+                                    )}
+                                    {nameFilter && (
+                                        <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                                            <span className="material-symbols-outlined text-[12px]">badge</span>
+                                            {nameFilter}
+                                            <button onClick={() => setNameFilter('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
+                                        </span>
+                                    )}
+                                    {salaryFilter && (
+                                        <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                                            <span className="material-symbols-outlined text-[12px]">payments</span>
+                                            {salaryLabel}
+                                            <button onClick={() => setSalaryFilter('')}><span className="material-symbols-outlined text-[12px]">close</span></button>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Result Count */}
+                        {!loading && (
+                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-on-surface-variant opacity-40 mb-4 px-1">
+                                {filteredJobs.length} {filteredJobs.length === 1 ? 'Opening' : 'Openings'} Found
+                            </p>
+                        )}
+
+                        {/* Job List */}
+                        {loading ? (
+                            <div className="py-20 flex flex-col items-center justify-center text-on-surface-variant opacity-40">
+                                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                                <p className="text-[10px] font-black uppercase tracking-widest">Prospecting Opportunities...</p>
+                            </div>
+                        ) : (
+                            <motion.div 
+                                variants={containerVariants}
+                                initial="hidden"
+                                animate="visible"
+                                className="space-y-4"
+                            >
+                                {filteredJobs.length > 0 ? (
+                                    filteredJobs.map(job => (
+                                        <motion.div 
+                                            key={job._id}
+                                            variants={itemVariants}
+                                            whileHover={{ scale: 1.01 }}
+                                            className="bg-white rounded-[2rem] p-5 border border-outline-variant/5 shadow-sm space-y-3 overflow-hidden"
+                                        >
+                                            {/* Title Row */}
+                                            <div className="flex items-start justify-between gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="font-black text-base tracking-tight text-on-surface truncate">{job.title}</h3>
+                                                    <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${job.creatorRole === 'Admin' ? 'text-indigo-600' : 'text-primary'}`}>
+                                                        {job.creatorRole === 'Admin' ? (job.companyName || 'Official Post') : (job.vendor?.displayName || 'Vendor Post')}
+                                                    </span>
+                                                </div>
+                                                {/* Location badge — fixed to right, won't overflow */}
+                                                <div className="bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/10 flex items-center gap-1 shrink-0 max-w-[120px]">
+                                                    <span className="material-symbols-outlined text-[12px] text-primary shrink-0">location_on</span>
+                                                    <span className="text-[8px] font-black uppercase tracking-wider truncate">{job.location}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Meta Tags Row */}
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                                    <span className="material-symbols-outlined text-[11px]">group</span>
+                                                    {job.applicantsCount || 0} Applicants
+                                                </span>
+                                                <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                                    <span className="material-symbols-outlined text-[11px]">schedule</span>
+                                                    {job.shiftStartTime && job.shiftEndTime 
+                                                        ? `${format24hTo12h(job.shiftStartTime)} - ${format24hTo12h(job.shiftEndTime)}`
+                                                        : (job.jobType || 'Full Time')}
+                                                </span>
+                                                {job.salary && (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-800">
+                                                        <span className="material-symbols-outlined text-[11px]">payments</span>
+                                                        {job.salary}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Description */}
+                                            {job.description && (
+                                                <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed opacity-70 line-clamp-2">
+                                                    "{job.description}"
+                                                </p>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2.5 mt-2">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setViewingJobDetails(job)}
+                                                    className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span className="material-symbols-outlined text-[13px]">info</span>
+                                                    View Details
+                                                </button>
+                                                {appliedJobIds.includes(job._id) ? (
+                                                     <button 
+                                                         type="button"
+                                                         onClick={() => setViewingAppStatus(job._id)}
+                                                         className="flex-[1.2] py-3 bg-white border border-slate-950 hover:bg-slate-50 text-slate-950 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                                     >
+                                                         <span className="material-symbols-outlined text-[13px]">check_circle</span>
+                                                         View Application Status
+                                                     </button>
+                                                 ) : (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setIsApplying(job)}
+                                                        className="flex-[1.2] py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                                    >
+                                                        <span className="material-symbols-outlined text-[13px]">rocket_launch</span>
+                                                        Apply Now
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    <div className="py-20 text-center opacity-40">
+                                        <span className="material-symbols-outlined text-5xl mb-4">person_search</span>
+                                        <p className="text-xs font-bold uppercase tracking-widest">No matching roles found.</p>
+                                    </div>
+                                )}
+                            </motion.div>
+                        )}
+                    </>
                 ) : (
+                    /* Submitted Jobs Tab View */
                     <motion.div 
                         variants={containerVariants}
                         initial="hidden"
                         animate="visible"
                         className="space-y-4"
                     >
-                        {filteredJobs.length > 0 ? (
-                            filteredJobs.map(job => (
-                                <motion.div 
-                                    key={job._id}
-                                    variants={itemVariants}
-                                    whileHover={{ scale: 1.01 }}
-                                    className="bg-white rounded-[2rem] p-5 border border-outline-variant/5 shadow-sm space-y-3 overflow-hidden"
-                                >
-                                    {/* Title Row */}
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-black text-base tracking-tight text-on-surface truncate">{job.title}</h3>
-                                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${job.creatorRole === 'Admin' ? 'text-indigo-600' : 'text-primary'}`}>
-                                                {job.creatorRole === 'Admin' ? (job.companyName || 'Official Post') : (job.vendor?.displayName || 'Vendor Post')}
-                                            </span>
+                        {myApplications.length > 0 ? (
+                            myApplications.map(app => {
+                                const job = app.job || app.jobId || {};
+                                const status = app.status || 'Pending';
+                                
+                                let statusLabel = status;
+                                let statusStyle = 'bg-amber-50 text-amber-600 border border-amber-100';
+                                if (status === 'Pending') {
+                                    statusLabel = 'Submitted';
+                                } else if (status === 'Reviewed') {
+                                    statusLabel = 'Shortlisted';
+                                    statusStyle = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
+                                } else if (status === 'Interview') {
+                                    statusLabel = 'Interview';
+                                    statusStyle = 'bg-violet-50 text-violet-600 border border-violet-100';
+                                } else if (status === 'Approved' || status === 'Selected') {
+                                    statusLabel = 'Hired';
+                                    statusStyle = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+                                } else if (status === 'Rejected') {
+                                    statusLabel = 'Declined';
+                                    statusStyle = 'bg-rose-50 text-rose-600 border border-rose-100';
+                                }
+
+                                return (
+                                    <motion.div 
+                                        key={app._id}
+                                        variants={itemVariants}
+                                        className="bg-white rounded-[2rem] p-5 border border-outline-variant/5 shadow-sm space-y-3.5"
+                                    >
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider mb-2 ${statusStyle}`}>
+                                                    {statusLabel}
+                                                </span>
+                                                <h3 className="font-black text-base tracking-tight text-on-surface truncate">{job.title || 'Job Position'}</h3>
+                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                                                    {job.companyName || 'Corporate Post'}
+                                                </span>
+                                            </div>
+                                            <div className="bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/10 flex items-center gap-1 shrink-0">
+                                                <span className="material-symbols-outlined text-[12px] text-primary shrink-0">location_on</span>
+                                                <span className="text-[8px] font-black uppercase tracking-wider truncate">{job.location || 'N/A'}</span>
+                                            </div>
                                         </div>
-                                        {/* Location badge — fixed to right, won't overflow */}
-                                        <div className="bg-surface-container-low px-2.5 py-1.5 rounded-xl border border-outline-variant/10 flex items-center gap-1 shrink-0 max-w-[120px]">
-                                            <span className="material-symbols-outlined text-[12px] text-primary shrink-0">location_on</span>
-                                            <span className="text-[8px] font-black uppercase tracking-wider truncate">{job.location}</span>
-                                        </div>
-                                    </div>
 
-                                    {/* Meta Tags Row */}
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
-                                            <span className="material-symbols-outlined text-[11px]">group</span>
-                                            {job.applicantsCount || 0} Applicants
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 bg-slate-50 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-500">
-                                            <span className="material-symbols-outlined text-[11px]">schedule</span>
-                                            {job.shiftStartTime && job.shiftEndTime 
-                                                ? `${format24hTo12h(job.shiftStartTime)} - ${format24hTo12h(job.shiftEndTime)}`
-                                                : (job.jobType || 'Full Time')}
-                                        </span>
-                                        {job.salary && (
-                                            <span className="inline-flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-800">
-                                                <span className="material-symbols-outlined text-[11px]">payments</span>
-                                                {job.salary}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Description */}
-                                    {job.description && (
-                                        <p className="text-[11px] text-on-surface-variant font-medium leading-relaxed opacity-70 line-clamp-2">
-                                            "{job.description}"
-                                        </p>
-                                    )}
-
-                                    {/* Action Buttons */}
-                                    <div className="flex gap-2.5 mt-2">
-                                        <button 
-                                            type="button"
-                                            onClick={() => setViewingJobDetails(job)}
-                                            className="flex-1 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5"
-                                        >
-                                            <span className="material-symbols-outlined text-[13px]">info</span>
-                                            View Details
-                                        </button>
-                                        {appliedJobIds.includes(job._id) ? (
-                                             <button 
-                                                 type="button"
-                                                 onClick={() => toast.success('You have already applied for this job! We are reviewing your application.')}
-                                                 className="flex-[1.2] py-3 bg-white border border-slate-950 hover:bg-slate-50 text-slate-950 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                                             >
-                                                 <span className="material-symbols-outlined text-[13px]">check_circle</span>
-                                                 View Application Status
-                                             </button>
-                                         ) : (
+                                        <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                                            <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">
+                                                Applied: {new Date(app.createdAt).toLocaleDateString()}
+                                            </div>
                                             <button 
                                                 type="button"
-                                                onClick={() => setIsApplying(job)}
-                                                className="flex-[1.2] py-3 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                                onClick={() => setViewingAppStatus(job._id || job)}
+                                                className="px-4 py-2 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
                                             >
-                                                <span className="material-symbols-outlined text-[13px]">rocket_launch</span>
-                                                Apply Now
+                                                <span className="material-symbols-outlined text-[13px]">analytics</span>
+                                                Track Application
                                             </button>
-                                        )}
-                                    </div>
-                                </motion.div>
-                            ))
+                                        </div>
+                                    </motion.div>
+                                );
+                            })
                         ) : (
                             <div className="py-20 text-center opacity-40">
-                                <span className="material-symbols-outlined text-5xl mb-4">person_search</span>
-                                <p className="text-xs font-bold uppercase tracking-widest">No matching roles found.</p>
+                                <span className="material-symbols-outlined text-5xl mb-4">work_history</span>
+                                <p className="text-xs font-bold uppercase tracking-widest">No applications submitted yet.</p>
                             </div>
                         )}
                     </motion.div>
@@ -641,7 +758,7 @@ const CareersPage = () => {
                                         <button 
                                             type="button"
                                             onClick={() => {
-                                                toast.success('You have already applied for this job!');
+                                                setViewingAppStatus(viewingJobDetails._id);
                                                 setViewingJobDetails(null);
                                             }}
                                             className="w-full py-4 bg-white border border-slate-950 hover:bg-slate-50 text-slate-950 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm"
@@ -665,6 +782,127 @@ const CareersPage = () => {
                         </motion.div>
                     </div>
                 )}
+            </AnimatePresence>
+
+            {/* Tracking Status Modal */}
+            <AnimatePresence>
+                {viewingAppStatus && (() => {
+                    const app = myApplications.find(a => (a.job?._id || a.jobId?._id || a.job || a.jobId) === viewingAppStatus);
+                    if (!app) return null;
+
+                    const status = app.status || 'Pending';
+                    const isRejected = status === 'Rejected';
+                    const isHired = status === 'Approved' || status === 'Selected';
+                    const isInterview = status === 'Interview';
+                    const isShortlisted = status === 'Reviewed' || status === 'Recommended';
+
+                    // Determine active step
+                    let step = 1;
+                    if (isShortlisted) step = 2;
+                    if (isInterview) step = 3;
+                    if (isHired) step = 4;
+
+                    const steps = [
+                        { id: 1, label: 'Applied', desc: 'Application received' },
+                        { id: 2, label: 'Shortlisted', desc: status === 'Recommended' ? 'Awaiting Admin Review' : 'Profile reviewed' },
+                        { id: 3, label: 'Interview', desc: 'Hiring discussion' },
+                        { id: 4, label: 'Hired', desc: 'Offer extended!' }
+                    ];
+
+                    return (
+                        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setViewingAppStatus(null)}
+                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            />
+                            <motion.div 
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 text-slate-900 border border-slate-200"
+                            >
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Application Tracker</h3>
+                                        <h2 className="font-black text-lg tracking-tight text-slate-950 leading-tight mt-1">
+                                            {app.job?.title || 'Job Position'}
+                                        </h2>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-primary block mt-0.5">
+                                            {app.job?.creatorRole === 'Admin' ? (app.job?.companyName || 'Official Post') : (app.job?.companyName || 'Partner Post')}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => setViewingAppStatus(null)}
+                                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">close</span>
+                                    </button>
+                                </div>
+
+                                {isRejected ? (
+                                    <div className="space-y-4 py-4 text-center">
+                                        <div className="w-16 h-16 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto">
+                                            <span className="material-symbols-outlined text-3xl">cancel</span>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h4 className="font-black text-base text-rose-600 uppercase tracking-wide">Application Declined</h4>
+                                            <p className="text-xs text-slate-500 font-bold leading-relaxed px-4">
+                                                Thank you for your interest in this role. We appreciate your time, but we are not moving forward with your application at this stage.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="relative pl-8 space-y-6 py-2 border-l border-slate-200 ml-4">
+                                        {steps.map((st) => {
+                                            const isActive = step >= st.id;
+                                            const isCurrent = step === st.id;
+                                            return (
+                                                <div key={st.id} className="relative">
+                                                    {/* Step Dot Indicator */}
+                                                    <span className={`absolute -left-[41px] top-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                                        isActive 
+                                                        ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm' 
+                                                        : 'bg-white border-slate-200 text-slate-400'
+                                                    }`}>
+                                                        {isActive ? (
+                                                            <span className="material-symbols-outlined text-[14px] font-black">check</span>
+                                                        ) : (
+                                                            <span className="text-[10px] font-black">{st.id}</span>
+                                                        )}
+                                                    </span>
+
+                                                    {/* Step Details */}
+                                                    <div>
+                                                        <h4 className={`text-xs font-black uppercase tracking-wider ${
+                                                            isCurrent 
+                                                            ? 'text-slate-900 font-black' 
+                                                            : isActive 
+                                                            ? 'text-slate-700 font-bold' 
+                                                            : 'text-slate-400'
+                                                        }`}>
+                                                            {st.label}
+                                                        </h4>
+                                                        <p className={`text-[10px] font-medium leading-none mt-0.5 ${isActive ? 'text-slate-500' : 'text-slate-300'}`}>
+                                                            {st.desc}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                    <span>Applied On:</span>
+                                    <span className="text-slate-800 font-black">{new Date(app.createdAt).toLocaleDateString()}</span>
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
             </AnimatePresence>
 
             {/* Backdrop Visuals */}

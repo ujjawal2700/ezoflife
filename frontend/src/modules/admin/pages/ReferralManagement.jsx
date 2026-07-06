@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { adminApi } from '../../../lib/api';
+import { adminApi, referralApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import { Share2, Save, MessageSquare, Link, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,14 +11,23 @@ const ReferralManagement = () => {
     });
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [referrals, setReferrals] = useState([]);
 
     const SMS_CHAR_LIMIT = 160;
+
+    const fetchReferrals = async () => {
+        try {
+            const data = await referralApi.getAll();
+            setReferrals(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Fetch Referrals Error:', error);
+        }
+    };
 
     useEffect(() => {
         const fetchConfig = async () => {
             try {
                 const data = await adminApi.getConfig();
-                // Map array to object if needed, or handle if it's already an object
                 const referralMsg = data.find(c => c.key === 'REFERRAL_MESSAGE')?.value;
                 const referralLink = data.find(c => c.key === 'REFERRAL_DOWNLOAD_LINK')?.value;
                 
@@ -33,6 +42,7 @@ const ReferralManagement = () => {
             }
         };
         fetchConfig();
+        fetchReferrals();
     }, []);
 
     const handleSave = async () => {
@@ -140,14 +150,69 @@ const ReferralManagement = () => {
                         </p>
                     </div>
 
-                    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-900">Tips for Better Growth</h4>
-                        <ul className="space-y-2">
-                            <li className="text-[10px] font-bold text-slate-500 leading-relaxed">• Keep the message personal and friendly.</li>
-                            <li className="text-[10px] font-bold text-slate-500 leading-relaxed">• Mention a specific benefit or offer if any.</li>
-                            <li className="text-[10px] font-bold text-slate-500 leading-relaxed">• Use a short link to save characters.</li>
-                        </ul>
+                    {/* Tips section removed */}
+                </div>
+            </div>
+
+            {/* Referral History Table */}
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="text-sm font-black uppercase tracking-tight">Referral History</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Track viral referral downloads & sign-ups</p>
                     </div>
+                    <span className="px-3 py-1 bg-slate-100 text-[9px] font-black text-slate-500 rounded-full uppercase tracking-widest">
+                        {referrals.length} Total Referrals
+                    </span>
+                </div>
+                
+                <div className="overflow-x-auto border border-slate-100 rounded-3xl">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100">
+                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Referrer Name</th>
+                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Referrer Number</th>
+                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Referred Number</th>
+                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Is Downloaded</th>
+                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Referral Date</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {referrals.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="p-10 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                                        No referral logs recorded yet
+                                    </td>
+                                </tr>
+                            ) : (
+                                referrals.map((ref) => (
+                                    <tr key={ref._id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="p-5 text-xs font-black text-slate-900 uppercase tracking-tight">
+                                            {ref.referrerName}
+                                        </td>
+                                        <td className="p-5 text-[10px] font-bold text-slate-500 tabular-nums">
+                                            {ref.referrerPhone}
+                                        </td>
+                                        <td className="p-5 text-[10px] font-bold text-slate-500 tabular-nums">
+                                            {ref.referredPhone}
+                                        </td>
+                                        <td className="p-5 text-center">
+                                            <span className={`inline-flex px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
+                                                ref.isDownloaded === 'Yes' 
+                                                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                                                     : 'bg-rose-50 text-rose-600 border border-rose-100'
+                                            }`}>
+                                                {ref.isDownloaded}
+                                            </span>
+                                        </td>
+                                        <td className="p-5 text-right text-[10px] font-bold text-slate-900 uppercase tracking-widest">
+                                            {new Date(ref.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

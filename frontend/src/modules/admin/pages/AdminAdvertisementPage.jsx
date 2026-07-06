@@ -8,6 +8,14 @@ const AdminAdvertisementPage = () => {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [page, setPage] = useState(1);
+
+    const getFullAdUrl = (url) => {
+        if (!url) return '';
+        if (url.startsWith('/uploads/')) {
+            return UPLOADS_URL.replace('/uploads/', '') + url;
+        }
+        return `${UPLOADS_URL}${url}`;
+    };
     const itemsPerPage = 10;
     
     // Form state
@@ -256,7 +264,7 @@ const AdminAdvertisementPage = () => {
                                                 <div className="flex items-center gap-4">
                                                     <div className="w-14 h-14 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
                                                         {ad.type === 'image' ? (
-                                                            <img src={`${UPLOADS_URL}${ad.url}`} alt={ad.title} className="w-full h-full object-cover" />
+                                                            <img src={getFullAdUrl(ad.url)} alt={ad.title} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center bg-black text-white">
                                                                 <span className="material-symbols-outlined text-sm">videocam</span>
@@ -284,7 +292,7 @@ const AdminAdvertisementPage = () => {
                                                 </button>
                                             </td>
                                             <td className="px-8 py-6 text-right space-x-2">
-                                                <a href={`${UPLOADS_URL}${ad.url}`} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 inline-flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all">
+                                                <a href={getFullAdUrl(ad.url)} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 inline-flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all">
                                                     <span className="material-symbols-outlined text-sm">open_in_new</span>
                                                 </a>
                                                 <button onClick={() => handleDelete(ad._id)} className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 inline-flex items-center justify-center hover:bg-red-50 hover:text-red-500 transition-all">

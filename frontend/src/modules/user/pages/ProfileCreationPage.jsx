@@ -20,6 +20,12 @@ const ProfileCreationPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [showMapPicker, setShowMapPicker] = useState(false);
 
+    // Business onboarding additions
+    const [customerType, setCustomerType] = useState('individual'); // 'individual' or 'retail' (for business)
+    const [businessName, setBusinessName] = useState(mergedUser.businessName || '');
+    const [gstNumber, setGstNumber] = useState(mergedUser.gstNumber || '');
+    const [termsAccepted, setTermsAccepted] = useState(false);
+
     // Initial check for redirection
     React.useEffect(() => {
         if (mergedUser.displayName && mergedUser.address && !isLoading) {
@@ -112,20 +118,33 @@ const ProfileCreationPage = () => {
 
         try {
             setIsLoading(true);
-            await authApi.updateProfile(userId, {
+            const payload = {
                 displayName: name,
                 address: address,
                 location: mapLocation,
+                customerType: customerType,
                 isProfileComplete: true
-            });
+            };
+
+            if (customerType === 'retail') {
+                payload.businessName = businessName;
+                payload.gstNumber = gstNumber;
+            }
+
+            await authApi.updateProfile(userId, payload);
             
             // Update local storage with the complete profile info
             localStorage.setItem('user', JSON.stringify({ 
                 ...currentUser, 
                 displayName: name, 
                 address: address,
+                customerType: customerType,
+                businessName: customerType === 'retail' ? businessName : '',
+                gstNumber: customerType === 'retail' ? gstNumber : '',
                 isProfileComplete: true 
             }));
+            
+            localStorage.setItem('userType', customerType);
             
             navigate('/user/home');
         } catch (err) {
@@ -135,7 +154,17 @@ const ProfileCreationPage = () => {
         }
     };
 
-    const isComplete = name.trim().length >= 3 && address.trim().length > 10;
+    const isComplete = useMemo(() => {
+        if (customerType === 'individual') {
+            return name.trim().length >= 3 && address.trim().length > 10;
+        } else {
+            return name.trim().length >= 3 && 
+                   address.trim().length > 10 && 
+                   businessName.trim().length >= 2 && 
+                   gstNumber.trim().length >= 10 && 
+                   termsAccepted;
+        }
+    }, [customerType, name, address, businessName, gstNumber, termsAccepted]);
 
     const containerVariants = {
         hidden: { opacity: 0, y: 20 },
@@ -183,8 +212,34 @@ const ProfileCreationPage = () => {
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    className="space-y-8"
+                    className="space-y-6"
                 >
+                    {/* Customer Type Selector */}
+                    <motion.div variants={itemVariants} className="flex gap-4">
+                        <button 
+                            type="button"
+                            onClick={() => setCustomerType('individual')}
+                            className={`flex-1 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                                customerType === 'individual'
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            Individual
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={() => setCustomerType('retail')}
+                            className={`flex-1 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                                customerType === 'retail'
+                                ? 'bg-slate-900 text-white border-slate-900 shadow-md'
+                                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                            }`}
+                        >
+                            Business
+                        </button>
+                    </motion.div>
+
                     {/* Name Input */}
                     <motion.div variants={itemVariants}>
                         <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Full Name</label>
@@ -198,6 +253,40 @@ const ProfileCreationPage = () => {
                             />
                         </div>
                     </motion.div>
+
+                    {/* Business specific fields */}
+                    {customerType === 'retail' && (
+                        <>
+                            {/* Business Name */}
+                            <motion.div variants={itemVariants}>
+                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Business Name</label>
+                                <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <input 
+                                        type="text"
+                                        value={businessName}
+                                        onChange={(e) => setBusinessName(e.target.value)}
+                                        placeholder="Your business name"
+                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-md font-black placeholder:text-outline-variant/40"
+                                    />
+                                </div>
+                            </motion.div>
+
+                            {/* GST Number */}
+                            <motion.div variants={itemVariants}>
+                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">GST Number</label>
+                                <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <input 
+                                        type="text"
+                                        value={gstNumber}
+                                        onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                                        placeholder="15-character GSTIN"
+                                        maxLength={15}
+                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-md font-black placeholder:text-outline-variant/40"
+                                    />
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
 
                     {/* Address Input with GPS */}
                     <motion.div variants={itemVariants}>
@@ -226,6 +315,21 @@ const ProfileCreationPage = () => {
                         </p>
                     </motion.div>
 
+                    {customerType === 'retail' && (
+                        <motion.div variants={itemVariants} className="flex items-start gap-3 px-2">
+                            <input 
+                                type="checkbox"
+                                id="termsAccepted"
+                                checked={termsAccepted}
+                                onChange={(e) => setTermsAccepted(e.target.checked)}
+                                className="w-4 h-4 rounded text-primary border-slate-300 focus:ring-primary/20 mt-0.5 cursor-pointer"
+                            />
+                            <label htmlFor="termsAccepted" className="text-[10px] font-bold text-on-surface-variant opacity-70 leading-normal uppercase tracking-wider cursor-pointer">
+                                I accept the Terms & Conditions and authorize EZOFLIFE to verify my Business details.
+                            </label>
+                        </motion.div>
+                    )}
+
                     {/* Completion Button */}
                     <motion.button 
                         variants={itemVariants}
@@ -234,8 +338,8 @@ const ProfileCreationPage = () => {
                         disabled={!isComplete || isLoading}
                         className={`w-full py-5 rounded-[2rem] transition-all duration-300 font-headline font-black uppercase tracking-[0.2em] text-xs shadow-xl flex items-center justify-center gap-2 ${
                             isComplete 
-                            ? 'bg-primary-gradient text-on-primary shadow-primary/20' 
-                            : 'bg-surface-container-high text-outline-variant opacity-50'
+                            ? 'bg-primary-gradient text-on-primary shadow-primary/20 cursor-pointer' 
+                            : 'bg-surface-container-high text-outline-variant opacity-50 cursor-not-allowed'
                         }`}
                     >
                         {isLoading ? (

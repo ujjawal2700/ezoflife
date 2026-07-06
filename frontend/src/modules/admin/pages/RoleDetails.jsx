@@ -83,13 +83,13 @@ export default function RoleDetails() {
             return;
         }
 
-        if (hasInvalidResponsibilities()) {
+        if (targetRole !== 'Admin' && hasInvalidResponsibilities()) {
             toast.error('Please ensure all responsibilities are filled and under 50 words.');
             return;
         }
 
         try {
-            const cleanResponsibilities = responsibilities.map(r => r.trim()).filter(r => r !== '');
+            const cleanResponsibilities = targetRole === 'Admin' ? [] : responsibilities.map(r => r.trim()).filter(r => r !== '');
             const response = await jobApi.createRoleTemplate({
                 name: roleName,
                 description,
@@ -129,13 +129,13 @@ export default function RoleDetails() {
             return;
         }
 
-        if (hasInvalidResponsibilities()) {
+        if (targetRole !== 'Admin' && hasInvalidResponsibilities()) {
             toast.error('Please ensure all responsibilities are filled and under 50 words.');
             return;
         }
 
         try {
-            const cleanResponsibilities = responsibilities.map(r => r.trim()).filter(r => r !== '');
+            const cleanResponsibilities = targetRole === 'Admin' ? [] : responsibilities.map(r => r.trim()).filter(r => r !== '');
             const response = await jobApi.updateRoleTemplate(editingTemplate._id, {
                 name: roleName,
                 description,
@@ -207,6 +207,8 @@ export default function RoleDetails() {
                         ? 'bg-purple-50 text-purple-600 border border-purple-100' 
                         : val === 'Both' 
                         ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
+                        : val === 'Admin' 
+                        ? 'bg-rose-50 text-rose-600 border border-rose-100' 
                         : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                 }`}>
                     {val || 'Vendor'}
@@ -360,6 +362,7 @@ export default function RoleDetails() {
                                     >
                                         <option value="Vendor">Vendor Only</option>
                                         <option value="Supplier">Supplier Only</option>
+                                        <option value="Admin">Admin Only</option>
                                         <option value="Both">Both (Vendor & Supplier)</option>
                                     </select>
                                 </div>
@@ -377,65 +380,67 @@ export default function RoleDetails() {
                                     />
                                 </div>
 
-                                {/* Responsibilities Bullet Points List */}
-                                <div className="space-y-4 pt-2 border-t border-slate-100">
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center gap-2">
-                                            <ListOrdered size={14} className="text-slate-900" />
-                                            <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Responsibilities (Bullet Points) *</label>
+                                {/* Responsibilities Bullet Points List (Only for Vendor/Supplier, not Admin) */}
+                                {targetRole !== 'Admin' && (
+                                    <div className="space-y-4 pt-2 border-t border-slate-100">
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex items-center gap-2">
+                                                <ListOrdered size={14} className="text-slate-900" />
+                                                <label className="text-[9px] font-black text-slate-900 uppercase tracking-widest">Responsibilities (Bullet Points) *</label>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={handleAddResponsibilityField}
+                                                className="flex items-center gap-1.5 text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-wider transition-all"
+                                            >
+                                                <Plus size={10} />
+                                                Add Bullet
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleAddResponsibilityField}
-                                            className="flex items-center gap-1.5 text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-wider transition-all"
-                                        >
-                                            <Plus size={10} />
-                                            Add Bullet
-                                        </button>
-                                    </div>
 
-                                    <div className="space-y-3">
-                                        {responsibilities.map((resp, index) => {
-                                            const wordCount = getWordCount(resp);
-                                            const isOverLimit = wordCount > 50;
+                                        <div className="space-y-3">
+                                            {responsibilities.map((resp, index) => {
+                                                const wordCount = getWordCount(resp);
+                                                const isOverLimit = wordCount > 50;
 
-                                            return (
-                                                <div key={index} className="space-y-1.5 p-3.5 bg-slate-50 border border-slate-100 rounded-sm relative">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bullet Point #{index + 1}</span>
-                                                        <div className="flex items-center gap-3">
-                                                            <span className={`text-[8px] font-black uppercase tracking-wider ${isOverLimit ? 'text-red-500 font-black animate-pulse' : 'text-slate-400'}`}>
-                                                                {wordCount} / 50 Words
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleRemoveResponsibilityField(index)}
-                                                                className="text-slate-400 hover:text-red-600 transition-colors"
-                                                                title="Delete Bullet"
-                                                            >
-                                                                <Trash2 size={12} />
-                                                            </button>
+                                                return (
+                                                    <div key={index} className="space-y-1.5 p-3.5 bg-slate-50 border border-slate-100 rounded-sm relative">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bullet Point #{index + 1}</span>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className={`text-[8px] font-black uppercase tracking-wider ${isOverLimit ? 'text-red-500 font-black animate-pulse' : 'text-slate-400'}`}>
+                                                                    {wordCount} / 50 Words
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleRemoveResponsibilityField(index)}
+                                                                    className="text-slate-400 hover:text-red-600 transition-colors"
+                                                                    title="Delete Bullet"
+                                                                >
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            </div>
                                                         </div>
+                                                        <textarea
+                                                            required
+                                                            rows="2"
+                                                            value={resp}
+                                                            onChange={(e) => handleResponsibilityChange(index, e.target.value)}
+                                                            placeholder={`e.g. Clean and press all garments to quality specifications...`}
+                                                            className={`w-full bg-white border rounded-sm px-3 py-2 text-xs font-bold text-slate-700 focus:border-slate-400 transition-all outline-none resize-none leading-relaxed ${isOverLimit ? 'border-red-300 focus:border-red-400' : 'border-slate-200'}`}
+                                                        />
+                                                        {isOverLimit && (
+                                                            <div className="flex items-center gap-1.5 text-red-500 mt-1">
+                                                                <AlertCircle size={10} />
+                                                                <span className="text-[8px] font-bold uppercase tracking-wider">Warning: Exceeds maximum allowance of 50 words!</span>
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <textarea
-                                                        required
-                                                        rows="2"
-                                                        value={resp}
-                                                        onChange={(e) => handleResponsibilityChange(index, e.target.value)}
-                                                        placeholder={`e.g. Clean and press all garments to quality specifications...`}
-                                                        className={`w-full bg-white border rounded-sm px-3 py-2 text-xs font-bold text-slate-700 focus:border-slate-400 transition-all outline-none resize-none leading-relaxed ${isOverLimit ? 'border-red-300 focus:border-red-400' : 'border-slate-200'}`}
-                                                    />
-                                                    {isOverLimit && (
-                                                        <div className="flex items-center gap-1.5 text-red-500 mt-1">
-                                                            <AlertCircle size={10} />
-                                                            <span className="text-[8px] font-bold uppercase tracking-wider">Warning: Exceeds maximum allowance of 50 words!</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </form>
 
                             {/* Drawer Footer Actions */}
@@ -448,14 +453,14 @@ export default function RoleDetails() {
                                     Cancel
                                 </button>
                                 <button
-                                    type="button"
-                                    disabled={hasInvalidResponsibilities() || !roleName.trim() || !description.trim()}
-                                    onClick={isEditing ? handleUpdateTemplate : handleCreateTemplate}
-                                    className={`px-6 py-3 text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                                        (!hasInvalidResponsibilities() && roleName.trim() && description.trim())
-                                            ? 'bg-slate-950 hover:bg-slate-800 shadow-md shadow-slate-900/10 active:scale-95'
-                                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                    }`}
+                                     type="button"
+                                     disabled={(!roleName.trim() || !description.trim()) || (targetRole !== 'Admin' && hasInvalidResponsibilities())}
+                                     onClick={isEditing ? handleUpdateTemplate : handleCreateTemplate}
+                                     className={`px-6 py-3 text-white rounded-sm text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+                                         (roleName.trim() && description.trim() && (targetRole === 'Admin' || !hasInvalidResponsibilities()))
+                                             ? 'bg-slate-950 hover:bg-slate-800 shadow-md shadow-slate-900/10 active:scale-95'
+                                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                                     }`}
                                 >
                                     <Check size={12} />
                                     {isEditing ? 'Update Template' : 'Create Template'}

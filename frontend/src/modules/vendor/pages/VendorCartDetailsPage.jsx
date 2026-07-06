@@ -3,6 +3,28 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { b2bOrderApi, authApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
+const parseSupplierInfo = (facilityName, phoneFromItem) => {
+    let name = facilityName || '';
+    let phone = phoneFromItem || '';
+
+    // Find and strip any 10-digit phone number from the name
+    const match = name.match(/\b\d{10}\b/);
+    if (match) {
+        if (!phone) phone = match[0];
+        name = name.replace(match[0], '').trim();
+    } else {
+        // Also try matching any sequence of 4-9 digits at the end if it's a test suffix
+        const shortMatch = name.match(/\b\d{4,9}\b/);
+        if (shortMatch) {
+            if (!phone) phone = shortMatch[0];
+            name = name.replace(shortMatch[0], '').trim();
+        }
+    }
+    
+    // Clean up name
+    name = name.replace(/\s+/g, ' ').trim();
+    return { name, phone };
+};
 
 const VendorCartDetailsPage = () => {
     const navigate = useNavigate();
@@ -94,9 +116,12 @@ const VendorCartDetailsPage = () => {
 
 
                     if (!supplierGroups[item.supplierId]) {
+                        const parsedInfo = parseSupplierInfo(item.supplierFacilityName, item.supplierPhone);
                         supplierGroups[item.supplierId] = {
                             supplierId: item.supplierId,
-                            supplierName: item.supplierFacilityName || 'Unknown Supplier',
+                            supplierName: parsedInfo.name || 'Unknown Supplier',
+                            supplierPhone: parsedInfo.phone || '',
+                            nextDeliveryDate: item.nextDeliveryDate || '',
                             items: [],
                             subTotal: 0,
                             gstTotal: 0,
@@ -309,7 +334,8 @@ const VendorCartDetailsPage = () => {
                     {/* SUPPLIER-WISE CARTS */}
                     {groupedCarts.map((group, idx) => (
                         <div key={idx} className="bg-[#0b0f19] text-white rounded-[2rem] p-6 shadow-2xl relative overflow-hidden mb-4 group">
-                            
+
+
                             {/* Supplier Summary */}
                             <div className="bg-white/5 border border-white/10 p-4 rounded-3xl space-y-2">
                                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/40">
@@ -375,43 +401,28 @@ const VendorCartDetailsPage = () => {
                         </div>
                         <div className="space-y-3">
                             {orderItems.map((item, idx) => (
-                                <div key={idx} className="bg-white rounded-3xl p-4 flex items-center gap-4 border border-slate-200 shadow-sm relative overflow-hidden justify-between">
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                                        <div className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
+                                <div key={idx} className="bg-white rounded-3xl p-4 flex items-center justify-between border border-slate-200 shadow-sm gap-4">
+                                    {/* Left: Product Icon & Name */}
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                                        <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 overflow-hidden relative">
                                             {item.image ? (
                                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                             ) : (
-                                                <span className="material-symbols-outlined text-slate-300">inventory_2</span>
+                                                <span className="material-symbols-outlined text-slate-300 text-lg">inventory_2</span>
                                             )}
                                         </div>
-                                        <div className="flex flex-col min-w-0 gap-0.5">
-                                            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight truncate max-w-[150px] sm:max-w-[200px]">{item.name}</span>
-                                            {item.hasBulkDiscount && (
-                                                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded w-max">
-                                                    {item.bulkDiscount}% Bulk Discount Applied
-                                                </span>
-                                            )}
-                                        </div>
+                                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight truncate">
+                                            {item.name}
+                                        </h4>
                                     </div>
+                                    
+                                    {/* Right: Price & Quantity */}
                                     <div className="flex items-center gap-4 shrink-0">
-                                        <div className="text-right flex flex-col items-end">
-                                            {item.hasBulkDiscount ? (
-                                                <>
-                                                    <p className="text-sm font-black text-slate-900 tracking-tighter">
-                                                        ₹{(item.wholesaleRate * item.quantity).toFixed(2)}
-                                                    </p>
-                                                    <p className="text-[10px] font-bold text-slate-400 line-through">
-                                                        ₹{(item.originalWholesale * item.quantity).toFixed(2)}
-                                                    </p>
-                                                </>
-                                            ) : (
-                                                <p className="text-sm font-black text-slate-900 tracking-tighter">
-                                                    ₹{(item.wholesaleRate * item.quantity).toFixed(2)}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 shrink-0">
-                                            <span className="text-[11px] font-black text-slate-900">Qty: {item.quantity}</span>
+                                        <p className="text-xs font-black text-slate-900 font-mono">
+                                            ₹{(item.wholesaleRate * item.quantity).toFixed(2)}
+                                        </p>
+                                        <div className="flex items-center bg-slate-100 rounded-xl px-3 py-1.5 border border-slate-200 shrink-0">
+                                            <span className="text-[10px] font-black text-slate-700">Qty: {item.quantity}</span>
                                         </div>
                                     </div>
                                 </div>

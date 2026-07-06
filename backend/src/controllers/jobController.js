@@ -7,6 +7,10 @@ import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } f
 export const createJob = async (req, res) => {
     try {
         const { title, category, jobType, type, description, experience, salary, location, skills, requirements, vendorId, companyName, creatorRole, shiftStartTime, shiftEndTime } = req.body;
+        
+        const count = await Job.countDocuments();
+        const jobCode = `JOB-${String(count + 1).padStart(4, '0')}`;
+
         const newJob = new Job({
             title, 
             category, 
@@ -19,6 +23,7 @@ export const createJob = async (req, res) => {
             requirements,
             shiftStartTime,
             shiftEndTime,
+            jobCode,
             vendor: creatorRole === 'Admin' ? null : vendorId,
             companyName,
             creatorRole: creatorRole || 'Vendor',
@@ -223,6 +228,18 @@ export const getAppliedJobIds = async (req, res) => {
         const applications = await JobApplication.find({ applicant: applicantId }).select('job');
         const jobIds = applications.map(app => app.job.toString());
         res.json(jobIds);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const getApplicantApplications = async (req, res) => {
+    try {
+        const { applicantId } = req.params;
+        const applications = await JobApplication.find({ applicant: applicantId })
+            .populate('job', 'title location companyName creatorRole salary jobType shiftStartTime shiftEndTime')
+            .sort({ createdAt: -1 });
+        res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -1890,6 +1890,31 @@ export const mediaApi = {
             console.error('Delete Inquiry Error:', error);
             throw error;
         }
+    },
+    updateInquiryStatus: async (id, status) => {
+        try {
+            const response = await fetch(`${BASE_URL}/media/inquiries/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    ...adminAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Inquiry Status Error:', error);
+            throw error;
+        }
+    },
+    getMyInquiries: async (email) => {
+        try {
+            const response = await fetch(`${BASE_URL}/media/inquiries/my?email=${encodeURIComponent(email)}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get My Ad Inquiries Error:', error);
+            throw error;
+        }
     }
 };
 
@@ -1904,6 +1929,15 @@ export const partnershipApi = {
             return await response.json();
         } catch (error) {
             console.error('Partnership Submit Error:', error);
+            throw error;
+        }
+    },
+    getMyInquiries: async (email) => {
+        try {
+            const response = await fetch(`${BASE_URL}/partnerships/my-inquiries?email=${encodeURIComponent(email)}`);
+            return await response.json();
+        } catch (error) {
+            console.error('Get My Partnerships Error:', error);
             throw error;
         }
     },
@@ -1942,6 +1976,22 @@ export const partnershipApi = {
             return await response.json();
         } catch (error) {
             console.error('Delete Partnership Inquiry Error:', error);
+            throw error;
+        }
+    },
+    updateStatus: async (id, status) => {
+        try {
+            const response = await fetch(`${BASE_URL}/partnerships/${id}/status`, {
+                method: 'PUT',
+                headers: {
+                    ...adminAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Partnership Status Error:', error);
             throw error;
         }
     }
@@ -2033,6 +2083,32 @@ export const promotionApi = {
             return result;
         } catch (error) {
             console.error('Create Promo Error:', error);
+            throw error;
+        }
+    },
+    update: async (id, data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/promotions/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to update promotion');
+            return result;
+        } catch (error) {
+            console.error('Update Promo Error:', error);
+            throw error;
+        }
+    },
+    autogenerateCode: async (vendorId) => {
+        try {
+            const response = await fetch(`${BASE_URL}/promotions/autogenerate-code?vendorId=${vendorId}`);
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to generate code');
+            return result;
+        } catch (error) {
+            console.error('Autogenerate Code Error:', error);
             throw error;
         }
     },
@@ -2147,6 +2223,10 @@ export const jobApi = {
     },
     getAppliedJobIds: async (applicantId) => {
         const response = await fetch(`${BASE_URL}/jobs/applicant/${applicantId}/applied-job-ids`);
+        return await response.json();
+    },
+    getApplicantApplications: async (applicantId) => {
+        const response = await fetch(`${BASE_URL}/jobs/applicant/${applicantId}/applications`);
         return await response.json();
     },
     getVendorApplications: async (vendorId) => {
@@ -2429,4 +2509,39 @@ export const dashboardApi = {
         }
     }
 };
+
+export const referralApi = {
+    create: async (data) => {
+        try {
+            const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+            const response = await fetch(`${BASE_URL}/referrals`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Create Referral Error:', error);
+            throw error;
+        }
+    },
+    getAll: async () => {
+        try {
+            const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+            const response = await fetch(`${BASE_URL}/admin/referrals`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Get Referrals Error:', error);
+            throw error;
+        }
+    }
+};
+
 

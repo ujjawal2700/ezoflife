@@ -8,12 +8,16 @@ import {
     validatePromotion,
     getAllPromotions,
     approvePromotion,
-    rejectPromotion
+    rejectPromotion,
+    updatePromotion,
+    autogenerateCode
 } from '../controllers/promotionController.js';
 
 const router = express.Router();
 
 router.post('/', createPromotion);
+router.get('/autogenerate-code', autogenerateCode);
+router.put('/:id', updatePromotion);
 router.post('/validate', validatePromotion);
 router.get('/vendor', getVendorPromotions);
 router.get('/applicable', getApplicablePromos);

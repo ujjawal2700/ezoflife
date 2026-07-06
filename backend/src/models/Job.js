@@ -12,6 +12,7 @@ const jobSchema = new mongoose.Schema({
     requirements: [{ type: String }],
     shiftStartTime: { type: String },
     shiftEndTime: { type: String },
+    jobCode: { type: String },
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     companyName: { type: String },
     creatorRole: { type: String, enum: ['Admin', 'Vendor', 'Supplier'], default: 'Vendor' },

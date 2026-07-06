@@ -36,7 +36,7 @@ const VendorPromotions = () => {
             fetchPromos();
             alert('Promo Code Created Successfully!');
         } catch (err) { 
-            alert('Failed to create promo'); 
+            alert(err.message || 'Failed to create promo'); 
         }
     };
 
@@ -173,12 +173,7 @@ const VendorPromotions = () => {
                                             >
                                                 {p.status}
                                             </button>
-                                            <button 
-                                                onClick={() => deletePromo(p._id)}
-                                                className="w-10 h-10 rounded-xl bg-rose-50 text-rose-400 flex items-center justify-center border border-rose-100 hover:bg-rose-500 hover:text-white transition-all"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">delete</span>
-                                            </button>
+
                                         </div>
                                     </motion.div>
                                 ))}

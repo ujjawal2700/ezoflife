@@ -135,14 +135,7 @@ export default function CustomerPayments() {
         ]}
       />
 
-      <div className="bg-slate-900 border-b border-slate-800 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(14,165,233,0.1),transparent)] pointer-events-none" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-x divide-slate-800 max-w-[1600px] mx-auto w-full relative z-10">
-            {stats.map((stat, i) => (
-                <MetricRow key={i} {...stat} />
-            ))}
-        </div>
-      </div>
+
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         <div className="flex justify-between items-center bg-white p-4 border border-slate-200 shadow-sm">

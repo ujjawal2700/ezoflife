@@ -14,6 +14,10 @@ const razorpay = new Razorpay({
 
 const decreaseSupplyStock = async (order) => {
     try {
+        if (order.stockDecreased) {
+            console.log(`ℹ️ [STOCK_DECREASE] Stock already decreased for order #${order.b2bOrderId || order._id}`);
+            return;
+        }
         console.log(`📦 [STOCK_DECREASE] Processing order #${order.b2bOrderId || order._id}`);
         for (const item of order.items) {
             if (!item.materialId) continue;
@@ -23,7 +27,11 @@ const decreaseSupplyStock = async (order) => {
                 if (orderedQty <= 0) continue;
 
                 const currentStockStr = (supply.quantity || '0').trim();
-                
+                if (currentStockStr === '-' || currentStockStr === '') {
+                    console.log(`⚠️ [STOCK_DECREASE] Material "${supply.materialName}" has no numeric stock: "${currentStockStr}". Skipping.`);
+                    continue;
+                }
+
                 // Parse number and potential text unit
                 const match = currentStockStr.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
                 if (match) {
@@ -45,6 +53,8 @@ const decreaseSupplyStock = async (order) => {
                 }
             }
         }
+        // Mark order as stock decreased to ensure idempotency
+        await B2BOrder.findByIdAndUpdate(order._id, { stockDecreased: true });
     } catch (err) {
         console.error('❌ [STOCK_DECREASE_ERROR] Failed to decrease stock:', err);
     }
@@ -449,6 +459,11 @@ export const updateB2BStatus = async (req, res) => {
             await order.save();
         }
         
+        const CONFIRMED_STATUSES = ['SUBMITTED', 'ACCEPTED', 'PROCESSING', 'DISPATCHED', 'DELIVERED', 'SETTLED', 'Confirmed', 'Delivered', 'Accepted', 'Settled'];
+        if (CONFIRMED_STATUSES.includes(order.status)) {
+            await decreaseSupplyStock(order);
+        }
+
         res.status(200).json({ message: `Order marked as ${status}`, order });
     } catch (err) {
         console.error('Update B2B Status Error:', err);
@@ -480,6 +495,7 @@ export const verifyDeliveryOtp = async (req, res) => {
         // Success! Set status to DELIVERED
         order.status = 'DELIVERED';
         await order.save();
+        await decreaseSupplyStock(order);
 
         console.log(`✅ [B2B_OTP_SUCCESS] Order #${order.b2bOrderId} marked as DELIVERED via OTP verification`);
         res.status(200).json({ message: 'OTP verified successfully. Order completed.', order });
@@ -499,6 +515,14 @@ export const bulkUpdateB2BStatus = async (req, res) => {
             { _id: { $in: orderIds }, supplier: supplierId },
             { status: status }
         );
+
+        const CONFIRMED_STATUSES = ['SUBMITTED', 'ACCEPTED', 'PROCESSING', 'DISPATCHED', 'DELIVERED', 'SETTLED', 'Confirmed', 'Delivered', 'Accepted', 'Settled'];
+        if (CONFIRMED_STATUSES.includes(status)) {
+            const orders = await B2BOrder.find({ _id: { $in: orderIds } });
+            for (const order of orders) {
+                await decreaseSupplyStock(order);
+            }
+        }
 
         res.status(200).json({ message: `Successfully updated ${results.modifiedCount} orders to ${status}`, results });
     } catch (err) {

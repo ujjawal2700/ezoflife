@@ -25,6 +25,11 @@ const adInquirySchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    status: {
+        type: String,
+        enum: ['New Application', 'Requested More Info', 'Scheduled Meeting', 'Final Proposal'],
+        default: 'New Application'
+    },
     submittedAt: {
         type: Date,
         default: Date.now

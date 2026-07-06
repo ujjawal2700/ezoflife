@@ -95,4 +95,29 @@ router.get('/diagnostic', async (req, res) => {
     }
 });
 
+router.get('/referrals', async (req, res) => {
+    try {
+        const Referral = (await import('../models/Referral.js')).default;
+        const User = (await import('../models/User.js')).default;
+        
+        const referrals = await Referral.find({}).populate('referrer', 'displayName phone').lean();
+        
+        const enhancedReferrals = await Promise.all(referrals.map(async (ref) => {
+            const referredUser = await User.findOne({ phone: ref.referredPhone }).lean();
+            return {
+                _id: ref._id,
+                referrerName: ref.referrer?.displayName || 'N/A',
+                referrerPhone: ref.referrer?.phone || 'N/A',
+                referredPhone: ref.referredPhone,
+                isDownloaded: referredUser ? 'Yes' : 'No',
+                createdAt: ref.createdAt
+            };
+        }));
+        
+        res.json(enhancedReferrals);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 export default router;

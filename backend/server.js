@@ -38,6 +38,7 @@ import logisticsRoutes from './src/routes/logisticsRoutes.js';
 import categoryRoutes from './src/routes/categoryRoutes.js';
 import vendorSupplyCategoryRoutes from './src/routes/vendorSupplyCategoryRoutes.js';
 import vendorMasterSupplyRoutes from './src/routes/vendorMasterSupplyRoutes.js';
+import referralRoutes from './src/routes/referralRoutes.js';
 import supplierServiceZoneRoutes from './src/routes/supplierServiceZoneRoutes.js';
 import dashboardAnalyticsRoutes from './src/routes/dashboardAnalyticsRoutes.js';
 
@@ -147,6 +148,7 @@ app.use('/api/b2b-orders', b2bOrderRoutes);
 app.use('/api/ads', adRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/referrals', referralRoutes);
 app.use('/api/vendor-supply-categories', vendorSupplyCategoryRoutes);
 app.use('/api/vendor-master-supplies', vendorMasterSupplyRoutes);
 app.use('/api/supplier-service-zones', supplierServiceZoneRoutes);

@@ -102,4 +102,40 @@ export const deletePartnershipInquiry = async (req, res) => {
     }
 };
 
+export const updatePartnershipStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const validStatuses = ['New Application', 'Requested More Info', 'Scheduled Meeting', 'Final Proposal'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Invalid status value' });
+        }
+
+        const inquiry = await PartnershipInquiry.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+        );
+
+        if (!inquiry) return res.status(404).json({ message: 'Partnership inquiry not found' });
+        res.status(200).json(inquiry);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+export const getMyPartnershipInquiries = async (req, res) => {
+    try {
+        const { email } = req.query;
+        if (!email) {
+            return res.status(400).json({ message: 'Email query parameter is required' });
+        }
+        const inquiries = await PartnershipInquiry.find({ email }).sort({ createdAt: -1 });
+        res.status(200).json(inquiries);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 
