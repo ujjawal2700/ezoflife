@@ -1415,6 +1415,22 @@ export const orderApi = {
             console.error('Handshake Verification Error:', error);
             throw error;
         }
+    },
+    cancelOrder: async (id) => {
+        try {
+            const response = await fetch(`${BASE_URL}/orders/cancel/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to cancel order');
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('Cancel Order Error:', error);
+            throw error;
+        }
     }
 };
 

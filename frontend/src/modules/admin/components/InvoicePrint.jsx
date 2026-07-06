@@ -3,6 +3,40 @@ import React from 'react';
 const InvoicePrint = ({ order, settings = {} }) => {
     if (!order) return null;
 
+    const itemsTotal = (order.items || []).reduce((sum, item) => {
+        const qty = parseFloat(item.quantity || item.qty || 1);
+        if (item.quantity !== undefined) {
+            return sum + (item.price * item.quantity);
+        } else {
+            return sum + item.price;
+        }
+    }, 0);
+
+    const isMock = !order.priceBreakdown;
+    const isHeritage = order.tier === 'Heritage' || order.serviceTier === 'Heritage';
+    const gstPercent = isHeritage ? 18 : 5;
+    
+    const grandTotal = order.total || order.totalAmount || 0;
+    const discount = order.discountAmount || (order.priceBreakdown?.discount !== undefined ? order.priceBreakdown.discount : (isMock && settings.showDiscount !== false ? 50 : 0));
+    
+    let platformFee = 0;
+    if (!isMock) {
+        platformFee = order.priceBreakdown?.platformFee || 0;
+    } else if (itemsTotal !== grandTotal) {
+        platformFee = settings.showServiceFee !== false ? grandTotal * 0.02 : 0;
+    }
+
+    let gstAmount = 0;
+    if (!isMock) {
+        gstAmount = order.priceBreakdown?.gstAmount || 0;
+    } else {
+        const target = grandTotal + discount - platformFee;
+        const taxable = target / (1 + gstPercent / 100);
+        gstAmount = target - taxable;
+    }
+
+    const subtotal = grandTotal - platformFee - gstAmount + discount;
+
     // Use settings or fallbacks
     const accentColor = settings.accentColor || '#5B21B6';
     const businessName = settings.businessName || 'EZOFLIFE TECHNOLOGY LLP';
@@ -94,41 +128,29 @@ const InvoicePrint = ({ order, settings = {} }) => {
                         {/* Calculations Section */}
                         <tr className="border-t-2 border-slate-900">
                             <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Subtotal Services</td>
-                            <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{(order.total * 0.8).toFixed(2)}</td>
+                            <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{subtotal.toFixed(2)}</td>
                         </tr>
-                        {settings.showDeliveryFee !== false && (
+                        {settings.showServiceFee !== false && platformFee > 0 && (
                             <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Logistics Fee</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹40.00</td>
+                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Platform Fee</td>
+                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{platformFee.toFixed(2)}</td>
                             </tr>
                         )}
-                        {settings.showServiceFee !== false && (
-                            <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Platform Fee (2%)</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{(order.total * 0.02).toFixed(2)}</td>
-                            </tr>
-                        )}
-                        {settings.showSurge !== false && (
-                            <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Surge Charge (1.5x)</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹120.00</td>
-                            </tr>
-                        )}
-                        {settings.showDiscount !== false && (
+                        {settings.showDiscount !== false && discount > 0 && (
                             <tr>
                                 <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Promotional Discount</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">- ₹50.00</td>
+                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">- ₹{discount.toFixed(2)}</td>
                             </tr>
                         )}
                         {settings.showTaxes !== false && (
                             <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">GST</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{(order.total * 0.18).toFixed(2)}</td>
+                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">GST (${gstPercent}%)</td>
+                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{gstAmount.toFixed(2)}</td>
                             </tr>
                         )}
                         <tr className="bg-slate-900 text-white">
                             <td colSpan={5} className="px-6 py-4 text-left text-[12px] font-black uppercase tracking-[0.2em]">Grand Total</td>
-                            <td className="px-6 py-4 text-right text-[16px] font-black tracking-tight">₹{order.total.toFixed(2)}</td>
+                            <td className="px-6 py-4 text-right text-[16px] font-black tracking-tight">₹{grandTotal.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { orderApi, adminApi } from '../../../lib/api';
 import socket from '../../../lib/socket';
+import { toast } from 'react-hot-toast';
 
 const OrdersHistoryPage = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('active');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(null);
   
   // DATE FILTER STATES
   const [startDate, setStartDate] = useState('');
@@ -21,6 +23,40 @@ const OrdersHistoryPage = () => {
   const userId = userData._id || userData.id || localStorage.getItem('userId');
 
   const [invoiceSettings, setInvoiceSettings] = useState(null);
+
+  const isCancellable = (order) => {
+    if (!order || !order.createdAt || order.status === 'CANCELLED') return false;
+    const cancellableStatuses = ['ORDER_PLACED', 'PICKUP_ASSIGNED', 'RIDER_ARRIVING'];
+    if (!cancellableStatuses.includes(order.status)) return false;
+    const diffInMs = Date.now() - new Date(order.createdAt).getTime();
+    const diffInMinutes = diffInMs / (1000 * 60);
+    return diffInMinutes <= 120; // 2 hours
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this order? Paid amount will be refunded automatically.")) return;
+    try {
+        setCancelling(orderId);
+        const res = await orderApi.cancelOrder(orderId);
+        toast.success(res.message || "Order cancelled successfully!");
+        setOrders((prevOrders) => {
+            return prevOrders.map((o) => {
+                if (o._id === orderId || o.id === orderId) {
+                    return {
+                        ...o,
+                        status: 'CANCELLED',
+                        paymentStatus: o.paymentStatus === 'Paid' ? 'Refunded' : o.paymentStatus
+                    };
+                }
+                return o;
+            });
+        });
+    } catch (err) {
+        toast.error(err.message || "Failed to cancel order");
+    } finally {
+        setCancelling(null);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -158,16 +194,50 @@ const OrdersHistoryPage = () => {
       showTerms: true,
       customTerms: 'Thank you for taking our services..',
       invoiceNote: 'This is a computer generated invoice.',
-      showTaxes: false,
+      showTaxes: true,
       showServiceFee: true,
-      showDeliveryFee: true,
-      showSurge: true,
+      showDeliveryFee: false,
+      showSurge: false,
       showDiscount: true,
       accentColor: '#000000',
       businessName: 'SPINZYT',
       contactEmail: 'support@spinzyt.com',
       gstNumber: 'ZA1223324435435'
     };
+
+    const itemsTotal = (order.items || []).reduce((sum, item) => {
+      const qty = parseFloat(item.quantity || item.qty || 1);
+      if (item.quantity !== undefined) {
+        return sum + (item.price * item.quantity);
+      } else {
+        return sum + item.price;
+      }
+    }, 0);
+
+    const isMock = !order.priceBreakdown;
+    const isHeritage = order.tier === 'Heritage' || order.serviceTier === 'Heritage';
+    const gstPercent = isHeritage ? 18 : 5;
+    
+    const grandTotal = order.totalAmount || order.total || 0;
+    const discount = order.discountAmount || (order.priceBreakdown?.discount !== undefined ? order.priceBreakdown.discount : 0);
+    
+    let platformFee = 0;
+    if (!isMock) {
+      platformFee = order.priceBreakdown?.platformFee || 0;
+    } else if (itemsTotal !== grandTotal) {
+      platformFee = cfg.showServiceFee !== false ? grandTotal * 0.02 : 0;
+    }
+
+    let gstAmount = 0;
+    if (!isMock) {
+      gstAmount = order.priceBreakdown?.gstAmount || 0;
+    } else {
+      const target = grandTotal + discount - platformFee;
+      const taxable = target / (1 + gstPercent / 100);
+      gstAmount = target - taxable;
+    }
+
+    const subtotal = grandTotal - platformFee - gstAmount + discount;
 
     const invoiceHtml = `
       <html>
@@ -322,41 +392,27 @@ const OrdersHistoryPage = () => {
                   
                   <tr class="totals-row" style="border-top: 2px solid #0f172a">
                     <td colspan="5">Subtotal Services</td>
-                    <td>₹${order.totalAmount || 0}</td>
+                    <td>₹${subtotal.toFixed(2)}</td>
                   </tr>
-                  ${cfg.showDeliveryFee ? `
-                    <tr class="totals-row">
-                      <td colspan="5">Logistics Fee</td>
-                      <td>₹${order.priceBreakdown?.deliveryFee || 0}</td>
-                    </tr>
-                  ` : ''}
-                  ${cfg.showServiceFee ? `
+                  ${cfg.showServiceFee && platformFee > 0 ? `
                     <tr class="totals-row">
                       <td colspan="5">Platform Fee</td>
-                      <td>₹${order.priceBreakdown?.serviceFee || 0}</td>
+                      <td>₹${platformFee.toFixed(2)}</td>
                     </tr>
                   ` : ''}
-                  ${cfg.showSurge ? `
-                    <tr class="totals-row">
-                      <td colspan="5">Surge Charge</td>
-                      <td>₹${order.priceBreakdown?.surgeCharge || 0}</td>
-                    </tr>
-                  ` : ''}
-                  ${cfg.showDiscount ? `
+                  ${cfg.showDiscount && discount > 0 ? `
                     <tr class="totals-row" style="color: #059669">
                       <td colspan="5">Promotional Discount</td>
-                      <td>- ₹${order.priceBreakdown?.discount || 0}</td>
+                      <td>- ₹${discount.toFixed(2)}</td>
                     </tr>
                   ` : ''}
-                  ${cfg.showTaxes ? `
-                    <tr class="totals-row">
-                      <td colspan="5">GST (18%)</td>
-                      <td>₹${((order.totalAmount || 0) * 0.18).toFixed(2)}</td>
-                    </tr>
-                  ` : ''}
+                  <tr class="totals-row">
+                    <td colspan="5">GST (${gstPercent}%)</td>
+                    <td>₹${gstAmount.toFixed(2)}</td>
+                  </tr>
                   <tr class="totals-row grand-total-row">
                     <td colspan="5">Grand Total</td>
-                    <td class="grand-total-value">₹${order.totalAmount?.toFixed(2) || 0}</td>
+                    <td class="grand-total-value">₹${grandTotal.toFixed(2)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -533,6 +589,26 @@ const OrdersHistoryPage = () => {
                           <span className="material-symbols-outlined text-lg">chat</span>
                         </motion.button>
                       </div>
+
+                      {isCancellable(order) && (
+                        <div className="mt-3">
+                          <motion.button 
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleCancelOrder(order._id || order.id)}
+                            disabled={cancelling === (order._id || order.id)}
+                            className="w-full py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 border border-rose-100/50 hover:bg-rose-100 transition-all shadow-sm"
+                          >
+                            {cancelling === (order._id || order.id) ? (
+                              <div className="w-3.5 h-3.5 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-sm">cancel</span>
+                                Cancel Order
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+                      )}
                     </motion.div>
                   ))
                 ) : (

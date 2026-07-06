@@ -13,7 +13,8 @@ import {
     markOrderReady,
     verifyHandshake,
     handleGetNearbyVendors,
-    createRazorpayOrder
+    createRazorpayOrder,
+    cancelOrder
 } from '../controllers/orderController.js';
 
 const router = express.Router();
@@ -37,6 +38,7 @@ router.post('/razorpay', createRazorpayOrder);
 router.patch('/status/:id', updateOrderStatus);
 router.post('/mark-ready/:id', markOrderReady);
 router.post('/verify-handshake/:id', verifyHandshake);
+router.post('/cancel/:id', cancelOrder);
 
 // Rider Specific Routes (Decommissioned - Handled by Shiprocket/LogisticsController)
 

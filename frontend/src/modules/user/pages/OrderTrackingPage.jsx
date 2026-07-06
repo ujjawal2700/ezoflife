@@ -28,6 +28,7 @@ const OrderTrackingPage = () => {
   const [isHandshakeModalOpen, setIsHandshakeModalOpen] = useState(false);
   const [handshakeOtp, setHandshakeOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [riderLocation, setRiderLocation] = useState(null);
   const mapRef = useRef(null);
 
@@ -82,6 +83,33 @@ const OrderTrackingPage = () => {
         toast.error('Invalid OTP. Please check with Rider.');
     } finally {
         setVerifying(false);
+    }
+  };
+
+  const isCancellable = useMemo(() => {
+    if (!order || !order.createdAt || order.status === 'CANCELLED') return false;
+    const cancellableStatuses = ['ORDER_PLACED', 'PICKUP_ASSIGNED', 'RIDER_ARRIVING'];
+    if (!cancellableStatuses.includes(order.status)) return false;
+    const diffInMs = Date.now() - new Date(order.createdAt).getTime();
+    const diffInMinutes = diffInMs / (1000 * 60);
+    return diffInMinutes <= 120; // 2 hours
+  }, [order]);
+
+  const handleCancelOrder = async () => {
+    if (!window.confirm("Are you sure you want to cancel this order? Paid amount will be refunded automatically.")) return;
+    try {
+        setCancelling(true);
+        const res = await orderApi.cancelOrder(id);
+        toast.success(res.message || "Order cancelled successfully!");
+        if (res.order) {
+            setOrder(res.order);
+        } else {
+            fetchOrder();
+        }
+    } catch (err) {
+        toast.error(err.message || "Failed to cancel order");
+    } finally {
+        setCancelling(false);
     }
   };
 
@@ -508,6 +536,28 @@ const OrderTrackingPage = () => {
                 <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Total Amount</p>
                 <p className="font-black text-slate-900 text-3xl tracking-tighter">₹{order?.totalAmount}</p>
             </div>
+
+            {/* Cancel Order Button */}
+            {isCancellable && (
+                <div className="mt-4 flex justify-end">
+                    <motion.button 
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleCancelOrder}
+                        disabled={cancelling}
+                        className="w-full py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-600 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                        {cancelling ? (
+                            <div className="w-4 h-4 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                            <>
+                                <span className="material-symbols-outlined text-sm">cancel</span>
+                                Cancel Order
+                            </>
+                        )}
+                    </motion.button>
+                </div>
+            )}
 
             {/* Simple OTP Verification Box */}
             {['RIDER_ARRIVING', 'OUT_FOR_DELIVERY'].includes(order?.status) && (

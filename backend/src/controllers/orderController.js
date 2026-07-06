@@ -495,6 +495,9 @@ export const createOrder = async (req, res) => {
             totalAmount: Math.round(finalTotal),
             advanceAmount: Math.round(calculatedAdvance),
             dueAmount: Math.round(calculatedDue),
+            paymentStatus: req.body.paymentStatus || 'Pending',
+            paymentMethod: req.body.paymentMethod || 'COD',
+            razorpayPaymentId: req.body.razorpayPaymentId || null,
             deliveryMode: deliveryMode || 'Normal',
             tier: req.body.selectedTier || 'Essential',
             deliveryCharge: Number(deliveryCharge) || 0,
@@ -1702,5 +1705,145 @@ export const createWalkInOrder = async (req, res) => {
     } catch (err) {
         console.error('Walk-In Creation Error:', err);
         res.status(500).json({ message: 'Internal server error', error: err.message });
+    }
+};
+
+export const cancelOrder = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const order = await Order.findById(id);
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // 1. Check time limit: 2 hours (120 minutes)
+        const now = new Date();
+        const orderTime = new Date(order.createdAt);
+        const diffInMs = now.getTime() - orderTime.getTime();
+        const diffInMinutes = diffInMs / (1000 * 60);
+
+        if (diffInMinutes > 120) {
+            return res.status(400).json({ message: 'Orders can only be cancelled within 2 hours of placement.' });
+        }
+
+        // 2. Check status: Only allow cancellation if order has not been picked up or processed yet.
+        const cancellableStatuses = ['ORDER_PLACED', 'PICKUP_ASSIGNED', 'RIDER_ARRIVING'];
+        if (!cancellableStatuses.includes(order.status)) {
+            return res.status(400).json({ 
+                message: `Order cannot be cancelled because it is already in status: ${order.status}` 
+            });
+        }
+
+        let refundLog = '';
+        let walletRefunded = 0;
+        let onlineRefunded = 0;
+
+        // 3. Process Wallet Refund
+        if (order.walletAmountDeducted && order.walletAmountDeducted > 0) {
+            const customer = await User.findById(order.customer);
+            if (customer) {
+                customer.walletBalance = (customer.walletBalance || 0) + order.walletAmountDeducted;
+                await customer.save();
+                walletRefunded = order.walletAmountDeducted;
+                refundLog += `Refunded ₹${walletRefunded} to customer wallet. `;
+                console.log(`💸 [WALLET REFUND] Restored ₹${walletRefunded} to customer ${customer.phone}`);
+            }
+        }
+
+        // 4. Process Razorpay Refund
+        const refundAmount = order.totalAmount - (order.walletAmountDeducted || 0);
+        if (order.paymentMethod === 'Online' && order.paymentStatus === 'Paid' && order.razorpayPaymentId && refundAmount > 0) {
+            if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+                console.error('❌ [REFUND] Razorpay keys not configured on server');
+                return res.status(500).json({ message: 'Razorpay keys not configured on server. Cannot process online refund.' });
+            }
+
+            const razorpayInstance = new Razorpay({
+                key_id: process.env.RAZORPAY_KEY_ID,
+                key_secret: process.env.RAZORPAY_KEY_SECRET
+            });
+
+            console.log(`💳 [REFUND] Initiating Razorpay refund for payment ${order.razorpayPaymentId} of amount ₹${refundAmount}`);
+            const refundResult = await razorpayInstance.payments.refund(order.razorpayPaymentId, {
+                amount: Math.round(refundAmount * 100), // paise
+                speed: 'normal',
+                notes: {
+                    orderId: order.orderId || order._id.toString(),
+                    reason: 'Customer cancelled within 2 hours'
+                }
+            });
+            console.log(`💳 [REFUND] Razorpay refund success:`, refundResult.id);
+            onlineRefunded = refundAmount;
+            refundLog += `Refunded ₹${onlineRefunded} via Razorpay (Refund ID: ${refundResult.id}). `;
+        }
+
+        // 5. Update order status
+        order.status = 'CANCELLED';
+        if (order.paymentStatus === 'Paid') {
+            order.paymentStatus = 'Refunded';
+        }
+        await order.save();
+
+        const updatedOrder = await Order.findById(id)
+            .populate('customer', 'displayName phone address email')
+            .populate('vendor', 'shopDetails address location')
+            .populate('rider', 'displayName phone location');
+
+        // 6. Broadcast updates via Socket.io
+        const io = getIO();
+        io.to(`order_${id}`).emit('order_status_update', updatedOrder);
+        if (updatedOrder.vendor) {
+            const vendorId = updatedOrder.vendor._id || updatedOrder.vendor;
+            io.to(`user_${vendorId}`).emit('order_status_update', updatedOrder);
+        }
+        if (updatedOrder.customer) {
+            const customerId = updatedOrder.customer._id || updatedOrder.customer;
+            io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
+        }
+
+        // 7. Send push notifications
+        try {
+            const admin = (await import('../utils/firebaseAdmin.js')).default;
+            if (updatedOrder.customer && updatedOrder.customer.fcmToken) {
+                const message = {
+                    notification: {
+                        title: 'Order Cancelled 🚫',
+                        body: `Your order ${updatedOrder.orderId || ''} has been successfully cancelled and refund initiated.`
+                    },
+                    data: {
+                        orderId: updatedOrder._id.toString(),
+                        type: 'ORDER_CANCELLED'
+                    },
+                    token: updatedOrder.customer.fcmToken
+                };
+                await admin.messaging().send(message);
+            }
+            if (updatedOrder.vendor && updatedOrder.vendor.fcmToken) {
+                const message = {
+                    notification: {
+                        title: 'Order Cancelled 🚫',
+                        body: `Order ${updatedOrder.orderId || ''} has been cancelled by the customer.`
+                    },
+                    data: {
+                        orderId: updatedOrder._id.toString(),
+                        type: 'ORDER_CANCELLED'
+                    },
+                    token: updatedOrder.vendor.fcmToken
+                };
+                await admin.messaging().send(message);
+            }
+        } catch (pushErr) {
+            console.error('❌ [FCM] Notification error on cancel:', pushErr.message);
+        }
+
+        res.status(200).json({
+            message: 'Order cancelled successfully',
+            refundLog,
+            order: updatedOrder
+        });
+
+    } catch (err) {
+        console.error('Cancel Order Error:', err);
+        res.status(500).json({ message: 'Error cancelling order', error: err.message });
     }
 };
