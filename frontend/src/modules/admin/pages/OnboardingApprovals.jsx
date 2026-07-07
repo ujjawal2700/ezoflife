@@ -259,7 +259,7 @@ export default function OnboardingApprovals() {
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-50/50 pb-20">
       <PageHeader 
-        title="" 
+        title={activeTab === 'Vendor' ? 'Vendor Registration Request' : 'Supplier Registration Request'} 
         actions={[
           {
             customComponent: (
