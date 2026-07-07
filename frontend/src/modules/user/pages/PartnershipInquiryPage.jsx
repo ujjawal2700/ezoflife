@@ -4,6 +4,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { partnershipApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
+const STATUS_MAPPING = {
+    'Lead Received': { label: 'Form Submitted', colors: 'bg-slate-100 text-slate-800 border-slate-200' },
+    'Under Verification': { label: 'Under Review', colors: 'bg-amber-50 text-amber-700 border-amber-200' },
+    'Proposal Sent': { label: 'Proposal Sent', colors: 'bg-purple-50 text-purple-700 border-purple-200' },
+    'Contract Drafting': { label: 'Agreement Pending', colors: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+    'Account Setup': { label: 'Profile Configuration', colors: 'bg-blue-50 text-blue-700 border-blue-200' },
+    'Active': { label: 'Active Partner', colors: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+    'Suspended': { label: 'Account Paused', colors: 'bg-orange-50 text-orange-700 border-orange-200' },
+    'Rejected': { label: 'Application Closed', colors: 'bg-rose-50 text-rose-700 border-rose-200' },
+};
+
+const getMappedStatus = (rawStatus) => {
+    let normalized = rawStatus || 'Lead Received';
+    if (normalized === 'New Application') normalized = 'Lead Received';
+    else if (normalized === 'Requested More Info') normalized = 'Under Verification';
+    else if (normalized === 'Scheduled Meeting') normalized = 'Proposal Sent';
+    else if (normalized === 'Final Proposal') normalized = 'Contract Drafting';
+
+    return STATUS_MAPPING[normalized] || { label: normalized, colors: 'bg-slate-100 text-slate-800 border-slate-200' };
+};
+
 const PartnershipInquiryPage = () => {
     const navigate = useNavigate();
     
@@ -381,15 +402,7 @@ const PartnershipInquiryPage = () => {
                                             </thead>
                                             <tbody className="divide-y divide-slate-50">
                                                 {myProposals.map((prop) => {
-                                                    const status = prop.status || 'New Application';
-                                                    let badgeColor = 'bg-slate-100 text-slate-800 border-slate-200';
-                                                    if (status === 'Requested More Info') {
-                                                        badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                                                    } else if (status === 'Scheduled Meeting') {
-                                                        badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-                                                    } else if (status === 'Final Proposal') {
-                                                        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                                                    }
+                                                    const mapped = getMappedStatus(prop.status);
                                                     return (
                                                         <tr key={prop._id} className="hover:bg-slate-50/50 transition-colors">
                                                             <td className="px-6 py-5">
@@ -400,8 +413,8 @@ const PartnershipInquiryPage = () => {
                                                                 {prop.partnershipType}
                                                             </td>
                                                             <td className="px-6 py-5">
-                                                                <span className={`px-2.5 py-1 text-[8px] font-black rounded-full uppercase tracking-wider border whitespace-nowrap ${badgeColor}`}>
-                                                                    {status}
+                                                                <span className={`px-2.5 py-1 text-[8px] font-black rounded-full uppercase tracking-wider border whitespace-nowrap ${mapped.colors}`}>
+                                                                    {mapped.label}
                                                                 </span>
                                                             </td>
                                                         </tr>

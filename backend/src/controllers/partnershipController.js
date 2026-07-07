@@ -107,7 +107,16 @@ export const updatePartnershipStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        const validStatuses = ['New Application', 'Requested More Info', 'Scheduled Meeting', 'Final Proposal'];
+        const validStatuses = [
+            'Lead Received',
+            'Under Verification',
+            'Proposal Sent',
+            'Contract Drafting',
+            'Account Setup',
+            'Active',
+            'Suspended',
+            'Rejected'
+        ];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: 'Invalid status value' });
         }

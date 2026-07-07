@@ -30,8 +30,17 @@ const partnershipInquirySchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['New Application', 'Requested More Info', 'Scheduled Meeting', 'Final Proposal'],
-        default: 'New Application'
+        enum: [
+            'Lead Received',
+            'Under Verification',
+            'Proposal Sent',
+            'Contract Drafting',
+            'Account Setup',
+            'Active',
+            'Suspended',
+            'Rejected'
+        ],
+        default: 'Lead Received'
     },
     submittedAt: {
         type: Date,

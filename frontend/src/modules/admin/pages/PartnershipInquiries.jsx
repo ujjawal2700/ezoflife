@@ -79,7 +79,7 @@ const PartnershipInquiries = () => {
             item.phone || '',
             item.location || '',
             item.partnershipType || '',
-            item.status || 'New Application',
+            item.status || 'Lead Received',
             item.proposal || '',
             item.website || '',
             new Date(item.createdAt).toLocaleString()
@@ -179,14 +179,22 @@ const PartnershipInquiries = () => {
             header: 'Status',
             key: 'status',
             render: (val) => {
-                const status = val || 'New Application';
-                let colors = 'bg-slate-100 text-slate-800 border-slate-200'; // Default / New Application (Black and White)
-                if (status === 'Requested More Info') {
-                    colors = 'bg-amber-50 text-amber-700 border-amber-200';
-                } else if (status === 'Scheduled Meeting') {
+                const status = val || 'Lead Received';
+                let colors = 'bg-amber-50 text-amber-700 border-amber-200'; // Default
+                if (status === 'Under Verification') {
+                    colors = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+                } else if (status === 'Proposal Sent') {
+                    colors = 'bg-purple-50 text-purple-700 border-purple-200';
+                } else if (status === 'Contract Drafting') {
+                    colors = 'bg-cyan-50 text-cyan-700 border-cyan-200';
+                } else if (status === 'Account Setup') {
                     colors = 'bg-blue-50 text-blue-700 border-blue-200';
-                } else if (status === 'Final Proposal') {
+                } else if (status === 'Active') {
                     colors = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                } else if (status === 'Suspended') {
+                    colors = 'bg-orange-50 text-orange-700 border-orange-200';
+                } else if (status === 'Rejected') {
+                    colors = 'bg-rose-50 text-rose-700 border-rose-200';
                 }
                 return (
                     <span className={`px-2.5 py-1 text-[9px] font-black rounded-full uppercase tracking-wider border whitespace-nowrap ${colors}`}>
@@ -201,7 +209,7 @@ const PartnershipInquiries = () => {
             align: 'right',
             render: (val, row) => (
                 <select
-                    value={row.status || 'New Application'}
+                    value={row.status || 'Lead Received'}
                     onChange={async (e) => {
                         const newStatus = e.target.value;
                         try {
@@ -214,10 +222,14 @@ const PartnershipInquiries = () => {
                     }}
                     className="px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:border-slate-900 transition-all outline-none cursor-pointer uppercase tracking-wider"
                 >
-                    <option value="New Application">New Application</option>
-                    <option value="Requested More Info">Requested More Info</option>
-                    <option value="Scheduled Meeting">Scheduled Meeting</option>
-                    <option value="Final Proposal">Final Proposal</option>
+                    <option value="Lead Received">Lead Received</option>
+                    <option value="Under Verification">Under Verification</option>
+                    <option value="Proposal Sent">Proposal Sent</option>
+                    <option value="Contract Drafting">Contract Drafting</option>
+                    <option value="Account Setup">Account Setup</option>
+                    <option value="Active">Active</option>
+                    <option value="Suspended">Suspended</option>
+                    <option value="Rejected">Rejected</option>
                 </select>
             )
         }
