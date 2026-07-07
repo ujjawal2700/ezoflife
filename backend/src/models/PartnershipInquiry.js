@@ -42,6 +42,10 @@ const partnershipInquirySchema = new mongoose.Schema({
         ],
         default: 'Lead Received'
     },
+    notes: {
+        type: String,
+        default: ''
+    },
     submittedAt: {
         type: Date,
         default: Date.now

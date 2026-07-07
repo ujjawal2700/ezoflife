@@ -408,6 +408,11 @@ const PartnershipInquiryPage = () => {
                                                             <td className="px-6 py-5">
                                                                 <p className="text-xs font-black text-slate-900 leading-none">{prop.companyName}</p>
                                                                 <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{prop.location}</p>
+                                                                {prop.notes && (
+                                                                    <div className="mt-2.5 p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-[9px] font-bold text-slate-500 text-left leading-normal max-w-xs whitespace-normal break-words">
+                                                                        <span className="font-extrabold text-slate-700">Note: </span>{prop.notes}
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="px-6 py-5 text-xs font-bold text-slate-600">
                                                                 {prop.partnershipType}

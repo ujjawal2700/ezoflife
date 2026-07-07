@@ -2042,6 +2042,22 @@ export const partnershipApi = {
             console.error('Update Partnership Status Error:', error);
             throw error;
         }
+    },
+    updateNotes: async (id, notes) => {
+        try {
+            const response = await fetch(`${BASE_URL}/partnerships/${id}/notes`, {
+                method: 'PUT',
+                headers: {
+                    ...adminAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ notes })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Partnership Notes Error:', error);
+            throw error;
+        }
     }
 };
 

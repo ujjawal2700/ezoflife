@@ -147,4 +147,22 @@ export const getMyPartnershipInquiries = async (req, res) => {
     }
 };
 
+export const updatePartnershipNotes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { notes } = req.body;
+
+        const inquiry = await PartnershipInquiry.findByIdAndUpdate(
+            id,
+            { notes: notes || '' },
+            { new: true }
+        );
+
+        if (!inquiry) return res.status(404).json({ message: 'Partnership inquiry not found' });
+        res.status(200).json(inquiry);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 

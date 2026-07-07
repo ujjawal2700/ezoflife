@@ -12,6 +12,10 @@ const PartnershipInquiries = () => {
     const [page, setPage] = useState(1);
     const itemsPerPage = 10;
 
+    const [selectedInquiry, setSelectedInquiry] = useState(null);
+    const [noteText, setNoteText] = useState('');
+    const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+
     const [filters, setFilters] = useState({ companyName: '', email: '', phone: '', partnershipType: '', submitted: '' });
     const [filterOptions, setFilterOptions] = useState({ companyNames: [], emails: [], phones: [], partnershipTypes: [], dates: [] });
 
@@ -176,6 +180,26 @@ const PartnershipInquiries = () => {
             )
         },
         {
+            header: 'Notes',
+            key: 'notes',
+            render: (val, row) => (
+                <button
+                    onClick={() => {
+                        setSelectedInquiry(row);
+                        setNoteText(row.notes || '');
+                        setIsNoteModalOpen(true);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+                        row.notes 
+                        ? 'bg-slate-900 border-slate-900 text-white hover:bg-slate-800' 
+                        : 'bg-white border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900'
+                    }`}
+                >
+                    {row.notes ? 'View Notes' : 'Add Notes'}
+                </button>
+            )
+        },
+        {
             header: 'Status',
             key: 'status',
             render: (val) => {
@@ -314,6 +338,58 @@ const PartnershipInquiries = () => {
                     onDownload={handleDownload}
                 />
             </div>
+
+            {/* Notes Editor Modal */}
+            {isNoteModalOpen && selectedInquiry && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                    <div 
+                        onClick={() => {
+                            setIsNoteModalOpen(false);
+                            setSelectedInquiry(null);
+                        }}
+                        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                    />
+                    <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 text-slate-900 border border-slate-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Notes</h3>
+                        </div>
+                        <textarea
+                            value={noteText}
+                            onChange={(e) => setNoteText(e.target.value)}
+                            placeholder="Write internal notes/feedback here..."
+                            rows={6}
+                            className="w-full py-4 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold text-slate-800 focus:bg-white focus:border-slate-900 outline-none resize-none"
+                        />
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => {
+                                    setIsNoteModalOpen(false);
+                                    setSelectedInquiry(null);
+                                }}
+                                className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await partnershipApi.updateNotes(selectedInquiry._id, noteText);
+                                        toast.success('Notes updated successfully');
+                                        setIsNoteModalOpen(false);
+                                        setSelectedInquiry(null);
+                                        fetchInquiries();
+                                    } catch (err) {
+                                        toast.error('Failed to update notes');
+                                    }
+                                }}
+                                className="flex-1 py-3.5 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors shadow-lg shadow-slate-950/10"
+                            >
+                                Save Notes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
