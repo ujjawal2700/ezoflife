@@ -388,12 +388,7 @@ const UserProfilePage = () => {
         <div className="px-2">
           <button
             onClick={() => { 
-              const keysToRemove = [
-                'token', 'user', 'userData', 'userId', 'last_visited_vendor_id', 'userType',
-                'cart_quantities', 'pickup_date', 'pickup_time', 'delivery_date', 'delivery_time',
-                'pickup_address', 'drop_address', 'order_notes', 'item_photos', 'selected_tier', 'is_express'
-              ];
-              keysToRemove.forEach(k => localStorage.removeItem(k));
+              localStorage.clear();
               navigate('/user/auth'); 
               toast.success('Logged out successfully'); 
             }}

@@ -49,6 +49,7 @@ export default function OnboardingApprovals() {
   const [selectedVendor, setSelectedVendor] = useState('');
   const [selectedBusiness, setSelectedBusiness] = useState('');
   const [selectedPhone, setSelectedPhone] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -97,6 +98,7 @@ export default function OnboardingApprovals() {
     setSelectedBusiness('');
     setSelectedPhone('');
     setSearchQuery('');
+    setSelectedStatus('');
   }, [activeTab]);
 
   useEffect(() => {
@@ -193,7 +195,14 @@ export default function OnboardingApprovals() {
         }
       }
 
-      // 2. Date Filter
+      // 2. Verification Status Filter
+      if (selectedStatus) {
+        if (item.status.toLowerCase() !== selectedStatus.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // 3. Date Filter
       const originalUser = rawUsers.find(u => u._id === item.id);
       if (!originalUser || !originalUser.createdAt) return !startDate && !endDate;
       
@@ -212,7 +221,7 @@ export default function OnboardingApprovals() {
       }
       return true;
     });
-  }, [allTabItems, rawUsers, startDate, endDate, searchQuery]);
+  }, [allTabItems, rawUsers, startDate, endDate, searchQuery, selectedStatus]);
 
   const paginatedData = useMemo(() => {
     return filteredData.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -341,37 +350,6 @@ export default function OnboardingApprovals() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
-                  <input 
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
-                  />
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
-                  <input 
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      setPage(1);
-                    }}
-                    className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
-                  />
-                  {(startDate || endDate) && (
-                    <button
-                      onClick={() => {
-                        setStartDate('');
-                        setEndDate('');
-                        setPage(1);
-                      }}
-                      className="px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 rounded-sm transition-all text-[9px] font-black uppercase tracking-wider"
-                    >
-                      Clear
-                    </button>
-                  )}
                 </div>
 
                 {/* Dropdown Filters on the Right */}
@@ -406,13 +384,27 @@ export default function OnboardingApprovals() {
                             <option key={phone} value={phone}>{phone}</option>
                         ))}
                     </select>
-                    {(selectedVendor || selectedBusiness || selectedPhone || searchQuery) && (
+                    <select
+                        value={selectedStatus}
+                        onChange={(e) => {
+                            setSelectedStatus(e.target.value);
+                            setPage(1);
+                        }}
+                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-32 uppercase tracking-wider cursor-pointer"
+                    >
+                        <option value="">All Verification</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    {(selectedVendor || selectedBusiness || selectedPhone || searchQuery || selectedStatus) && (
                         <button
                             onClick={() => {
                                 setSelectedVendor('');
                                 setSelectedBusiness('');
                                 setSelectedPhone('');
                                 setSearchQuery('');
+                                setSelectedStatus('');
                             }}
                             className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white cursor-pointer"
                         >
