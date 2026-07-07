@@ -267,7 +267,8 @@ const PartnershipInquiries = () => {
                     <option value="Suspended">Suspended</option>
                     <option value="Rejected">Rejected</option>
                 </select>
-            )
+                );
+            }
         }
     ], [fetchInquiries]);
 
