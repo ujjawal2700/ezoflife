@@ -46,11 +46,11 @@ const navItems = [
             { icon: Users, label: 'User Management', path: '/admin/users' },
             { 
                 icon: ShieldCheck, 
-                label: 'Approvals', 
+                label: 'Registration Approval', 
                 path: '/admin/vendors/approvals',
                 subItems: [
-                    { label: 'Vendor Requests', path: '/admin/vendors/approvals' },
-                    { label: 'Supplier Requests', path: '/admin/supplier-requests' },
+                    { label: 'Vendor Registration Request', path: '/admin/vendors/approvals' },
+                    { label: 'Supplier Registration Request', path: '/admin/supplier-requests' },
                 ]
             },
             { icon: ClipboardList, label: 'Vendor Service Request', path: '/admin/vendor-service-requests' },
@@ -298,7 +298,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                                     navigate(sub.path);
                                                                     setIsMobileOpen(false);
                                                                 }}
-                                                                className={`w-full text-left px-6 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                                                className={`w-full text-left px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
                                                                     isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/30"
                                                                 }`}
                                                             >
