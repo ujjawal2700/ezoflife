@@ -258,7 +258,7 @@ const SupplierLaborRequestPage = () => {
                             initial={{ y: "100%" }}
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
-                            className="bg-white w-full max-w-xl rounded-t-[3.5rem] relative z-10 shadow-2xl overflow-hidden"
+                            className="bg-white w-full max-w-xl rounded-t-[3.5rem] relative z-10 shadow-2xl max-h-[85vh] overflow-y-auto no-scrollbar"
                         >
                             <div className="p-8 pb-32">
                                 <div className="flex justify-between items-start mb-8">
