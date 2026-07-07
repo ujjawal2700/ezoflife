@@ -464,25 +464,25 @@ const CareersPage = () => {
                         {myApplications.length > 0 ? (
                             myApplications.map(app => {
                                 const job = app.job || app.jobId || {};
-                                const status = app.status || 'Pending';
+                                const rawStatus = app.status || 'Submitted';
+                                const status = rawStatus === 'Pending' ? 'Submitted' : rawStatus;
                                 
-                                let statusLabel = status;
-                                let statusStyle = 'bg-amber-50 text-amber-600 border border-amber-100';
-                                if (status === 'Pending') {
-                                    statusLabel = 'Submitted';
-                                } else if (status === 'Reviewed') {
-                                    statusLabel = 'Shortlisted';
-                                    statusStyle = 'bg-indigo-50 text-indigo-600 border border-indigo-100';
-                                } else if (status === 'Interview') {
-                                    statusLabel = 'Interview';
-                                    statusStyle = 'bg-violet-50 text-violet-600 border border-violet-100';
-                                } else if (status === 'Approved' || status === 'Selected') {
-                                    statusLabel = 'Hired';
-                                    statusStyle = 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-                                } else if (status === 'Rejected') {
-                                    statusLabel = 'Declined';
-                                    statusStyle = 'bg-rose-50 text-rose-600 border border-rose-100';
-                                }
+                                const STATUS_MAPPING = {
+                                    'Submitted': { label: 'Applied', style: 'bg-amber-50 text-amber-600 border border-amber-100' },
+                                    'Shortlisted': { label: 'Under Review / Screening', style: 'bg-indigo-50 text-indigo-600 border border-indigo-100' },
+                                    'Interview Scheduled': { label: 'Interview Scheduled', style: 'bg-violet-50 text-violet-600 border border-violet-100' },
+                                    'Post-Interview Review': { label: 'Under Review', style: 'bg-sky-50 text-sky-600 border border-sky-100' },
+                                    'Background Check': { label: 'Background Check Initiated', style: 'bg-cyan-50 text-cyan-600 border border-cyan-100' },
+                                    'Offer Generation': { label: 'Offer Pending', style: 'bg-fuchsia-50 text-fuchsia-600 border border-fuchsia-100' },
+                                    'Offer Extended': { label: 'Offer Received', style: 'bg-emerald-50 text-emerald-600 border border-emerald-100' },
+                                    'Pre-onboarding': { label: 'Onboarding', style: 'bg-teal-50 text-teal-600 border border-teal-100' },
+                                    'Rejected': { label: 'Application Declined', style: 'bg-rose-50 text-rose-600 border border-rose-100' },
+                                    'Candidate Withdrew': { label: 'Withdrawn', style: 'bg-slate-50 text-slate-600 border border-slate-100' }
+                                };
+                                
+                                const mapped = STATUS_MAPPING[status] || { label: status, style: 'bg-slate-50 text-slate-600 border border-slate-100' };
+                                const statusLabel = mapped.label;
+                                const statusStyle = mapped.style;
 
                                 return (
                                     <motion.div 
@@ -505,6 +505,12 @@ const CareersPage = () => {
                                                 <span className="text-[8px] font-black uppercase tracking-wider truncate">{job.location || 'N/A'}</span>
                                             </div>
                                         </div>
+
+                                        {app.notes && (
+                                            <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-[9px] font-bold text-slate-500 text-left leading-relaxed">
+                                                <span className="font-extrabold text-slate-700">Note: </span>{app.notes}
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                                             <div className="text-[8px] font-black uppercase tracking-widest text-slate-400">
@@ -789,24 +795,26 @@ const CareersPage = () => {
                 {viewingAppStatus && (() => {
                     const app = myApplications.find(a => (a.job?._id || a.jobId?._id || a.job || a.jobId) === viewingAppStatus);
                     if (!app) return null;
-
-                    const status = app.status || 'Pending';
+                    const rawStatus = app.status || 'Submitted';
+                    const status = rawStatus === 'Pending' ? 'Submitted' : rawStatus;
                     const isRejected = status === 'Rejected';
-                    const isHired = status === 'Approved' || status === 'Selected';
-                    const isInterview = status === 'Interview';
-                    const isShortlisted = status === 'Reviewed' || status === 'Recommended';
-
+                    const isWithdrawn = status === 'Candidate Withdrew';
+                    
                     // Determine active step
                     let step = 1;
-                    if (isShortlisted) step = 2;
-                    if (isInterview) step = 3;
-                    if (isHired) step = 4;
+                    if (status === 'Shortlisted') step = 2;
+                    else if (status === 'Interview Scheduled' || status === 'Post-Interview Review') step = 3;
+                    else if (status === 'Background Check') step = 4;
+                    else if (status === 'Offer Generation' || status === 'Offer Extended') step = 5;
+                    else if (status === 'Pre-onboarding') step = 6;
 
                     const steps = [
-                        { id: 1, label: 'Applied', desc: 'Application received' },
-                        { id: 2, label: 'Shortlisted', desc: status === 'Recommended' ? 'Awaiting Admin Review' : 'Profile reviewed' },
-                        { id: 3, label: 'Interview', desc: 'Hiring discussion' },
-                        { id: 4, label: 'Hired', desc: 'Offer extended!' }
+                        { id: 1, label: 'Applied', desc: 'Application received successfully' },
+                        { id: 2, label: 'Screening', desc: 'Evaluating resume against requirements' },
+                        { id: 3, label: 'Interviewing', desc: status === 'Post-Interview Review' ? 'Reviewing interview feedback' : 'Hiring discussion / Interview scheduled' },
+                        { id: 4, label: 'Verification', desc: 'Reference and background check' },
+                        { id: 5, label: 'Offer', desc: status === 'Offer Extended' ? 'Offer letter extended!' : 'Drafting salary & contract details' },
+                        { id: 6, label: 'Onboarding', desc: 'Pre-onboarding and joining setup' }
                     ];
 
                     return (
@@ -842,15 +850,19 @@ const CareersPage = () => {
                                     </button>
                                 </div>
 
-                                {isRejected ? (
+                                {isRejected || isWithdrawn ? (
                                     <div className="space-y-4 py-4 text-center">
-                                        <div className="w-16 h-16 bg-rose-50 border border-rose-100 rounded-full flex items-center justify-center text-rose-500 mx-auto">
-                                            <span className="material-symbols-outlined text-3xl">cancel</span>
+                                        <div className={`w-16 h-16 ${isRejected ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-slate-100 border-slate-200 text-slate-500'} border rounded-full flex items-center justify-center mx-auto`}>
+                                            <span className="material-symbols-outlined text-3xl">{isRejected ? 'cancel' : 'do_not_disturb_on'}</span>
                                         </div>
                                         <div className="space-y-1">
-                                            <h4 className="font-black text-base text-rose-600 uppercase tracking-wide">Application Declined</h4>
+                                            <h4 className={`font-black text-base ${isRejected ? 'text-rose-600' : 'text-slate-600'} uppercase tracking-wide`}>
+                                                {isRejected ? 'Application Declined' : 'Application Withdrawn'}
+                                            </h4>
                                             <p className="text-xs text-slate-500 font-bold leading-relaxed px-4">
-                                                Thank you for your interest in this role. We appreciate your time, but we are not moving forward with your application at this stage.
+                                                {isRejected 
+                                                    ? 'Thank you for your interest in this role. We appreciate your time, but we are not moving forward with your application at this stage.' 
+                                                    : 'You have cancelled your application for this position or declined the interview invitation.'}
                                             </p>
                                         </div>
                                     </div>
@@ -894,11 +906,22 @@ const CareersPage = () => {
                                         })}
                                     </div>
                                 )}
+                                {app.notes && (
+                                     <div className="bg-emerald-500/10 p-4 rounded-3xl border border-emerald-500/20 mt-6 text-left">
+                                         <p className="text-[8px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-1">
+                                             <span className="material-symbols-outlined text-[12px]">info</span>
+                                             Feedback / Notes
+                                         </p>
+                                         <p className="text-slate-800 font-medium mt-1 leading-relaxed text-xs">
+                                             {app.notes}
+                                         </p>
+                                     </div>
+                                 )}
 
-                                <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
-                                    <span>Applied On:</span>
-                                    <span className="text-slate-800 font-black">{new Date(app.createdAt).toLocaleDateString()}</span>
-                                </div>
+                                 <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                     <span>Applied On:</span>
+                                     <span className="text-slate-800 font-black">{new Date(app.createdAt).toLocaleDateString()}</span>
+                                 </div>
                             </motion.div>
                         </div>
                     );

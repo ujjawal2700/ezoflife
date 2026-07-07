@@ -22,7 +22,9 @@ const ProfileCreationPage = () => {
 
     // Business onboarding additions
     const [customerType, setCustomerType] = useState('individual'); // 'individual' or 'retail' (for business)
+    const [gpsAddress, setGpsAddress] = useState(''); // GPS selected location for Business
     const [businessName, setBusinessName] = useState(mergedUser.businessName || '');
+    const [businessAddress, setBusinessAddress] = useState(mergedUser.businessAddress || '');
     const [gstNumber, setGstNumber] = useState(mergedUser.gstNumber || '');
     const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -35,7 +37,7 @@ const ProfileCreationPage = () => {
 
     // Map States
     const [mapLocation, setMapLocation] = useState(mergedUser.location || defaultCenter);
-    const [mapAddress, setMapAddress] = useState(mergedUser.address || '');
+    const [mapAddress, setMapAddress] = useState('');
     const searchBoxRef = useRef(null);
 
     const { isLoaded } = useJsApiLoader({
@@ -61,7 +63,11 @@ const ProfileCreationPage = () => {
     };
 
     const handleMapConfirm = () => {
-        setAddress(mapAddress);
+        if (customerType === 'individual') {
+            setAddress(mapAddress);
+        } else {
+            setGpsAddress(mapAddress);
+        }
         setShowMapPicker(false);
     };
 
@@ -118,32 +124,66 @@ const ProfileCreationPage = () => {
 
         try {
             setIsLoading(true);
+
+            const addressesPayload = [];
+            if (customerType === 'individual') {
+                addressesPayload.push({
+                    type: 'Home',
+                    address: address,
+                    location: mapLocation,
+                    isDefault: true
+                });
+            } else {
+                addressesPayload.push({
+                    type: 'Office',
+                    address: gpsAddress,
+                    location: mapLocation,
+                    isDefault: true
+                });
+            }
+
             const payload = {
                 displayName: name,
-                address: address,
-                location: mapLocation,
                 customerType: customerType,
-                isProfileComplete: true
+                isProfileComplete: true,
+                addresses: addressesPayload
             };
 
-            if (customerType === 'retail') {
+            if (customerType === 'individual') {
+                payload.address = address;
+                payload.location = mapLocation;
+            } else {
+                payload.address = businessAddress;
                 payload.businessName = businessName;
                 payload.gstNumber = gstNumber;
+                payload.businessAddress = businessAddress;
+                payload.location = mapLocation;
             }
 
             await authApi.updateProfile(userId, payload);
             
             // Update local storage with the complete profile info
-            localStorage.setItem('user', JSON.stringify({ 
+            const updatedUser = { 
                 ...currentUser, 
                 displayName: name, 
-                address: address,
                 customerType: customerType,
-                businessName: customerType === 'retail' ? businessName : '',
-                gstNumber: customerType === 'retail' ? gstNumber : '',
-                isProfileComplete: true 
-            }));
-            
+                isProfileComplete: true,
+                addresses: addressesPayload
+            };
+
+            if (customerType === 'individual') {
+                updatedUser.address = address;
+                updatedUser.location = mapLocation;
+            } else {
+                updatedUser.address = businessAddress;
+                updatedUser.businessName = businessName;
+                updatedUser.gstNumber = gstNumber;
+                updatedUser.businessAddress = businessAddress;
+                updatedUser.location = mapLocation;
+            }
+
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            localStorage.setItem('userData', JSON.stringify(updatedUser));
             localStorage.setItem('userType', customerType);
             
             navigate('/user/home');
@@ -159,12 +199,13 @@ const ProfileCreationPage = () => {
             return name.trim().length >= 3 && address.trim().length > 10;
         } else {
             return name.trim().length >= 3 && 
-                   address.trim().length > 10 && 
+                   gpsAddress.trim().length > 0 && 
                    businessName.trim().length >= 2 && 
+                   businessAddress.trim().length > 10 && 
                    gstNumber.trim().length >= 10 && 
                    termsAccepted;
         }
-    }, [customerType, name, address, businessName, gstNumber, termsAccepted]);
+    }, [customerType, name, address, gpsAddress, businessName, businessAddress, gstNumber, termsAccepted]);
 
     const containerVariants = {
         hidden: { opacity: 0, y: 20 },
@@ -193,7 +234,7 @@ const ProfileCreationPage = () => {
                 <motion.h1 
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="text-4xl font-black tracking-tighter leading-none italic mb-3"
+                    className="text-4xl font-black tracking-tighter leading-none mb-3"
                 >
                     Final Touch
                 </motion.h1>
@@ -257,6 +298,33 @@ const ProfileCreationPage = () => {
                     {/* Business specific fields */}
                     {customerType === 'retail' && (
                         <>
+                            {/* GPS Address */}
+                            <motion.div variants={itemVariants}>
+                                <div className="flex justify-between items-center mb-3 px-1">
+                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">GPS Address</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setShowMapPicker(true)}
+                                        className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">my_location</span>
+                                        Select GPS Location
+                                    </button>
+                                </div>
+                                <div 
+                                    onClick={() => setShowMapPicker(true)}
+                                    className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all cursor-pointer"
+                                >
+                                    <textarea 
+                                        rows={2}
+                                        readOnly
+                                        value={gpsAddress}
+                                        placeholder="Click 'Select GPS Location' to choose location on map"
+                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none cursor-pointer"
+                                    />
+                                </div>
+                            </motion.div>
+
                             {/* Business Name */}
                             <motion.div variants={itemVariants}>
                                 <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Business Name</label>
@@ -267,6 +335,20 @@ const ProfileCreationPage = () => {
                                         onChange={(e) => setBusinessName(e.target.value)}
                                         placeholder="Your business name"
                                         className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-md font-black placeholder:text-outline-variant/40"
+                                    />
+                                </div>
+                            </motion.div>
+
+                            {/* Business Address */}
+                            <motion.div variants={itemVariants}>
+                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Business Address</label>
+                                <div className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                    <textarea 
+                                        rows={3}
+                                        value={businessAddress}
+                                        onChange={(e) => setBusinessAddress(e.target.value)}
+                                        placeholder="Full formal physical location text block for invoicing/billing routing"
+                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none"
                                     />
                                 </div>
                             </motion.div>
@@ -289,31 +371,34 @@ const ProfileCreationPage = () => {
                     )}
 
                     {/* Address Input with GPS */}
-                    <motion.div variants={itemVariants}>
-                        <div className="flex justify-between items-center mb-3 px-1">
-                            <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Home Address</label>
-                            <button 
-                                onClick={() => setShowMapPicker(true)}
-                                className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
-                            >
-                                <span className={`material-symbols-outlined text-[14px]`}>my_location</span>
-                                Use GPS
-                            </button>
-                        </div>
-                        <div className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                            <textarea 
-                                rows={3}
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                placeholder="Search or type your home address"
-                                className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none"
-                            />
-                        </div>
-                        <p className="text-[9px] font-bold text-on-surface-variant opacity-50 mt-3 px-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[12px]">info</span>
-                            This will be your default pickup location.
-                        </p>
-                    </motion.div>
+                    {customerType === 'individual' && (
+                        <motion.div variants={itemVariants}>
+                            <div className="flex justify-between items-center mb-3 px-1">
+                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Home Address</label>
+                                <button 
+                                    type="button"
+                                    onClick={() => setShowMapPicker(true)}
+                                    className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
+                                >
+                                    <span className={`material-symbols-outlined text-[14px]`}>my_location</span>
+                                    Use GPS
+                                </button>
+                            </div>
+                            <div className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <textarea 
+                                    rows={3}
+                                    value={address}
+                                    onChange={(e) => setAddress(e.target.value)}
+                                    placeholder="Search or type your home address"
+                                    className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none"
+                                />
+                            </div>
+                            <p className="text-[9px] font-bold text-on-surface-variant opacity-50 mt-3 px-2 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[12px]">info</span>
+                                This will be your default pickup location.
+                            </p>
+                        </motion.div>
+                    )}
 
                     {customerType === 'retail' && (
                         <motion.div variants={itemVariants} className="flex items-start gap-3 px-2">

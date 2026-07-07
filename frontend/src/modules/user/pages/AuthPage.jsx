@@ -13,7 +13,6 @@ const AuthPage = () => {
   const [otpChannel, setOtpChannel] = useState('WhatsApp'); // 'WhatsApp' or 'SMS'
   const [agreedToTnC, setAgreedToTnC] = useState(false);
   const [apiError, setApiError] = useState('');
-  const [isRetail, setIsRetail] = useState(false);
   const [loading, setLoading] = useState(false);
   const [lastRequestedPhone, setLastRequestedPhone] = useState('');
 
@@ -61,10 +60,10 @@ const AuthPage = () => {
   React.useEffect(() => {
     if (!isLogin && isSignupValid && !loading && lastRequestedPhone !== signupPhone) {
       handleRequestOtp(signupPhone, 'signup', { 
-        customerType: isRetail ? 'retail' : 'individual' 
+        customerType: 'individual' 
       });
     }
-  }, [signupPhone, agreedToTnC, isLogin, isSignupValid, isRetail, loading, lastRequestedPhone]);
+  }, [signupPhone, agreedToTnC, isLogin, isSignupValid, loading, lastRequestedPhone]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
@@ -179,23 +178,6 @@ const AuthPage = () => {
                     </motion.div>
 
                     <div className="space-y-6">
-                      {/* OTP Channel Selector */}
-                      <motion.div variants={itemVariants} className="flex bg-surface-container-low p-1 rounded-2xl border border-slate-300">
-                        {otpChannels.map(channel => (
-                          <button 
-                            key={channel.id}
-                            onClick={() => setOtpChannel(channel.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${otpChannel === channel.id ? `bg-white shadow-sm ${channel.color}` : 'text-on-surface-variant opacity-40'}`}
-                          >
-                            {channel.id === 'WhatsApp' ? (
-                              <WhatsAppIcon size={14} className={otpChannel === channel.id ? 'fill-green-600' : 'fill-on-surface-variant opacity-40'} />
-                            ) : (
-                              <span className="material-symbols-outlined text-sm">{channel.icon}</span>
-                            )}
-                            {channel.id}
-                          </button>
-                        ))}
-                      </motion.div>
                       <motion.div variants={itemVariants} className="relative group">
                         <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2.5 ml-1">Phone Number</label>
                         <div className={`flex items-center bg-surface-container-low rounded-2xl p-1 border border-slate-300 transition-all focus-within:bg-white focus-within:ring-2 ${loginPhone.length > 0 && !isLoginValid ? 'focus-within:ring-error/20 ring-error/10' : 'focus-within:ring-primary/20'}`}>
@@ -237,20 +219,6 @@ const AuthPage = () => {
                     </motion.div>
  
                     <div className="space-y-4">
-                      {/* OTP Channel Selector */}
-                      <motion.div variants={itemVariants} className="flex bg-surface-container-low p-1 rounded-2xl border border-slate-300 mb-2">
-                        {otpChannels.map(channel => (
-                          <button 
-                            key={channel.id}
-                            onClick={() => setOtpChannel(channel.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${otpChannel === channel.id ? `bg-white shadow-sm ${channel.color}` : 'text-on-surface-variant opacity-40'}`}
-                          >
-                            <span className="material-symbols-outlined text-sm">{channel.icon}</span>
-                            {channel.id}
-                          </button>
-                        ))}
-                      </motion.div>
-  
                       <motion.div variants={itemVariants}>
                         <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2.5 ml-1">Phone Number</label>
                         <div className={`flex items-center bg-surface-container-low rounded-2xl p-1 border border-slate-300 focus-within:bg-white focus-within:ring-2 ${signupPhone.length > 0 && signupPhone.length !== 10 ? 'focus-within:ring-error/20 ring-error/10' : 'focus-within:ring-primary/20'}`}>
@@ -273,24 +241,6 @@ const AuthPage = () => {
                         {signupPhone.length > 0 && signupPhone.length !== 10 && (
                             <p className="text-[9px] text-error font-bold mt-2 ml-1">Enter a valid 10-digit number</p>
                         )}
-                      </motion.div>
- 
-                      {/* Business/Retail Selection */}
-                      <motion.div 
-                        variants={itemVariants}
-                        onClick={() => setIsRetail(!isRetail)}
-                        className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer border transition-all ${isRetail ? 'bg-primary/5 border-primary shadow-sm' : 'bg-surface-container-low border-slate-300'}`}
-                      >
-                        <div className="flex flex-col">
-                          <span className={`text-[10px] font-black uppercase tracking-widest ${isRetail ? 'text-primary' : 'text-on-surface-variant opacity-60'}`}>Business/Retail Mode</span>
-                          <span className="text-[9px] font-bold text-on-surface-variant opacity-40 uppercase">For Bulk & Professional Services</span>
-                        </div>
-                        <div className={`w-10 h-6 rounded-full p-1 transition-all ${isRetail ? 'bg-primary' : 'bg-slate-300'}`}>
-                           <motion.div 
-                             animate={{ x: isRetail ? 16 : 0 }}
-                             className="w-4 h-4 bg-white rounded-full shadow-sm"
-                           />
-                        </div>
                       </motion.div>
  
                       {/* T&C Checkbox */}

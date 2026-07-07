@@ -17,6 +17,7 @@ const AdvertiseWithUsPage = () => {
     const [activeTab, setActiveTab] = useState('Submit Proposal');
     const [myInquiries, setMyInquiries] = useState([]);
     const [fetchingInquiries, setFetchingInquiries] = useState(false);
+    const [viewingProposal, setViewingProposal] = useState(null);
 
     // Location specific states
     const [locationType, setLocationType] = useState('Pan India'); // 'Pan India' or 'Custom'
@@ -374,27 +375,47 @@ const AdvertiseWithUsPage = () => {
                                             </thead>
                                             <tbody className="divide-y divide-slate-50">
                                                 {myInquiries.map((inq) => {
-                                                    const status = inq.status || 'New Application';
-                                                    let badgeColor = 'bg-slate-100 text-slate-800 border-slate-200';
-                                                    if (status === 'Requested More Info') {
-                                                        badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-                                                    } else if (status === 'Scheduled Meeting') {
-                                                        badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-                                                    } else if (status === 'Final Proposal') {
-                                                        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                                                    }
+                                                    const rawStatus = inq.status || 'Creative Pending Review';
+                                                    let status = rawStatus;
+                                                    if (rawStatus === 'New Application') status = 'Creative Pending Review';
+                                                    else if (rawStatus === 'Requested More Info') status = 'Content Review';
+                                                    else if (rawStatus === 'Scheduled Meeting') status = 'Scheduled';
+                                                    else if (rawStatus === 'Final Proposal') status = 'Running';
+
+                                                    const STATUS_MAP = {
+                                                        'Creative Pending Review': { label: 'Submitted', color: 'bg-slate-100 text-slate-800 border-slate-200' },
+                                                        'Content Review': { label: 'Under Review', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                                                        'Invoice Generated': { label: 'Payment Required', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                                                        'Scheduled': { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                                                        'Running': { label: 'Active', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                                                        'Campaign Ended': { label: 'Completed', color: 'bg-slate-100 text-slate-400 border-slate-200' },
+                                                        'Paused by Admin': { label: 'Paused', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+                                                        'Rejected': { label: 'Declined', color: 'bg-rose-50 text-rose-700 border-rose-200' }
+                                                    };
+                                                    const mapped = STATUS_MAP[status] || { label: status, color: 'bg-slate-100 text-slate-800 border-slate-200' };
+                                                    const displayStatus = mapped.label;
+                                                    const badgeColor = mapped.color;
                                                     return (
-                                                        <tr key={inq._id} className="hover:bg-slate-50/50 transition-colors">
+                                                        <tr 
+                                                            key={inq._id} 
+                                                            className="hover:bg-slate-50/70 active:bg-slate-100 transition-all cursor-pointer group"
+                                                            onClick={() => setViewingProposal(inq)}
+                                                        >
                                                             <td className="px-6 py-5">
                                                                 <p className="text-xs font-black text-slate-900 leading-none">{inq.brandName}</p>
                                                                 <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{inq.location}</p>
+                                                                {inq.notes && (
+                                                                    <div className="mt-2 p-2 bg-slate-50 border border-slate-100 rounded-lg text-[9px] font-bold text-slate-500 max-w-[200px] leading-relaxed">
+                                                                        <span className="font-extrabold text-slate-700">Note: </span>{inq.notes}
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="px-6 py-5 text-xs font-bold text-slate-600">
                                                                 ₹{inq.budget?.toLocaleString()}
                                                             </td>
                                                             <td className="px-6 py-5">
                                                                 <span className={`px-2.5 py-1 text-[8px] font-black rounded-full uppercase tracking-wider border whitespace-nowrap ${badgeColor}`}>
-                                                                    {status}
+                                                                    {displayStatus}
                                                                 </span>
                                                             </td>
                                                         </tr>
@@ -414,6 +435,113 @@ const AdvertiseWithUsPage = () => {
                     )}
                 </AnimatePresence>
             </motion.main>
+
+            <AnimatePresence>
+                {viewingProposal && (() => {
+                    const rawStatus = viewingProposal.status || 'Creative Pending Review';
+                    const STATUS_MAP = {
+                        'Creative Pending Review': { label: 'Submitted', color: 'bg-slate-100 text-slate-800 border-slate-200' },
+                        'Content Review': { label: 'Under Review', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                        'Invoice Generated': { label: 'Payment Required', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                        'Scheduled': { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                        'Running': { label: 'Active', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                        'Campaign Ended': { label: 'Completed', color: 'bg-slate-100 text-slate-400 border-slate-200' },
+                        'Paused by Admin': { label: 'Paused', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+                        'Rejected': { label: 'Declined', color: 'bg-rose-50 text-rose-700 border-rose-200' }
+                    };
+                    const status = rawStatus === 'New Application' ? 'Creative Pending Review' : rawStatus;
+                    const mapped = STATUS_MAP[status] || { label: status, color: 'bg-slate-100 text-slate-800 border-slate-200' };
+
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setViewingProposal(null)}
+                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            />
+                            <motion.div 
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 text-slate-900 border border-slate-200 overflow-hidden"
+                            >
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider mb-2 inline-block border ${mapped.color}`}>
+                                            {mapped.label}
+                                        </span>
+                                        <h2 className="font-black text-xl tracking-tight text-slate-950 leading-tight">
+                                            {viewingProposal.brandName}
+                                        </h2>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Proposal Details</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setViewingProposal(null)}
+                                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">close</span>
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4 text-xs font-semibold text-slate-600">
+                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Target Location</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.location}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Monthly Budget</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">₹{viewingProposal.budget?.toLocaleString()}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Campaign Timeline</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.timeline}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Submitted On</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{new Date(viewingProposal.createdAt).toLocaleDateString('en-GB')}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 space-y-3">
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Email Address</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.email}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Phone Number</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.phone}</p>
+                                        </div>
+                                    </div>
+
+                                    {viewingProposal.notes && (
+                                        <div className="bg-emerald-500/10 p-4 rounded-3xl border border-emerald-500/20">
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">info</span>
+                                                Feedback / Notes
+                                            </p>
+                                            <p className="text-slate-800 font-medium mt-1 leading-relaxed text-xs">
+                                                {viewingProposal.notes}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={() => setViewingProposal(null)}
+                                            className="w-full py-4 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                                        >
+                                            Close Window
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    );
+                })()}
+            </AnimatePresence>
         </div>
     );
 };

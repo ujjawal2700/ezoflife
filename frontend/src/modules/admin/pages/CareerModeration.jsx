@@ -20,6 +20,8 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editingJob, setEditingJob] = useState(null);
     const [viewingApp, setViewingApp] = useState(null);
+    const [editingNotesApplication, setEditingNotesApplication] = useState(null);
+    const [tempNotes, setTempNotes] = useState('');
     const [selectedJobIdForApps, setSelectedJobIdForApps] = useState(null);
     
     // Form & View controllers
@@ -422,29 +424,69 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
             header: 'Status', 
             key: 'status', 
             render: (val) => {
-                const s = val || 'Pending';
-                const style = s === 'Approved' || s === 'Selected'
-                    ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
-                    : s === 'Reviewed' 
-                    ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' 
-                    : s === 'Interview' 
-                    ? 'bg-violet-50 text-violet-600 border border-violet-100' 
-                    : s === 'Rejected' 
-                    ? 'bg-rose-50 text-rose-600 border border-rose-100' 
-                    : 'bg-amber-50 text-amber-600 border border-amber-100';
+                const s = val || 'Submitted';
+                let style = 'bg-slate-50 text-slate-600 border border-slate-100';
                 
-                let displayStatus = s;
-                if (s === 'Pending') displayStatus = 'Submitted';
-                else if (s === 'Reviewed') displayStatus = 'Shortlisted';
-                else if (s === 'Approved' || s === 'Selected') displayStatus = 'Hired';
+                switch(s) {
+                    case 'Submitted': 
+                        style = 'bg-amber-50 text-amber-600 border border-amber-100'; 
+                        break;
+                    case 'Shortlisted': 
+                        style = 'bg-indigo-50 text-indigo-600 border border-indigo-100'; 
+                        break;
+                    case 'Interview Scheduled': 
+                        style = 'bg-violet-50 text-violet-600 border border-violet-100'; 
+                        break;
+                    case 'Post-Interview Review': 
+                        style = 'bg-sky-50 text-sky-600 border border-sky-100'; 
+                        break;
+                    case 'Background Check': 
+                        style = 'bg-cyan-50 text-cyan-600 border border-cyan-100'; 
+                        break;
+                    case 'Offer Generation': 
+                        style = 'bg-fuchsia-50 text-fuchsia-600 border border-fuchsia-100'; 
+                        break;
+                    case 'Offer Extended': 
+                        style = 'bg-emerald-50 text-emerald-600 border border-emerald-100'; 
+                        break;
+                    case 'Pre-onboarding': 
+                        style = 'bg-teal-50 text-teal-600 border border-teal-100'; 
+                        break;
+                    case 'Rejected': 
+                        style = 'bg-rose-50 text-rose-600 border border-rose-100'; 
+                        break;
+                    case 'Candidate Withdrew': 
+                        style = 'bg-orange-50 text-orange-600 border border-orange-100'; 
+                        break;
+                }
 
                 return (
                     <span className={`px-2.5 py-1 rounded-sm text-[9px] font-black uppercase tracking-wider ${style}`}>
-                        {displayStatus}
+                        {s}
                     </span>
                 );
             }
         },
+        ...(creatorFilter === 'Admin' ? [{
+            header: 'Notes',
+            key: 'notes',
+            render: (val, row) => (
+                <button
+                    onClick={() => {
+                        setEditingNotesApplication(row);
+                        setTempNotes(row.notes || '');
+                    }}
+                    className={`px-3 py-1.5 rounded-sm text-[9px] font-black tracking-wider uppercase border text-left truncate max-w-[150px] transition-all cursor-pointer block ${
+                        val 
+                            ? 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10' 
+                            : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
+                    }`}
+                    title={val || 'Add Notes'}
+                >
+                    {val || 'Add Notes'}
+                </button>
+            )
+        }] : []),
         {
             header: 'Actions',
             key: '_id',
@@ -454,16 +496,24 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                     <button onClick={() => setViewingApp(row)} className="p-1 hover:bg-slate-100 text-slate-500 rounded" title="View Application">
                         <Eye size={13} />
                     </button>
-                    <select
-                        value={row.status || 'Pending'}
-                        onChange={(e) => handleUpdateApplicationStatus(id, e.target.value)}
-                        className="bg-white border border-slate-200 rounded p-1 text-[9px] font-black uppercase tracking-wider text-slate-600 cursor-pointer"
-                    >
-                        <option value="Pending">Submitted</option>
-                        <option value="Reviewed">Shortlisted</option>
-                        <option value="Interview">Interview</option>
-                        <option value="Rejected">Rejected</option>
-                    </select>
+                    {creatorFilter === 'Admin' && (
+                        <select
+                            value={row.status || 'Submitted'}
+                            onChange={(e) => handleUpdateApplicationStatus(id, e.target.value)}
+                            className="bg-white border border-slate-200 rounded p-1 text-[9px] font-black uppercase tracking-wider text-slate-600 cursor-pointer"
+                        >
+                            <option value="Submitted">Submitted</option>
+                            <option value="Shortlisted">Shortlisted</option>
+                            <option value="Interview Scheduled">Interview Scheduled</option>
+                            <option value="Post-Interview Review">Post-Interview Review</option>
+                            <option value="Background Check">Background Check</option>
+                            <option value="Offer Generation">Offer Generation</option>
+                            <option value="Offer Extended">Offer Extended</option>
+                            <option value="Pre-onboarding">Pre-onboarding</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Candidate Withdrew">Candidate Withdrew</option>
+                        </select>
+                    )}
                     <button onClick={() => handleDeleteApplication(id)} className="p-1 hover:bg-slate-100 text-slate-400 hover:text-slate-900 rounded" title="Delete record">
                         <Trash2 size={13} />
                     </button>
@@ -590,10 +640,16 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-36 uppercase tracking-wider cursor-pointer"
                                 >
                                     <option value="">All Status</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Recommended">Pending Admin</option>
-                                    <option value="Approved">Approved</option>
+                                    <option value="Submitted">Submitted</option>
+                                    <option value="Shortlisted">Shortlisted</option>
+                                    <option value="Interview Scheduled">Interview Scheduled</option>
+                                    <option value="Post-Interview Review">Post-Interview Review</option>
+                                    <option value="Background Check">Background Check</option>
+                                    <option value="Offer Generation">Offer Generation</option>
+                                    <option value="Offer Extended">Offer Extended</option>
+                                    <option value="Pre-onboarding">Pre-onboarding</option>
                                     <option value="Rejected">Rejected</option>
+                                    <option value="Candidate Withdrew">Candidate Withdrew</option>
                                 </select>
                             </div>
                         }
@@ -909,6 +965,70 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                                         <ExternalLink size={12} />
                                     </a>
                                 )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {editingNotesApplication && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setEditingNotesApplication(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 text-slate-900 border border-slate-200"
+                        >
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h2 className="font-black text-lg tracking-tight text-slate-950 leading-tight mt-1">
+                                        Notes
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <textarea
+                                        value={tempNotes}
+                                        onChange={(e) => setTempNotes(e.target.value)}
+                                        placeholder="Add application notes, candidate feedback, screening notes, interview scores, etc..."
+                                        rows={5}
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
+                                    />
+                                </div>
+
+                                <div className="flex gap-3 justify-end pt-2">
+                                    <button 
+                                        onClick={() => setEditingNotesApplication(null)}
+                                        className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        onClick={async () => {
+                                            try {
+                                                await jobApi.updateApplicationNotes(editingNotesApplication._id, tempNotes);
+                                                toast.success('Notes updated successfully');
+                                                setEditingNotesApplication(null);
+                                                fetchApplications();
+                                            } catch (error) {
+                                                toast.error('Failed to update notes');
+                                            }
+                                        }}
+                                        className="px-5 py-2.5 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
+                                    >
+                                        Save Notes
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

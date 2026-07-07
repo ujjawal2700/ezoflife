@@ -27,8 +27,21 @@ const adInquirySchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['New Application', 'Requested More Info', 'Scheduled Meeting', 'Final Proposal'],
-        default: 'New Application'
+        enum: [
+            'Creative Pending Review',
+            'Content Review',
+            'Invoice Generated',
+            'Scheduled',
+            'Running',
+            'Campaign Ended',
+            'Paused by Admin',
+            'Rejected'
+        ],
+        default: 'Creative Pending Review'
+    },
+    notes: {
+        type: String,
+        default: ''
     },
     submittedAt: {
         type: Date,

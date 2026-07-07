@@ -11,6 +11,7 @@ import {
     updateJob,
     updateJobStatus,
     updateApplicationStatus,
+    updateApplicationNotes,
     deleteApplication,
     getAppliedJobIds,
     getApplicantApplications
@@ -45,6 +46,7 @@ router.get('/vendor/:vendorId/applications', getVendorApplications);
 router.get('/applicant/:applicantId/applied-job-ids', getAppliedJobIds);
 router.get('/applicant/:applicantId/applications', getApplicantApplications);
 router.patch('/applications/:id/status', updateApplicationStatus);
+router.put('/applications/:id/notes', verifyAdmin, updateApplicationNotes);
 router.delete('/applications/:id', deleteApplication);
 router.patch('/:id/status', updateJobStatus);
 router.put('/:id', updateJob);

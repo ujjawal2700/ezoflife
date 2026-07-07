@@ -91,10 +91,16 @@ const JobManagerPage = () => {
 
     const getStatusStyle = (status) => {
         switch(status) {
-            case 'Approved': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-            case 'Recommended': return 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20';
-            case 'Pending': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+            case 'Submitted': return 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+            case 'Shortlisted': return 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20';
+            case 'Interview Scheduled': return 'bg-violet-500/10 text-violet-600 border-violet-500/20';
+            case 'Post-Interview Review': return 'bg-sky-500/10 text-sky-600 border-sky-500/20';
+            case 'Background Check': return 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20';
+            case 'Offer Generation': return 'bg-fuchsia-500/10 text-fuchsia-600 border-fuchsia-500/20';
+            case 'Offer Extended': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+            case 'Pre-onboarding': return 'bg-teal-500/10 text-teal-600 border-teal-500/20';
             case 'Rejected': return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+            case 'Candidate Withdrew': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
             default: return 'bg-slate-100 text-slate-500 border-slate-200';
         }
     };
@@ -264,28 +270,33 @@ const JobManagerPage = () => {
                                                 href={`${UPLOADS_URL}${app.resumeLink}`} 
                                                 target="_blank" 
                                                 rel="noreferrer"
-                                                className="flex-1 py-3.5 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg shadow-slate-900/10"
+                                                className="flex-1 py-3.5 bg-slate-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest text-center shadow-lg shadow-slate-900/10 flex items-center justify-center"
                                             >
                                                 View Resume
                                             </a>
-                                            {app.status === 'Pending' || app.status === 'Reviewed' ? (
-                                                <button 
-                                                    onClick={() => handleUpdateAppStatus(app._id, 'Recommended')}
-                                                    className="flex-1 py-4 bg-slate-100 text-slate-900 rounded-2xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-900 hover:text-white transition-all shadow-sm"
+                                            <div className="flex-1 flex gap-1.5 items-center">
+                                                <select
+                                                    value={app.status || 'Submitted'}
+                                                    onChange={(e) => handleUpdateAppStatus(app._id, e.target.value)}
+                                                    className="w-full py-4 px-3 bg-slate-100 text-slate-900 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-transparent focus:bg-white focus:border-slate-900/10 outline-none cursor-pointer text-center"
                                                 >
-                                                    <span className="material-symbols-outlined text-[18px]">verified_user</span>
-                                                    Recommend
-                                                </button>
-                                            ) : (
-                                                <div className={`flex-1 py-4 flex items-center justify-center gap-2 rounded-2xl border ${getStatusStyle(app.status)}`}>
-                                                    <span className="material-symbols-outlined text-sm">{app.status === 'Approved' ? 'verified' : 'hourglass_top'}</span>
-                                                    <span className="text-[9px] font-black uppercase tracking-widest">{app.status === 'Recommended' ? 'Awaiting Admin' : app.status}</span>
-                                                </div>
-                                            )}
-                                            {app.status !== 'Approved' && app.status !== 'Rejected' && (
+                                                    <option value="Submitted">Submitted</option>
+                                                    <option value="Shortlisted">Shortlisted</option>
+                                                    <option value="Interview Scheduled">Interview Scheduled</option>
+                                                    <option value="Post-Interview Review">Post-Interview Review</option>
+                                                    <option value="Background Check">Background Check</option>
+                                                    <option value="Offer Generation">Offer Generation</option>
+                                                    <option value="Offer Extended">Offer Extended</option>
+                                                    <option value="Pre-onboarding">Pre-onboarding</option>
+                                                    <option value="Rejected">Rejected</option>
+                                                    <option value="Candidate Withdrew">Candidate Withdrew</option>
+                                                </select>
+                                            </div>
+                                            {app.status !== 'Rejected' && app.status !== 'Candidate Withdrew' && (
                                                 <button 
                                                     onClick={() => handleUpdateAppStatus(app._id, 'Rejected')}
-                                                    className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                                                    className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm shrink-0"
+                                                    title="Reject Candidate"
                                                 >
                                                     <span className="material-symbols-outlined text-[20px]">close</span>
                                                 </button>

@@ -651,6 +651,22 @@ export const adApi = {
             console.error('Delete Ad Error:', error);
             throw error;
         }
+    },
+    updateNotes: async (id, notes) => {
+        try {
+            const response = await fetch(`${BASE_URL}/ads/${id}/notes`, {
+                method: 'PATCH',
+                headers: {
+                    ...adminAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ notes })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Ad Notes Error:', error);
+            throw error;
+        }
     }
 };
 
@@ -1923,6 +1939,22 @@ export const mediaApi = {
             throw error;
         }
     },
+    updateInquiryNotes: async (id, notes) => {
+        try {
+            const response = await fetch(`${BASE_URL}/media/inquiries/${id}/notes`, {
+                method: 'PUT',
+                headers: {
+                    ...adminAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ notes })
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update Inquiry Notes Error:', error);
+            throw error;
+        }
+    },
     getMyInquiries: async (email) => {
         try {
             const response = await fetch(`${BASE_URL}/media/inquiries/my?email=${encodeURIComponent(email)}`);
@@ -2311,6 +2343,17 @@ export const jobApi = {
                 ...adminAuthHeaders()
             },
             body: JSON.stringify({ status })
+        });
+        return await response.json();
+    },
+    updateApplicationNotes: async (id, notes) => {
+        const response = await fetch(`${BASE_URL}/jobs/applications/${id}/notes`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                ...adminAuthHeaders()
+            },
+            body: JSON.stringify({ notes })
         });
         return await response.json();
     },

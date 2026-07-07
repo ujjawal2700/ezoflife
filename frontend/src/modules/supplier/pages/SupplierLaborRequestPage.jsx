@@ -225,7 +225,7 @@ const SupplierLaborRequestPage = () => {
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <span className="text-[8px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-full">{app.experience} Exp</span>
                                                             <span className="text-[8px] font-black text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full flex items-center gap-1 uppercase">
-                                                                {app.status === 'Pending' ? 'Submitted' : app.status === 'Reviewed' ? 'Shortlisted' : app.status}
+                                                                {app.status || 'Submitted'}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -325,43 +325,60 @@ const SupplierLaborRequestPage = () => {
                                         </div>
                                     )}
 
-                                    {/* Action Buttons for Supplier / Job Tracking */}
-                                    <div className="space-y-4 mt-6 pt-6 border-t border-slate-100">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Update Application Status (Job Tracking)</p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { label: 'Submitted', value: 'Pending', icon: 'send' },
-                                                { label: 'Shortlisted', value: 'Reviewed', icon: 'bookmark' },
-                                                { label: 'Interview', value: 'forum', icon: 'forum' },
-                                                { label: 'Rejected', value: 'Rejected', icon: 'cancel' }
-                                            ].map((statusBtn) => {
-                                                const isActive = viewingApplication.status === statusBtn.value;
-                                                return (
-                                                    <button
-                                                        key={statusBtn.value}
-                                                        onClick={async () => {
-                                                            try {
-                                                                await jobApi.updateApplicationStatus(viewingApplication._id, statusBtn.value);
-                                                                toast.success(`Status updated to ${statusBtn.label}`);
-                                                                setViewingApplication({ ...viewingApplication, status: statusBtn.value });
-                                                                fetchLiveHub();
-                                                            } catch (err) {
-                                                                toast.error('Failed to update status');
-                                                            }
-                                                        }}
-                                                        className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border transition-all ${
-                                                            isActive 
-                                                                ? 'bg-slate-900 text-white border-slate-900 shadow-lg' 
-                                                                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
-                                                        }`}
-                                                    >
-                                                        <span className="material-symbols-outlined text-[16px]">{statusBtn.icon}</span>
-                                                        {statusBtn.label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
+                                    {/* Action Select for Supplier / Job Tracking */}
+                                     <div className="space-y-4 mt-6 pt-6 border-t border-slate-100">
+                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Update Application Status (Job Tracking)</p>
+                                         <select
+                                             value={viewingApplication.status || 'Submitted'}
+                                             onChange={async (e) => {
+                                                 const val = e.target.value;
+                                                 try {
+                                                     await jobApi.updateApplicationStatus(viewingApplication._id, val);
+                                                     toast.success(`Status updated to ${val}`);
+                                                     setViewingApplication({ ...viewingApplication, status: val });
+                                                     fetchLiveHub();
+                                                 } catch (err) {
+                                                     toast.error('Failed to update status');
+                                                 }
+                                             }}
+                                             className="w-full py-4 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-800 focus:bg-white outline-none cursor-pointer"
+                                         >
+                                             <option value="Submitted">Submitted</option>
+                                             <option value="Shortlisted">Shortlisted</option>
+                                             <option value="Interview Scheduled">Interview Scheduled</option>
+                                             <option value="Post-Interview Review">Post-Interview Review</option>
+                                             <option value="Background Check">Background Check</option>
+                                             <option value="Offer Generation">Offer Generation</option>
+                                             <option value="Offer Extended">Offer Extended</option>
+                                             <option value="Pre-onboarding">Pre-onboarding</option>
+                                             <option value="Rejected">Rejected</option>
+                                             <option value="Candidate Withdrew">Candidate Withdrew</option>
+                                         </select>
+                                     </div>
+
+                                     {/* Candidate Notes for Supplier */}
+                                     <div className="space-y-3 pt-4 border-t border-slate-100">
+                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Candidate Notes / Feedback</p>
+                                         <textarea
+                                             defaultValue={viewingApplication.notes || ''}
+                                             onBlur={async (e) => {
+                                                 const val = e.target.value;
+                                                 if (val !== (viewingApplication.notes || '')) {
+                                                     try {
+                                                         await jobApi.updateApplicationNotes(viewingApplication._id, val);
+                                                         toast.success('Notes updated successfully');
+                                                         setViewingApplication(prev => ({ ...prev, notes: val }));
+                                                         fetchLiveHub();
+                                                     } catch (err) {
+                                                         toast.error('Failed to update notes');
+                                                     }
+                                                 }
+                                             }}
+                                             placeholder="Write notes here (saves automatically on blur)..."
+                                             rows={3}
+                                             className="w-full py-3 px-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-semibold text-slate-800 focus:bg-white outline-none resize-none"
+                                         />
+                                     </div>
                                 </div>
                             </div>
                         </motion.div>

@@ -165,7 +165,16 @@ export const updateInquiryStatus = async (req, res) => {
         const { id } = req.params;
         const { status } = req.body;
 
-        const validStatuses = ['New Application', 'Requested More Info', 'Scheduled Meeting', 'Final Proposal'];
+        const validStatuses = [
+            'Creative Pending Review',
+            'Content Review',
+            'Invoice Generated',
+            'Scheduled',
+            'Running',
+            'Campaign Ended',
+            'Paused by Admin',
+            'Rejected'
+        ];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: 'Invalid status value' });
         }
@@ -173,6 +182,24 @@ export const updateInquiryStatus = async (req, res) => {
         const inquiry = await AdInquiry.findByIdAndUpdate(
             id,
             { status },
+            { new: true }
+        );
+
+        if (!inquiry) return res.status(404).json({ message: 'Inquiry not found' });
+        res.status(200).json(inquiry);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+export const updateInquiryNotes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { notes } = req.body;
+
+        const inquiry = await AdInquiry.findByIdAndUpdate(
+            id,
+            { notes },
             { new: true }
         );
 

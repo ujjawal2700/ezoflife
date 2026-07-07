@@ -139,6 +139,17 @@ const LandingAdPage = () => {
                         <h2 className="text-3xl font-black text-white mt-3 tracking-tighter leading-tight uppercase">
                             Premium <br /> Care For Your <br /> <span className="text-[#89ECDA]">Finest Fabrics.</span>
                         </h2>
+                        {activeAd && activeAd.notes && (
+                            <div className="mt-3 p-3 bg-black/30 backdrop-blur-sm border border-white/10 rounded-2xl max-w-xs">
+                                <p className="text-[10px] text-[#89ECDA] font-black uppercase tracking-widest mb-0.5 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-[12px]">info</span>
+                                    Campaign Info
+                                </p>
+                                <p className="text-xs font-semibold text-white/95 leading-relaxed">
+                                    {activeAd.notes}
+                                </p>
+                            </div>
+                        )}
                     </motion.div>
                 </div>
             </div>

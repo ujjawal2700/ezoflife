@@ -1,5 +1,5 @@
 import express from 'express';
-import { createAd, getActiveAd, getAllAds, toggleAdStatus, deleteAd } from '../controllers/adController.js';
+import { createAd, getActiveAd, getAllAds, toggleAdStatus, deleteAd, updateAdNotes } from '../controllers/adController.js';
 import adUpload from '../middleware/adUpload.js';
 import { verifyAdmin } from '../middleware/authMiddleware.js';
 
@@ -12,6 +12,7 @@ router.get('/active', getActiveAd);
 router.post('/', verifyAdmin, adUpload.single('media'), createAd);
 router.get('/all', verifyAdmin, getAllAds);
 router.patch('/:id/toggle', verifyAdmin, toggleAdStatus);
+router.patch('/:id/notes', verifyAdmin, updateAdNotes);
 router.delete('/:id', verifyAdmin, deleteAd);
 
 export default router;

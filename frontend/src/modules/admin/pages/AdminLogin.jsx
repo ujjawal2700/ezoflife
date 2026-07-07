@@ -72,7 +72,7 @@ const AdminLogin = () => {
                     transition={{ duration: 0.8 }}
                     className="z-10 text-center px-8"
                 >
-                    <h1 className="font-headline font-black text-[2.5rem] md:text-[3.5rem] text-primary leading-none tracking-tight mb-2 uppercase italic">Ez Control</h1>
+                    <h1 className="font-headline font-black text-[2.5rem] md:text-[3.5rem] text-primary leading-none tracking-tight mb-2 uppercase">Ez Control</h1>
                     <p className="font-label text-on-surface-variant uppercase tracking-[0.2em] text-[10px] font-bold">Administrative Command Hub</p>
                 </motion.div>
                 <div className="absolute bottom-0 w-full h-24 bg-gradient-to-t from-background to-transparent"></div>
@@ -83,7 +83,7 @@ const AdminLogin = () => {
                 <div className="max-w-md mx-auto">
                     {/* Title */}
                     <div className="flex items-center justify-center mb-8">
-                        <span className="font-headline text-2xl font-black text-on-background uppercase italic tracking-tighter">Login Access</span>
+                        <span className="font-headline text-2xl font-black text-on-background uppercase tracking-tighter">Login Access</span>
                     </div>
 
                     {/* Auth Card */}
@@ -102,24 +102,6 @@ const AdminLogin = () => {
                             </motion.div>
 
                             <div className="space-y-8">
-                                {/* Channel Picker */}
-                                <motion.div variants={itemVariants} className="flex bg-surface-container-high rounded-[1.75rem] p-1.5 border border-outline-variant/10">
-                                    {otpChannels.map(({ id, icon, color }) => (
-                                        <button
-                                            key={id}
-                                            onClick={() => setOtpChannel(id)}
-                                            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.25rem] transition-all duration-300 ${otpChannel === id ? 'bg-white shadow-xl shadow-black/5 text-on-surface' : 'text-on-surface/40 hover:text-on-surface'}`}
-                                        >
-                                            <span className={`material-symbols-outlined text-[20px] ${otpChannel === id ? color : ''}`}>
-                                                {icon}
-                                            </span>
-                                            <span className="font-headline text-[10px] font-black uppercase tracking-[0.2em]">
-                                                {id}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </motion.div>
-
                                 {/* Phone Input */}
                                 <motion.div variants={itemVariants} className="relative group">
                                     <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1 opacity-60">Authorized Phone</label>

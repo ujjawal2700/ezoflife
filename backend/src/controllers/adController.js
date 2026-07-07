@@ -2,7 +2,7 @@ import Advertisement from '../models/Advertisement.js';
 
 export const createAd = async (req, res) => {
     try {
-        const { title, type } = req.body;
+        const { title, type, notes } = req.body;
         const file = req.file;
 
         if (!file) {
@@ -16,7 +16,8 @@ export const createAd = async (req, res) => {
         const newAd = new Advertisement({
             title,
             type, // 'image' or 'video'
-            url: `/uploads/ads/${file.filename}`
+            url: `/uploads/ads/${file.filename}`,
+            notes: notes || ''
         });
 
         await newAd.save();
@@ -67,6 +68,18 @@ export const deleteAd = async (req, res) => {
         const ad = await Advertisement.findByIdAndDelete(id);
         if (!ad) return res.status(404).json({ error: 'Ad not found' });
         res.json({ message: 'Ad deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const updateAdNotes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { notes } = req.body;
+        const ad = await Advertisement.findByIdAndUpdate(id, { notes }, { new: true });
+        if (!ad) return res.status(404).json({ error: 'Ad not found' });
+        res.json(ad);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

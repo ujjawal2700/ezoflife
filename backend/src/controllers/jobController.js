@@ -213,6 +213,22 @@ export const updateApplicationStatus = async (req, res) => {
     }
 };
 
+export const updateApplicationNotes = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { notes } = req.body;
+        const application = await JobApplication.findByIdAndUpdate(
+            id,
+            { notes: notes || '' },
+            { new: true }
+        );
+        if (!application) return res.status(404).json({ message: 'Application not found' });
+        res.json(application);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export const deleteApplication = async (req, res) => {
     try {
         await JobApplication.findByIdAndDelete(req.params.id);

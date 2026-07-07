@@ -18,6 +18,10 @@ const advertisementSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  notes: {
+    type: String,
+    default: ''
+  },
   createdAt: {
     type: Date,
     default: Date.now

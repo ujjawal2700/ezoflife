@@ -7,7 +7,7 @@ import { safeStorage } from '@/lib/safeStorage';
 const OtpVerificationPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { phone, channel } = location.state || { phone: '98765 43210', channel: 'SMS' };
+  const { phone, channel } = location.state || { phone: '98765 43210', channel: 'WhatsApp' };
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
@@ -96,7 +96,12 @@ const OtpVerificationPage = () => {
           } else if (actingRole === 'admin') {
             window.location.href = '/admin/dashboard';
           } else {
-            window.location.href = '/user/home';
+            const hasDetails = user.displayName && user.address;
+            if (!user.isProfileComplete && !hasDetails) {
+              window.location.href = '/user/profile/create';
+            } else {
+              window.location.href = '/user/home';
+            }
           }
         } else {
           setError(response.message || 'Invalid OTP');

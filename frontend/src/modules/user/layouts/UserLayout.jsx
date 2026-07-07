@@ -42,6 +42,26 @@ const UserLayout = () => {
   const vendorData = getSafeStorage('vendorData');
   const vendorId = vendorData?._id || vendorData?.id;
 
+  // Enforce Profile Completion for Customer accounts
+  useEffect(() => {
+    const userData = getSafeStorage('user');
+    const token = localStorage.getItem('token');
+    if (token && userData && userData._id) {
+      const role = (localStorage.getItem('userRole') || 'customer').toLowerCase();
+      if (role === 'customer') {
+        const path = location.pathname.replace(/\/$/, '') || '/user';
+        const isAuthOrProfileCreate = path.startsWith('/user/auth') || 
+                                     path.startsWith('/user/otp') || 
+                                     path.startsWith('/user/splash') ||
+                                     path.startsWith('/user/profile/create');
+        const hasDetails = userData.displayName && userData.address;
+        if (!userData.isProfileComplete && !hasDetails && !isAuthOrProfileCreate) {
+          navigate('/user/profile/create');
+        }
+      }
+    }
+  }, [location.pathname, navigate]);
+
   // Timer logic for incoming request (Vendor Only)
   useEffect(() => {
     let timer;

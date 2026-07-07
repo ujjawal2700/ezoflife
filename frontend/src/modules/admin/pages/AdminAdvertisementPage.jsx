@@ -21,6 +21,7 @@ const AdminAdvertisementPage = () => {
     // Form state
     const [title, setTitle] = useState('');
     const [type, setType] = useState('image');
+    const [notes, setNotes] = useState('');
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
 
@@ -76,6 +77,7 @@ const AdminAdvertisementPage = () => {
         formData.append('title', title);
         formData.append('type', type);
         formData.append('media', file);
+        formData.append('notes', notes);
 
         try {
             setUploading(true);
@@ -84,6 +86,7 @@ const AdminAdvertisementPage = () => {
             
             // Reset form
             setTitle('');
+            setNotes('');
             setFile(null);
             setPreview(null);
             const fileInput = document.getElementById('ad-media-upload');
@@ -152,6 +155,17 @@ const AdminAdvertisementPage = () => {
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="Summer Sale 2024"
+                                className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">Campaign Notes</label>
+                            <input 
+                                type="text"
+                                value={notes}
+                                onChange={(e) => setNotes(e.target.value)}
+                                placeholder="Special discounts, terms, etc."
                                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                         </div>
@@ -249,13 +263,14 @@ const AdminAdvertisementPage = () => {
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Campaign</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Created</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes</th>
                                     <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="4" className="px-8 py-12 text-center text-slate-400">Loading your campaigns...</td>
+                                        <td colSpan="5" className="px-8 py-12 text-center text-slate-400">Loading your campaigns...</td>
                                     </tr>
                                 ) : (
                                     paginatedAds.map((ad) => (
@@ -291,6 +306,31 @@ const AdminAdvertisementPage = () => {
                                                     {ad.isActive ? 'Active' : 'Paused'}
                                                 </button>
                                             </td>
+                                            <td className="px-8 py-6">
+                                                <input 
+                                                    type="text" 
+                                                    defaultValue={ad.notes || ''} 
+                                                    onBlur={async (e) => {
+                                                        const newNotes = e.target.value;
+                                                        if (newNotes !== (ad.notes || '')) {
+                                                            try {
+                                                                await adApi.updateNotes(ad._id, newNotes);
+                                                                toast.success('Notes updated');
+                                                                fetchAds();
+                                                            } catch (err) {
+                                                                toast.error('Failed to update notes');
+                                                            }
+                                                        }
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.target.blur();
+                                                        }
+                                                    }}
+                                                    placeholder="Add notes..."
+                                                    className="bg-slate-50 border-none rounded-xl px-4 py-2 text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all w-48"
+                                                />
+                                            </td>
                                             <td className="px-8 py-6 text-right space-x-2">
                                                 <a href={getFullAdUrl(ad.url)} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-slate-50 text-slate-400 inline-flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-all">
                                                     <span className="material-symbols-outlined text-sm">open_in_new</span>
@@ -304,7 +344,7 @@ const AdminAdvertisementPage = () => {
                                 )}
                                 {ads.length === 0 && !loading && (
                                     <tr>
-                                        <td colSpan="4" className="px-8 py-32 text-center text-slate-300">
+                                        <td colSpan="5" className="px-8 py-32 text-center text-slate-300">
                                             <span className="material-symbols-outlined text-6xl mb-4">movie_edit</span>
                                             <p className="text-[11px] font-black uppercase tracking-widest">No advertisements found</p>
                                         </td>
