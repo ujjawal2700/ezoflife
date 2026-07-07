@@ -203,7 +203,12 @@ const PartnershipInquiries = () => {
             header: 'Status',
             key: 'status',
             render: (val) => {
-                const status = val || 'Lead Received';
+                let status = val || 'Lead Received';
+                if (status === 'New Application') status = 'Lead Received';
+                else if (status === 'Requested More Info') status = 'Under Verification';
+                else if (status === 'Scheduled Meeting') status = 'Proposal Sent';
+                else if (status === 'Final Proposal') status = 'Contract Drafting';
+
                 let colors = 'bg-amber-50 text-amber-700 border-amber-200'; // Default
                 if (status === 'Under Verification') {
                     colors = 'bg-indigo-50 text-indigo-700 border-indigo-200';
@@ -231,9 +236,16 @@ const PartnershipInquiries = () => {
             header: 'Actions',
             key: '_id',
             align: 'right',
-            render: (val, row) => (
-                <select
-                    value={row.status || 'Lead Received'}
+            render: (val, row) => {
+                let currentStatus = row.status || 'Lead Received';
+                if (currentStatus === 'New Application') currentStatus = 'Lead Received';
+                else if (currentStatus === 'Requested More Info') currentStatus = 'Under Verification';
+                else if (currentStatus === 'Scheduled Meeting') currentStatus = 'Proposal Sent';
+                else if (currentStatus === 'Final Proposal') currentStatus = 'Contract Drafting';
+
+                return (
+                    <select
+                        value={currentStatus}
                     onChange={async (e) => {
                         const newStatus = e.target.value;
                         try {
