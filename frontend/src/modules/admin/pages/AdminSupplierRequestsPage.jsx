@@ -25,6 +25,7 @@ const AdminSupplierRequestsPage = () => {
     const [page, setPage] = useState(1);
     const itemsPerPage = 10;
 
+    const [searchQuery, setSearchQuery] = useState('');
     const [selectedSupplier, setSelectedSupplier] = useState('');
     const [selectedBusiness, setSelectedBusiness] = useState('');
     const [selectedPhone, setSelectedPhone] = useState('');
@@ -113,6 +114,21 @@ const AdminSupplierRequestsPage = () => {
 
     const filteredRequests = React.useMemo(() => {
         return requests.filter(req => {
+            // 1. Text Search Filter
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                const matchesName = (req.contactPersonName || req.user?.name || '').toLowerCase().includes(query);
+                const matchesPhone = (req.user?.phone || '').toLowerCase().includes(query);
+                const matchesBusiness = (req.registeredBusinessName || '').toLowerCase().includes(query);
+                const matchesAddress = (req.warehouseAddress || '').toLowerCase().includes(query);
+                const matchesCity = (req.city || '').toLowerCase().includes(query);
+                const matchesPincode = (req.pincode || '').toLowerCase().includes(query);
+                if (!matchesName && !matchesPhone && !matchesBusiness && !matchesAddress && !matchesCity && !matchesPincode) {
+                    return false;
+                }
+            }
+
+            // 2. Date Filter
             if (!req.createdAt) return !startDate && !endDate;
 
             const reqDate = new Date(req.createdAt);
@@ -130,7 +146,7 @@ const AdminSupplierRequestsPage = () => {
             }
             return true;
         });
-    }, [requests, startDate, endDate]);
+    }, [requests, startDate, endDate, searchQuery]);
 
     const paginatedRequests = React.useMemo(() => {
         return filteredRequests.slice((page - 1) * itemsPerPage, page * itemsPerPage);
@@ -239,8 +255,23 @@ const AdminSupplierRequestsPage = () => {
                 <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
                     {/* Grid Header Strip with Filters on the Right */}
                     <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
-                        {/* Date Filters on the Left */}
-                        <div className="flex items-center gap-2">
+                        {/* Date & Text Search Filters on the Left */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="relative">
+                            <input 
+                              type="text"
+                              placeholder="Search Supplier..."
+                              value={searchQuery}
+                              onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setPage(1);
+                              }}
+                              className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 pl-8 text-[10px] font-bold text-slate-800 focus:bg-white focus:border-slate-900 outline-none w-56 transition-all"
+                            />
+                            <svg className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                          </div>
                           <input 
                             type="date"
                             value={startDate}
@@ -306,12 +337,13 @@ const AdminSupplierRequestsPage = () => {
                                     <option key={phone} value={phone}>{phone}</option>
                                 ))}
                             </select>
-                            {(selectedSupplier || selectedBusiness || selectedPhone) && (
+                            {(selectedSupplier || selectedBusiness || selectedPhone || searchQuery) && (
                                 <button
                                     onClick={() => {
                                         setSelectedSupplier('');
                                         setSelectedBusiness('');
                                         setSelectedPhone('');
+                                        setSearchQuery('');
                                     }}
                                     className="px-3 py-1.5 border border-slate-200 text-slate-400 hover:text-slate-900 hover:border-slate-900 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all bg-white cursor-pointer"
                                 >
