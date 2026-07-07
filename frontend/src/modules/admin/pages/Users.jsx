@@ -375,22 +375,6 @@ export default function Users() {
           >
             <Edit2 size={14} />
           </button>
-          
-          <button 
-            onClick={() => handleToggleStatus(row._id)}
-            title={row.status === 'approved' ? 'Block User' : 'Unblock User'}
-            className={`p-2.5 rounded-xl border transition-all shadow-sm ${row.status === 'approved' ? 'bg-rose-50 border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-500 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'}`}
-          >
-            {row.status === 'approved' ? <ShieldAlert size={14} /> : <UserCheck size={14} />}
-          </button>
-          
-          <button 
-            onClick={() => handleDelete(row._id)} 
-            title="Delete Account" 
-            className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm"
-          >
-            <Trash2 size={14} />
-          </button>
         </div>
       )
     }
