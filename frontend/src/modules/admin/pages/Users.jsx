@@ -281,6 +281,63 @@ export default function Users() {
         </span>
       )
     },
+    {
+      header: 'Type',
+      key: 'customerType',
+      render: (val, row) => {
+        if (row.role !== 'Customer') {
+          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+        }
+        const isBusiness = val === 'retail';
+        return (
+          <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider ${isBusiness ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+            {isBusiness ? 'Business' : 'Individual'}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Business Name',
+      key: 'businessName',
+      render: (val, row) => {
+        if (row.role !== 'Customer' || row.customerType !== 'retail') {
+          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+        }
+        return (
+          <span className="text-[10px] text-slate-900 font-black uppercase tracking-tight truncate max-w-[150px]" title={val}>
+            {val || 'N/A'}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'GST Number',
+      key: 'gstNumber',
+      render: (val, row) => {
+        if (row.role !== 'Customer' || row.customerType !== 'retail') {
+          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+        }
+        return (
+          <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+            {val || 'N/A'}
+          </span>
+        );
+      }
+    },
+    {
+      header: 'Business Address',
+      key: 'businessAddress',
+      render: (val, row) => {
+        if (row.role !== 'Customer' || row.customerType !== 'retail') {
+          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+        }
+        return (
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate max-w-[200px]" title={val}>
+            {val || 'N/A'}
+          </span>
+        );
+      }
+    },
 
     {
       header: 'Location',
@@ -342,13 +399,17 @@ export default function Users() {
   const handleExportFile = (format) => {
     try {
       const headers = [
-        "Name", "Contact Number", "Role", "Location", "Registration Date", "Status"
+        "Name", "Contact Number", "Role", "Type", "Business Name", "GST Number", "Business Address", "Location", "Registration Date", "Status"
       ];
       
       const rows = filteredUsers.map(u => [
         u.displayName || 'Unnamed User',
         u.phone || 'N/A',
         u.role || 'Customer',
+        u.role === 'Customer' ? (u.customerType === 'retail' ? 'Business' : 'Individual') : 'N/A',
+        (u.role === 'Customer' && u.customerType === 'retail') ? (u.businessName || 'N/A') : 'N/A',
+        (u.role === 'Customer' && u.customerType === 'retail') ? (u.gstNumber || 'N/A') : 'N/A',
+        (u.role === 'Customer' && u.customerType === 'retail') ? (u.businessAddress || 'N/A') : 'N/A',
         u.address || 'No Address Set',
         new Date(u.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
         u.status === 'approved' ? 'Active' : u.status === 'rejected' ? 'Blocked' : 'Pending'
@@ -659,6 +720,49 @@ export default function Users() {
                                                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                             />
                                         </div>
+                                    </>
+                                )}
+                                {editingUser.role === 'Customer' && (
+                                    <>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Type</label>
+                                            <select
+                                                value={editingUser.customerType || 'individual'}
+                                                onChange={(e) => setEditingUser({...editingUser, customerType: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all"
+                                            >
+                                                <option value="individual">Individual</option>
+                                                <option value="retail">Business (Retail)</option>
+                                            </select>
+                                        </div>
+                                        {editingUser.customerType === 'retail' && (
+                                            <>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
+                                                    <input 
+                                                        value={editingUser.businessName || ''} 
+                                                        onChange={(e) => setEditingUser({...editingUser, businessName: e.target.value})}
+                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
+                                                    <input 
+                                                        value={editingUser.gstNumber || ''} 
+                                                        onChange={(e) => setEditingUser({...editingUser, gstNumber: e.target.value.toUpperCase()})}
+                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                    />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Address</label>
+                                                    <input 
+                                                        value={editingUser.businessAddress || ''} 
+                                                        onChange={(e) => setEditingUser({...editingUser, businessAddress: e.target.value})}
+                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
                                     </>
                                 )}
                             </div>
