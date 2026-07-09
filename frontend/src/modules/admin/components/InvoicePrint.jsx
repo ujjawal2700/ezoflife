@@ -37,6 +37,34 @@ const InvoicePrint = ({ order, settings = {} }) => {
 
     const subtotal = grandTotal - platformFee - gstAmount + discount;
 
+    // GST Display Logic
+    const customerObj = order.user || order.customer;
+    const customerGstType = customerObj?.customerType === 'retail' ? 'RD' : 'URD';
+    const customerGstin = customerObj?.gstNumber || '';
+
+    const vendorObj = order.vendor;
+    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || '';
+    const vendorGstType = vendorGstin ? 'RD' : 'URD';
+
+    let displayGstNo = '';
+    let displayGstLabel = '';
+    let gstNotice = '';
+
+    if (customerGstType === 'RD' && vendorGstType === 'RD') {
+        displayGstNo = customerGstin;
+        displayGstLabel = "Customer GSTIN";
+        gstNotice = "B2B Invoice - Tax Credit Available";
+    } else if (customerGstType === 'URD' && vendorGstType === 'RD') {
+        displayGstNo = vendorGstin;
+        displayGstLabel = "Vendor GSTIN";
+        gstNotice = "B2C Invoice";
+    } else {
+        // Includes URD-URD and fallback
+        displayGstNo = settings.gstNumber || 'ZA1223324435435';
+        displayGstLabel = "Spinzyt GSTIN";
+        gstNotice = "Marketplace / Platform Invoice";
+    }
+
     // Use settings or fallbacks
     const accentColor = settings.accentColor || '#5B21B6';
     const businessName = settings.businessName || 'EZOFLIFE TECHNOLOGY LLP';
@@ -51,7 +79,9 @@ const InvoicePrint = ({ order, settings = {} }) => {
                     <div className="space-y-1 text-[13px] font-bold text-slate-600">
                         <p className="tracking-tight">www.spinzyt.com</p>
                         <p className="tracking-tight">{contactEmail}</p>
-                        <p className="tracking-tight">GST # {settings.gstNumber || 'ZA1223324435435'}</p>
+                        {displayGstNo && (
+                            <p className="tracking-tight">{displayGstLabel} # {displayGstNo}</p>
+                        )}
                     </div>
                 </div>
                 {settings.showLogo !== false && (
@@ -83,9 +113,15 @@ const InvoicePrint = ({ order, settings = {} }) => {
             <div className="py-10 px-2 flex justify-between items-start border-x border-slate-200">
                 <div className="space-y-2">
                     <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Invoice No: <span className="font-bold text-slate-600 ml-2">{order.invoiceNo || `SZ-CUST-2026-${order.id?.slice(-4) || '1001'}`}</span></p>
-                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer Name: <span className="font-bold text-slate-600 ml-2">{order.user?.name || '[Customer Name]'}</span></p>
+                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer Name: <span className="font-bold text-slate-600 ml-2">{customerObj?.displayName || order.user?.name || '[Customer Name]'}</span></p>
+                    {customerGstType === 'RD' && customerGstin && (
+                        <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer GSTIN: <span className="font-bold text-slate-600 ml-2">{customerGstin}</span></p>
+                    )}
                     {settings.showVendorDetails !== false && (
                         <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Vendor ID : <span className="font-bold text-slate-600 ml-2">{order.vendor?.id || 'VEN-001'}</span></p>
+                    )}
+                    {gstNotice && (
+                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mt-2">{gstNotice}</p>
                     )}
                 </div>
                 <div className="space-y-2 text-right">

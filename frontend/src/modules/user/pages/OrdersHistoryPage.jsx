@@ -239,6 +239,34 @@ const OrdersHistoryPage = () => {
 
     const subtotal = grandTotal - platformFee - gstAmount + discount;
 
+    // GST Display Logic
+    const customerObj = order.customer || order.user || userData;
+    const customerGstType = customerObj?.customerType === 'retail' ? 'RD' : 'URD';
+    const customerGstin = customerObj?.gstNumber || '';
+
+    const vendorObj = order.vendor;
+    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || '';
+    const vendorGstType = vendorGstin ? 'RD' : 'URD';
+
+    let displayGstNo = '';
+    let displayGstLabel = '';
+    let gstNotice = '';
+
+    if (customerGstType === 'RD' && vendorGstType === 'RD') {
+        displayGstNo = customerGstin;
+        displayGstLabel = "Customer GSTIN";
+        gstNotice = "B2B Invoice - Tax Credit Available";
+    } else if (customerGstType === 'URD' && vendorGstType === 'RD') {
+        displayGstNo = vendorGstin;
+        displayGstLabel = "Vendor GSTIN";
+        gstNotice = "B2C Invoice";
+    } else {
+        // Includes URD-URD and fallback
+        displayGstNo = cfg.gstNumber || 'ZA1223324435435';
+        displayGstLabel = "Spinzyt GSTIN";
+        gstNotice = "Marketplace / Platform Invoice";
+    }
+
     const invoiceHtml = `
       <html>
         <head>
@@ -343,7 +371,7 @@ const OrdersHistoryPage = () => {
                 <div class="business-details">
                   <div>www.spinzyt.com</div>
                   <div>${cfg.contactEmail}</div>
-                  <div>GST # ${cfg.gstNumber || 'ZA1223324435435'}</div>
+                  ${displayGstNo ? `<div>${displayGstLabel} # ${displayGstNo}</div>` : ''}
                 </div>
               </div>
               <div class="header-right">
@@ -357,8 +385,10 @@ const OrdersHistoryPage = () => {
             <div class="info-section">
               <div class="info-group">
                 <div class="info-label">Invoice No: <span class="info-value">${order.invoiceNo || `SZ-CUST-2026-${(order.orderId || order._id).slice(-4)}`}</span></div>
-                <div class="info-label">Customer Name: <span class="info-value">${userData.displayName || 'Valued Customer'}</span></div>
+                <div class="info-label">Customer Name: <span class="info-value">${customerObj?.displayName || userData.displayName || 'Valued Customer'}</span></div>
+                ${customerGstType === 'RD' && customerGstin ? `<div class="info-label">Customer GSTIN: <span class="info-value">${customerGstin}</span></div>` : ''}
                 ${cfg.showVendorDetails ? `<div class="info-label">Vendor ID: <span class="info-value">${order.vendor?.displayName || 'VEN-001'}</span></div>` : ''}
+                ${gstNotice ? `<div class="info-label" style="color: #6d28d9; font-size: 10px; margin-top: 4px;">${gstNotice}</div>` : ''}
               </div>
               <div class="info-group text-right">
                 <div class="info-label">Order No: <span class="info-value">${order.orderId || order._id}</span></div>

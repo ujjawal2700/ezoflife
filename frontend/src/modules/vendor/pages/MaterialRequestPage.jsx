@@ -123,11 +123,33 @@ const MaterialRequestPage = () => {
                     vendorId ? materialApi.getLiveCatalog(vendorId) : [],
                     vendorId ? b2bOrderApi.getVendorOrders(vendorId) : []
                 ]);
-                setMaterials(materialData);
-                setVendorOrders(orderData);
+                
+                if (Array.isArray(materialData)) {
+                    setMaterials(materialData);
+                } else {
+                    console.error('Expected array for materials but got:', materialData);
+                    setMaterials([]);
+                    if (materialData && materialData.message) {
+                        toast.error(materialData.message);
+                    }
+                }
+
+                if (Array.isArray(orderData)) {
+                    setVendorOrders(orderData);
+                } else {
+                    console.error('Expected array for orders but got:', orderData);
+                    setVendorOrders([]);
+                    if (orderData && orderData.message) {
+                        toast.error(orderData.message);
+                    }
+                }
+                
                 setLoading(false);
             } catch (err) {
                 console.error('Error fetching data:', err);
+                toast.error(err.message || 'Error loading catalog/orders');
+                setMaterials([]);
+                setVendorOrders([]);
                 setLoading(false);
             }
         };

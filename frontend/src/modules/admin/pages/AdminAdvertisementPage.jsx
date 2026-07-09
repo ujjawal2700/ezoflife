@@ -21,6 +21,7 @@ const AdminAdvertisementPage = () => {
     // Form state
     const [title, setTitle] = useState('');
     const [type, setType] = useState('image');
+    const [category, setCategory] = useState('splash'); // 'splash' or 'home_banner'
     const [notes, setNotes] = useState('');
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
@@ -76,6 +77,7 @@ const AdminAdvertisementPage = () => {
         const formData = new FormData();
         formData.append('title', title);
         formData.append('type', type);
+        formData.append('category', category);
         formData.append('media', file);
         formData.append('notes', notes);
 
@@ -131,8 +133,8 @@ const AdminAdvertisementPage = () => {
         <div className="p-8 space-y-8 max-w-6xl mx-auto">
             <header className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none">Splash Ads</h1>
-                    <p className="text-sm text-slate-500 font-medium mt-2">Manage app splash screen content and campaigns</p>
+                    <h1 className="text-3xl font-black tracking-tighter text-slate-900 leading-none">Advertisements & Banners</h1>
+                    <p className="text-sm text-slate-500 font-medium mt-2">Manage app splash screen ads and home screen banner campaigns</p>
                 </div>
                 <div className="bg-slate-50 px-6 py-2.5 rounded-2xl border border-slate-100 shadow-sm">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{ads.length} Total Campaign(s)</span>
@@ -168,6 +170,26 @@ const AdminAdvertisementPage = () => {
                                 placeholder="Special discounts, terms, etc."
                                 className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 transition-all"
                             />
+                        </div>
+
+                        <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2 px-1">Placement Category</label>
+                            <div className="flex gap-2 p-1 bg-slate-50 rounded-2xl">
+                                <button 
+                                    type="button"
+                                    onClick={() => setCategory('splash')}
+                                    className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${category === 'splash' ? 'bg-white text-primary shadow-sm shadow-primary/10' : 'text-slate-400 opacity-60'}`}
+                                >
+                                    Splash Ad
+                                </button>
+                                <button 
+                                    type="button"
+                                    onClick={() => setCategory('home_banner')}
+                                    className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${category === 'home_banner' ? 'bg-white text-primary shadow-sm shadow-primary/10' : 'text-slate-400 opacity-60'}`}
+                                >
+                                    Home Banner
+                                </button>
+                            </div>
                         </div>
 
                         <div>
@@ -261,6 +283,7 @@ const AdminAdvertisementPage = () => {
                             <thead className="bg-slate-50 border-b border-slate-100">
                                 <tr>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Campaign</th>
+                                    <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Created</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</th>
                                     <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Notes</th>
@@ -270,7 +293,7 @@ const AdminAdvertisementPage = () => {
                             <tbody className="divide-y divide-slate-50">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="5" className="px-8 py-12 text-center text-slate-400">Loading your campaigns...</td>
+                                        <td colSpan="6" className="px-8 py-12 text-center text-slate-400">Loading your campaigns...</td>
                                     </tr>
                                 ) : (
                                     paginatedAds.map((ad) => (
@@ -282,7 +305,7 @@ const AdminAdvertisementPage = () => {
                                                             <img src={getFullAdUrl(ad.url)} alt={ad.title} className="w-full h-full object-cover" />
                                                         ) : (
                                                             <div className="w-full h-full flex items-center justify-center bg-black text-white">
-                                                                <span className="material-symbols-outlined text-sm">videocam</span>
+                                                                 <span className="material-symbols-outlined text-sm">videocam</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -291,6 +314,15 @@ const AdminAdvertisementPage = () => {
                                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{ad.type}</p>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                                    ad.category === 'home_banner' 
+                                                    ? 'bg-blue-50 text-blue-600 border-blue-150' 
+                                                    : 'bg-indigo-50 text-indigo-600 border-indigo-150'
+                                                }`}>
+                                                    {ad.category === 'home_banner' ? 'Home Banner' : 'Splash Ad'}
+                                                </span>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <p className="text-xs font-bold text-slate-600">{new Date(ad.createdAt).toLocaleDateString('en-GB')}</p>
@@ -344,7 +376,7 @@ const AdminAdvertisementPage = () => {
                                 )}
                                 {ads.length === 0 && !loading && (
                                     <tr>
-                                        <td colSpan="5" className="px-8 py-32 text-center text-slate-300">
+                                        <td colSpan="6" className="px-8 py-32 text-center text-slate-300">
                                             <span className="material-symbols-outlined text-6xl mb-4">movie_edit</span>
                                             <p className="text-[11px] font-black uppercase tracking-widest">No advertisements found</p>
                                         </td>

@@ -21,6 +21,7 @@ const SupplierMorePage = () => {
       icon: "lan",
       items: [
         { icon: "work", title: "Careers", desc: "Join the team", path: "/user/careers", color: "tertiary" },
+        { icon: "notifications", title: "Notifications", desc: "View Alerts & Messages", path: "/supplier/notifications", color: "primary" },
         { icon: "share", title: "Refer us", desc: "Invite friends & family", path: "/user/referral", color: "secondary" }
       ]
     },

@@ -92,7 +92,12 @@ const userSchema = new mongoose.Schema({
         address: { type: String, default: '' },
         city: { type: String, default: '' },
         pincode: { type: String, default: '' },
-        gst: { type: String, default: '' }
+        gst: { type: String, default: '' },
+        supplyCategories: [{ type: String }],
+        entityType: { type: String, default: '' },
+        designation: { type: String, default: '' },
+        panNumber: { type: String, default: '' },
+        aadhaarNumber: { type: String, default: '' }
     },
     documents: [
         {
@@ -138,6 +143,7 @@ const userSchema = new mongoose.Schema({
     aadharNumber: { type: String, default: '' },
     gstNumber: { type: String, default: '' },
     businessAddress: { type: String, default: '' },
+    facilityAddress: { type: String, default: '' },
     
     // Facility Media
     exteriorPhoto: { type: String, default: '' },
@@ -182,6 +188,14 @@ const userSchema = new mongoose.Schema({
     walletBalance: {
         type: Number,
         default: 0
+    },
+    upiId: {
+        type: String,
+        default: ''
+    },
+    cardName: {
+        type: String,
+        default: ''
     }
 }, { timestamps: true });
 

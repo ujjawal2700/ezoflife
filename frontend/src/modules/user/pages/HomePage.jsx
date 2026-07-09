@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi } from '../../../lib/api';
+import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi, adApi, UPLOADS_URL } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import { locationService } from '../../../lib/locationService';
@@ -65,6 +65,22 @@ const HomePage = () => {
   }, []);
 
   // Removed misplaced useEffect hook to avoid accessing pickupAddress before initialization.
+
+  const [dbBanner, setDbBanner] = useState(null);
+
+  useEffect(() => {
+    const fetchDbBanner = async () => {
+      try {
+        const res = await adApi.getActive('home_banner');
+        if (res && res.url) {
+          setDbBanner(res);
+        }
+      } catch (err) {
+        console.error('Failed to fetch home banner:', err);
+      }
+    };
+    fetchDbBanner();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTier, setSelectedTier] = useState(() => {
@@ -886,21 +902,57 @@ const HomePage = () => {
         <section className="mt-2 mb-4 w-full relative px-2">
           <div className="overflow-hidden rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-100">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={banners[currentBanner].id}
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className={`${banners[currentBanner].bg} p-4 relative overflow-hidden flex flex-col justify-end min-h-[60px]`}
-              >
-                <div className="relative z-10">
-                  <span className="text-white/80 text-[6px] font-black uppercase tracking-[0.3em] mb-1 block">{banners[currentBanner].sub}</span>
-                  <h2 className="text-lg font-black text-white mb-2 leading-tight tracking-tighter">{banners[currentBanner].title}</h2>
-                  <div className="flex gap-1.5">
-                    {banners.map((_, i) => (
-                      <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentBanner ? 'w-6 bg-white' : 'w-1 bg-white/40'}`} />
-                    ))}
+              {dbBanner ? (
+                <motion.div
+                  key={dbBanner._id}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="relative overflow-hidden flex flex-col justify-end min-h-[140px] bg-slate-900 text-white"
+                >
+                  {dbBanner.type === 'image' ? (
+                    <img 
+                      src={dbBanner.url.startsWith('/uploads/') ? UPLOADS_URL.replace('/uploads/', '') + dbBanner.url : `${UPLOADS_URL}${dbBanner.url}`} 
+                      alt={dbBanner.title} 
+                      className="absolute inset-0 w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <video 
+                      src={dbBanner.url.startsWith('/uploads/') ? UPLOADS_URL.replace('/uploads/', '') + dbBanner.url : `${UPLOADS_URL}${dbBanner.url}`} 
+                      className="absolute inset-0 w-full h-full object-cover" 
+                      autoPlay 
+                      loop 
+                      muted 
+                      playsInline
+                    />
+                  )}
+                  {/* Visual Overlay to make text readable */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-0" />
+                  
+                  <div className="relative z-10 p-5">
+                    <span className="text-white/80 text-[6px] font-black uppercase tracking-[0.3em] mb-1.5 block">
+                      {dbBanner.notes || 'Featured Campaign'}
+                    </span>
+                    <h2 className="text-lg font-black text-white leading-tight tracking-tighter">
+                      {dbBanner.title}
+                    </h2>
                   </div>
-                </div>
-              </motion.div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={banners[currentBanner].id}
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className={`${banners[currentBanner].bg} p-4 relative overflow-hidden flex flex-col justify-end min-h-[60px]`}
+                >
+                  <div className="relative z-10">
+                    <span className="text-white/80 text-[6px] font-black uppercase tracking-[0.3em] mb-1 block">{banners[currentBanner].sub}</span>
+                    <h2 className="text-lg font-black text-white mb-2 leading-tight tracking-tighter">{banners[currentBanner].title}</h2>
+                    <div className="flex gap-1.5">
+                      {banners.map((_, i) => (
+                        <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentBanner ? 'w-6 bg-white' : 'w-1 bg-white/40'}`} />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
         </section>

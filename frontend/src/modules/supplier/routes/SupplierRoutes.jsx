@@ -13,6 +13,7 @@ import SupplierMorePage from '../pages/SupplierMorePage';
 import SupplierLaborRequestPage from '../pages/SupplierLaborRequestPage';
 import SupplierCreateJobRequisition from '../pages/SupplierCreateJobRequisition';
 import SupplierAddressesPage from '../pages/SupplierAddressesPage';
+import SupplierNotifications from '../pages/SupplierNotifications';
 
 import SupplierAuth from '../pages/SupplierAuth';
 import SupplierOtp from '../pages/SupplierOtp';
@@ -27,6 +28,7 @@ const SupplierRoutes = () => {
 
         {/* Main Hub */}
         <Route path="/dashboard" element={<SupplierDashboard />} />
+        <Route path="/notifications" element={<SupplierNotifications />} />
         <Route path="/order/:id" element={<SupplierOrderDetails />} />
         <Route path="/supplies" element={<SupplierSupplies />} />
         <Route path="/my-supplies" element={<SupplierMySupplies />} />

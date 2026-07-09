@@ -608,9 +608,10 @@ export const adApi = {
             throw error;
         }
     },
-    getActive: async () => {
+    getActive: async (category) => {
         try {
-            const response = await fetch(`${BASE_URL}/ads/active`);
+            const url = category ? `${BASE_URL}/ads/active?category=${category}` : `${BASE_URL}/ads/active`;
+            const response = await fetch(url);
             return await response.json();
         } catch (error) {
             console.error('Get Active Ad Error:', error);
@@ -706,6 +707,10 @@ export const b2bOrderApi = {
     getVendorOrders: async (vendorId) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/vendor/${vendorId}`);
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.message || 'Failed to fetch vendor B2B orders');
+            }
             return await response.json();
         } catch (error) {
             console.error('Fetch Vendor B2B Orders Error:', error);
@@ -1188,6 +1193,19 @@ export const adminApi = {
             console.error('Record Payout Error:', error);
             throw error;
         }
+    },
+    updateUserProfile: async (id, data) => {
+        try {
+            const response = await fetch(`${BASE_URL}/auth/profile/update/${id}`, {
+                method: 'PATCH',
+                headers: adminAuthHeaders(),
+                body: JSON.stringify(data)
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Update User Profile Error:', error);
+            throw error;
+        }
     }
 };
 
@@ -1243,7 +1261,21 @@ export const orderApi = {
     },
     getNearbyVendors: async (lat, lng, radius = 10) => {
         try {
-            const response = await fetch(`${BASE_URL}/orders/nearby-vendors?lat=${lat}&lng=${lng}&radius=${radius}`);
+            const userRaw = localStorage.getItem('user') || localStorage.getItem('userData');
+            let customerId = '';
+            if (userRaw) {
+                try {
+                    const user = JSON.parse(userRaw);
+                    customerId = user._id || user.id || user.user?._id || user.user?.id;
+                } catch (e) {
+                    console.error('Error parsing user from localStorage', e);
+                }
+            }
+            const queryParams = new URLSearchParams({ lat, lng, radius });
+            if (customerId) {
+                queryParams.append('customerId', customerId);
+            }
+            const response = await fetch(`${BASE_URL}/orders/nearby-vendors?${queryParams.toString()}`);
             return await response.json();
         } catch (error) {
             console.error('Get Nearby Vendors Error:', error);
@@ -1545,6 +1577,10 @@ export const materialApi = {
     getLiveCatalog: async (vendorId) => {
         try {
             const response = await fetch(`${BASE_URL}/vendor-master-supplies/live-catalog?vendorId=${vendorId}`);
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.message || 'Failed to fetch catalog');
+            }
             return await response.json();
         } catch (error) {
             console.error('getLiveCatalog Error:', error);

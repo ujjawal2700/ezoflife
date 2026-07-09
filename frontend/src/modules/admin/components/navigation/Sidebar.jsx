@@ -43,7 +43,30 @@ const navItems = [
     {
         group: 'Operations', items: [
             { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
-            { icon: Users, label: 'User Management', path: '/admin/users' },
+            { 
+                icon: Users, 
+                label: 'User Management', 
+                path: '/admin/users',
+                subItems: [
+                    { 
+                        label: 'Customer Management', 
+                        path: '/admin/users?role=Customer',
+                        subItems: [
+                            { label: 'Individual Customers', path: '/admin/users?role=Customer&type=individual' },
+                            { label: 'Business Customers', path: '/admin/users?role=Customer&type=retail' }
+                        ]
+                    },
+                    { 
+                        label: 'Vendor Management', 
+                        path: '/admin/users?role=Vendor',
+                        subItems: [
+                            { label: 'Registered Vendors', path: '/admin/users?role=Vendor&vendorType=registered' },
+                            { label: 'Unregistered Vendors', path: '/admin/users?role=Vendor&vendorType=unregistered' }
+                        ]
+                    },
+                    { label: 'Supplier Management', path: '/admin/users?role=Supplier' }
+                ]
+            },
             { 
                 icon: ShieldCheck, 
                 label: 'Registration Approval', 
@@ -164,6 +187,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
     const navigate = useNavigate();
     const location = useLocation();
     const [expandedMenu, setExpandedMenu] = useState(null);
+    const [expandedSubMenus, setExpandedSubMenus] = useState({});
 
     useEffect(() => {
         // Auto-expand menu item if a sub-item is active
@@ -177,7 +201,15 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
         if (matchingItem) {
             setExpandedMenu(matchingItem.label);
         }
-    }, [location.pathname]);
+        
+        const fullPath = location.pathname + location.search;
+        if (fullPath.includes('role=Customer')) {
+            setExpandedSubMenus(prev => ({ ...prev, 'Customer Management': true }));
+        }
+        if (fullPath.includes('role=Vendor')) {
+            setExpandedSubMenus(prev => ({ ...prev, 'Vendor Management': true }));
+        }
+    }, [location.pathname, location.search]);
 
     return (
         <>
@@ -290,25 +322,80 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                     className="overflow-hidden bg-slate-50/50 rounded-sm mt-1 ml-4 border-l border-slate-200"
                                                 >
                                                     {item.subItems.map((sub) => {
-                                                        const isSubActive = location.pathname + location.search === sub.path;
-                                                        return (
-                                                            <button
-                                                                key={sub.label}
-                                                                onClick={() => {
-                                                                    navigate(sub.path);
-                                                                    setIsMobileOpen(false);
-                                                                }}
-                                                                className={`w-full text-left px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
-                                                                    isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/30"
-                                                                }`}
-                                                            >
-                                                                {sub.label}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                                        const hasNestedItems = sub.subItems && sub.subItems.length > 0;
+                                                        const isSubActive = location.pathname + location.search === sub.path || (hasNestedItems && sub.subItems.some(nested => location.pathname + location.search === nested.path));
+                                                        
+                                                        if (hasNestedItems) {
+                                                            const isSubMenuExpanded = !!expandedSubMenus[sub.label];
+                                                            return (
+                                                                <div key={sub.label} className="flex flex-col">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setExpandedSubMenus(prev => ({
+                                                                                ...prev,
+                                                                                [sub.label]: !prev[sub.label]
+                                                                            }));
+                                                                        }}
+                                                                        className={`w-full flex items-center justify-between px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
+                                                                            isSubActive ? "text-slate-900 bg-slate-100/30" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/10"
+                                                                        }`}
+                                                                    >
+                                                                        <span>{sub.label}</span>
+                                                                        <ChevronDown 
+                                                                            size={10} 
+                                                                            className={`transition-transform duration-300 ${isSubMenuExpanded ? "rotate-180" : ""}`} 
+                                                                        />
+                                                                    </button>
+                                                                    <AnimatePresence>
+                                                                        {isSubMenuExpanded && (
+                                                                            <motion.div
+                                                                                initial={{ height: 0, opacity: 0 }}
+                                                                                animate={{ height: "auto", opacity: 1 }}
+                                                                                exit={{ height: 0, opacity: 0 }}
+                                                                                className="overflow-hidden bg-slate-100/30 rounded-sm mt-0.5 ml-3 border-l border-slate-300"
+                                                                            >
+                                                                                {sub.subItems.map((nested) => {
+                                                                                    const isNestedActive = location.pathname + location.search === nested.path;
+                                                                                    return (
+                                                                                        <button
+                                                                                            key={nested.label}
+                                                                                            onClick={() => {
+                                                                                                navigate(nested.path);
+                                                                                                setIsMobileOpen(false);
+                                                                                            }}
+                                                                                            className={`w-full text-left px-4 py-1.5 text-[8.5px] font-bold uppercase tracking-wider transition-all ${
+                                                                                                isNestedActive ? "text-slate-900 bg-slate-200/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-200/20"
+                                                                                            }`}
+                                                                                        >
+                                                                                            {nested.label}
+                                                                                            </button>
+                                                                                        );
+                                                                                    })}
+                                                                                </motion.div>
+                                                                            )}
+                                                                        </AnimatePresence>
+                                                                    </div>
+                                                                );
+                                                            }
+
+                                                            return (
+                                                                <button
+                                                                    key={sub.label}
+                                                                    onClick={() => {
+                                                                        navigate(sub.path);
+                                                                        setIsMobileOpen(false);
+                                                                    }}
+                                                                    className={`w-full text-left px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
+                                                                        isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/30"
+                                                                    }`}
+                                                                >
+                                                                    {sub.label}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                     </div>
                                 );
                             })}

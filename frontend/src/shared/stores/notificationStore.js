@@ -31,7 +31,8 @@ const useNotificationStore = create((set, get) => ({
                 to: n.payload?.to,
                 dist: n.payload?.dist,
                 pay: n.payload?.pay,
-                displayId: n.payload?.displayId
+                displayId: n.payload?.displayId,
+                payload: n.payload
             }));
             
             set({ 

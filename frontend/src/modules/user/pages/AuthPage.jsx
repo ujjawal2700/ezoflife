@@ -11,13 +11,12 @@ const AuthPage = () => {
   const [loginPhone, setLoginPhone] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
   const [otpChannel, setOtpChannel] = useState('WhatsApp'); // 'WhatsApp' or 'SMS'
-  const [agreedToTnC, setAgreedToTnC] = useState(false);
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastRequestedPhone, setLastRequestedPhone] = useState('');
 
   const isLoginValid = loginPhone.length === 10 && /^\d+$/.test(loginPhone);
-  const isSignupValid = signupPhone.length === 10 && /^\d+$/.test(signupPhone) && agreedToTnC;
+  const isSignupValid = signupPhone.length === 10 && /^\d+$/.test(signupPhone);
 
   const handleRequestOtp = async (phone, type, extraData = {}) => {
     if (loading || lastRequestedPhone === phone) return;
@@ -63,7 +62,7 @@ const AuthPage = () => {
         customerType: 'individual' 
       });
     }
-  }, [signupPhone, agreedToTnC, isLogin, isSignupValid, loading, lastRequestedPhone]);
+  }, [signupPhone, isLogin, isSignupValid, loading, lastRequestedPhone]);
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0, y: 20 },
@@ -200,6 +199,10 @@ const AuthPage = () => {
                         {loginPhone.length > 0 && !isLoginValid && (
                             <p className="text-[9px] text-error font-bold mt-2 ml-1 animate-pulse">Enter a valid 10-digit number</p>
                         )}
+                        <p className="text-[10px] text-emerald-600 font-black mt-2.5 ml-1 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+                          OTP will be sent to WhatsApp
+                        </p>
                       </motion.div>
 
                       {/* Button removed per user request for automatic flow */}
@@ -241,20 +244,13 @@ const AuthPage = () => {
                         {signupPhone.length > 0 && signupPhone.length !== 10 && (
                             <p className="text-[9px] text-error font-bold mt-2 ml-1">Enter a valid 10-digit number</p>
                         )}
-                      </motion.div>
- 
-                      {/* T&C Checkbox */}
-                      <motion.div variants={itemVariants} className="flex items-start gap-3 px-1 py-1">
-                        <button 
-                          onClick={() => setAgreedToTnC(!agreedToTnC)}
-                          className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center transition-all border ${agreedToTnC ? 'bg-primary border-primary text-white' : 'bg-surface-container-low border-outline-variant/20'}`}
-                        >
-                          {agreedToTnC && <span className="material-symbols-outlined text-[14px]">check</span>}
-                        </button>
-                        <p className="text-[10px] font-bold text-on-surface-variant leading-relaxed">
-                          I agree to the <span className="text-primary underline cursor-pointer">Terms & Conditions</span> and provide consent.
+                        <p className="text-[10px] text-emerald-600 font-black mt-2.5 ml-1 flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+                          OTP will be sent to WhatsApp
                         </p>
                       </motion.div>
+ 
+                      {/* T&C Checkbox removed (moved to profile page) */}
  
                       {/* Button removed per user request for automatic flow */}
                       
@@ -268,10 +264,7 @@ const AuthPage = () => {
             </AnimatePresence>
           </motion.div>
 
-          {/* Footer micro-copy */}
-          <motion.p className="mt-10 text-center text-[11px] text-on-surface-variant font-semibold tracking-wide px-4 opacity-50 underline underline-offset-4 cursor-pointer">
-            Trouble logging in? Get support from SPINZYT Team
-          </motion.p>
+          {/* Footer micro-copy removed */}
         </div>
       </main>
 

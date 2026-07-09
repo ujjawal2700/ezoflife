@@ -2,6 +2,7 @@ import VendorProductQuery from '../models/VendorProductQuery.js';
 import User from '../models/User.js';
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import SupplierApplication from '../models/SupplierApplication.js';
+import Notification from '../models/Notification.js';
 import mongoose from 'mongoose';
 
 export const sendMessage = async (req, res) => {
@@ -22,6 +23,37 @@ export const sendMessage = async (req, res) => {
         });
 
         await newQuery.save();
+
+        // Create notification for the receiver
+        try {
+            const isVendorSender = sender === 'Vendor';
+            const recipientId = isVendorSender ? supplierId : vendorId;
+            const recipientRole = isVendorSender ? 'supplier' : 'vendor';
+            
+            // Get sender profile details to customize the notification message
+            const senderUser = await User.findById(isVendorSender ? vendorId : supplierId);
+            const senderName = senderUser?.displayName || senderUser?.facilityName || senderUser?.supplierDetails?.businessName || (isVendorSender ? 'Vendor' : 'Supplier');
+
+            const notification = new Notification({
+                recipient: recipientId,
+                role: recipientRole,
+                title: isVendorSender ? 'New Message from Vendor' : 'New Message from Supplier',
+                message: `${senderName}: "${message.length > 50 ? message.slice(0, 50) + '...' : message}"`,
+                type: 'b2b_chat',
+                payload: {
+                    b2bOrderId,
+                    productId,
+                    vendorId,
+                    supplierId,
+                    queryId: newQuery._id
+                }
+            });
+            await notification.save();
+        } catch (notifErr) {
+            console.error('Error creating chat notification:', notifErr);
+            // Don't fail the message request if notification fails
+        }
+
         res.status(201).json(newQuery);
     } catch (error) {
         console.error('Error in sendMessage:', error);

@@ -70,7 +70,7 @@ const isPointInPolygon = (lat, lng, polygonCoords) => {
     return inside;
 };
 
-export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, serviceIds = []) => {
+export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, serviceIds = [], isCustomerRD = false) => {
     try {
         const cLat = Number(customerLat);
         const cLng = Number(customerLng);
@@ -94,7 +94,14 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, s
             logToFile(`⚠️ Customer coordinates outside active ServiceAreas. Falling back to ${radiusKm}km radius.`);
         }
 
-        const vendors = await User.find({ role: 'Vendor', status: 'approved' });
+        const query = { role: 'Vendor', status: 'approved' };
+        if (isCustomerRD) {
+            query.$or = [
+                { 'shopDetails.gst': { $ne: '', $exists: true } },
+                { gstNumber: { $ne: '', $exists: true } }
+            ];
+        }
+        const vendors = await User.find(query);
         const nearbyVendors = [];
 
         for (const vendor of vendors) {
@@ -148,11 +155,20 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, s
  */
 export const handleGetNearbyVendors = async (req, res) => {
     try {
-        const { lat, lng, radius } = req.query;
+        const { lat, lng, radius, customerId } = req.query;
         if (!lat || !lng) {
             return res.status(400).json({ message: 'Latitude and Longitude are required' });
         }
-        const vendors = await getNearbyVendors(lat, lng, radius || 10); // Default 10km for browsing
+        
+        let isCustomerRD = false;
+        if (customerId) {
+            const customer = await User.findById(customerId);
+            if (customer && customer.customerType === 'retail') {
+                isCustomerRD = true;
+            }
+        }
+        
+        const vendors = await getNearbyVendors(lat, lng, radius || 10, [], isCustomerRD); // Default 10km for browsing
         res.json(vendors);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -245,6 +261,10 @@ export const createOrder = async (req, res) => {
         const customerId = req.body.customerId; 
 
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
+
+        const customerUser = await User.findById(customerId);
+        if (!customerUser) return res.status(404).json({ message: 'Customer user not found' });
+        const isCustomerRD = customerUser.customerType === 'retail';
 
         // 1. Fetch pricing multipliers from SystemConfig
         const SystemConfig = (await import('../models/SystemConfig.js')).default;
@@ -393,7 +413,6 @@ export const createOrder = async (req, res) => {
         
         let walletDeduction = 0;
         if (req.body.useWallet) {
-            const customerUser = await User.findById(customerId);
             if (customerUser && customerUser.walletBalance > 0) {
                 walletDeduction = Math.min(customerUser.walletBalance, finalTotal);
                 customerUser.walletBalance = Math.max(0, customerUser.walletBalance - walletDeduction);
@@ -522,7 +541,7 @@ export const createOrder = async (req, res) => {
         await newOrder.save();
 
         const io = getIO();
-        const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds);
+        const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds, isCustomerRD);
         
         // Filter nearby vendors if priority allocation is active
         const targetVendors = allocationStatus === 'PROMO_EXCLUSIVE'
@@ -604,7 +623,7 @@ export const createOrder = async (req, res) => {
                         await o.save();
 
                         // Notify ALL nearby vendors that it is in the general pool
-                        const allNearby = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds);
+                        const allNearby = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds, isCustomerRD);
                         allNearby.forEach(v => {
                             io.to(`user_${v.id}`).emit('new_order_available', {
                                 orderId: o._id,
@@ -717,7 +736,7 @@ export const updateOrderStatus = async (req, res) => {
         const { status } = req.body;
         
         const order = await Order.findById(id)
-            .populate('customer', 'displayName phone address location')
+            .populate('customer', 'displayName phone address location customerType gstNumber')
             .populate('vendor', 'shopDetails address location');
             
         if (!order) return res.status(404).json({ message: 'Order not found' });
@@ -752,7 +771,7 @@ export const updateOrderStatus = async (req, res) => {
         await order.save();
 
         const updatedOrder = await Order.findById(id)
-            .populate('customer', 'displayName phone address email')
+            .populate('customer', 'displayName phone address email customerType gstNumber')
             .populate('vendor', 'shopDetails address location')
             .populate('rider', 'displayName phone location');
 
@@ -866,7 +885,7 @@ export const getAllOrders = async (req, res) => {
         const { page, limit, status, zone, customer, startDate, endDate } = req.query;
 
         const orders = await Order.find()
-            .populate('customer', 'displayName phone')
+            .populate('customer', 'displayName phone customerType gstNumber')
             .populate('vendor', 'shopDetails phone location')
             .sort({ createdAt: -1 });
         
@@ -1336,7 +1355,7 @@ export const getOrderById = async (req, res) => {
         }
 
         const order = await Order.findOne(query)
-            .populate('customer', 'displayName phone address email')
+            .populate('customer', 'displayName phone address email customerType gstNumber')
             .populate('vendor', 'shopDetails phone location address')
             .populate('rider', 'displayName phone');
 
@@ -1785,7 +1804,7 @@ export const cancelOrder = async (req, res) => {
         await order.save();
 
         const updatedOrder = await Order.findById(id)
-            .populate('customer', 'displayName phone address email')
+            .populate('customer', 'displayName phone address email customerType gstNumber')
             .populate('vendor', 'shopDetails address location')
             .populate('rider', 'displayName phone location');
 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleMap, useJsApiLoader, Marker, StandaloneSearchBox } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, StandaloneSearchBox, Autocomplete } from '@react-google-maps/api';
 import { authApi } from '../../../lib/api';
 
 const libraries = ['drawing', 'places', 'geometry'];
@@ -27,6 +27,31 @@ const ProfileCreationPage = () => {
     const [businessAddress, setBusinessAddress] = useState(mergedUser.businessAddress || '');
     const [gstNumber, setGstNumber] = useState(mergedUser.gstNumber || '');
     const [termsAccepted, setTermsAccepted] = useState(false);
+
+    // Structured Home Address States for Individual Customer
+    const [line1, setLine1] = useState('');
+    const [line2, setLine2] = useState('');
+    const [floor, setFloor] = useState('');
+    const [landmark, setLandmark] = useState('');
+    const [pincode, setPincode] = useState('');
+    const [city, setCity] = useState('');
+    const [stateVal, setStateVal] = useState('');
+    const [autocomplete, setAutocomplete] = useState(null);
+    const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+    const [facilityAddress, setFacilityAddress] = useState(mergedUser.facilityAddress || '');
+    const [activeAddressType, setActiveAddressType] = useState('business'); // 'business' or 'facility'
+
+    const openAddressModal = (type) => {
+        setActiveAddressType(type);
+        setLine1('');
+        setLine2('');
+        setFloor('');
+        setLandmark('');
+        setPincode('');
+        setCity('');
+        setStateVal('');
+        setIsAddressModalOpen(true);
+    };
 
     // Initial check for redirection
     React.useEffect(() => {
@@ -127,9 +152,12 @@ const ProfileCreationPage = () => {
 
             const addressesPayload = [];
             if (customerType === 'individual') {
+                const fullAddressString = `${line1}${line2 ? `, ${line2}` : ''}${floor ? `, Floor ${floor}` : ''}${landmark ? ` (Near ${landmark})` : ''}, ${city}, ${stateVal} - ${pincode}`;
                 addressesPayload.push({
                     type: 'Home',
-                    address: address,
+                    address: fullAddressString,
+                    city: city,
+                    pincode: pincode,
                     location: mapLocation,
                     isDefault: true
                 });
@@ -140,6 +168,14 @@ const ProfileCreationPage = () => {
                     location: mapLocation,
                     isDefault: true
                 });
+                if (facilityAddress) {
+                    addressesPayload.push({
+                        type: 'Other',
+                        address: facilityAddress,
+                        location: mapLocation,
+                        isDefault: false
+                    });
+                }
             }
 
             const payload = {
@@ -150,13 +186,15 @@ const ProfileCreationPage = () => {
             };
 
             if (customerType === 'individual') {
-                payload.address = address;
+                const fullAddressString = `${line1}${line2 ? `, ${line2}` : ''}${floor ? `, Floor ${floor}` : ''}${landmark ? ` (Near ${landmark})` : ''}, ${city}, ${stateVal} - ${pincode}`;
+                payload.address = fullAddressString;
                 payload.location = mapLocation;
             } else {
                 payload.address = businessAddress;
                 payload.businessName = businessName;
                 payload.gstNumber = gstNumber;
                 payload.businessAddress = businessAddress;
+                payload.facilityAddress = facilityAddress;
                 payload.location = mapLocation;
             }
 
@@ -172,13 +210,15 @@ const ProfileCreationPage = () => {
             };
 
             if (customerType === 'individual') {
-                updatedUser.address = address;
+                const fullAddressString = `${line1}${line2 ? `, ${line2}` : ''}${floor ? `, Floor ${floor}` : ''}${landmark ? ` (Near ${landmark})` : ''}, ${city}, ${stateVal} - ${pincode}`;
+                updatedUser.address = fullAddressString;
                 updatedUser.location = mapLocation;
             } else {
                 updatedUser.address = businessAddress;
                 updatedUser.businessName = businessName;
                 updatedUser.gstNumber = gstNumber;
                 updatedUser.businessAddress = businessAddress;
+                updatedUser.facilityAddress = facilityAddress;
                 updatedUser.location = mapLocation;
             }
 
@@ -196,16 +236,23 @@ const ProfileCreationPage = () => {
 
     const isComplete = useMemo(() => {
         if (customerType === 'individual') {
-            return name.trim().length >= 3 && address.trim().length > 10;
+            return name.trim().length >= 3 && 
+                   line1.trim().length > 0 && 
+                   pincode.trim().length >= 6 && 
+                   city.trim().length > 0 && 
+                   stateVal.trim().length > 0 && 
+                   termsAccepted;
         } else {
+            const isValidGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstNumber.trim());
             return name.trim().length >= 3 && 
                    gpsAddress.trim().length > 0 && 
                    businessName.trim().length >= 2 && 
                    businessAddress.trim().length > 10 && 
-                   gstNumber.trim().length >= 10 && 
+                   facilityAddress.trim().length > 10 && 
+                   isValidGst && 
                    termsAccepted;
         }
-    }, [customerType, name, address, gpsAddress, businessName, businessAddress, gstNumber, termsAccepted]);
+    }, [customerType, name, line1, pincode, city, stateVal, gpsAddress, businessName, businessAddress, facilityAddress, gstNumber, termsAccepted]);
 
     const containerVariants = {
         hidden: { opacity: 0, y: 20 },
@@ -223,29 +270,21 @@ const ProfileCreationPage = () => {
 
     return (
         <div className="bg-background text-on-surface min-h-[100dvh] pb-10 overflow-x-hidden">
-            <header className="px-6 pt-16 mb-10">
-                <motion.div 
-                    initial={{ scale: 0.9, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="w-12 h-12 bg-primary-container rounded-2xl flex items-center justify-center text-primary mb-6"
+            <header className="px-6 pt-8 mb-6">
+                <button 
+                    onClick={() => navigate('/user/auth')}
+                    className="flex items-center gap-2 text-on-surface font-black text-[10px] uppercase tracking-widest mb-6 opacity-55 hover:opacity-100 transition-opacity"
                 >
-                    <span className="material-symbols-outlined text-[28px]">person_add</span>
-                </motion.div>
+                    <span className="material-symbols-outlined text-sm">arrow_back</span>
+                    Back
+                </button>
                 <motion.h1 
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     className="text-4xl font-black tracking-tighter leading-none mb-3"
                 >
-                    Final Touch
+                    Signup Process
                 </motion.h1>
-                <motion.p 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-on-surface-variant text-sm font-semibold opacity-70"
-                >
-                    Complete your profile to unlock the flow.
-                </motion.p>
             </header>
 
             <main className="px-6 max-w-md mx-auto">
@@ -298,33 +337,6 @@ const ProfileCreationPage = () => {
                     {/* Business specific fields */}
                     {customerType === 'retail' && (
                         <>
-                            {/* GPS Address */}
-                            <motion.div variants={itemVariants}>
-                                <div className="flex justify-between items-center mb-3 px-1">
-                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">GPS Address</label>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setShowMapPicker(true)}
-                                        className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
-                                    >
-                                        <span className="material-symbols-outlined text-[14px]">my_location</span>
-                                        Select GPS Location
-                                    </button>
-                                </div>
-                                <div 
-                                    onClick={() => setShowMapPicker(true)}
-                                    className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all cursor-pointer"
-                                >
-                                    <textarea 
-                                        rows={2}
-                                        readOnly
-                                        value={gpsAddress}
-                                        placeholder="Click 'Select GPS Location' to choose location on map"
-                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none cursor-pointer"
-                                    />
-                                </div>
-                            </motion.div>
-
                             {/* Business Name */}
                             <motion.div variants={itemVariants}>
                                 <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Business Name</label>
@@ -341,79 +353,154 @@ const ProfileCreationPage = () => {
 
                             {/* Business Address */}
                             <motion.div variants={itemVariants}>
-                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Business Address</label>
-                                <div className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <div className="flex justify-between items-center mb-3 px-1">
+                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Business Address</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => openAddressModal('business')}
+                                        className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                        Enter Address Details
+                                    </button>
+                                </div>
+                                <div 
+                                    onClick={() => openAddressModal('business')}
+                                    className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all cursor-pointer"
+                                >
                                     <textarea 
                                         rows={3}
+                                        readOnly
                                         value={businessAddress}
-                                        onChange={(e) => setBusinessAddress(e.target.value)}
-                                        placeholder="Full formal physical location text block for invoicing/billing routing"
-                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none"
+                                        placeholder="Click 'Enter Address Details' to fill your address form"
+                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none cursor-pointer"
                                     />
                                 </div>
                             </motion.div>
 
-                            {/* GST Number */}
+                            {/* Facility Address */}
                             <motion.div variants={itemVariants}>
-                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">GST Number</label>
-                                <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <div className="flex justify-between items-center mb-3 px-1">
+                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Facility Address</label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => openAddressModal('facility')}
+                                        className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
+                                    >
+                                        <span className="material-symbols-outlined text-[14px]">location_on</span>
+                                        Enter Facility Details
+                                    </button>
+                                </div>
+                                <div 
+                                    onClick={() => openAddressModal('facility')}
+                                    className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all cursor-pointer"
+                                >
+                                    <textarea 
+                                        rows={3}
+                                        readOnly
+                                        value={facilityAddress}
+                                        placeholder="Click 'Enter Facility Details' to fill your facility address"
+                                        className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none cursor-pointer"
+                                    />
+                                </div>
+                            </motion.div>
+
+                            {/* Business GST Number */}
+                            <motion.div variants={itemVariants}>
+                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-3 ml-1">Business GST Number</label>
+                                <div className={`bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all ${gstNumber.length > 0 && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstNumber) ? 'focus-within:ring-error/20 ring-error/10 border-error/50' : ''}`}>
                                     <input 
                                         type="text"
                                         value={gstNumber}
                                         onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
-                                        placeholder="15-character GSTIN"
+                                        placeholder="e.g. 22AAAAA1111A1Z1"
                                         maxLength={15}
                                         className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-md font-black placeholder:text-outline-variant/40"
                                     />
                                 </div>
+                                {gstNumber.length > 0 && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(gstNumber) && (
+                                    <p className="text-[9px] text-error font-bold mt-2 ml-1 animate-pulse">Enter a valid 15-digit GST number (e.g. 22AAAAA1111A1Z1)</p>
+                                )}
                             </motion.div>
                         </>
                     )}
 
                     {/* Address Input with GPS */}
                     {customerType === 'individual' && (
-                        <motion.div variants={itemVariants}>
-                            <div className="flex justify-between items-center mb-3 px-1">
-                                <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Home Address</label>
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowMapPicker(true)}
-                                    className="flex items-center gap-1.5 text-primary text-[9px] font-black uppercase tracking-widest"
-                                >
-                                    <span className={`material-symbols-outlined text-[14px]`}>my_location</span>
-                                    Use GPS
-                                </button>
+                        <motion.div variants={itemVariants} className="space-y-6">
+                            {/* Search Your Location (Google maps search bar style matching AddressesPage) */}
+                            <div className="space-y-1.5 px-1">
+                                <p className="text-[9px] font-black uppercase tracking-widest text-primary ml-1">Search Your Location</p>
+                                {isLoaded ? (
+                                    <Autocomplete
+                                        onLoad={ac => setAutocomplete(ac)}
+                                        onPlaceChanged={() => {
+                                            const place = autocomplete.getPlace();
+                                            if (place.geometry) {
+                                                const lat = place.geometry.location.lat();
+                                                const lng = place.geometry.location.lng();
+                                                
+                                                let cityComp = '';
+                                                let stateComp = '';
+                                                let pincodeComp = '';
+                                                place.address_components.forEach(comp => {
+                                                    if (comp.types.includes('locality')) cityComp = comp.long_name;
+                                                    if (comp.types.includes('administrative_area_level_1')) stateComp = comp.long_name;
+                                                    if (comp.types.includes('postal_code')) pincodeComp = comp.long_name;
+                                                });
+
+                                                setLine1(place.name || '');
+                                                setLine2(place.formatted_address || '');
+                                                setCity(cityComp);
+                                                setStateVal(stateComp);
+                                                setPincode(pincodeComp);
+                                                setMapLocation({ lat, lng });
+                                            }
+                                        }}
+                                    >
+                                        <input 
+                                            placeholder="Search for your house/building..."
+                                            className="w-full bg-slate-900 text-white placeholder:text-white/30 border-none rounded-2xl px-5 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-primary/20 transition-all shadow-xl" 
+                                        />
+                                    </Autocomplete>
+                                ) : (
+                                    <div className="w-full h-14 bg-slate-50 rounded-2xl animate-pulse" />
+                                )}
                             </div>
-                            <div className="bg-white rounded-[2rem] p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                <textarea 
-                                    rows={3}
-                                    value={address}
-                                    onChange={(e) => setAddress(e.target.value)}
-                                    placeholder="Search or type your home address"
-                                    className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-sm font-bold text-on-surface leading-normal placeholder:text-outline-variant/40 resize-none"
-                                />
+
+                            <div className="grid grid-cols-1 gap-4">
+                                <AddressInput label="Address Line 1" placeholder="Flat/House No, Building Name" value={line1} onChange={setLine1} />
+                                <AddressInput label="Address Line 2" placeholder="Street, Area Name" value={line2} onChange={setLine2} />
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <AddressInput label="Floor / Apt" placeholder="e.g. 4th Floor" value={floor} onChange={setFloor} />
+                                    <AddressInput label="Landmark" placeholder="Near Temple/Gym" value={landmark} onChange={setLandmark} />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <AddressInput label="Pincode" placeholder="6-digit ZIP" type="number" value={pincode} onChange={setPincode} />
+                                    <AddressInput label="City" placeholder="City Name" value={city} onChange={setCity} />
+                                </div>
+
+                                <AddressInput label="State" placeholder="State Name" value={stateVal} onChange={setStateVal} />
                             </div>
-                            <p className="text-[9px] font-bold text-on-surface-variant opacity-50 mt-3 px-2 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[12px]">info</span>
-                                This will be your default pickup location.
-                            </p>
                         </motion.div>
                     )}
 
-                    {customerType === 'retail' && (
-                        <motion.div variants={itemVariants} className="flex items-start gap-3 px-2">
-                            <input 
-                                type="checkbox"
-                                id="termsAccepted"
-                                checked={termsAccepted}
-                                onChange={(e) => setTermsAccepted(e.target.checked)}
-                                className="w-4 h-4 rounded text-primary border-slate-300 focus:ring-primary/20 mt-0.5 cursor-pointer"
-                            />
-                            <label htmlFor="termsAccepted" className="text-[10px] font-bold text-on-surface-variant opacity-70 leading-normal uppercase tracking-wider cursor-pointer">
-                                I accept the Terms & Conditions and authorize EZOFLIFE to verify my Business details.
-                            </label>
-                        </motion.div>
-                    )}
+                    <motion.div variants={itemVariants} className="flex items-start gap-3 px-2">
+                        <input 
+                            type="checkbox"
+                            id="termsAccepted"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            className="w-4 h-4 rounded text-primary border-slate-300 focus:ring-primary/20 mt-0.5 cursor-pointer"
+                        />
+                        <label htmlFor="termsAccepted" className="text-[10px] font-bold text-on-surface-variant opacity-70 leading-normal uppercase tracking-wider cursor-pointer">
+                            {customerType === 'individual' 
+                             ? 'I agree to the Terms & Conditions and provide consent.' 
+                             : 'I accept the Terms & Conditions and authorize EZOFLIFE to verify my Business details.'}
+                        </label>
+                    </motion.div>
 
                     {/* Completion Button */}
                     <motion.button 
@@ -432,7 +519,7 @@ const ProfileCreationPage = () => {
                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Please wait...
                             </>
-                        ) : 'Launch Experience'}
+                        ) : 'Signup'}
                     </motion.button>
                 </motion.div>
             </main>
@@ -542,11 +629,129 @@ const ProfileCreationPage = () => {
                 )}
             </AnimatePresence>
 
+            {/* Structured Address Modal */}
+            <AnimatePresence>
+                {isAddressModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-end justify-center pointer-events-none md:items-center md:px-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsAddressModalOpen(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-md pointer-events-auto"
+                        />
+                        <motion.div
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="bg-white w-full max-w-lg rounded-t-[3rem] p-8 pb-10 relative z-10 shadow-2xl pointer-events-auto md:rounded-[3rem] h-[90dvh] overflow-y-auto hide-scrollbar text-on-surface"
+                        >
+                            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8 md:hidden" />
+                            
+                            <h3 className="text-4xl font-black tracking-tighter italic uppercase leading-none mb-2">
+                                Locate <br/>
+                                <span className="text-primary tracking-tighter">Address.</span>
+                            </h3>
+                            <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-40 mb-10 text-center md:text-left">Details for accurate delivery</p>
+                            
+                            <div className="space-y-6">
+                                {/* Google Maps Search Bar */}
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase tracking-widest text-primary ml-1">Search Your Location</p>
+                                    {isLoaded ? (
+                                        <Autocomplete
+                                            onLoad={ac => setAutocomplete(ac)}
+                                            onPlaceChanged={() => {
+                                                const place = autocomplete.getPlace();
+                                                if (place.geometry) {
+                                                    const lat = place.geometry.location.lat();
+                                                    const lng = place.geometry.location.lng();
+                                                    
+                                                    let cityComp = '';
+                                                    let stateComp = '';
+                                                    let pincodeComp = '';
+                                                    place.address_components.forEach(comp => {
+                                                        if (comp.types.includes('locality')) cityComp = comp.long_name;
+                                                        if (comp.types.includes('administrative_area_level_1')) stateComp = comp.long_name;
+                                                        if (comp.types.includes('postal_code')) pincodeComp = comp.long_name;
+                                                    });
+
+                                                    setLine1(place.name || '');
+                                                    setLine2(place.formatted_address || '');
+                                                    setCity(cityComp);
+                                                    setStateVal(stateComp);
+                                                    setPincode(pincodeComp);
+                                                    setMapLocation({ lat, lng });
+                                                }
+                                            }}
+                                        >
+                                            <input 
+                                                placeholder="Search for your house/building..."
+                                                className="w-full bg-slate-900 text-white placeholder:text-white/30 border-none rounded-2xl px-5 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-primary/20 transition-all shadow-xl" 
+                                            />
+                                        </Autocomplete>
+                                    ) : (
+                                        <div className="w-full h-14 bg-slate-50 rounded-2xl animate-pulse" />
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4">
+                                    <AddressInput label="Address Line 1" placeholder="Flat/House No, Building Name" value={line1} onChange={setLine1} />
+                                    <AddressInput label="Address Line 2" placeholder="Street, Area Name" value={line2} onChange={setLine2} />
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <AddressInput label="Floor / Apt" placeholder="e.g. 4th Floor" value={floor} onChange={setFloor} />
+                                        <AddressInput label="Landmark" placeholder="Near Temple/Gym" value={landmark} onChange={setLandmark} />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <AddressInput label="Pincode" placeholder="6-digit ZIP" type="number" value={pincode} onChange={setPincode} />
+                                        <AddressInput label="City" placeholder="City Name" value={city} onChange={setCity} />
+                                    </div>
+
+                                    <AddressInput label="State" placeholder="State Name" value={stateVal} onChange={setStateVal} />
+                                </div>
+
+                                <button 
+                                    onClick={() => {
+                                        const fullAddressString = `${line1}${line2 ? `, ${line2}` : ''}${floor ? `, Floor ${floor}` : ''}${landmark ? ` (Near ${landmark})` : ''}, ${city}, ${stateVal} - ${pincode}`;
+                                        if (activeAddressType === 'business') {
+                                            setGpsAddress(fullAddressString);
+                                            setBusinessAddress(fullAddressString);
+                                        } else if (activeAddressType === 'facility') {
+                                            setFacilityAddress(fullAddressString);
+                                        }
+                                        setIsAddressModalOpen(false);
+                                    }}
+                                    className="w-full bg-black text-white py-5 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest shadow-xl shadow-black/20 hover:shadow-black/30 transition-all active:scale-[0.98] mt-2"
+                                >
+                                    Confirm Address
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             {/* Visual Accents */}
             <div className="fixed -bottom-20 -left-20 w-80 h-80 bg-primary/5 rounded-full blur-[80px] pointer-events-none"></div>
             <div className="fixed top-1/2 -right-40 w-80 h-80 bg-tertiary/5 rounded-full blur-[80px] pointer-events-none"></div>
         </div>
     );
 };
+
+const AddressInput = ({ label, placeholder, value, onChange, type = "text" }) => (
+    <div className="space-y-1.5 px-1">
+        <p className="text-[9px] font-black uppercase tracking-widest text-primary ml-1">{label}</p>
+        <input 
+            type={type}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full bg-white border border-slate-300 rounded-2xl px-5 py-4 text-xs font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
+        />
+    </div>
+);
 
 export default ProfileCreationPage;

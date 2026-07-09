@@ -2,9 +2,10 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { 
   Users as UsersIcon, Mail, Phone, MoreHorizontal, ShieldAlert, UserCheck, 
   Activity, Zap, Search, Filter, Eye, Edit2, Trash2, CheckCircle, XCircle, 
-  UserPlus, X, Save, Check, Ban, Clock, Info, RotateCw, ChevronDown, FileText
+  UserPlus, X, Save, Check, Ban, Clock, Info, RotateCw, ChevronDown, FileText, MapPin
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi, BASE_URL, serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
@@ -15,23 +16,69 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('All'); 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const roleParam = searchParams.get('role');
+  const typeParam = searchParams.get('type');
+  const vendorTypeParam = searchParams.get('vendorType');
+  const [activeTab, setActiveTab] = useState(roleParam || 'All');
+  const [selectedCustomerType, setSelectedCustomerType] = useState(typeParam || 'All');
+  const [selectedVendorType, setSelectedVendorType] = useState(vendorTypeParam || 'All');
+
+  useEffect(() => {
+    if (roleParam && ['All', 'Customer', 'Vendor', 'Supplier'].includes(roleParam)) {
+      setActiveTab(roleParam);
+    } else if (!roleParam) {
+      setActiveTab('All');
+    }
+  }, [roleParam]);
+
+  useEffect(() => {
+    if (typeParam && ['individual', 'retail'].includes(typeParam)) {
+      setSelectedCustomerType(typeParam);
+    } else {
+      setSelectedCustomerType('All');
+    }
+  }, [typeParam]);
+
+  useEffect(() => {
+    if (vendorTypeParam && ['All', 'registered', 'unregistered'].includes(vendorTypeParam)) {
+      setSelectedVendorType(vendorTypeParam);
+    } else {
+      setSelectedVendorType('All');
+    }
+  }, [vendorTypeParam]);    
   const [selectedName, setSelectedName] = useState('All');
-  const [selectedLocation, setSelectedLocation] = useState('All');
+  const [selectedCity, setSelectedCity] = useState('All');
+  const [selectedState, setSelectedState] = useState('All');
+  const [selectedPincode, setSelectedPincode] = useState('All');
+
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState('');
+
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
+  const [stateSearchQuery, setStateSearchQuery] = useState('');
+
+  const [showPincodeDropdown, setShowPincodeDropdown] = useState(false);
+  const [pincodeSearchQuery, setPincodeSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('All');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [geofences, setGeofences] = useState([]);
+  const [selectedGeofence, setSelectedGeofence] = useState('All');
+  const [showGeofenceDropdown, setShowGeofenceDropdown] = useState(false);
+  const [geofenceSearchQuery, setGeofenceSearchQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const itemsPerPage = 10;
   
   // Modals state
   const [editingUser, setEditingUser] = useState(null);
+  const [selectedAddressForModal, setSelectedAddressForModal] = useState(null);
   const [rejectionModal, setRejectionModal] = useState(null); // { userId, serviceId }
   const [rejectionReason, setRejectionReason] = useState('');
   const [customServices, setCustomServices] = useState([]); // Services from 'Service' collection for current editing user
   const [isSaving, setIsSaving] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
+  const [showNameDropdown, setShowNameDropdown] = useState(false);
+  const [nameSearchQuery, setNameSearchQuery] = useState('');
 
   const tabs = ['All', 'Customer', 'Vendor', 'Supplier'];
 
@@ -61,18 +108,36 @@ export default function Users() {
     }
   };
 
+  const fetchGeofences = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/geofence/areas`);
+      const data = await res.json();
+      setGeofences(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Fetch geofences error:', err);
+    }
+  };
+
   useEffect(() => {
     fetchMasterServices();
+    fetchGeofences();
   }, []);
 
   useEffect(() => {
     fetchUsers();
     setPage(1); // Reset page on tab change
     setSelectedName('All');
-    setSelectedLocation('All');
+    setSelectedCity('All');
+    setSelectedState('All');
+    setSelectedPincode('All');
     setSelectedStatus('All');
-    setStartDate('');
-    setEndDate('');
+    setSelectedGeofence('All');
+    if (activeTab !== 'Customer') {
+      setSelectedCustomerType('All');
+    }
+    if (activeTab !== 'Vendor') {
+      setSelectedVendorType('All');
+    }
   }, [activeTab]);
 
   useEffect(() => {
@@ -205,20 +270,61 @@ export default function Users() {
     }
   };
 
+  const getUserLocationDetails = (u) => {
+    let city = u.city || '';
+    let state = u.state || '';
+    let pincode = u.pincode || '';
+
+    if (u.role === 'Customer') {
+      const defAddr = u.addresses?.find(a => a.isDefault) || u.addresses?.[0];
+      if (defAddr) {
+        city = defAddr.city || city;
+        state = defAddr.state || state;
+        pincode = defAddr.pincode || pincode;
+      }
+    } else if (u.role === 'Vendor') {
+      city = u.shopDetails?.city || city;
+      state = u.shopDetails?.state || state;
+      pincode = u.shopDetails?.pincode || pincode;
+    } else if (u.role === 'Supplier') {
+      city = u.supplierDetails?.city || city;
+      state = u.supplierDetails?.state || state;
+      pincode = u.supplierDetails?.pincode || pincode;
+    }
+    return { 
+      city: city.trim(), 
+      state: state.trim(), 
+      pincode: pincode.toString().trim() 
+    };
+  };
+
   const uniqueNames = useMemo(() => {
     const names = users.map(u => u.displayName).filter(Boolean);
     return ['All', ...new Set(names)].sort();
   }, [users]);
 
-  const uniqueLocations = useMemo(() => {
-    const locations = users.map(u => u.address).filter(Boolean);
-    return ['All', ...new Set(locations)].sort();
+  const uniqueCities = useMemo(() => {
+    const cities = users.map(u => getUserLocationDetails(u).city).filter(Boolean);
+    return ['All', ...new Set(cities)].sort();
+  }, [users]);
+
+  const uniqueStates = useMemo(() => {
+    const states = users.map(u => getUserLocationDetails(u).state).filter(Boolean);
+    return ['All', ...new Set(states)].sort();
+  }, [users]);
+
+  const uniquePincodes = useMemo(() => {
+    const pincodes = users.map(u => getUserLocationDetails(u).pincode).filter(Boolean);
+    return ['All', ...new Set(pincodes)].sort();
   }, [users]);
 
   const filteredUsers = useMemo(() => {
     return users.filter(u => {
       const matchName = selectedName === 'All' || u.displayName === selectedName;
-      const matchLocation = selectedLocation === 'All' || u.address === selectedLocation;
+      const loc = getUserLocationDetails(u);
+      const matchCity = selectedCity === 'All' || loc.city === selectedCity;
+      const matchState = selectedState === 'All' || loc.state === selectedState;
+      const matchPincode = selectedPincode === 'All' || loc.pincode === selectedPincode;
       
       let matchStatus = true;
       if (selectedStatus !== 'All') {
@@ -226,44 +332,78 @@ export default function Users() {
         if (userStatusText !== selectedStatus) matchStatus = false;
       }
 
-      let matchDate = true;
-      if (u.createdAt) {
-        const userDate = new Date(u.createdAt);
-        userDate.setHours(0, 0, 0, 0);
-        
-        if (startDate) {
-          const start = new Date(startDate);
-          start.setHours(0, 0, 0, 0);
-          if (userDate < start) matchDate = false;
+      let matchGeofence = true;
+      if (selectedGeofence !== 'All') {
+        const targetGeofence = geofences.find(g => (g.areaName || g.name) === selectedGeofence);
+        if (targetGeofence) {
+          const userPin = loc.pincode;
+          matchGeofence = targetGeofence.pincodes?.includes(userPin);
+        } else {
+          matchGeofence = false;
         }
-        if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
-          if (userDate > end) matchDate = false;
+      }
+
+      let matchCustomerType = true;
+      if (u.role === 'Customer' && selectedCustomerType !== 'All') {
+        matchCustomerType = u.customerType === selectedCustomerType;
+      }
+
+      let matchVendorType = true;
+      if (u.role === 'Vendor' && selectedVendorType !== 'All') {
+        const isRegistered = ['Pvt Ltd', 'Franchise'].includes(u.businessType);
+        if (selectedVendorType === 'registered') {
+          matchVendorType = isRegistered;
+        } else if (selectedVendorType === 'unregistered') {
+          matchVendorType = !isRegistered;
         }
-      } else if (startDate || endDate) {
-        matchDate = false;
       }
       
-      return matchName && matchLocation && matchStatus && matchDate;
+      return matchName && matchCity && matchState && matchPincode && matchStatus && matchGeofence && matchCustomerType && matchVendorType;
     });
-  }, [users, selectedName, selectedLocation, selectedStatus, startDate, endDate]);
+  }, [users, selectedName, selectedCity, selectedState, selectedPincode, selectedStatus, selectedGeofence, geofences, selectedCustomerType, selectedVendorType]);
 
   const paginatedUsers = useMemo(() => {
     return filteredUsers.slice((page - 1) * itemsPerPage, page * itemsPerPage);
   }, [filteredUsers, page]);
 
-  const columns = useMemo(() => [
-    { 
-      header: 'Name', 
-      key: 'displayName',
-      render: (val) => (
-        <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
-          {val || 'Unnamed User'}
-        </span>
-      )
-    },
-    {
+  const columns = useMemo(() => {
+    const baseCols = [
+      { 
+        header: 'Name', 
+        key: 'displayName',
+        render: (val, row) => {
+          const displayVal = (row.role === 'Vendor' && row.ownerName) ? row.ownerName : (val || 'Unnamed User');
+          return (
+            <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
+              {displayVal}
+            </span>
+          );
+        }
+      },
+      {
+        header: 'Email Address',
+        key: 'email',
+        render: (val) => (
+          <span className="text-[10px] text-slate-500 font-bold tracking-tight">
+            {val || 'N/A'}
+          </span>
+        )
+      }
+    ];
+
+    if (activeTab === 'Vendor') {
+      baseCols.push({
+        header: 'Facility Name',
+        key: 'facilityName',
+        render: (val, row) => (
+          <span className="text-[10px] text-slate-900 font-bold uppercase tracking-tight">
+            {row.facilityName || 'N/A'}
+          </span>
+        )
+      });
+    }
+
+    baseCols.push({
       header: 'Contact Number',
       key: 'phone',
       render: (val) => (
@@ -271,114 +411,367 @@ export default function Users() {
           {val || 'N/A'}
         </span>
       )
-    },
-    {
-      header: 'Role',
-      key: 'role',
-      render: (val) => (
-        <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
-          {val || 'Customer'}
-        </span>
-      )
-    },
-    {
-      header: 'Type',
-      key: 'customerType',
-      render: (val, row) => {
-        if (row.role !== 'Customer') {
-          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
-        }
-        const isBusiness = val === 'retail';
-        return (
-          <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider ${isBusiness ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-            {isBusiness ? 'Business' : 'Individual'}
-          </span>
-        );
-      }
-    },
-    {
-      header: 'Business Name',
-      key: 'businessName',
-      render: (val, row) => {
-        if (row.role !== 'Customer' || row.customerType !== 'retail') {
-          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
-        }
-        return (
-          <span className="text-[10px] text-slate-900 font-black uppercase tracking-tight truncate max-w-[150px]" title={val}>
-            {val || 'N/A'}
-          </span>
-        );
-      }
-    },
-    {
-      header: 'GST Number',
-      key: 'gstNumber',
-      render: (val, row) => {
-        if (row.role !== 'Customer' || row.customerType !== 'retail') {
-          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
-        }
-        return (
-          <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-            {val || 'N/A'}
-          </span>
-        );
-      }
-    },
-    {
-      header: 'Business Address',
-      key: 'businessAddress',
-      render: (val, row) => {
-        if (row.role !== 'Customer' || row.customerType !== 'retail') {
-          return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
-        }
-        return (
-          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate max-w-[200px]" title={val}>
-            {val || 'N/A'}
-          </span>
-        );
-      }
-    },
+    });
 
-    {
-      header: 'Location',
-      key: 'address',
-      render: (val) => (
-        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate max-w-[200px]" title={val}>
-          {val || 'No Address Set'}
-        </span>
-      )
-    },
-    { 
-      header: 'Registration', 
-      key: 'createdAt',
-      render: (val) => (
-        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
-          {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </span>
-      )
-    },
-    { 
-      header: 'Status', 
-      key: 'status', 
-      render: (val) => <StatusBadge status={val === 'approved' ? 'Active' : val === 'rejected' ? 'Blocked' : 'Pending'} /> 
-    },
-    { 
-      header: 'Actions', 
-      key: 'actions', 
-      align: 'right',
-      render: (_, row) => (
-        <div className="flex items-center justify-end gap-2">
-          <button 
-            onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))} // Deep clone for editing
-            title="Edit Full Profile" 
-            className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
-          >
-            <Edit2 size={14} />
-          </button>
-        </div>
-      )
+    if (activeTab !== 'Vendor') {
+      baseCols.push({
+        header: 'Role',
+        key: 'role',
+        render: (val, row) => (
+          <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
+            {val || 'Customer'}
+          </span>
+        )
+      });
     }
-  ], [users]);
+
+    if (activeTab !== 'Supplier') {
+      baseCols.push({
+        header: 'Type',
+        key: 'customerType',
+        render: (val, row) => {
+          if (row.role === 'Vendor') {
+            return (
+              <span className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                {row.businessType || 'N/A'}
+              </span>
+            );
+          }
+          if (row.role !== 'Customer') {
+            return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+          }
+          const isBusiness = val === 'retail';
+          return (
+            <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider ${isBusiness ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+              {isBusiness ? 'Business' : 'Individual'}
+            </span>
+          );
+        }
+      });
+    }
+
+    if (activeTab === 'Supplier') {
+      baseCols.push(
+        {
+          header: 'Type',
+          key: 'supplierDetails',
+          render: (val) => (
+            <span className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+              {val?.entityType || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Designation',
+          key: 'supplierDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
+              {val?.designation || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'GST Number',
+          key: 'supplierDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.gst || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Business PAN',
+          key: 'supplierDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.panNumber || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Aadhaar Number',
+          key: 'supplierDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.aadhaarNumber || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Bank Name',
+          key: 'bankDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wide">
+              {val?.bankName || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Account Number',
+          key: 'bankDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.accountNumber || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Bank IFSC Code',
+          key: 'bankDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.ifscCode || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Category',
+          key: 'supplierDetails',
+          render: (val) => {
+            const categories = val?.supplyCategories || [];
+            if (categories.length === 0) return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+            return (
+              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                {categories.map((cat, index) => (
+                  <span 
+                    key={index} 
+                    className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200"
+                  >
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            );
+          }
+        }
+      );
+    }
+
+    if (activeTab === 'Customer' && selectedCustomerType === 'retail') {
+      baseCols.push(
+        {
+          header: 'Business Name',
+          key: 'businessName',
+          render: (val, row) => {
+            if (row.role !== 'Customer' || row.customerType !== 'retail') {
+              return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+            }
+            return (
+              <span className="text-[10px] text-slate-900 font-black uppercase tracking-tight truncate max-w-[150px]" title={val}>
+                {val || 'N/A'}
+              </span>
+            );
+          }
+        },
+        {
+          header: 'GST Number',
+          key: 'gstNumber',
+          render: (val, row) => {
+            if (row.role !== 'Customer' || row.customerType !== 'retail') {
+              return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+            }
+            return (
+              <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+                {val || 'N/A'}
+              </span>
+            );
+          }
+        },
+        {
+          header: 'Business Address',
+          key: 'businessAddress',
+          render: (val, row) => {
+            if (row.role !== 'Customer' || row.customerType !== 'retail') {
+              return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+            }
+            return (
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate max-w-[200px]" title={val}>
+                {val || 'N/A'}
+              </span>
+            );
+          }
+        }
+      );
+    }
+
+    if (activeTab === 'Customer' && selectedCustomerType === 'individual') {
+      baseCols.push(
+        {
+          header: 'Card Name',
+          key: 'cardName',
+          render: (val, row) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
+              {row.cardName || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'UPI ID',
+          key: 'upiId',
+          render: (val, row) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {row.upiId || 'N/A'}
+            </span>
+          )
+        }
+      );
+    }
+
+    if (activeTab === 'Vendor' && selectedVendorType === 'registered') {
+      baseCols.push(
+        {
+          header: 'PAN Card Number',
+          key: 'panNumber',
+          render: (val, row) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {row.panNumber || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'GST Number',
+          key: 'gstNumber',
+          render: (val, row) => {
+            const gstVal = row.gstNumber || row.shopDetails?.gst;
+            return (
+              <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+                {gstVal || 'N/A'}
+              </span>
+            );
+          }
+        }
+      );
+    }
+
+    if (activeTab === 'Vendor' && selectedVendorType === 'unregistered') {
+      baseCols.push(
+        {
+          header: 'Aadhaar Number',
+          key: 'aadharNumber',
+          render: (val, row) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {row.aadharNumber || 'N/A'}
+            </span>
+          )
+        }
+      );
+    }
+
+    if (activeTab === 'Vendor') {
+      baseCols.push(
+        {
+          header: 'Bank Name',
+          key: 'bankDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wide">
+              {val?.bankName || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Account Number',
+          key: 'bankDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.accountNumber || 'N/A'}
+            </span>
+          )
+        },
+        {
+          header: 'Bank IFSC Code',
+          key: 'bankDetails',
+          render: (val) => (
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.ifscCode || 'N/A'}
+            </span>
+          )
+        }
+      );
+    }
+
+    if (activeTab === 'Customer' && selectedCustomerType === 'individual') {
+      baseCols.push({
+        header: 'Location',
+        key: 'addresses',
+        render: (val, row) => {
+          const addresses = row.addresses || [];
+          if (addresses.length === 0) {
+            if (row.address) {
+              return (
+                <button
+                  onClick={() => setSelectedAddressForModal({ type: 'Home', address: row.address })}
+                  className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all cursor-pointer"
+                >
+                  Home
+                </button>
+              );
+            }
+            return <span className="text-[10px] text-slate-400 font-bold uppercase">No Address Set</span>;
+          }
+          return (
+            <div className="flex flex-wrap gap-1 max-w-[200px]">
+              {addresses.map((addr, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setSelectedAddressForModal(addr)}
+                  className="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all cursor-pointer shadow-sm"
+                >
+                  {addr.type || 'Home'}
+                </button>
+              ))}
+            </div>
+          );
+        }
+      });
+    }
+
+    if (!(activeTab === 'Customer' && selectedCustomerType === 'individual')) {
+      baseCols.push({
+        header: 'Location',
+        key: 'address',
+        render: (val) => (
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wide truncate max-w-[200px]" title={val}>
+            {val || 'No Address Set'}
+          </span>
+        )
+      });
+    }
+
+    baseCols.push(
+      { 
+        header: 'Registration', 
+        key: 'createdAt',
+        render: (val) => (
+          <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
+            {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </span>
+        )
+      },
+      { 
+        header: 'Status', 
+        key: 'status', 
+        render: (val) => <StatusBadge status={val === 'approved' ? 'Active' : val === 'rejected' ? 'Blocked' : 'Pending'} /> 
+      },
+      { 
+        header: 'Actions', 
+        key: 'actions', 
+        align: 'right',
+        render: (_, row) => (
+          <div className="flex items-center justify-end gap-2">
+            <button 
+              onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))} // Deep clone for editing
+              title="Edit Full Profile" 
+              className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
+            >
+              <Edit2 size={14} />
+            </button>
+          </div>
+        )
+      }
+    );
+
+    return baseCols;
+  }, [selectedCustomerType, activeTab, selectedVendorType]);
 
   const handleExportFile = (format) => {
     try {
@@ -485,39 +878,69 @@ export default function Users() {
           title=""
           showTotalEntities={false}
           leftContent={
-            <div className="flex items-center gap-2">
-              <input 
-                type="date"
-                value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
-              />
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
-              <input 
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value);
-                  setPage(1);
-                }}
-                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
-              />
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => {
-                    setStartDate('');
-                    setEndDate('');
-                    setPage(1);
-                  }}
-                  className="px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-500 hover:bg-rose-600 hover:text-white hover:border-rose-600 rounded-sm transition-all text-[9px] font-black uppercase tracking-wider"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+              /* Geofence Filter (Searchable Custom Dropdown) */
+              <div className="relative flex items-center w-[160px] z-[40]">
+                  <button
+                      onClick={() => setShowGeofenceDropdown(!showGeofenceDropdown)}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      <span className="truncate">{selectedGeofence === 'All' ? 'All Geofences' : selectedGeofence}</span>
+                      <ChevronDown size={12} className="text-slate-400" />
+                  </button>
+                  {showGeofenceDropdown && (
+                      <>
+                          <div className="fixed inset-0 z-40" onClick={() => {
+                              setShowGeofenceDropdown(false);
+                              setGeofenceSearchQuery('');
+                          }} />
+                          <div className="absolute left-0 top-full mt-1 w-[200px] bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left flex flex-col max-h-[250px] overflow-hidden">
+                              <div className="p-1.5 border-b border-slate-100">
+                                  <input 
+                                      type="text"
+                                      placeholder="Search geofence..."
+                                      value={geofenceSearchQuery}
+                                      onChange={(e) => setGeofenceSearchQuery(e.target.value)}
+                                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-sm outline-none focus:border-slate-300 text-[10px] font-bold"
+                                      autoFocus
+                                  />
+                              </div>
+                              <div className="overflow-y-auto flex-1 text-[10px] font-bold uppercase tracking-wider">
+                                  <button
+                                      onClick={() => {
+                                          setSelectedGeofence('All');
+                                          setPage(1);
+                                          setShowGeofenceDropdown(false);
+                                          setGeofenceSearchQuery('');
+                                      }}
+                                      className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedGeofence === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                  >
+                                      All Geofences
+                                  </button>
+                                  {geofences
+                                      .map(g => g.areaName || g.name)
+                                      .filter(Boolean)
+                                      .filter(name => name.toLowerCase().includes(geofenceSearchQuery.toLowerCase()))
+                                      .map(name => (
+                                          <button
+                                              key={name}
+                                              onClick={() => {
+                                                  setSelectedGeofence(name);
+                                                  setPage(1);
+                                                  setShowGeofenceDropdown(false);
+                                                  setGeofenceSearchQuery('');
+                                              }}
+                                              className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors truncate ${selectedGeofence === name ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                              title={name}
+                                          >
+                                              {name}
+                                          </button>
+                                      ))
+                                  }
+                              </div>
+                          </div>
+                      </>
+                  )}
+              </div>
           }
           columns={columns}
           data={paginatedUsers}
@@ -530,50 +953,310 @@ export default function Users() {
               <div className="relative flex items-center w-[160px]">
                   <select
                       value={activeTab}
-                      onChange={(e) => setActiveTab(e.target.value)}
+                      onChange={(e) => {
+                          const val = e.target.value;
+                          setActiveTab(val);
+                          setSearchParams(val === 'All' ? {} : { role: val });
+                      }}
                       className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
                       {tabs.map(tab => (
-                          <option key={tab} value={tab}>{tab}s</option>
+                          <option key={tab} value={tab}>{tab === 'All' ? 'Role' : `${tab}s`}</option>
                       ))}
                   </select>
                   <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
               </div>
 
-              {/* Name Filter */}
-              <div className="relative flex items-center w-[160px]">
-                  <select
-                      value={selectedName}
-                      onChange={(e) => {
-                          setSelectedName(e.target.value);
-                          setPage(1);
-                      }}
-                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+              {/* Customer Type Filter (Visible only when on Customer Tab) */}
+              {activeTab === 'Customer' && (
+                  <div className="relative flex items-center w-[160px]">
+                      <select
+                          value={selectedCustomerType}
+                          onChange={(e) => {
+                              const val = e.target.value;
+                              setSelectedCustomerType(val);
+                              setSearchParams(val === 'All' ? { role: 'Customer' } : { role: 'Customer', type: val });
+                          }}
+                          className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                      >
+                          <option value="All">All Customers</option>
+                          <option value="individual">Individual</option>
+                          <option value="retail">Business</option>
+                      </select>
+                      <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+                  </div>
+              )}
+
+              {/* Vendor Type Filter (Visible only when on Vendor Tab) */}
+              {activeTab === 'Vendor' && (
+                  <div className="relative flex items-center w-[160px]">
+                      <select
+                          value={selectedVendorType}
+                          onChange={(e) => {
+                              const val = e.target.value;
+                              setSelectedVendorType(val);
+                              setSearchParams(val === 'All' ? { role: 'Vendor' } : { role: 'Vendor', vendorType: val });
+                          }}
+                          className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                      >
+                          <option value="All">All Vendors</option>
+                          <option value="registered">Registered</option>
+                          <option value="unregistered">Unregistered</option>
+                      </select>
+                      <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+                  </div>
+              )}
+
+              {/* Name Filter (Searchable Custom Dropdown) */}
+              <div className="relative flex items-center w-[160px] z-[40]">
+                  <button
+                      onClick={() => setShowNameDropdown(!showNameDropdown)}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <option value="All">All Names</option>
-                      {uniqueNames.filter(name => name !== 'All').map(name => (
-                          <option key={name} value={name}>{name}</option>
-                      ))}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+                      <span className="truncate">{selectedName === 'All' ? 'All Names' : selectedName}</span>
+                      <ChevronDown size={12} className="text-slate-400" />
+                  </button>
+                  {showNameDropdown && (
+                      <>
+                          <div className="fixed inset-0 z-40" onClick={() => {
+                              setShowNameDropdown(false);
+                              setNameSearchQuery('');
+                          }} />
+                          <div className="absolute left-0 top-full mt-1 w-[200px] bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left flex flex-col max-h-[250px] overflow-hidden">
+                              <div className="p-1.5 border-b border-slate-100">
+                                  <input 
+                                      type="text"
+                                      placeholder="Search name..."
+                                      value={nameSearchQuery}
+                                      onChange={(e) => setNameSearchQuery(e.target.value)}
+                                      className="w-full px-2 py-1.5 text-[10px] font-bold bg-slate-50 border border-slate-200 rounded-sm outline-none focus:border-slate-300"
+                                      autoFocus
+                                  />
+                              </div>
+                              <div className="overflow-y-auto flex-1 text-[10px] font-bold uppercase tracking-wider">
+                                  <button
+                                      onClick={() => {
+                                          setSelectedName('All');
+                                          setPage(1);
+                                          setShowNameDropdown(false);
+                                          setNameSearchQuery('');
+                                      }}
+                                      className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedName === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                  >
+                                      All Names
+                                  </button>
+                                  {uniqueNames
+                                      .filter(name => name !== 'All')
+                                      .filter(name => name.toLowerCase().includes(nameSearchQuery.toLowerCase()))
+                                      .map(name => (
+                                          <button
+                                              key={name}
+                                              onClick={() => {
+                                                  setSelectedName(name);
+                                                  setPage(1);
+                                                  setShowNameDropdown(false);
+                                                  setNameSearchQuery('');
+                                              }}
+                                              className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors truncate ${selectedName === name ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                              title={name}
+                                          >
+                                              {name}
+                                          </button>
+                                      ))
+                                  }
+                              </div>
+                          </div>
+                      </>
+                  )}
               </div>
 
-              {/* Location Filter */}
-              <div className="relative flex items-center w-[160px]">
-                  <select
-                      value={selectedLocation}
-                      onChange={(e) => {
-                          setSelectedLocation(e.target.value);
-                          setPage(1);
-                      }}
-                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+              {/* City Filter (Searchable Custom Dropdown) */}
+              <div className="relative flex items-center w-[130px] z-[40]">
+                  <button
+                      onClick={() => setShowCityDropdown(!showCityDropdown)}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <option value="All">All Locations</option>
-                      {uniqueLocations.filter(loc => loc !== 'All').map(loc => (
-                          <option key={loc} value={loc}>{loc}</option>
-                      ))}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+                      <span className="truncate">{selectedCity === 'All' ? 'All Cities' : selectedCity}</span>
+                      <ChevronDown size={12} className="text-slate-400" />
+                  </button>
+                  {showCityDropdown && (
+                      <>
+                          <div className="fixed inset-0 z-40" onClick={() => {
+                              setShowCityDropdown(false);
+                              setCitySearchQuery('');
+                          }} />
+                          <div className="absolute left-0 top-full mt-1 w-[160px] bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left flex flex-col max-h-[250px] overflow-hidden">
+                              <div className="p-1.5 border-b border-slate-100">
+                                  <input 
+                                      type="text"
+                                      placeholder="Search city..."
+                                      value={citySearchQuery}
+                                      onChange={(e) => setCitySearchQuery(e.target.value)}
+                                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-sm outline-none focus:border-slate-300 text-[10px] font-bold"
+                                      autoFocus
+                                  />
+                              </div>
+                              <div className="overflow-y-auto flex-1 text-[10px] font-bold uppercase tracking-wider">
+                                  <button
+                                      onClick={() => {
+                                          setSelectedCity('All');
+                                          setPage(1);
+                                          setShowCityDropdown(false);
+                                          setCitySearchQuery('');
+                                      }}
+                                      className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedCity === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                  >
+                                      All Cities
+                                  </button>
+                                  {uniqueCities
+                                      .filter(city => city !== 'All')
+                                      .filter(city => city.toLowerCase().includes(citySearchQuery.toLowerCase()))
+                                      .map(city => (
+                                          <button
+                                              key={city}
+                                              onClick={() => {
+                                                  setSelectedCity(city);
+                                                  setPage(1);
+                                                  setShowCityDropdown(false);
+                                                  setCitySearchQuery('');
+                                              }}
+                                              className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors truncate ${selectedCity === city ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                              title={city}
+                                          >
+                                              {city}
+                                          </button>
+                                      ))
+                                  }
+                              </div>
+                          </div>
+                      </>
+                  )}
+              </div>
+
+              {/* State Filter (Searchable Custom Dropdown) */}
+              <div className="relative flex items-center w-[130px] z-[40]">
+                  <button
+                      onClick={() => setShowStateDropdown(!showStateDropdown)}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      <span className="truncate">{selectedState === 'All' ? 'All States' : selectedState}</span>
+                      <ChevronDown size={12} className="text-slate-400" />
+                  </button>
+                  {showStateDropdown && (
+                      <>
+                          <div className="fixed inset-0 z-40" onClick={() => {
+                              setShowStateDropdown(false);
+                              setStateSearchQuery('');
+                          }} />
+                          <div className="absolute left-0 top-full mt-1 w-[160px] bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left flex flex-col max-h-[250px] overflow-hidden">
+                              <div className="p-1.5 border-b border-slate-100">
+                                  <input 
+                                      type="text"
+                                      placeholder="Search state..."
+                                      value={stateSearchQuery}
+                                      onChange={(e) => setStateSearchQuery(e.target.value)}
+                                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-sm outline-none focus:border-slate-300 text-[10px] font-bold"
+                                      autoFocus
+                                  />
+                              </div>
+                              <div className="overflow-y-auto flex-1 text-[10px] font-bold uppercase tracking-wider">
+                                  <button
+                                      onClick={() => {
+                                          setSelectedState('All');
+                                          setPage(1);
+                                          setShowStateDropdown(false);
+                                          setStateSearchQuery('');
+                                      }}
+                                      className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedState === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                  >
+                                      All States
+                                  </button>
+                                  {uniqueStates
+                                      .filter(state => state !== 'All')
+                                      .filter(state => state.toLowerCase().includes(stateSearchQuery.toLowerCase()))
+                                      .map(state => (
+                                          <button
+                                              key={state}
+                                              onClick={() => {
+                                                  setSelectedState(state);
+                                                  setPage(1);
+                                                  setShowStateDropdown(false);
+                                                  setStateSearchQuery('');
+                                              }}
+                                              className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors truncate ${selectedState === state ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                              title={state}
+                                          >
+                                              {state}
+                                          </button>
+                                      ))
+                                  }
+                              </div>
+                          </div>
+                      </>
+                  )}
+              </div>
+
+              {/* Pincode Filter (Searchable Custom Dropdown) */}
+              <div className="relative flex items-center w-[130px] z-[40]">
+                  <button
+                      onClick={() => setShowPincodeDropdown(!showPincodeDropdown)}
+                      className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                  >
+                      <span className="truncate">{selectedPincode === 'All' ? 'All Pincodes' : selectedPincode}</span>
+                      <ChevronDown size={12} className="text-slate-400" />
+                  </button>
+                  {showPincodeDropdown && (
+                      <>
+                          <div className="fixed inset-0 z-40" onClick={() => {
+                              setShowPincodeDropdown(false);
+                              setPincodeSearchQuery('');
+                          }} />
+                          <div className="absolute left-0 top-full mt-1 w-[160px] bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left flex flex-col max-h-[250px] overflow-hidden">
+                              <div className="p-1.5 border-b border-slate-100">
+                                  <input 
+                                      type="text"
+                                      placeholder="Search pincode..."
+                                      value={pincodeSearchQuery}
+                                      onChange={(e) => setPincodeSearchQuery(e.target.value)}
+                                      className="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded-sm outline-none focus:border-slate-300 text-[10px] font-bold"
+                                      autoFocus
+                                  />
+                              </div>
+                              <div className="overflow-y-auto flex-1 text-[10px] font-bold uppercase tracking-wider">
+                                  <button
+                                      onClick={() => {
+                                          setSelectedPincode('All');
+                                          setPage(1);
+                                          setShowPincodeDropdown(false);
+                                          setPincodeSearchQuery('');
+                                      }}
+                                      className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedPincode === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                  >
+                                      All Pincodes
+                                  </button>
+                                  {uniquePincodes
+                                      .filter(pin => pin !== 'All')
+                                      .filter(pin => pin.toLowerCase().includes(pincodeSearchQuery.toLowerCase()))
+                                      .map(pin => (
+                                          <button
+                                              key={pin}
+                                              onClick={() => {
+                                                  setSelectedPincode(pin);
+                                                  setPage(1);
+                                                  setShowPincodeDropdown(false);
+                                                  setPincodeSearchQuery('');
+                                              }}
+                                              className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors truncate ${selectedPincode === pin ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
+                                              title={pin}
+                                          >
+                                              {pin}
+                                          </button>
+                                      ))
+                                  }
+                              </div>
+                          </div>
+                      </>
+                  )}
               </div>
 
               {/* Status Filter */}
@@ -589,7 +1272,7 @@ export default function Users() {
                       <option value="All">All Statuses</option>
                       <option value="Active">Active</option>
                       <option value="Blocked">Blocked</option>
-                      <option value="Pending">Pending</option>
+                      {activeTab !== 'Customer' && <option value="Pending">Pending</option>}
                   </select>
                   <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
               </div>
@@ -642,109 +1325,198 @@ export default function Users() {
                                 <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Personal & Business Details</h4>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
-                                    <input 
-                                        value={editingUser.displayName || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, displayName: e.target.value})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
-                                    <input 
-                                        disabled
-                                        value={editingUser.phone || ''} 
-                                        className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-xs font-bold text-slate-400 cursor-not-allowed" 
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
-                                    <input 
-                                        value={editingUser.email || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
-                                </div>
-                                <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
-                                    <input 
-                                        value={editingUser.address || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
-                                </div>
-                                {(editingUser.role === 'Vendor' || editingUser.role === 'Supplier') && (
+                                {editingUser.role === 'Vendor' && !['Pvt Ltd', 'Franchise'].includes(editingUser.businessType) ? (
                                     <>
                                         <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Shop/Business Name</label>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Owner Full Name</label>
                                             <input 
-                                                value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.name || '') : (editingUser.supplierDetails?.businessName || '')} 
-                                                onChange={(e) => {
-                                                    if(editingUser.role === 'Vendor') {
-                                                        setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, name: e.target.value}});
-                                                    } else {
-                                                        setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, businessName: e.target.value}});
-                                                    }
-                                                }}
+                                                value={editingUser.ownerName || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, ownerName: e.target.value})}
                                                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                             />
                                         </div>
                                         <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Facility Name</label>
                                             <input 
-                                                value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.gst || '') : (editingUser.supplierDetails?.gst || '')} 
-                                                onChange={(e) => {
-                                                    if(editingUser.role === 'Vendor') {
-                                                        setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, gst: e.target.value}});
-                                                    } else {
-                                                        setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, gst: e.target.value}});
-                                                    }
-                                                }}
+                                                value={editingUser.facilityName || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, facilityName: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Entity Type</label>
+                                            <select
+                                                value={editingUser.businessType || 'Proprietorship'}
+                                                onChange={(e) => setEditingUser({...editingUser, businessType: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all"
+                                            >
+                                                <option value="Proprietorship">Proprietorship</option>
+                                                <option value="Partnership">Partnership</option>
+                                                <option value="Unregistered/Local">Unregistered/Local</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                            <input 
+                                                disabled
+                                                value={editingUser.phone || ''} 
+                                                className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-xs font-bold text-slate-400 cursor-not-allowed" 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Aadhaar Number</label>
+                                            <input 
+                                                value={editingUser.aadharNumber || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, aadharNumber: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
+                                            <input 
+                                                value={editingUser.address || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
                                                 className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                             />
                                         </div>
                                     </>
-                                )}
-                                {editingUser.role === 'Customer' && (
+                                ) : (
                                     <>
                                         <div className="space-y-1.5">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Type</label>
-                                            <select
-                                                value={editingUser.customerType || 'individual'}
-                                                onChange={(e) => setEditingUser({...editingUser, customerType: e.target.value})}
-                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all"
-                                            >
-                                                <option value="individual">Individual</option>
-                                                <option value="retail">Business (Retail)</option>
-                                            </select>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                            <input 
+                                                value={editingUser.displayName || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, displayName: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
-                                        {editingUser.customerType === 'retail' && (
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                            <input 
+                                                disabled
+                                                value={editingUser.phone || ''} 
+                                                className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-xs font-bold text-slate-400 cursor-not-allowed" 
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                                            <input 
+                                                value={editingUser.email || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
+                                        </div>
+                                        {!(editingUser.role === 'Customer' && editingUser.customerType === 'individual') && (
+                                            <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
+                                                <input 
+                                                    value={editingUser.address || ''} 
+                                                    onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
+                                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                />
+                                            </div>
+                                        )}
+                                        {(editingUser.role === 'Vendor' || editingUser.role === 'Supplier') && (
                                             <>
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Shop/Business Name</label>
                                                     <input 
-                                                        value={editingUser.businessName || ''} 
-                                                        onChange={(e) => setEditingUser({...editingUser, businessName: e.target.value})}
+                                                        value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.name || '') : (editingUser.supplierDetails?.businessName || '')} 
+                                                        onChange={(e) => {
+                                                            if(editingUser.role === 'Vendor') {
+                                                                setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, name: e.target.value}});
+                                                            } else {
+                                                                setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, businessName: e.target.value}});
+                                                            }
+                                                        }}
                                                         className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                                     />
                                                 </div>
                                                 <div className="space-y-1.5">
                                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
                                                     <input 
-                                                        value={editingUser.gstNumber || ''} 
-                                                        onChange={(e) => setEditingUser({...editingUser, gstNumber: e.target.value.toUpperCase()})}
+                                                        value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.gst || '') : (editingUser.supplierDetails?.gst || '')} 
+                                                        onChange={(e) => {
+                                                            if(editingUser.role === 'Vendor') {
+                                                                setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, gst: e.target.value}});
+                                                            } else {
+                                                                setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, gst: e.target.value}});
+                                                            }
+                                                        }}
                                                         className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                                     />
                                                 </div>
+                                            </>
+                                        )}
+                                        {editingUser.role === 'Customer' && (
+                                            <>
                                                 <div className="space-y-1.5">
-                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Address</label>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Type</label>
                                                     <input 
-                                                        value={editingUser.businessAddress || ''} 
-                                                        onChange={(e) => setEditingUser({...editingUser, businessAddress: e.target.value})}
-                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                        value={editingUser.customerType === 'retail' ? 'Business (Retail)' : 'Individual'} 
+                                                        disabled
+                                                        className="w-full p-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl text-xs font-bold outline-none cursor-not-allowed" 
                                                     />
                                                 </div>
+                                                {editingUser.customerType === 'individual' && (
+                                                    <>
+                                                        {(!editingUser.addresses || editingUser.addresses.length === 0) ? (
+                                                            <div className="space-y-1.5 md:col-span-2">
+                                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address 01 (Home)</label>
+                                                                <input 
+                                                                    value={editingUser.address || ''} 
+                                                                    onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
+                                                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            editingUser.addresses.map((addr, idx) => (
+                                                                <div key={idx} className="space-y-1.5 md:col-span-2">
+                                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                                                        Address 0{idx + 1} ({addr.type || 'Home'})
+                                                                    </label>
+                                                                    <input 
+                                                                        value={addr.address || ''} 
+                                                                        onChange={(e) => {
+                                                                            const updatedAddresses = [...(editingUser.addresses || [])];
+                                                                            updatedAddresses[idx] = { ...addr, address: e.target.value };
+                                                                            setEditingUser({ ...editingUser, addresses: updatedAddresses });
+                                                                        }}
+                                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                                    />
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </>
+                                                )}
+                                                {editingUser.customerType === 'retail' && (
+                                                    <>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
+                                                            <input 
+                                                                value={editingUser.businessName || ''} 
+                                                                onChange={(e) => setEditingUser({...editingUser, businessName: e.target.value})}
+                                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                                />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
+                                                            <input 
+                                                                value={editingUser.gstNumber || ''} 
+                                                                onChange={(e) => setEditingUser({...editingUser, gstNumber: e.target.value.toUpperCase()})}
+                                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Address</label>
+                                                            <input 
+                                                                value={editingUser.businessAddress || ''} 
+                                                                onChange={(e) => setEditingUser({...editingUser, businessAddress: e.target.value})}
+                                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                            />
+                                                        </div>
+                                                    </>
+                                                )}
                                             </>
                                         )}
                                     </>
@@ -752,11 +1524,12 @@ export default function Users() {
                             </div>
                         </section>
 
-                        {/* Services Auditing (ONLY FOR VENDORS) */}
-                        {editingUser.role === 'Vendor' && (
+                        {/* Services Auditing (ONLY FOR REGISTERED VENDORS) */}
+                        {editingUser.role === 'Vendor' && ['Pvt Ltd', 'Franchise'].includes(editingUser.businessType) && (
                             <section className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
+                                        <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs">02</span>
                                         <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Service Nodes & Pricing Approval</h4>
                                         <button 
                                             onClick={() => {
@@ -888,53 +1661,70 @@ export default function Users() {
                             </section>
                         )}
 
-                        {/* Settlement Information */}
-                        <section className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-xs">03</span>
-                                <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Settlement & Bank Configuration</h4>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</label>
-                                    <input 
-                                        value={editingUser.bankDetails?.accountHolder || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountHolder: e.target.value}})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
+                        {!(editingUser.role === 'Customer' && editingUser.customerType === 'individual') && (
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-xs">
+                                        {editingUser.role === 'Vendor' && ['Pvt Ltd', 'Franchise'].includes(editingUser.businessType) ? '03' : '02'}
+                                    </span>
+                                    <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Settlement & Bank Configuration</h4>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
-                                    <input 
-                                        value={editingUser.bankDetails?.bankName || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, bankName: e.target.value}})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.accountHolder || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountHolder: e.target.value}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.bankName || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, bankName: e.target.value}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.accountNumber || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountNumber: e.target.value}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank IFSC Code</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.ifscCode || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, ifscCode: e.target.value.toUpperCase()}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
-                                    <input 
-                                        value={editingUser.bankDetails?.accountNumber || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountNumber: e.target.value}})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">IFSC Code</label>
-                                    <input 
-                                        value={editingUser.bankDetails?.ifscCode || ''} 
-                                        onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, ifscCode: e.target.value}})}
-                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
-                                    />
-                                </div>
-                            </div>
-                        </section>
+                            </section>
+                        )}
                     </div>
 
                     <div className="p-8 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-slate-400">
-                            <Info size={14} />
-                            <span className="text-[9px] font-bold uppercase tracking-widest">Audited by System Admin · Secure Session</span>
+                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const nextStatus = editingUser.status === 'rejected' ? 'approved' : 'rejected';
+                                    setEditingUser({ ...editingUser, status: nextStatus });
+                                    toast.success(nextStatus === 'rejected' ? 'Status set to Blocked' : 'Status set to Active');
+                                }}
+                                className={`px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] transition-all flex items-center gap-2 shadow-sm ${
+                                    editingUser.status === 'rejected'
+                                        ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 border border-emerald-200/80'
+                                        : 'bg-rose-50 text-rose-600 hover:bg-rose-100/80 border border-rose-200/80'
+                                }`}
+                            >
+                                {editingUser.status === 'rejected' ? <CheckCircle size={14} /> : <Ban size={14} />}
+                                {editingUser.status === 'rejected' ? 'Unblock Partner' : 'Block Partner'}
+                            </button>
                         </div>
                         <div className="flex gap-4">
                             <button 
@@ -1024,6 +1814,103 @@ export default function Users() {
                     </div>
                 </motion.div>
             </div>
+        )}
+      </AnimatePresence>
+
+      {/* Address Details Modal */}
+      <AnimatePresence>
+        {selectedAddressForModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedAddressForModal(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden border border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                    <MapPin size={18} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address Details</span>
+                    <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{selectedAddressForModal.type || 'Home'}</span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedAddressForModal(null)} 
+                  className="p-2 hover:bg-slate-100 rounded-full transition-colors border border-slate-200 shadow-sm bg-white"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4 text-left">
+                <div className="space-y-1">
+                  <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Full Address</span>
+                  <span className="text-xs font-bold text-slate-800 block leading-relaxed uppercase">{selectedAddressForModal.address}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">City</span>
+                    <span className="text-xs font-bold text-slate-800 block uppercase">{selectedAddressForModal.city || 'N/A'}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">State</span>
+                    <span className="text-xs font-bold text-slate-800 block uppercase">
+                      {(() => {
+                        if (selectedAddressForModal.state) return selectedAddressForModal.state;
+                        const addrText = selectedAddressForModal.address || '';
+                        const statesList = [
+                          'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+                          'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+                          'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+                          'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+                          'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+                          'Delhi', 'Jammu & Kashmir', 'Jammu and Kashmir', 'Ladakh', 'Puducherry'
+                        ];
+                        const matched = statesList.find(s => addrText.toLowerCase().includes(s.toLowerCase()));
+                        return matched || 'N/A';
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Pincode</span>
+                    <span className="text-xs font-bold text-slate-800 block tracking-wider tabular-nums">{selectedAddressForModal.pincode || 'N/A'}</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Coordinates</span>
+                    <span className="text-xs font-bold text-slate-800 block tracking-tight tabular-nums">
+                      {selectedAddressForModal.location?.lat ? `${selectedAddressForModal.location.lat.toFixed(4)}, ${selectedAddressForModal.location.lng.toFixed(4)}` : 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                <button
+                  onClick={() => setSelectedAddressForModal(null)}
+                  className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all shadow-md shadow-slate-900/10"
+                >
+                  Close Window
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['user', 'vendor', 'rider', 'admin'],
+        enum: ['user', 'vendor', 'rider', 'admin', 'supplier'],
         required: true
     },
     title: {
@@ -21,7 +21,7 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['order_placed', 'order_available', 'pickup_available', 'ready', 'assigned', 'picked_up', 'delivered', 'job_application', 'supplier_onboarding'],
+        enum: ['order_placed', 'order_available', 'pickup_available', 'ready', 'assigned', 'picked_up', 'delivered', 'job_application', 'supplier_onboarding', 'b2b_chat'],
         default: 'order_placed'
     },
     orderId: {

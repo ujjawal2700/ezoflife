@@ -2,21 +2,18 @@ import Advertisement from '../models/Advertisement.js';
 
 export const createAd = async (req, res) => {
     try {
-        const { title, type, notes } = req.body;
+        const { title, type, notes, category } = req.body;
         const file = req.file;
 
         if (!file) {
             return res.status(400).json({ error: 'No media file uploaded' });
         }
 
-        // Deactivate other ads if this one is active (optional, user wants 50% ad)
-        // For simplicity, we just save it. 
-        // We can have multiple, but fetch the latest active one.
-
         const newAd = new Advertisement({
             title,
             type, // 'image' or 'video'
             url: `/uploads/ads/${file.filename}`,
+            category: category || 'splash',
             notes: notes || ''
         });
 
@@ -29,9 +26,17 @@ export const createAd = async (req, res) => {
 
 export const getActiveAd = async (req, res) => {
     try {
-        const ad = await Advertisement.findOne({ isActive: true }).sort({ createdAt: -1 });
+        const { category } = req.query;
+        const query = { isActive: true };
+        if (category) {
+            query.category = category;
+        } else {
+            query.category = 'splash';
+        }
+
+        const ad = await Advertisement.findOne(query).sort({ createdAt: -1 });
         if (!ad) {
-            return res.status(404).json({ message: 'No active advertisement found' });
+            return res.status(404).json({ message: `No active advertisement found for category: ${query.category}` });
         }
         res.json(ad);
     } catch (error) {

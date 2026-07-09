@@ -18,6 +18,11 @@ const advertisementSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  category: {
+    type: String,
+    enum: ['splash', 'home_banner'],
+    default: 'splash'
+  },
   notes: {
     type: String,
     default: ''

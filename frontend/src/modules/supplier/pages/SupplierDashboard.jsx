@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { b2bOrderApi, authApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
+import useNotificationStore from '../../../shared/stores/notificationStore';
 
 const SupplierDashboard = () => {
     const navigate = useNavigate();
@@ -66,9 +67,12 @@ const SupplierDashboard = () => {
         }
     };
 
+    const { fetchNotifications, unreadCount } = useNotificationStore();
+
     useEffect(() => {
         if (supplierId) {
             fetchOrders();
+            fetchNotifications(supplierId, 'supplier');
         }
     }, [supplierId]);
 

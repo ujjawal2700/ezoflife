@@ -30,9 +30,19 @@ const B2BFulfillmentPage = () => {
     const fetchMaterials = async () => {
         try {
             const materialsData = vendorId ? await materialApi.getLiveCatalog(vendorId) : [];
-            setLiveSupplies(materialsData);
+            if (Array.isArray(materialsData)) {
+                setLiveSupplies(materialsData);
+            } else {
+                console.error('Expected array for materials but got:', materialsData);
+                setLiveSupplies([]);
+                if (materialsData && materialsData.message) {
+                    toast.error(materialsData.message);
+                }
+            }
         } catch (error) {
             console.error('Fetch Data Error:', error);
+            toast.error(error.message || 'Failed to load supplies');
+            setLiveSupplies([]);
         }
     };
 

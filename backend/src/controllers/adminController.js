@@ -231,19 +231,30 @@ export const approveSupplier = async (req, res) => {
             const user = await User.findByIdAndUpdate(
                 application.user,
                 { 
-                    role: 'Supplier', 
-                    status: 'approved',
-                    displayName: application.contactPersonName || userObj?.displayName || '',
-                    email: userObj?.email || '',
-                    address: application.warehouseAddress || '',
-                    isProfileComplete: true,
-                    supplierDetails: {
-                        businessName: application.registeredBusinessName || '',
-                        address: application.warehouseAddress || '',
-                        city: application.city || '',
-                        pincode: application.pincode || '',
-                        gst: application.gstNumber || ''
-                    }
+                      role: 'Supplier', 
+                      status: 'approved',
+                      displayName: application.contactPersonName || userObj?.displayName || '',
+                      email: userObj?.email || '',
+                      address: application.warehouseAddress || '',
+                      isProfileComplete: true,
+                      supplierDetails: {
+                          businessName: application.registeredBusinessName || '',
+                          address: application.warehouseAddress || '',
+                          city: application.city || '',
+                          pincode: application.pincode || '',
+                          gst: application.gstNumber || '',
+                          supplyCategories: application.supplyCategories || [],
+                          entityType: application.entityType || '',
+                          designation: application.designation || '',
+                          panNumber: application.panNumber || '',
+                          aadhaarNumber: application.ownerAadhaar || ''
+                      },
+                      bankDetails: {
+                          accountHolderName: application.contactPersonName || '',
+                          accountNumber: application.accountNumber || '',
+                          ifscCode: application.ifscCode || '',
+                          bankName: application.bankName || ''
+                      }
                 },
                 { new: true }
             );

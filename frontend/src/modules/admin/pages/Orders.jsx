@@ -273,7 +273,7 @@ export default function Orders() {
       });
 
       // Prepare Table Data
-      const tableColumn = ["Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Gross Service Cost", "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"];
+      const tableColumn = ["Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Cashback Received", "Wallet Used", "Gross Service Cost", "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"];
       const tableRows = listForExport.map(row => [
         row.serviceZone || 'N/A',
         row.orderId || row._id.slice(-6).toUpperCase(),
@@ -294,6 +294,8 @@ export default function Orders() {
           return completedEntry?.timestamp ? new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
         })(),
         calculateTotalTurnaroundTime(row) || '-',
+        `Rs. ${row.ledger?.customerWalletCredit || 0}`,
+        `Rs. ${row.walletAmountDeducted || 0}`,
         `Rs. ${row.grossServiceCost || 0}`,
         `Rs. ${row.orderType === 'Walk-In' ? (row.deliveryCharge || 0) : (row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0))}`,
         `Rs. ${Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100))}`,
@@ -371,7 +373,7 @@ export default function Orders() {
         "Service Zone", "Order ID", "Customer Name", "Order Submitted Timestamp", 
         "Service Items JSON", "Current Order Status", "Rider ID", "Rider Name", 
         "Rider Contact Number", "Status Timestamp History", "Status Duration Hours", 
-        "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Gross Service Cost", 
+        "Order Completed Timestamp", "Total Turnaround Time (Hrs)", "Cashback Received", "Wallet Used", "Gross Service Cost", 
         "Logistics Fee", "Platform GST Amount", "Vendor GST Amount", "Total Customer Payable", 
         "Vendor Payout Share", "Admin Revenue Share", "Total Payable to GST", "Vendor", "Date"
       ];
@@ -396,6 +398,8 @@ export default function Orders() {
           return completedEntry?.timestamp ? new Date(completedEntry.timestamp).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '-';
         })(),
         calculateTotalTurnaroundTime(row) || '-',
+        row.ledger?.customerWalletCredit || 0,
+        row.walletAmountDeducted || 0,
         row.grossServiceCost || 0,
         row.orderType === 'Walk-In' ? (row.deliveryCharge || 0) : (row.priceBreakdown?.logisticsFee !== undefined ? row.priceBreakdown.logisticsFee : (row.deliveryCharge || 0)),
         Math.round((row.priceBreakdown?.platformFee || 0) * ((row.tier === 'Heritage' ? 18 : 5) / 100)),
@@ -692,6 +696,26 @@ export default function Orders() {
           </span>
         );
       }
+    },
+    {
+      header: 'Cashback Received',
+      key: 'ledger',
+      align: 'right',
+      render: (val) => (
+        <span className="font-bold text-slate-900 tabular-nums text-xs">
+          ₹{(val?.customerWalletCredit || 0).toLocaleString()}
+        </span>
+      )
+    },
+    {
+      header: 'Wallet Used',
+      key: 'walletAmountDeducted',
+      align: 'right',
+      render: (val) => (
+        <span className="font-bold text-slate-900 tabular-nums text-xs">
+          ₹{(val || 0).toLocaleString()}
+        </span>
+      )
     },
     {
       header: 'Gross Service Cost',
