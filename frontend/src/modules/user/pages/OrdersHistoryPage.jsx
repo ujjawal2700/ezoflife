@@ -71,20 +71,7 @@ const OrdersHistoryPage = () => {
         const data = await orderApi.getMyOrders(userId, filters);
         console.log('✅ Received orders count:', data?.length || 0);
         
-        const mockPastOrders = [
-          {
-            _id: 'mock_1',
-            orderId: '#SPZ-9901',
-            status: 'DELIVERED',
-            totalAmount: 1250.00,
-            createdAt: new Date('2024-04-12'),
-            serviceTier: 'Heritage',
-            items: [{ name: 'Premium Dry Clean', quantity: 2, price: 500 }, { name: 'Silk Saree Care', quantity: 1, price: 250 }],
-            vendor: { displayName: 'Spinzyt Luxury Hub' }
-          }
-        ];
-        
-        setOrders([...(data || []), ...mockPastOrders]);
+        setOrders(data || []);
       } catch (orderErr) {
         console.error('❌ Error fetching orders:', orderErr);
         setOrders([]);

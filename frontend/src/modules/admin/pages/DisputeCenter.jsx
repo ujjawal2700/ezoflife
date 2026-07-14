@@ -1,7 +1,6 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, IndianRupee, Image, History, ArrowRight, User, CheckCircle2, XCircle, AlertCircle, Search, ExternalLink, Send, Clock } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
-import MetricRow from '../components/cards/MetricRow';
 import StatusBadge from '../components/common/StatusBadge';
 import { ticketApi, mediaApi } from '../../../lib/api';
 import io from 'socket.io-client';
@@ -130,13 +129,6 @@ export default function DisputeCenter() {
     }
   };
 
-  const disputeStats = useMemo(() => [
-    { label: 'Open Disputes', value: tickets.filter(t => t.status !== 'Closed' && t.status !== 'Resolved').length.toString(), change: '+2', trend: 'up', icon: ShieldAlert },
-    { label: 'Refund Vol (7d)', value: '₹12.4K', change: '+1.2K', trend: 'up', icon: IndianRupee, currency: 'INR' },
-    { label: 'Avg Resolution', value: '4.2h', change: '-0.5h', trend: 'up', icon: History },
-    { label: 'Cases Resolved', value: tickets.filter(t => t.status === 'Resolved').length.toString(), change: '+1', trend: 'up', icon: CheckCircle2 }
-  ], [tickets]);
-
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20 font-body">
       <PageHeader 
@@ -145,14 +137,6 @@ export default function DisputeCenter() {
           { label: 'Settlement Policy', icon: IndianRupee, variant: 'secondary' }
         ]}
       />
-
-      <div className="bg-white border-b border-slate-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 divide-x divide-slate-100 max-w-[1600px] mx-auto w-full">
-            {disputeStats.map((stat, i) => (
-                <MetricRow key={i} {...stat} />
-            ))}
-        </div>
-      </div>
 
       <div className="p-6 grid grid-cols-1 xl:grid-cols-4 gap-6 max-w-[1600px] mx-auto w-full flex-1">
         {/* List of Disputes */}

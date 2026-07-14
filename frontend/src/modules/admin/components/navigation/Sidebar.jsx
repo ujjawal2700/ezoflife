@@ -78,7 +78,15 @@ const navItems = [
             },
             { icon: ClipboardList, label: 'Vendor Service Request', path: '/admin/vendor-service-requests' },
             { icon: ClipboardList, label: 'Supplier Product Request', path: '/admin/supplier-product-requests' },
-            { icon: ShoppingBag, label: 'Orders', path: '/admin/orders' },
+            { 
+                icon: ShoppingBag, 
+                label: 'Orders', 
+                path: '/admin/orders',
+                subItems: [
+                    { label: 'Active Orders', path: '/admin/orders?tab=Active' },
+                    { label: 'Completed Orders', path: '/admin/orders?tab=Completed' }
+                ]
+            },
             { 
                 icon: CreditCard, 
                 label: 'Payments', 
@@ -100,7 +108,6 @@ const navItems = [
                     { label: 'Master Services', path: '/admin/master-services' },
                     { label: 'Service Geofence', path: '/admin/geofence-table' },
                     { label: 'Master Pricing Table', path: '/admin/master-pricing' },
-                    { label: 'Global Policies', path: '/admin/pricing' },
                 ]
             },
             { 

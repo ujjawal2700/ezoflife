@@ -14,6 +14,16 @@ const OrderDetails = () => {
     const [otp, setOtp] = useState(['', '', '', '']);
     const [verifying, setVerifying] = useState(false);
 
+    const activeOtp = useMemo(() => {
+        if (!order) return null;
+        if (order.orderType === 'Walk-In' && !order.riderDropOff && activeHandshakePhase === 'Reverse') {
+            return order.deliveryOtp || null;
+        }
+        if (!order.logisticsHandshakes || !activeHandshakePhase) return null;
+        const handshake = order.logisticsHandshakes.find(h => h.phase === activeHandshakePhase && !h.isVerified);
+        return handshake ? handshake.otp : null;
+    }, [order, activeHandshakePhase]);
+
     const [showReport, setShowReport] = useState(false);
     const [reportReason, setReportReason] = useState('');
 
@@ -84,19 +94,18 @@ const OrderDetails = () => {
         return () => clearInterval(interval);
     }, [order]);
 
+    const fetchOrder = async () => {
+        try {
+            const data = await orderApi.getById(order_Id);
+            setOrder(data);
+        } catch (err) {
+            console.error('Error fetching order details:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchOrder = async () => {
-            try {
-                const data = await orderApi.getById(order_Id);
-                setOrder(data);
-            } catch (err) {
-                console.error('Error fetching order details:', err);
-            } finally {
-                setTimeout(() => {
-                    setLoading(false);
-                }, 5000);
-            }
-        };
         fetchOrder();
     }, [order_Id]);
 
@@ -472,6 +481,7 @@ const OrderDetails = () => {
                                         try {
                                             setVerifying(true);
                                             await logisticsApi.requestHandshake(order._id, 'Inbound');
+                                            await fetchOrder(); // Fetch latest order containing OTP!
                                             setActiveHandshakePhase('Inbound');
                                             setIsHandshakeModalOpen(true);
                                         } catch (err) {
@@ -491,6 +501,11 @@ const OrderDetails = () => {
                                     <p className="text-sm font-black text-slate-900 uppercase tracking-tight text-center">
                                         Enter Rider Inbound OTP
                                     </p>
+                                    {activeOtp && (
+                                        <div className="p-3 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl text-center text-xs font-black uppercase tracking-wider animate-pulse">
+                                            [DEMO ONLY] OTP: {activeOtp}
+                                        </div>
+                                    )}
                                     <div className="flex justify-center gap-3">
                                         {otp.map((digit, index) => (
                                             <input
@@ -551,7 +566,8 @@ const OrderDetails = () => {
                             {!isHandshakeModalOpen ? (
                                 <motion.button 
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
+                                    onClick={async () => {
+                                        await fetchOrder(); // Fetch latest order details to make sure we have the latest OTP
                                         setActiveHandshakePhase('Reverse');
                                         setIsHandshakeModalOpen(true);
                                     }}
@@ -567,6 +583,11 @@ const OrderDetails = () => {
                                     <p className="text-sm font-black text-slate-900 uppercase tracking-tight text-center">
                                         {order.orderType === 'Walk-In' && !order.riderDropOff ? 'Enter Customer OTP' : 'Enter Rider OTP'}
                                     </p>
+                                    {activeOtp && (
+                                        <div className="p-3 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl text-center text-xs font-black uppercase tracking-wider animate-pulse">
+                                            [DEMO ONLY] OTP: {activeOtp}
+                                        </div>
+                                    )}
                                     <div className="flex justify-center gap-3">
                                         {otp.map((digit, index) => (
                                             <input

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ShoppingBag, Search, Download, Filter, FileText, PlusCircle, ExternalLink, User, Store, Calendar, ArrowRight, Eye, Edit3, Trash2, ChevronDown } from 'lucide-react';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { mockAdminData } from '../data/mockData';
@@ -132,7 +132,13 @@ const calculateTotalTurnaroundTime = (row) => {
 
 export default function Orders() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('All');
+  const location = useLocation();
+  
+  const activeTab = useMemo(() => {
+    const queryParams = new URLSearchParams(location.search);
+    return queryParams.get('tab') || 'Active';
+  }, [location.search]);
+
   const [allOrders, setAllOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [zones, setZones] = useState([]);
@@ -156,7 +162,271 @@ export default function Orders() {
   const [selectedOrderItems, setSelectedOrderItems] = useState([]);
   const [selectedOrderIdForItems, setSelectedOrderIdForItems] = useState('');
 
-  const tabs = useMemo(() => ['All', 'Placed', 'Processing', 'Delivered', 'Cancelled'], []);
+  const getCustomerInvoiceCalculations = (order) => {
+    const isCustomerRD = !!(order.customer?.gstNumber && order.customer?.gstNumber.trim());
+    const isVendorRD = !!(order.vendor?.gstNumber && order.vendor?.gstNumber.trim());
+    
+    const serviceCost = order.grossServiceCost || (order.items || []).reduce((acc, item) => acc + (item.quantity || 0) * (item.price || 0), 0);
+    
+    let gstRate = 0.18;
+    let gstAmount = 0;
+    let totalInvoiceAmt = serviceCost;
+    let gstinOnInvoice = '';
+    
+    if (isCustomerRD && isVendorRD) {
+      gstAmount = Math.round(serviceCost * gstRate);
+      totalInvoiceAmt = serviceCost + gstAmount;
+      gstinOnInvoice = `Customer GSTIN: ${order.customer.gstNumber}`;
+    } else if (!isCustomerRD && isVendorRD) {
+      gstAmount = Math.round(serviceCost * gstRate);
+      totalInvoiceAmt = serviceCost + gstAmount;
+      gstinOnInvoice = `Vendor GSTIN: ${order.vendor.gstNumber}`;
+    } else if (!isCustomerRD && !isVendorRD) {
+      gstAmount = Math.round(serviceCost * gstRate);
+      totalInvoiceAmt = serviceCost + gstAmount;
+      gstinOnInvoice = `Spinzyt GSTIN: 23AAAAA1111A1Z1 (ECO)`;
+    } else if (isCustomerRD && !isVendorRD) {
+      gstAmount = 0;
+      totalInvoiceAmt = serviceCost;
+      gstinOnInvoice = `ECO TO CUSTOMER (Reverse Charge)`;
+    }
+    
+    return {
+      isCustomerRD,
+      isVendorRD,
+      serviceCost,
+      gstAmount,
+      totalInvoiceAmt,
+      gstinOnInvoice
+    };
+  };
+
+  const getVendorInvoiceCalculations = (order, customerCalc) => {
+    const platformFee = order.priceBreakdown?.platformFee || 25;
+    const platformFeeGst = Math.round(platformFee * 0.18 * 100) / 100;
+    
+    const logisticsFee = order.orderType === 'Walk-In' 
+      ? (order.deliveryCharge || 0) 
+      : (order.priceBreakdown?.logisticsFee !== undefined ? order.priceBreakdown.logisticsFee : (order.deliveryCharge || 50));
+    
+    const logisticsFeeGst = Math.round(logisticsFee * 0.18 * 100) / 100;
+    
+    const totalInvoiceAmt = platformFee + platformFeeGst + logisticsFee + logisticsFeeGst;
+    const netPaymentToVendor = customerCalc.totalInvoiceAmt - totalInvoiceAmt;
+    
+    return {
+      platformFee,
+      platformFeeGst,
+      logisticsFee,
+      logisticsFeeGst,
+      totalInvoiceAmt,
+      netPaymentToVendor
+    };
+  };
+
+  const handleDownloadCustomerInvoice = (order) => {
+    try {
+      const calc = getCustomerInvoiceCalculations(order);
+      const doc = new jsPDF();
+      
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(255, 255, 255);
+      doc.text('SPINZYT', 15, 20);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('PREMIUM GARMENT CARE PLATFORM', 15, 26);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('TAX INVOICE / ECO INVOICE', 200 - 15, 20, { align: 'right' });
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Invoice No: INV-CUST-${order.orderId || (order._id ? order._id.slice(-6).toUpperCase() : 'TEMP')}`, 200 - 15, 26, { align: 'right' });
+      doc.text(`Date: ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 200 - 15, 31, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Seller (Vendor Details):', 15, 55);
+      doc.text('Buyer (Customer Details):', 110, 55);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(70, 70, 70);
+      
+      doc.text(`Shop Name: ${order.vendor?.shopDetails?.shopName || 'Spinzyt Partner'}`, 15, 62);
+      doc.text(`Phone: ${order.vendor?.phone || 'N/A'}`, 15, 67);
+      doc.text(`GSTIN: ${order.vendor?.gstNumber || 'URD (Unregistered)'}`, 15, 72);
+      
+      doc.text(`Name: ${order.customer?.displayName || 'Valued Customer'}`, 110, 62);
+      doc.text(`Phone: ${order.customer?.phone || 'N/A'}`, 110, 67);
+      doc.text(`GSTIN: ${order.customer?.gstNumber || 'URD (Individual)'}`, 110, 72);
+
+      doc.setDrawColor(220, 220, 220);
+      doc.line(15, 80, 195, 80);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Order ID: ${order.orderId || 'N/A'}`, 15, 90);
+      doc.text(`Service Zone: ${order.serviceZone || 'N/A'}`, 110, 90);
+
+      const tableHeaders = [['S.No', 'Service Item', 'Qty', 'Rate (Rs.)', 'Total (Rs.)']];
+      const tableRows = (order.items || []).map((item, idx) => [
+        idx + 1,
+        item.name || 'Service Item',
+        item.quantity || 0,
+        (item.price || 0).toFixed(2),
+        ((item.quantity || 0) * (item.price || 0)).toFixed(2)
+      ]);
+
+      autoTable(doc, {
+        head: tableHeaders,
+        body: tableRows,
+        startY: 98,
+        styles: { fontSize: 9, font: 'helvetica' },
+        headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+
+      const finalY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : doc.previousAutoTable ? doc.previousAutoTable.finalY : 150) + 10;
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Service Cost (Gross):', 130, finalY);
+      doc.text(`${calc.serviceCost.toFixed(2)}`, 195, finalY, { align: 'right' });
+
+      doc.text('GST (18%):', 130, finalY + 6);
+      doc.text(`${calc.gstAmount.toFixed(2)}`, 195, finalY + 6, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Total Customer Payable:', 130, finalY + 13);
+      doc.text(`${calc.totalInvoiceAmt.toFixed(2)}`, 195, finalY + 13, { align: 'right' });
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100, 100, 100);
+      doc.text(`GSTIN Reference: ${calc.gstinOnInvoice}`, 15, finalY + 25);
+      doc.text('Note: This is an electronically generated invoice raised by the Vendor to the Customer on Spinzyt.', 15, finalY + 30);
+
+      doc.save(`Invoice_Customer_${order.orderId || (order._id ? order._id.slice(-6).toUpperCase() : 'TEMP')}.pdf`);
+    } catch (err) {
+      console.error('Error generating Customer Invoice:', err);
+      alert('Error generating Customer Invoice: ' + err.message);
+    }
+  };
+
+  const handleDownloadVendorInvoice = (order) => {
+    try {
+      const customerCalc = getCustomerInvoiceCalculations(order);
+      const calc = getVendorInvoiceCalculations(order, customerCalc);
+      const doc = new jsPDF();
+      
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.setTextColor(255, 255, 255);
+      doc.text('SPINZYT', 15, 20);
+      
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('PREMIUM GARMENT CARE PLATFORM', 15, 26);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.text('REVENUE & COMMISSIONS INVOICE', 200 - 15, 20, { align: 'right' });
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Invoice No: INV-VEND-${order.orderId || (order._id ? order._id.slice(-6).toUpperCase() : 'TEMP')}`, 200 - 15, 26, { align: 'right' });
+      doc.text(`Date: ${order.createdAt ? new Date(order.createdAt).toLocaleDateString() : new Date().toLocaleDateString()}`, 200 - 15, 31, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.setTextColor(15, 23, 42);
+      doc.text('Billed By (Spinzyt Platform):', 15, 55);
+      doc.text('Billed To (Vendor Partner):', 110, 55);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(70, 70, 70);
+      
+      doc.text('Spinzyt Ltd.', 15, 62);
+      doc.text('Email: billing@spinzyt.com', 15, 67);
+      doc.text('GSTIN: 23AAAAA1111A1Z1', 15, 72);
+      
+      doc.text(`Shop Name: ${order.vendor?.shopDetails?.shopName || 'Spinzyt Partner'}`, 110, 62);
+      doc.text(`Phone: ${order.vendor?.phone || 'N/A'}`, 110, 67);
+      doc.text(`GSTIN: ${order.vendor?.gstNumber || 'URD (Unregistered)'}`, 110, 72);
+
+      doc.setDrawColor(220, 220, 220);
+      doc.line(15, 80, 195, 80);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`Linked Order ID: ${order.orderId || 'N/A'}`, 15, 90);
+      doc.text(`Service Zone: ${order.serviceZone || 'N/A'}`, 110, 90);
+
+      const tableHeaders = [['Description', 'Net Amount (Rs.)', 'GST 18% (Rs.)', 'Gross Amount (Rs.)']];
+      const tableRows = [
+        [
+          'Platform Fee (Spinzyt Commission)', 
+          calc.platformFee.toFixed(2), 
+          calc.platformFeeGst.toFixed(2), 
+          (calc.platformFee + calc.platformFeeGst).toFixed(2)
+        ],
+        [
+          'Logistics Fee (Delivery Charge)', 
+          calc.logisticsFee.toFixed(2), 
+          calc.logisticsFeeGst.toFixed(2), 
+          (calc.logisticsFee + calc.logisticsFeeGst).toFixed(2)
+        ]
+      ];
+
+      autoTable(doc, {
+        head: tableHeaders,
+        body: tableRows,
+        startY: 98,
+        styles: { fontSize: 9, font: 'helvetica' },
+        headStyles: { fillColor: [15, 23, 42], textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+
+      const finalY = (doc.lastAutoTable ? doc.lastAutoTable.finalY : doc.previousAutoTable ? doc.previousAutoTable.finalY : 150) + 10;
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Customer Invoice Total:', 120, finalY);
+      doc.text(`${customerCalc.totalInvoiceAmt.toFixed(2)}`, 195, finalY, { align: 'right' });
+
+      doc.text('Total Deductions (Inc. GST):', 120, finalY + 6);
+      doc.text(`${calc.totalInvoiceAmt.toFixed(2)}`, 195, finalY + 6, { align: 'right' });
+
+      doc.setFont('helvetica', 'bold');
+      doc.text('Net Payout to Vendor:', 120, finalY + 13);
+      doc.text(`${calc.netPaymentToVendor.toFixed(2)}`, 195, finalY + 13, { align: 'right' });
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(100, 100, 100);
+      doc.text('GSTIN Reference: raised with Spinzyt GSTIN (23AAAAA1111A1Z1)', 15, finalY + 25);
+      doc.text('Note: This invoice records the platform and logistics commissions charged by Spinzyt to the Vendor.', 15, finalY + 30);
+
+      doc.save(`Invoice_Vendor_${order.orderId || (order._id ? order._id.slice(-6).toUpperCase() : 'TEMP')}.pdf`);
+    } catch (err) {
+      console.error('Error generating Vendor Invoice:', err);
+      alert('Error generating Vendor Invoice: ' + err.message);
+    }
+  };
+
+  const tabs = useMemo(() => ['Active', 'Completed'], []);
 
   const fetchAllOrders = async (currentPage = page, filters = {
     selectedZone,
@@ -825,8 +1095,30 @@ export default function Orders() {
           </span>
         );
       }
+    },
+    {
+      header: 'Actions',
+      key: 'actions',
+      render: (val, row) => (
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => handleDownloadCustomerInvoice(row)}
+            className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 hover:border-blue-300 rounded text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+            title="Download Customer Invoice"
+          >
+            <Download size={10} /> Cust Inv
+          </button>
+          <button
+            onClick={() => handleDownloadVendorInvoice(row)}
+            className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 hover:border-emerald-300 rounded text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer"
+            title="Download Vendor Invoice"
+          >
+            <Download size={10} /> Vend Inv
+          </button>
+        </div>
+      )
     }
-  ], []);
+  ].filter(col => col.key !== 'actions' || activeTab === 'Completed'), [handleDownloadCustomerInvoice, handleDownloadVendorInvoice, activeTab]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
@@ -876,6 +1168,7 @@ export default function Orders() {
       />
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+
         {/* Dropdown Filters Row */}
         <div className="flex justify-between items-center gap-4 flex-wrap bg-white p-3 rounded-md border border-slate-200/60 shadow-sm">
           {/* Left Filters (Date Range only) */}

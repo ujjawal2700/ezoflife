@@ -32,6 +32,13 @@ const OrderTrackingPage = () => {
   const [riderLocation, setRiderLocation] = useState(null);
   const mapRef = useRef(null);
 
+  const currentHandshakeOtp = useMemo(() => {
+    if (!order || !order.logisticsHandshakes) return null;
+    const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING' || order.status === 'PICKUP_ASSIGNED') ? 'Collection' : 'Completion';
+    const handshake = order.logisticsHandshakes.find(h => h.phase === phase && !h.isVerified);
+    return handshake ? handshake.otp : null;
+  }, [order]);
+
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -59,9 +66,10 @@ const OrderTrackingPage = () => {
 
   const handleRequestHandshake = async () => {
     try {
-        const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING') ? 'Collection' : 'Completion';
+        const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING' || order.status === 'PICKUP_ASSIGNED') ? 'Collection' : 'Completion';
         toast.loading(`Requesting ${phase} Handshake...`, { id: 'handshake' });
         await logisticsApi.requestHandshake(id, phase);
+        await fetchOrder(); // Fetch latest order details to load the generated OTP
         toast.success('Rider received OTP on SMS!', { id: 'handshake' });
         setIsHandshakeModalOpen(true);
     } catch (error) {
@@ -579,6 +587,11 @@ const OrderTrackingPage = () => {
                     ) : (
                         <div className="flex flex-col items-center gap-4 py-2">
                             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Enter 4-digit code</p>
+                            {currentHandshakeOtp && (
+                                <div className="px-4 py-2 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl text-xs font-black uppercase tracking-wider animate-pulse">
+                                    [DEMO ONLY] OTP: {currentHandshakeOtp}
+                                </div>
+                            )}
                             <div className="flex justify-center gap-2">
                                 {[0, 1, 2, 3].map((i) => (
                                     <input

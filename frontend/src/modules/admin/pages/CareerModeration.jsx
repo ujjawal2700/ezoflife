@@ -470,22 +470,25 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
         ...(creatorFilter === 'Admin' ? [{
             header: 'Notes',
             key: 'notes',
-            render: (val, row) => (
-                <button
-                    onClick={() => {
-                        setEditingNotesApplication(row);
-                        setTempNotes(row.notes || '');
-                    }}
-                    className={`px-3 py-1.5 rounded-sm text-[9px] font-black tracking-wider uppercase border text-left truncate max-w-[150px] transition-all cursor-pointer block ${
-                        val 
-                            ? 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10' 
-                            : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
-                    }`}
-                    title={val || 'Add Notes'}
-                >
-                    {val || 'Add Notes'}
-                </button>
-            )
+            render: (val, row) => {
+                const count = row.notesHistory?.length || 0;
+                return (
+                    <button
+                        onClick={() => {
+                            setEditingNotesApplication(row);
+                            setTempNotes('');
+                        }}
+                        className={`px-3 py-1.5 rounded-sm text-[9px] font-black tracking-wider uppercase border text-left truncate max-w-[150px] transition-all cursor-pointer block ${
+                            count > 0 
+                                ? 'bg-primary/5 text-primary border-primary/20 hover:bg-primary/10' 
+                                : 'bg-slate-50 text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
+                        }`}
+                        title={val || 'Add Notes'}
+                    >
+                        {count > 0 ? `Notes (${count})` : 'Add Notes'}
+                    </button>
+                );
+            }
         }] : []),
         {
             header: 'Actions',
@@ -971,63 +974,153 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
                 )}
             </AnimatePresence>
 
+            {/* Application Notes Drawer */}
             <AnimatePresence>
                 {editingNotesApplication && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[120] flex justify-end">
+                        {/* Overlay */}
                         <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             onClick={() => setEditingNotesApplication(null)}
-                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
                         />
+                        
+                        {/* Drawer Panel */}
                         <motion.div 
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 text-slate-900 border border-slate-200"
+                            initial={{ x: '100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="bg-white w-full max-w-lg h-full relative z-10 shadow-2xl flex flex-col text-slate-900 border-l border-slate-100"
                         >
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h2 className="font-black text-lg tracking-tight text-slate-950 leading-tight mt-1">
-                                        Notes
-                                    </h2>
-                                </div>
+                            {/* Header */}
+                            <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100 shrink-0">
+                                <h2 className="font-bold text-slate-800 tracking-tight uppercase text-sm">
+                                    Application Notes
+                                </h2>
+                                <button onClick={() => setEditingNotesApplication(null)} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors">
+                                    <X size={16} />
+                                </button>
                             </div>
 
-                            <div className="space-y-4">
+                            {/* Scrollable Content */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                                {/* Application Details Section */}
                                 <div>
-                                    <textarea
-                                        value={tempNotes}
-                                        onChange={(e) => setTempNotes(e.target.value)}
-                                        placeholder="Add application notes, candidate feedback, screening notes, interview scores, etc..."
-                                        rows={5}
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 text-sm font-semibold focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-none"
-                                    />
+                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Application Details</h3>
+                                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs uppercase shadow-inner">
+                                                {editingNotesApplication.applicantName ? editingNotesApplication.applicantName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'A'}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-slate-900 text-xs tracking-tight">{editingNotesApplication.applicantName}</h4>
+                                                <p className="text-[10px] text-slate-500">{editingNotesApplication.applicantEmail}</p>
+                                                <p className="text-[10px] font-medium text-slate-700 mt-1">
+                                                    Applied for: <span className="font-bold text-slate-800 uppercase">{editingNotesApplication.job?.title || editingNotesApplication.jobId?.title || 'Position'}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-md text-[8px] font-black text-indigo-600 uppercase tracking-widest">
+                                            {editingNotesApplication.status || 'Submitted'}
+                                        </span>
+                                    </div>
                                 </div>
 
-                                <div className="flex gap-3 justify-end pt-2">
-                                    <button 
-                                        onClick={() => setEditingNotesApplication(null)}
-                                        className="px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        onClick={async () => {
-                                            try {
-                                                await jobApi.updateApplicationNotes(editingNotesApplication._id, tempNotes);
-                                                toast.success('Notes updated successfully');
-                                                setEditingNotesApplication(null);
-                                                fetchApplications();
-                                            } catch (error) {
-                                                toast.error('Failed to update notes');
-                                            }
-                                        }}
-                                        className="px-5 py-2.5 bg-slate-950 hover:bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
-                                    >
-                                        Save Notes
-                                    </button>
+                                {/* Add Note Section */}
+                                <div className="space-y-2">
+                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Add Note</h3>
+                                    <div className="space-y-3">
+                                        <textarea
+                                            value={tempNotes}
+                                            onChange={(e) => {
+                                                if (e.target.value.length <= 500) {
+                                                    setTempNotes(e.target.value);
+                                                }
+                                            }}
+                                            placeholder="Write your note here..."
+                                            rows={4}
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-xs font-medium focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none resize-none transition-all"
+                                        />
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-[10px] font-bold text-slate-300">{tempNotes.length}/500</span>
+                                            <button 
+                                                onClick={async () => {
+                                                    if (!tempNotes.trim()) {
+                                                        toast.error('Please write something before adding.');
+                                                        return;
+                                                    }
+                                                    try {
+                                                        const res = await jobApi.updateApplicationNotes(editingNotesApplication._id, tempNotes);
+                                                        toast.success('Note added successfully');
+                                                        setTempNotes('');
+                                                        setEditingNotesApplication(res);
+                                                        fetchApplications();
+                                                    } catch (error) {
+                                                        toast.error('Failed to add note');
+                                                    }
+                                                }}
+                                                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/10 flex items-center gap-2 cursor-pointer"
+                                            >
+                                                Add Note
+                                                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Note History Section */}
+                                <div className="space-y-3">
+                                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        Note History ({(editingNotesApplication.notesHistory || []).length})
+                                    </h3>
+                                    
+                                    {(editingNotesApplication.notesHistory && editingNotesApplication.notesHistory.length > 0) ? (
+                                        <div className="space-y-3">
+                                            {editingNotesApplication.notesHistory.map((historyItem, idx) => {
+                                                const initials = historyItem.authorName ? historyItem.authorName.split(' ').map(n => n[0]).join('').substring(0, 2) : 'A';
+                                                
+                                                const colorClasses = [
+                                                    'bg-indigo-50 border-indigo-100 text-indigo-700',
+                                                    'bg-emerald-50 border-emerald-100 text-emerald-700',
+                                                    'bg-amber-50 border-amber-100 text-amber-700',
+                                                    'bg-purple-50 border-purple-100 text-purple-700'
+                                                ][idx % 4];
+
+                                                return (
+                                                    <div key={idx} className={`p-4 rounded-2xl border flex gap-3 ${colorClasses}`}>
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs uppercase shadow-inner shrink-0 bg-white border`}>
+                                                            {initials}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <h4 className="font-bold text-slate-900 text-xs truncate">{historyItem.authorName}</h4>
+                                                                <span className="text-[9px] text-slate-400 font-medium">
+                                                                    {new Date(historyItem.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}, {new Date(historyItem.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-xs font-semibold text-slate-600 leading-normal">{historyItem.text}</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="py-8 flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-2xl text-slate-400">
+                                            <div className="w-12 h-12 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-3 shadow-inner">
+                                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                </svg>
+                                            </div>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">All notes are displayed here</p>
+                                            <p className="text-[9px] text-slate-400/60 mt-1 text-center max-w-[240px]">Add notes to keep track of important updates.</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

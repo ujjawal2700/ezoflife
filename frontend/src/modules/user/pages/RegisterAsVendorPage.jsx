@@ -47,6 +47,7 @@ const RegisterAsVendorPage = () => {
   const [verifyingBank, setVerifyingBank] = useState(false);
   const [showAmountInput, setShowAmountInput] = useState(false);
   const [amountEntered, setAmountEntered] = useState('');
+  const [demoNote, setDemoNote] = useState('');
   const [isAgreed, setIsAgreed] = useState(false);
   const [resolvedGpsAddress, setResolvedGpsAddress] = useState('');
   const [isResolvingGpsAddress, setIsResolvingGpsAddress] = useState(false);
@@ -337,6 +338,7 @@ const RegisterAsVendorPage = () => {
 
         if (result.success) {
             setShowAmountInput(true);
+            setDemoNote(result.demoNote || '');
             toast.success(result.message);
         } else {
             toast.error(result.message || 'Failed to initiate verification');
@@ -1406,24 +1408,32 @@ const RegisterAsVendorPage = () => {
                             )}
 
                             {showAmountInput && (
-                                <div className="space-y-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                                    <p className="text-[9px] font-bold text-primary uppercase tracking-widest text-center">Enter the exact amount received (₹1.XX)</p>
-                                    <div className="flex gap-2">
-                                        <input 
-                                            type="number"
-                                            value={amountEntered}
-                                            onChange={(e) => setAmountEntered(e.target.value)}
-                                            placeholder="E.G. 1.15"
-                                            className="flex-1 p-4 bg-white rounded-xl font-black text-sm outline-none border-2 border-primary"
-                                        />
-                                        <button 
-                                            onClick={handleCompleteBankVerify}
-                                            disabled={verifyingBank}
-                                            className="px-6 bg-primary text-on-primary rounded-xl font-black text-[10px] uppercase tracking-widest"
-                                        >
-                                            Confirm
-                                        </button>
-                                    </div>
+                                <div className="space-y-4 p-5 bg-primary/5 rounded-2xl border border-primary/10 flex flex-col">
+                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest text-center">
+                                        Enter the exact amount received (₹1.XX)
+                                    </p>
+                                    
+                                    {(demoNote || (currentUser.bankVerification?.amount > 0 && !bankVerified)) && (
+                                        <div className="p-3.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-xl text-center text-[10px] font-black uppercase tracking-wider animate-pulse">
+                                            {demoNote || `[DEMO ONLY]: The amount sent is ₹${currentUser.bankVerification.amount}`}
+                                        </div>
+                                    )}
+
+                                    <input 
+                                        type="number"
+                                        value={amountEntered}
+                                        onChange={(e) => setAmountEntered(e.target.value)}
+                                        placeholder="E.G. 1.15"
+                                        className="w-full p-4 bg-white rounded-xl font-black text-sm outline-none border-2 border-primary text-center"
+                                    />
+                                    
+                                    <button 
+                                        onClick={handleCompleteBankVerify}
+                                        disabled={verifyingBank}
+                                        className="w-full py-4 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-900/20 active:scale-95 transition-all text-center cursor-pointer"
+                                    >
+                                        {verifyingBank ? 'Verifying...' : 'Confirm'}
+                                    </button>
                                 </div>
                             )}
 

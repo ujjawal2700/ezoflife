@@ -77,8 +77,7 @@ const VendorMorePage = () => {
                     <span className="material-symbols-outlined text-xl">{item.icon}</span>
                   </div>
                   <div>
-                    <span className="block font-black text-sm tracking-tight leading-none mb-1 text-slate-900 group-hover:text-slate-950">{item.title}</span>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">{item.desc}</span>
+                    <span className="block font-black text-sm tracking-tight leading-none text-slate-900 group-hover:text-slate-950">{item.title}</span>
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1 text-slate-200">

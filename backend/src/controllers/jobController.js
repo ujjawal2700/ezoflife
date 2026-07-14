@@ -216,12 +216,39 @@ export const updateApplicationStatus = async (req, res) => {
 export const updateApplicationNotes = async (req, res) => {
     try {
         const { id } = req.params;
-        const { notes } = req.body;
+        const { notes, authorName, authorRole } = req.body;
+        
+        if (!notes || !notes.trim()) {
+            return res.status(400).json({ message: 'Notes text is required' });
+        }
+
+        let author = authorName || 'HR Admin';
+        const adminUser = req.admin || req.user;
+        if (adminUser) {
+            const user = await User.findById(adminUser.id || adminUser._id);
+            if (user) {
+                author = user.displayName || user.name || author;
+            }
+        }
+        
         const application = await JobApplication.findByIdAndUpdate(
             id,
-            { notes: notes || '' },
+            {
+                $push: {
+                    notesHistory: {
+                        authorName: author,
+                        authorRole: authorRole || adminUser?.role || 'Admin',
+                        text: notes.trim(),
+                        createdAt: new Date()
+                    }
+                },
+                $set: {
+                    notes: notes.trim()
+                }
+            },
             { new: true }
-        );
+        ).populate('job', 'title').populate('applicant', 'displayName profileImage email');
+        
         if (!application) return res.status(404).json({ message: 'Application not found' });
         res.json(application);
     } catch (error) {

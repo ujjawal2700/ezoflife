@@ -611,12 +611,22 @@ const MasterServiceManagement = () => {
                                     <div className="space-y-1.5 w-full">
                                         {/* Seasonality */}
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Seasonality</label>
-                                        <input 
-                                            required
-                                            value={formData.seasonality}
-                                            onChange={e => setFormData({...formData, seasonality: e.target.value})}
-                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none focus:bg-white focus:border-slate-900 transition-all"
-                                        />
+                                        <div className="relative">
+                                            <select 
+                                                required
+                                                value={formData.seasonality}
+                                                onChange={e => setFormData({...formData, seasonality: e.target.value})}
+                                                className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
+                                            >
+                                                <option value="All Season">All Season</option>
+                                                <option value="Summer">Summer</option>
+                                                <option value="Winter">Winter</option>
+                                                <option value="Monsoon">Monsoon</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <ChevronDown size={14} />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
@@ -668,44 +678,26 @@ const MasterServiceManagement = () => {
                                         </h4>
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row gap-4 sm:gap-5">
-                                        {/* GST (%) */}
-                                        <div className="space-y-1.5 flex-1">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST (%)</label>
-                                            <div className="relative">
-                                                <select 
-                                                    required
-                                                    value={formData.gst}
-                                                    onChange={e => setFormData({...formData, gst: parseFloat(e.target.value)})}
-                                                    className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
-                                                >
-                                                    {[0, 5, 12, 18, 28].map(rate => (
-                                                        <option key={rate} value={rate}>{rate}%</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                    <ChevronDown size={14} />
-                                                </div>
-                                            </div>
-                                        </div>
 
-                                        {/* Heritage GST (%) */}
-                                        <div className="space-y-1.5 flex-1">
-                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Heritage GST (%)</label>
-                                            <div className="relative">
-                                                <select 
-                                                    required
-                                                    value={formData.heritageGst}
-                                                    onChange={e => setFormData({...formData, heritageGst: parseFloat(e.target.value)})}
-                                                    className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
-                                                >
-                                                    {[0, 5, 12, 18, 28].map(rate => (
-                                                        <option key={rate} value={rate}>{rate}%</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                                    <ChevronDown size={14} />
-                                                </div>
+                                    <div className="space-y-1.5 w-full">
+                                        {/* GST (%) */}
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">GST (%)</label>
+                                        <div className="relative">
+                                            <select 
+                                                required
+                                                value={formData.gst}
+                                                onChange={e => {
+                                                    const val = parseFloat(e.target.value);
+                                                    setFormData({ ...formData, gst: val, heritageGst: val });
+                                                }}
+                                                className="w-full px-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-sm text-sm sm:text-xs font-bold text-slate-900 outline-none appearance-none cursor-pointer focus:bg-white focus:border-slate-900 transition-all"
+                                            >
+                                                {[0, 5, 12, 18, 28].map(rate => (
+                                                    <option key={rate} value={rate}>{rate}%</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <ChevronDown size={14} />
                                             </div>
                                         </div>
                                     </div>

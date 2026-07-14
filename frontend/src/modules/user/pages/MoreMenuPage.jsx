@@ -87,8 +87,7 @@ const MoreMenuPage = () => {
                   <span className="material-symbols-outlined text-base">{item.icon}</span>
                 </div>
                 <div>
-                  <span className="block font-black text-[13px] tracking-tight leading-none mb-1 text-slate-900 group-hover:text-slate-950">{item.title}</span>
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none">{item.desc}</span>
+                  <span className="block font-black text-[13px] tracking-tight leading-none text-slate-900 group-hover:text-slate-950">{item.title}</span>
                 </div>
               </div>
               <span className="material-symbols-outlined text-[10px] transition-transform group-hover:translate-x-1 text-slate-200">

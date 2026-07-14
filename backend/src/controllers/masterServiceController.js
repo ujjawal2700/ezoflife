@@ -63,6 +63,7 @@ export const createMasterService = async (req, res) => {
             curr_ind: curr_ind || 'y',
             allowDiscount: allowDiscount !== undefined ? allowDiscount : true,
             gst: gst || 5,
+            heritageGst: gst || 5,
             sacCode: sacCode || '9994',
             estimateTAT: estimateTAT || '48 Hours',
             avgWeight: avgWeight || '0.5'
@@ -221,7 +222,11 @@ export const getPricingPreview = async (req, res) => {
 export const updateMasterService = async (req, res) => {
     try {
         const { id } = req.params;
-        const updated = await MasterService.findByIdAndUpdate(id, req.body, { new: true });
+        const updates = { ...req.body };
+        if (updates.gst !== undefined && updates.gst !== null) {
+            updates.heritageGst = updates.gst;
+        }
+        const updated = await MasterService.findByIdAndUpdate(id, updates, { new: true });
         
         // Propagate updates to MasterPricing
         const MasterPricing = (await import('../models/MasterPricing.js')).default;

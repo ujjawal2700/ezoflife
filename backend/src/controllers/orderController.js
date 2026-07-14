@@ -886,7 +886,7 @@ export const getAllOrders = async (req, res) => {
 
         const orders = await Order.find()
             .populate('customer', 'displayName phone customerType gstNumber')
-            .populate('vendor', 'shopDetails phone location')
+            .populate('vendor', 'shopDetails phone location gstNumber')
             .sort({ createdAt: -1 });
         
         // Fetch active service areas to map them to orders
@@ -937,6 +937,13 @@ export const getAllOrders = async (req, res) => {
 
         // Apply filtering
         let filtered = ordersWithZone;
+
+        const { activeTab } = req.query;
+        if (activeTab === 'Active') {
+            filtered = filtered.filter(o => !['DELIVERED', 'CANCELLED'].includes((o.status || '').toUpperCase()));
+        } else if (activeTab === 'Completed') {
+            filtered = filtered.filter(o => (o.status || '').toUpperCase() === 'DELIVERED');
+        }
 
         if (status) {
             filtered = filtered.filter(o => (o.status || '').toUpperCase() === status.toUpperCase());
