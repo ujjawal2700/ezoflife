@@ -581,9 +581,14 @@ const OrdersHistoryPage = () => {
 
                       <div className="flex items-center gap-2">
                         <motion.button 
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => navigate(`/user/tracking/${order._id || order.id}`)}
-                          className="flex-[1.5] py-3 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-slate-900 text-white shadow-lg"
+                          whileTap={order.status === 'ORDER_PLACED' ? {} : { scale: 0.98 }}
+                          onClick={() => {
+                            if (order.status !== 'ORDER_PLACED') {
+                              navigate(`/user/tracking/${order._id || order.id}`);
+                            }
+                          }}
+                          disabled={order.status === 'ORDER_PLACED'}
+                          className="flex-[1.5] py-3 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-slate-900 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
                         >
                           <span className="material-symbols-outlined text-[14px]">my_location</span>
                           Track
@@ -756,7 +761,16 @@ const OrdersHistoryPage = () => {
                           <h3 className="text-base font-bold text-slate-900 tracking-tight leading-none not-italic">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
                           <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest not-italic">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                         </div>
-                        <p className="text-base font-black text-slate-900 tracking-tight leading-none">₹{order.totalAmount?.toFixed(0)}</p>
+                        <div className="flex flex-col items-end gap-1">
+                          {order.status === 'CANCELLED' ? (
+                            <>
+                              <span className="text-rose-600 uppercase text-[10px] font-black leading-none">Cancelled</span>
+                              <span className="text-sm font-bold text-slate-500 leading-none">₹{order.totalAmount?.toFixed(0)}</span>
+                            </>
+                          ) : (
+                            <span className="text-base font-black text-slate-900 tracking-tight leading-none">₹{order.totalAmount?.toFixed(0)}</span>
+                          )}
+                        </div>
                       </div>
 
                       <details className="group bg-slate-50/50 rounded-lg border border-slate-100/50 mb-3 overflow-hidden transition-all">

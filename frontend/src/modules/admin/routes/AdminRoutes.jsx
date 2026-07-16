@@ -135,7 +135,6 @@ const AdminRoutes = () => {
         <Route path="/vendors/requests/:id" element={<AdminVendorRequestDetailPage />} />
         <Route path="/vendor-service-requests" element={<VendorServiceRequests />} />
         <Route path="/supplier-product-requests" element={<SupplierProductRequests />} />
-        <Route path="/payments" element={<Payouts />} />
         <Route path="/pricing" element={<PricingConfig />} />
         <Route path="/services" element={<Services />} />
         <Route path="/master-services" element={<MasterServiceManagement />} />
@@ -170,7 +169,6 @@ const AdminRoutes = () => {
         <Route path="/pricing-overrides" element={<AreaPricingOverrides />} />
         <Route path="/master-pricing" element={<MasterPricingRegistry />} />
         <Route path="/feedback" element={<FeedbackManagement />} />
-        <Route path="/customer-payments" element={<CustomerPayments />} />
         <Route path="/supplier-requests" element={<AdminSupplierRequestsPage />} />
         <Route path="/supplier-requests/:id" element={<AdminSupplierRequestDetailPage />} />
         <Route path="/invoice-settings" element={<AdminInvoiceSettings />} />

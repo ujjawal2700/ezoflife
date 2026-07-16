@@ -11,8 +11,7 @@ const VendorMorePage = () => {
       title: "Operations",
       icon: "settings_suggest",
       items: [
-        { icon: "insights", title: "Business Insights", desc: "View Performance Reports", path: "/vendor/reports", color: "primary" },
-        { icon: "forum", title: "Product Query", desc: "View supplier queries", path: "/vendor/product-queries", color: "secondary" },
+        { icon: "insights", title: "Business Insights", desc: "View Performance Reports", path: "/vendor/reports", color: "primary" }
       ]
     },
     {

@@ -991,14 +991,14 @@ const RegisterAsVendorPage = () => {
                                     <div className="relative">
                                         <input 
                                             type="text"
-                                            value={formData.aadharNumber.replace(/\d(?=\d{4})/g, "•")}
+                                            value={formData.aadharNumber || ''}
                                             maxLength={12}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 12);
                                                 setFormData({ ...formData, aadharNumber: val });
                                             }}
                                             placeholder="•••• •••• 1234"
-                                            className="w-full p-4 bg-slate-50 rounded-xl font-bold text-sm border-none focus:ring-2 focus:ring-primary/20 outline-none tracking-[0.3em]"
+                                            className="w-full p-4 bg-slate-50 rounded-xl font-bold text-sm border focus:ring-2 focus:ring-primary/20 outline-none tracking-[0.3em] border-outline-variant/10"
                                         />
                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">SECURELY STORED</span>
                                     </div>

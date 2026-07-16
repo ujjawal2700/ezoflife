@@ -72,7 +72,7 @@ const userSchema = new mongoose.Schema({
             active: { type: Boolean, default: true },
             status: { 
                 type: String, 
-                enum: ['pending', 'approved', 'rejected'],
+                enum: ['pending', 'approved', 'rejected', 'offered'],
                 default: 'pending'
             },
             rejectionReason: { type: String, default: '' }

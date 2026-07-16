@@ -260,7 +260,7 @@ export default function Orders() {
       doc.setFontSize(9);
       doc.setTextColor(70, 70, 70);
       
-      doc.text(`Shop Name: ${order.vendor?.shopDetails?.shopName || 'Spinzyt Partner'}`, 15, 62);
+      doc.text(`Shop Name: ${order.vendor?.shopDetails?.name || 'Spinzyt Partner'}`, 15, 62);
       doc.text(`Phone: ${order.vendor?.phone || 'N/A'}`, 15, 67);
       doc.text(`GSTIN: ${order.vendor?.gstNumber || 'URD (Unregistered)'}`, 15, 72);
       
@@ -362,7 +362,7 @@ export default function Orders() {
       doc.text('Email: billing@spinzyt.com', 15, 67);
       doc.text('GSTIN: 23AAAAA1111A1Z1', 15, 72);
       
-      doc.text(`Shop Name: ${order.vendor?.shopDetails?.shopName || 'Spinzyt Partner'}`, 110, 62);
+      doc.text(`Shop Name: ${order.vendor?.shopDetails?.name || 'Spinzyt Partner'}`, 110, 62);
       doc.text(`Phone: ${order.vendor?.phone || 'N/A'}`, 110, 67);
       doc.text(`GSTIN: ${order.vendor?.gstNumber || 'URD (Unregistered)'}`, 110, 72);
 
@@ -579,7 +579,7 @@ export default function Orders() {
           const vendorGst = ((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * (gstPercent / 100);
           return `Rs. ${Math.round(platformGst + vendorGst)}`;
         })(),
-        row.vendor?.shopDetails?.shopName || 'N/A',
+        row.vendor?.shopDetails?.name || 'N/A',
         new Date(row.createdAt).toLocaleDateString()
       ]);
       
@@ -683,7 +683,7 @@ export default function Orders() {
           const vendorGst = ((row.priceBreakdown?.baseWithArea || 0) + (row.priceBreakdown?.expressSurcharge || 0)) * (gstPercent / 100);
           return Math.round(platformGst + vendorGst);
         })(),
-        row.vendor?.shopDetails?.shopName || 'N/A',
+        row.vendor?.shopDetails?.name || 'N/A',
         new Date(row.createdAt).toLocaleDateString()
       ]);
 
@@ -844,6 +844,24 @@ export default function Orders() {
       key: 'customer',
       render: (val) => (
         <span className="font-bold text-slate-800 text-[10px] uppercase tracking-tight">{val?.displayName || 'Unknown'}</span>
+      )
+    },
+    { 
+      header: 'Vendor ID', 
+      key: 'vendor',
+      render: (val) => (
+        <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+          {val?._id || 'N/A'}
+        </span>
+      )
+    },
+    { 
+      header: 'Vendor Name', 
+      key: 'vendor',
+      render: (val) => (
+        <span className="font-bold text-slate-800 text-[10px] uppercase tracking-tight">
+          {val?.shopDetails?.name || val?.displayName || 'N/A'}
+        </span>
       )
     },
     { 

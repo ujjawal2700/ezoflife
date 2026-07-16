@@ -81,12 +81,16 @@ const OrderTrackingPage = () => {
     if (handshakeOtp.length !== 4) return toast.error('Enter 4-digit OTP');
     try {
         setVerifying(true);
-        const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING') ? 'Collection' : 'Completion';
+        const phase = (order.status === 'Assigned' || order.status === 'RIDER_ARRIVING' || order.status === 'PICKUP_ASSIGNED') ? 'Collection' : 'Completion';
         const res = await logisticsApi.verifyHandshake(id, phase, handshakeOtp);
         toast.success(res.message);
         setIsHandshakeModalOpen(false);
         setHandshakeOtp('');
-        fetchOrder();
+        if (phase === 'Completion') {
+            navigate('/user/review');
+        } else {
+            fetchOrder();
+        }
     } catch (error) {
         toast.error('Invalid OTP. Please check with Rider.');
     } finally {

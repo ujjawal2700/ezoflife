@@ -87,17 +87,7 @@ const navItems = [
                     { label: 'Completed Orders', path: '/admin/orders?tab=Completed' }
                 ]
             },
-            { 
-                icon: CreditCard, 
-                label: 'Payments', 
-                path: '/admin/payments',
-                subItems: [
-                    { label: 'Customer Payments', path: '/admin/payments?tab=customer' },
-                    { label: 'Vendor Payouts', path: '/admin/payments?tab=vendor' },
-                    { label: 'Supplier Payouts', path: '/admin/payments?tab=supplier' },
-                    { label: 'Refunds', path: '/admin/payments?tab=refunds' },
-                ]
-            },
+
             { 
                 icon: Layers, 
                 label: 'Services & Pricing', 

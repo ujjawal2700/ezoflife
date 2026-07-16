@@ -175,42 +175,6 @@ mongoose.connect(MONGODB_URI)
     .then(async () => {
         console.log('✅ Connected to MongoDB');
         try {
-            const User = (await import('./src/models/User.js')).default;
-            const testUsers = [
-                { phone: '6565656565', role: 'Customer', status: 'approved', displayName: 'Customer 65' },
-                { phone: '9926723112', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test 2' },
-                { phone: '9826723221', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test' },
-                { phone: '+919826723221', role: 'Customer', status: 'approved', displayName: 'Ashutosh Test Prefix' },
-                { phone: '9926335339', role: 'Customer', status: 'approved', displayName: 'Simran Default' },
-                { phone: '9999999991', role: 'Customer', status: 'approved', displayName: 'Test Customer' },
-                { 
-                    phone: '9999999992', role: 'Vendor', status: 'approved', displayName: 'Test Vendor',
-                    isProfileComplete: true,
-                    shopDetails: { name: 'Test Vendor Shop', address: 'Nashik West', city: 'Nashik', gst: 'GST9992' }
-                },
-                { 
-                    phone: '9999999993', role: 'Supplier', status: 'approved', displayName: 'Test Supplier',
-                    isProfileComplete: true,
-                    supplierDetails: { businessName: 'Test Supplier Biz', address: 'Nashik East', city: 'Nashik', gst: 'GST9993' }
-                },
-                { phone: '9999999994', role: 'Admin', status: 'approved', displayName: 'Master Admin' }
-            ];
-
-            const otp = '123456';
-            const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-            for (const userData of testUsers) {
-                await User.findOneAndUpdate(
-                    { phone: userData.phone },
-                    { 
-                        ...userData,
-                        otp,
-                        otpExpiry
-                    },
-                    { upsert: true, new: true }
-                );
-            }
-
             // Seed Role Templates
             const RoleTemplate = (await import('./src/models/RoleTemplate.js')).default;
             const defaultTemplates = [

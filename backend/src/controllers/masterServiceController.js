@@ -70,6 +70,19 @@ export const createMasterService = async (req, res) => {
         });
 
         await service.save();
+
+        // Auto-sync all areas with the new master service so that active vendors are notified
+        try {
+            const { masterPricingService } = await import('../services/masterPricingService.js');
+            const allAreas = await ServiceArea.find();
+            for (const area of allAreas) {
+                await masterPricingService.syncAreaWithServices(area._id);
+            }
+            console.log(`✅ [AUTO_SYNC] Successfully synced new service "${itemName}" to all areas`);
+        } catch (syncErr) {
+            console.error('❌ [AUTO_SYNC] Failed to auto-sync new service to areas:', syncErr);
+        }
+
         res.status(201).json(service);
     } catch (err) {
         console.error('Create Master Service Error:', err);
