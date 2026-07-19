@@ -327,45 +327,7 @@ const UserProfilePage = () => {
             </div>
           </section>
 
-          {/* 3. PAYMENT METHODS SECTION */}
-          <section className="p-5 border-b border-slate-50 space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-slate-400 text-lg">payments</span>
-                <h3 className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Payment Methods</h3>
-              </div>
-            </div>
-            
-            <div className="space-y-3">
-              {[
-                { label: 'UPI ID', key: 'upi', icon: 'account_balance_wallet', color: 'text-indigo-500' },
-                { label: 'Saved Card', key: 'card', icon: 'credit_card', color: 'text-amber-500' }
-              ].map((method, i) => (
-                <div key={i} className="flex flex-col space-y-1">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">{method.label}</p>
-                  <div className="flex items-center gap-3 ml-1 transition-all">
-                    <div className={`w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center ${method.color}`}>
-                      <span className="material-symbols-outlined text-base">{method.icon}</span>
-                    </div>
-                    {isEditing ? (
-                      <input 
-                        type="text" 
-                        value={formData.paymentDetails[method.key]} 
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          paymentDetails: { ...formData.paymentDetails, [method.key]: e.target.value }
-                        })}
-                        placeholder={`Enter ${method.label}`}
-                        className="bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-xs font-black text-slate-900 outline-none w-full"
-                      />
-                    ) : (
-                      <p className="text-[10px] font-black text-slate-950">{user.paymentDetails?.[method.key] || 'Not Added'}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+
 
           {/* 4. APP SETTINGS SECTION */}
           <section className="divide-y divide-slate-50 bg-slate-50/20">

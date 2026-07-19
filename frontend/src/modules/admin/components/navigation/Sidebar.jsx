@@ -67,6 +67,7 @@ const navItems = [
                     { label: 'Supplier Management', path: '/admin/users?role=Supplier' }
                 ]
             },
+            { icon: UserCircle, label: 'User Role', path: '/admin/users/roles' },
             { 
                 icon: ShieldCheck, 
                 label: 'Registration Approval', 
@@ -185,11 +186,42 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
     const location = useLocation();
     const [expandedMenu, setExpandedMenu] = useState(null);
     const [expandedSubMenus, setExpandedSubMenus] = useState({});
+    const [adminPermissions, setAdminPermissions] = useState(null);
+
+    useEffect(() => {
+        try {
+            const adminDataStr = localStorage.getItem('adminData');
+            if (adminDataStr) {
+                const adminData = JSON.parse(adminDataStr);
+                // Main admin has no adminRole assigned or has the admin@ezoflife.com email
+                if (adminData && (adminData.email === 'admin@ezoflife.com' || !adminData.adminRole)) {
+                    setAdminPermissions(null);
+                } else if (adminData && adminData.adminPermissions) {
+                    setAdminPermissions(adminData.adminPermissions);
+                }
+            }
+        } catch (e) {
+            console.error('Error loading admin permissions:', e);
+        }
+    }, []);
+
+    // Filter navItems based on admin permissions
+    const filteredNavItems = navItems.map(group => {
+        const filteredItems = group.items.filter(item => {
+            if (!adminPermissions) return true;
+            
+            // Sub-admins only see permitted modules
+            return adminPermissions.some(perm => 
+                perm.trim().toLowerCase() === item.label.trim().toLowerCase()
+            );
+        });
+        return { ...group, items: filteredItems };
+    }).filter(group => group.items.length > 0);
 
     useEffect(() => {
         // Auto-expand menu item if a sub-item is active
         const currentPath = location.pathname;
-        const matchingItem = navItems.flatMap(g => g.items).find(item => 
+        const matchingItem = filteredNavItems.flatMap(g => g.items).find(item => 
             item.subItems && item.subItems.some(sub => {
                 const subPathOnly = sub.path.split('?')[0];
                 return currentPath === subPathOnly;
@@ -206,7 +238,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
         if (fullPath.includes('role=Vendor')) {
             setExpandedSubMenus(prev => ({ ...prev, 'Vendor Management': true }));
         }
-    }, [location.pathname, location.search]);
+    }, [location.pathname, location.search, adminPermissions]);
 
     return (
         <>
@@ -260,7 +292,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
 
                 {/* Navigation Selection Engine */}
                 <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto no-scrollbar">
-                    {navItems.map((group) => (
+                    {filteredNavItems.map((group) => (
                         <div key={group.group} className="space-y-1.5">
                             {(!isCollapsed || isMobileOpen) && (
                                 <div className="px-3 mb-2">

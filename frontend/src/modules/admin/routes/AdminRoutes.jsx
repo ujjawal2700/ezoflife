@@ -60,6 +60,8 @@ import AdminInvoiceSettings from '../pages/AdminInvoiceSettings';
 import ReferralManagement from '../pages/ReferralManagement';
 import AdminSettings from '../pages/AdminSettings';
 import MasterPricingRegistry from '../pages/MasterPricingRegistry';
+import AdminRolesManagement from '../pages/AdminRolesManagement';
+import AdminActivate from '../pages/AdminActivate';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -114,6 +116,7 @@ const AdminRoutes = () => {
       {/* Public Admin Routes */}
       <Route path="/login" element={<AdminLogin />} />
       <Route path="/otp" element={<AdminOtp />} />
+      <Route path="/activate" element={<AdminActivate />} />
 
       {/* Protected Admin Routes */}
       <Route 
@@ -142,6 +145,7 @@ const AdminRoutes = () => {
         <Route path="/help-desk" element={<HelpDesk />} />
         <Route path="/dispute-center" element={<DisputeCenter />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/users/roles" element={<AdminRolesManagement />} />
         <Route path="/b2b-escrow" element={<B2BEscrowManagement />} />
         <Route path="/suppliers" element={<Suppliers />} />
         <Route path="/materials" element={<MaterialConfig />} />

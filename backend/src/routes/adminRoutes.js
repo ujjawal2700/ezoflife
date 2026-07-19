@@ -29,12 +29,16 @@ import {
     getVendorPaymentSummary,
     recordVendorPayout,
     getVendorPayoutHistory,
-    getCloudinaryUsage
+    getCloudinaryUsage,
+    getSubAdmins
 } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
+import { inviteSubAdmin } from '../controllers/authController.js';
 
 const router = express.Router();
 
+router.post('/invite-sub-admin', inviteSubAdmin);
+router.get('/sub-admins', getSubAdmins);
 router.delete('/services-clear-all', clearAllServices);
 
 router.get('/config', getSystemConfig);

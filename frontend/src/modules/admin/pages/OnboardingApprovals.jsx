@@ -43,6 +43,7 @@ export default function OnboardingApprovals() {
   const [showDocSelector, setShowDocSelector] = useState(null);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [page, setPage] = useState(1);
+  const [selectedAddressForModal, setSelectedAddressForModal] = useState(null);
   const itemsPerPage = 10;
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,6 +150,10 @@ export default function OnboardingApprovals() {
         vendorName: v.displayName || 'Unnamed User',
         shopName: v.role === 'Supplier' ? (v.supplierDetails?.businessName || 'N/A') : (v.shopDetails?.name || 'N/A'),
         address: (v.role === 'Supplier' ? v.supplierDetails?.address : v.shopDetails?.address) || 'No Address Provided',
+        city: (v.role === 'Supplier' ? v.supplierDetails?.city : v.shopDetails?.city) || '',
+        state: (v.role === 'Supplier' ? v.supplierDetails?.state : v.shopDetails?.state) || '',
+        pincode: (v.role === 'Supplier' ? v.supplierDetails?.pincode : v.shopDetails?.pincode) || '',
+        location: v.location || null,
         date: new Date(v.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
         docs: v.documents && v.documents.length > 0 ? v.documents : [],
         phone: v.phone || '',
@@ -419,11 +424,11 @@ export default function OnboardingApprovals() {
                         <tr className="bg-slate-50/50 border-b border-slate-100">
                             <th className="w-[15%] min-w-[130px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Vendor Info</th>
                             <th className="w-[15%] min-w-[140px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Business/Shop</th>
-                            <th className="w-[12%] min-w-[100px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Contact Number</th>
-                            <th className="w-[20%] min-w-[160px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Location</th>
-                            <th className="w-[12%] min-w-[100px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Application Date</th>
-                            <th className="w-[10%] min-w-[90px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Verification</th>
-                            <th className="w-[16%] min-w-[200px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
+                            <th className="w-[13%] min-w-[110px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Contact Number</th>
+                            <th className="w-[11%] min-w-[90px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Location</th>
+                            <th className="w-[15%] min-w-[120px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Application Date</th>
+                            <th className="w-[12%] min-w-[100px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Verification</th>
+                            <th className="w-[19%] min-w-[200px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -456,10 +461,23 @@ export default function OnboardingApprovals() {
                                     <span className="text-xs font-bold text-slate-600 tabular-nums whitespace-nowrap">{req.phone || 'No Phone'}</span>
                                 </td>
                                 <td className="px-6 py-5 whitespace-normal break-words">
-                                    <div className="flex items-start gap-1.5 text-xs text-slate-600 font-bold">
-                                        <MapPin size={12} className="text-slate-400 shrink-0 mt-0.5" />
-                                        <span>{req.address}</span>
-                                    </div>
+                                    {(!req.address || req.address === 'No Address Provided') ? (
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase">No Address Set</span>
+                                    ) : (
+                                        <button
+                                            onClick={() => setSelectedAddressForModal({
+                                                type: 'Default',
+                                                address: req.address,
+                                                city: req.city,
+                                                state: req.state,
+                                                pincode: req.pincode,
+                                                location: req.location
+                                            })}
+                                            className="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all cursor-pointer shadow-sm"
+                                        >
+                                            Default
+                                        </button>
+                                    )}
                                 </td>
                                 <td className="px-6 py-5">
                                     <div className="flex items-center gap-2 whitespace-nowrap">
@@ -646,6 +664,103 @@ export default function OnboardingApprovals() {
                     </motion.div>
                 </div>
             )}
+        </AnimatePresence>
+
+        {/* Address Details Modal */}
+        <AnimatePresence>
+          {selectedAddressForModal && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedAddressForModal(null)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden border border-slate-100"
+              >
+                {/* Header */}
+                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
+                      <MapPin size={18} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address Details</span>
+                      <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{selectedAddressForModal.type || 'Default'}</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedAddressForModal(null)} 
+                    className="p-2 hover:bg-slate-100 rounded-full transition-colors border border-slate-200 shadow-sm bg-white"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6 space-y-4 text-left">
+                  <div className="space-y-1">
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Full Address</span>
+                    <span className="text-xs font-bold text-slate-800 block leading-relaxed uppercase">{selectedAddressForModal.address}</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-1">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">City</span>
+                      <span className="text-xs font-bold text-slate-800 block uppercase">{selectedAddressForModal.city || 'N/A'}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">State</span>
+                      <span className="text-xs font-bold text-slate-800 block uppercase">
+                        {(() => {
+                          if (selectedAddressForModal.state) return selectedAddressForModal.state;
+                          const addrText = selectedAddressForModal.address || '';
+                          const statesList = [
+                            'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+                            'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+                            'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+                            'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+                            'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+                            'Delhi', 'Jammu & Kashmir', 'Jammu and Kashmir', 'Ladakh', 'Puducherry'
+                          ];
+                          const matched = statesList.find(s => addrText.toLowerCase().includes(s.toLowerCase()));
+                          return matched || 'N/A';
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-1">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Pincode</span>
+                      <span className="text-xs font-bold text-slate-800 block tracking-wider tabular-nums">{selectedAddressForModal.pincode || 'N/A'}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Coordinates</span>
+                      <span className="text-xs font-bold text-slate-800 block tracking-tight tabular-nums">
+                        {selectedAddressForModal.location?.lat ? `${selectedAddressForModal.location.lat.toFixed(4)}, ${selectedAddressForModal.location.lng.toFixed(4)}` : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-5 border-t border-slate-100 bg-slate-50 flex justify-end">
+                  <button
+                    onClick={() => setSelectedAddressForModal(null)}
+                    className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest hover:bg-slate-800 active:scale-95 transition-all shadow-md shadow-slate-900/10"
+                  >
+                    Close Window
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
         </AnimatePresence>
       </div>
     </div>

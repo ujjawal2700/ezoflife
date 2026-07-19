@@ -938,6 +938,19 @@ export const getAllOrders = async (req, res) => {
         // Apply filtering
         let filtered = ordersWithZone;
 
+        // Apply admin geofence scoping
+        let adminGeofences = [];
+        if (req.admin && req.admin.id) {
+            const adminUser = await User.findById(req.admin.id);
+            if (adminUser && adminUser.geofenceRestrictions && adminUser.geofenceRestrictions.length > 0) {
+                adminGeofences = adminUser.geofenceRestrictions;
+            }
+        }
+
+        if (adminGeofences.length > 0) {
+            filtered = filtered.filter(o => adminGeofences.includes(o.serviceZone));
+        }
+
         const { activeTab } = req.query;
         if (activeTab === 'Active') {
             filtered = filtered.filter(o => !['DELIVERED', 'CANCELLED'].includes((o.status || '').toUpperCase()));

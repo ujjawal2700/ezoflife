@@ -10,6 +10,71 @@ import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
 import { v2 as cloudinary } from 'cloudinary';
 
+// Helper: Ray casting algorithm to check if point is in polygon
+const isPointInPolygon = (lat, lng, polygonCoords) => {
+    let inside = false;
+    const x = lng;
+    const y = lat;
+    for (let i = 0, j = polygonCoords.length - 1; i < polygonCoords.length; j = i++) {
+        const xi = polygonCoords[i][0];
+        const yi = polygonCoords[i][1];
+        const xj = polygonCoords[j][0];
+        const yj = polygonCoords[j][1];
+        const intersect = ((yi > y) !== (yj > y))
+            && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+};
+
+// Helper to filter items (users or transformed entries) by admin geofence restrictions
+const filterUsersByGeofence = async (users, adminId) => {
+    try {
+        if (!adminId) return users;
+        const adminUser = await User.findById(adminId);
+        if (!adminUser || !adminUser.geofenceRestrictions || adminUser.geofenceRestrictions.length === 0) {
+            return users;
+        }
+
+        const ServiceArea = (await import('../models/ServiceArea.js')).default;
+        const serviceAreas = await ServiceArea.find({ isActive: true });
+
+        return users.filter(u => {
+            let lat = u.location?.lat;
+            let lng = u.location?.lng;
+
+            if (!lat && !lng) {
+                lat = u.shopDetails?.location?.lat || u.supplierDetails?.location?.lat;
+                lng = u.shopDetails?.location?.lng || u.supplierDetails?.location?.lng;
+            }
+
+            if (!lat && !lng && u.addresses && u.addresses.length > 0) {
+                lat = u.addresses[0].location?.lat;
+                lng = u.addresses[0].location?.lng;
+            }
+
+            if (!lat || !lng) {
+                return false;
+            }
+
+            let zoneName = 'N/A';
+            for (const area of serviceAreas) {
+                if (area.boundary?.coordinates?.[0]) {
+                    const polygonCoords = area.boundary.coordinates[0];
+                    if (isPointInPolygon(lat, lng, polygonCoords)) {
+                        zoneName = area.areaName;
+                        break;
+                    }
+                }
+            }
+            return adminUser.geofenceRestrictions.includes(zoneName);
+        });
+    } catch (e) {
+        console.error('Error filtering users by geofence:', e);
+        return users;
+    }
+};
+
 // Get all roles pending approval
 export const getPendingApprovals = async (req, res) => {
     try {
@@ -59,6 +124,7 @@ export const getPendingApprovals = async (req, res) => {
             phone: app.user?.phone || '',
             email: app.user?.email || '',
             createdAt: app.createdAt,
+            location: app.warehouseLocation || app.location || null,
             supplierDetails: {
                 businessName: app.registeredBusinessName || '',
                 address: app.warehouseAddress || '',
@@ -73,9 +139,17 @@ export const getPendingApprovals = async (req, res) => {
             applicationId: app._id // Keep original app ID for approval/rejection
         }));
 
+        let filteredVendors = pendingVendors;
+        let filteredSuppliers = transformedSuppliers;
+
+        if (req.admin && req.admin.id) {
+            filteredVendors = await filterUsersByGeofence(pendingVendors, req.admin.id);
+            filteredSuppliers = await filterUsersByGeofence(transformedSuppliers, req.admin.id);
+        }
+
         const combined = [
-            ...pendingVendors.map(v => ({ ...v, role: 'Vendor' })), // Force role to Vendor for display
-            ...transformedSuppliers
+            ...filteredVendors.map(v => ({ ...v, role: 'Vendor' })), // Force role to Vendor for display
+            ...filteredSuppliers
         ];
         
         res.status(200).json(combined);
@@ -205,7 +279,12 @@ export const deleteVendor = async (req, res) => {
 // Get all suppliers
 export const getAllSuppliers = async (req, res) => {
     try {
-        const suppliers = await User.find({ role: 'Supplier' }).select('-otp -otpExpiry').lean();
+        let suppliers = await User.find({ role: 'Supplier' }).select('-otp -otpExpiry').lean();
+        
+        if (req.admin && req.admin.id) {
+            suppliers = await filterUsersByGeofence(suppliers, req.admin.id);
+        }
+
         res.status(200).json(suppliers);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching suppliers' });
@@ -713,6 +792,11 @@ export const getCloudinaryUsage = async (req, res) => {
 export const getAllVendors = async (req, res) => {
     try {
         let vendors = await User.find({ role: 'Vendor' }).select('-otp -otpExpiry').lean();
+        
+        if (req.admin && req.admin.id) {
+            vendors = await filterUsersByGeofence(vendors, req.admin.id);
+        }
+
         res.status(200).json(vendors);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching vendors' });
@@ -757,7 +841,12 @@ export const getVendorById = async (req, res) => {
 // Get all customers
 export const getCustomers = async (req, res) => {
     try {
-        const customers = await User.find({ role: 'Customer' }).select('-otp -otpExpiry').lean();
+        let customers = await User.find({ role: 'Customer' }).select('-otp -otpExpiry').lean();
+        
+        if (req.admin && req.admin.id) {
+            customers = await filterUsersByGeofence(customers, req.admin.id);
+        }
+
         res.status(200).json(customers);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching customers', error: err.message });
@@ -1149,5 +1238,17 @@ export const getVendorPayoutHistory = async (req, res) => {
     } catch (err) {
         console.error('Get Payout History Error:', err);
         res.status(500).json({ message: 'Error fetching payout history', error: err.message });
+    }
+};
+
+// Get all administrative users
+export const getSubAdmins = async (req, res) => {
+    try {
+        const User = (await import('../models/User.js')).default;
+        const admins = await User.find({ role: 'Admin' }).select('-otp -otpExpiry').sort({ createdAt: -1 }).lean();
+        res.status(200).json(admins);
+    } catch (err) {
+        console.error('Get Sub-Admins Error:', err);
+        res.status(500).json({ message: 'Error fetching sub-admins' });
     }
 };

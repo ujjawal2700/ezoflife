@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
  * Token must be sent as:
  *   Authorization: Bearer <token>
  */
-export const verifyAdmin = (req, res, next) => {
+export const verifyAdmin = async (req, res, next) => {
     try {
         const authHeader = req.headers['authorization'] || req.headers['Authorization'];
 
@@ -32,6 +32,27 @@ export const verifyAdmin = (req, res, next) => {
                 success: false,
                 message: 'Forbidden. Admin access required.'
             });
+        }
+
+        // Retrieve admin status and permissions from DB to enforce Read-Only restriction
+        const User = (await import('../models/User.js')).default;
+        const adminUser = await User.findById(decoded.id);
+        
+        if (adminUser) {
+            if (adminUser.status !== 'approved') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Admin account is not active.'
+                });
+            }
+
+            // Read-Only check: Block write/mutation operations (POST, PUT, DELETE, PATCH)
+            if (adminUser.adminAccessType === 'Read-Only' && req.method !== 'GET') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access Denied. You have Read-Only permissions.'
+                });
+            }
         }
 
         // Attach decoded payload to request for downstream use

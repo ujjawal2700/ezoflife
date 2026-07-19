@@ -91,6 +91,7 @@ const RegisterAsVendorPage = () => {
                          currentUser?.onboardingStage !== 'COMPLETED' &&
                          currentUser?.status !== 'revision_required';
   const isRevisionRequired = currentUser?.status === 'revision_required';
+  const [isNameEditable, setIsNameEditable] = useState(false);
 
   const [formData, setFormData] = useState({
     // Step 1: Basic Profile
@@ -203,10 +204,17 @@ const RegisterAsVendorPage = () => {
     if (!isRevisionRequired) {
         const savedFormData = localStorage.getItem('vendor_onboarding_form');
         if (savedFormData) {
-            setFormData(prev => ({ ...prev, ...JSON.parse(savedFormData) }));
+            const parsed = JSON.parse(savedFormData);
+            setFormData(prev => ({ 
+                ...prev, 
+                ...parsed,
+                ownerName: parsed.ownerName || currentUser?.displayName || ''
+            }));
+        } else {
+            setFormData(prev => ({ ...prev, ownerName: currentUser?.displayName || '' }));
         }
     }
-  }, [isRevisionRequired]);
+  }, [isRevisionRequired, currentUser]);
 
   useEffect(() => {
     localStorage.setItem('vendor_onboarding_form', JSON.stringify(formData));
@@ -785,8 +793,19 @@ const RegisterAsVendorPage = () => {
                                         value={formData.ownerName}
                                         onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
                                         placeholder="ENTER OWNER'S FULL LEGAL NAME"
-                                        className={`w-full pl-16 p-3.5 bg-white border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm ${getFieldStatus('ownerName', isRevisionRequired, currentUser) === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'}`}
+                                        readOnly={!isNameEditable}
+                                        className={`w-full pl-16 pr-14 p-3.5 bg-white border rounded-[1.5rem] font-bold text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all uppercase tracking-tight shadow-sm ${getFieldStatus('ownerName', isRevisionRequired, currentUser) === 'rejected' ? 'border-rose-500' : 'border-outline-variant/10'} ${!isNameEditable ? 'bg-slate-50/50 cursor-not-allowed select-none' : ''}`}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsNameEditable(!isNameEditable)}
+                                        className="absolute right-6 top-1/2 -translate-y-1/2 text-primary hover:text-primary-dark transition-colors cursor-pointer flex items-center justify-center"
+                                        title={isNameEditable ? "Lock editing" : "Edit name manually"}
+                                    >
+                                        <span className="material-symbols-outlined text-base">
+                                            {isNameEditable ? 'lock_open' : 'edit'}
+                                        </span>
+                                    </button>
                                 </div>
                             </FieldHighlight>
                         </div>

@@ -534,3 +534,45 @@ export const sendAdminJobApplicationNotification = async (application, jobTitle,
     return transporter.sendMail(mailOptions);
 };
 
+/**
+ * Sends sub-admin activation email
+ */
+export const sendSubAdminActivationEmail = async (email, firstName, activationLink, otp) => {
+    const transporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        secure: process.env.EMAIL_PORT == 465,
+        auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+        },
+    });
+
+    const mailOptions = {
+        from: `"Spinzyt System" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Invitation to Join Spinzyt Admin Panel',
+        text: `Hi ${firstName},\n\nYou have been invited to join the Spinzyt Admin Panel.\n\nPlease activate your account and set up your password using the link below:\n${activationLink}\n\nTo verify your registration, you will need to enter the following OTP:\n${otp}\n\nBest regards,\nThe Spinzyt Team`,
+        html: `
+            <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 30px;">
+                <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Welcome to Spinzyt Admin!</h2>
+                <p>Hi <strong>${firstName}</strong>,</p>
+                <p>You have been invited to join the Spinzyt Admin Panel as a sub-admin.</p>
+                <p>Please click the button below to set up your password and activate your account:</p>
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${activationLink}" style="background-color: #0f172a; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Activate Account</a>
+                </div>
+                <p>During the activation process, you will also be required to enter this Verification OTP:</p>
+                <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 6px; font-size: 20px; font-weight: bold; text-align: center; color: #0f172a; letter-spacing: 2px; margin: 20px 0;">
+                    ${otp}
+                </div>
+                <p style="font-size: 13px; color: #64748b; margin-top: 25px;">If the button above does not work, copy and paste this link in your browser:<br/>${activationLink}</p>
+                <br />
+                <p>Best regards,<br /><strong>The Spinzyt Team</strong></p>
+            </div>
+        `
+    };
+
+    return transporter.sendMail(mailOptions);
+};
+

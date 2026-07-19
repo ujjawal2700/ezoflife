@@ -34,7 +34,7 @@ const AuthPage = () => {
         const errorMsg = response.message || 'Something went wrong';
         setApiError(errorMsg);
         if (errorMsg === 'Your number is not registered') {
-            toast.error(errorMsg, {
+            toast.error('This number is not registered yet.', {
                 icon: '🚫',
                 style: { borderRadius: '20px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' }
             });
@@ -208,7 +208,27 @@ const AuthPage = () => {
                       {/* Button removed per user request for automatic flow */}
                       
                       {apiError && isLogin && (
-                        <p className="text-[10px] text-error font-black text-center mt-2 animate-pulse">{apiError}</p>
+                        <p className="text-[10px] text-error font-black text-center mt-2 animate-pulse">
+                          {apiError === 'Your number is not registered' ? (
+                            <span>
+                              This number is not registered yet.
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  setSignupPhone(loginPhone);
+                                  setIsLogin(false);
+                                  setApiError('');
+                                  setLastRequestedPhone('');
+                                }} 
+                                className="underline cursor-pointer hover:text-red-700 transition-colors ml-1 font-black"
+                              >
+                                [Sign Up Here]
+                              </button>
+                            </span>
+                          ) : (
+                            apiError
+                          )}
+                        </p>
                       )}
                     </div>
                   </div>

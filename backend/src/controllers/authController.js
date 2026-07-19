@@ -66,17 +66,10 @@ export const requestOtp = async (req, res) => {
         if (phone === '9999999994') {
             let admin = await User.findOne({ phone });
             if (!admin) {
-                admin = new User({ 
-                    phone, 
-                    role: 'Admin', 
-                    status: 'approved', 
-                    displayName: 'Master Admin',
-                    isProfileComplete: true 
-                });
-            } else {
-                admin.role = 'Admin';
-                admin.status = 'approved';
+                return res.status(404).json({ message: 'Your number is not registered' });
             }
+            admin.role = 'Admin';
+            admin.status = 'approved';
             admin.otp = '123456';
             admin.otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
             await admin.save();
@@ -596,6 +589,38 @@ export const adminLogin = async (req, res) => {
             });
         }
 
+        // Dynamic Sub-Admin login checking
+        const subAdmin = await User.findOne({ email, role: 'Admin' });
+        if (subAdmin && subAdmin.password) {
+            if (subAdmin.status !== 'approved') {
+                return res.status(403).json({ message: `Your sub-admin account status is currently: ${subAdmin.status}.` });
+            }
+
+            const isMatch = await bcrypt.compare(password, subAdmin.password);
+            if (isMatch) {
+                const token = jwt.sign(
+                    { id: subAdmin._id, role: subAdmin.role, phone: subAdmin.phone },
+                    process.env.JWT_SECRET || 'ezoflife_secret_key_2026',
+                    { expiresIn: '7d' }
+                );
+
+                return res.status(200).json({
+                    message: 'Admin login successful',
+                    token,
+                    user: {
+                        id: subAdmin._id,
+                        phone: subAdmin.phone,
+                        role: subAdmin.role,
+                        displayName: subAdmin.displayName,
+                        email: subAdmin.email,
+                        adminRole: subAdmin.adminRole,
+                        adminPermissions: subAdmin.adminPermissions || [],
+                        adminAccessType: subAdmin.adminAccessType || 'Read/Write'
+                    }
+                });
+            }
+        }
+
         return res.status(401).json({ message: 'Invalid admin credentials' });
     } catch (err) {
         console.error('Admin Login Error:', err);
@@ -939,5 +964,171 @@ export const lookupCustomerByPhone = async (req, res) => {
     } catch (err) {
         console.error('Lookup Phone Error:', err);
         res.status(500).json({ message: 'Error looking up customer' });
+    }
+};
+
+// Invite a new sub-admin (called by Master Admin)
+export const inviteSubAdmin = async (req, res) => {
+    try {
+        const { firstName, lastName, email, phone, role, accessType, geofences } = req.body;
+
+        if (!firstName || !lastName || !email || !phone || !role) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        // Check if phone or email already registered
+        const existingUser = await User.findOne({ $or: [{ phone }, { email }] });
+        if (existingUser) {
+            return res.status(400).json({ message: 'A user with this phone or email already exists' });
+        }
+
+        // Generate activation details
+        const activationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+        const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+        // Map role permissions based on matrix
+        let permissions = [];
+        if (role === 'Master Admin') {
+            permissions = ['Dashboard', 'User Management', 'Registration Approval', 'Vendor Service Request', 'Supplier Product Request', 'Orders', 'Services & Pricing', 'Vendor Supply Pricing', 'Support Tickets', 'Notifications', 'FAQ Manager', 'Privacy Policy', 'Terms & Conditions', 'Splash Ads', 'Advertise', 'Referral Settings', 'Promotions', 'Partnerships', 'Customer Feedback', 'Career Center', 'Settings', 'Invoice Design'];
+        } else if (role === 'Global Auditor / Developer') {
+            permissions = ['Dashboard', 'User Management', 'Registration Approval', 'Vendor Service Request', 'Supplier Product Request', 'Orders', 'Services & Pricing', 'Vendor Supply Pricing', 'Support Tickets', 'Notifications', 'FAQ Manager', 'Privacy Policy', 'Terms & Conditions', 'Splash Ads', 'Advertise', 'Referral Settings', 'Promotions', 'Partnerships', 'Customer Feedback', 'Career Center', 'Settings', 'Invoice Design'];
+        } else if (role === 'Operations & Pricing Lead') {
+            permissions = ['Dashboard', 'Registration Approval', 'Vendor Service Request', 'Supplier Product Request', 'Orders'];
+        } else if (role === 'Customer Support Executive') {
+            permissions = ['User Management', 'Orders', 'Support Tickets', 'FAQ Manager'];
+        } else if (role === 'Logistics & Shipping Coordinator') {
+            permissions = ['Orders', 'Support Tickets', 'Notifications'];
+        } else if (role === 'Growth & Marketing Admin') {
+            permissions = ['Splash Ads', 'Advertise', 'Referral Settings', 'Promotions', 'Partnerships'];
+        } else if (role === 'HR') {
+            permissions = ['User Management', 'Support Tickets', 'FAQ Manager', 'Career Center', 'Invoice Design', 'Customer Feedback'];
+        } else {
+            // Custom role
+            permissions = req.body.permissions || [];
+        }
+
+        // Save placeholder sub-admin to DB
+        const newAdmin = new User({
+            phone,
+            email,
+            role: 'Admin',
+            displayName: `${firstName} ${lastName}`,
+            status: 'pending',
+            adminRole: role,
+            adminPermissions: permissions,
+            adminAccessType: accessType || 'Read/Write',
+            geofenceRestrictions: geofences || [],
+            otp,
+            otpExpiry,
+            activationToken
+        });
+        
+        await newAdmin.save();
+
+        // Generate activation link
+        const activationLink = `http://localhost:5173/admin/activate?token=${activationToken}`;
+
+        // 1. Send Whatsapp Message Mock to backend terminal
+        console.log('\n----------------------------------------');
+        console.log('🟢 [WHATSAPP MOCK] Sub-Admin Invitation');
+        console.log(`📱 Phone: +91 ${phone}`);
+        console.log(`👤 Name: ${firstName} ${lastName}`);
+        console.log(`🔑 Verification OTP: ${otp}`);
+        console.log(`🔗 Link: ${activationLink}`);
+        console.log('----------------------------------------\n');
+
+        // 2. Send email using helper
+        try {
+            const { sendSubAdminActivationEmail } = await import('../utils/emailHelper.js');
+            await sendSubAdminActivationEmail(email, firstName, activationLink, otp);
+            console.log(`📧 [EMAIL] Sent sub-admin invitation email to ${email}`);
+        } catch (emailErr) {
+            console.error('❌ Failed to send sub-admin activation email:', emailErr.message);
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Sub-admin invited successfully. Check terminal for WhatsApp mock and email logs.',
+            activationLink,
+            otp
+        });
+
+    } catch (err) {
+        console.error('Invite Sub-Admin Error:', err);
+        res.status(500).json({ message: 'Internal server error', error: err.message });
+    }
+};
+
+// Fetch sub-admin activation details by token (Public GET)
+export const getSubAdminActivationDetails = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({ message: 'Token is required' });
+        }
+
+        const user = await User.findOne({ activationToken: token, role: 'Admin' });
+        if (!user) {
+            return res.status(404).json({ message: 'Invalid or expired invitation link' });
+        }
+
+        res.status(200).json({
+            email: user.email,
+            phone: user.phone,
+            displayName: user.displayName,
+            adminRole: user.adminRole
+        });
+    } catch (err) {
+        console.error('Get Activation Details Error:', err);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+// Activate sub-admin (sets password and verifies via OTP) (Public POST)
+export const activateSubAdmin = async (req, res) => {
+    try {
+        const { token, password, otp } = req.body;
+
+        if (!token || !password || !otp) {
+            return res.status(400).json({ message: 'Token, password, and OTP are required' });
+        }
+
+        const user = await User.findOne({ activationToken: token, role: 'Admin' });
+        if (!user) {
+            return res.status(404).json({ message: 'Invalid or expired activation token' });
+        }
+
+        // Verify OTP
+        if (user.otp !== otp) {
+            return res.status(400).json({ message: 'Invalid verification OTP' });
+        }
+
+        if (new Date() > user.otpExpiry) {
+            return res.status(400).json({ message: 'Verification OTP has expired' });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Update user status and credentials
+        user.password = hashedPassword;
+        user.status = 'approved';
+        user.otp = null;
+        user.otpExpiry = null;
+        user.activationToken = null;
+
+        await user.save();
+
+        console.log(`🔓 [SUB_ADMIN] Account activated successfully for: ${user.email}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Account activated successfully! You can now log in using your password.'
+        });
+    } catch (err) {
+        console.error('Activate Sub-Admin Error:', err);
+        res.status(500).json({ message: 'Internal server error' });
     }
 };

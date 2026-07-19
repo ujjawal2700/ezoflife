@@ -196,7 +196,12 @@ const userSchema = new mongoose.Schema({
     cardName: {
         type: String,
         default: ''
-    }
+    },
+    adminRole: { type: String, default: null },
+    adminPermissions: [{ type: String }],
+    adminAccessType: { type: String, default: 'Read/Write' },
+    geofenceRestrictions: [{ type: String }],
+    activationToken: { type: String, default: null }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);

@@ -327,7 +327,14 @@ const ProfileCreationPage = () => {
                             <input 
                                 type="text"
                                 value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    const formatted = val
+                                        .split(' ')
+                                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                        .join(' ');
+                                    setName(formatted);
+                                }}
                                 placeholder="Your full name"
                                 className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-md font-black placeholder:text-outline-variant/40"
                             />
@@ -344,7 +351,14 @@ const ProfileCreationPage = () => {
                                     <input 
                                         type="text"
                                         value={businessName}
-                                        onChange={(e) => setBusinessName(e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            const formatted = val
+                                                .split(' ')
+                                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                                .join(' ');
+                                            setBusinessName(formatted);
+                                        }}
                                         placeholder="Your business name"
                                         className="w-full bg-transparent border-none focus:ring-0 outline-none p-0 text-md font-black placeholder:text-outline-variant/40"
                                     />

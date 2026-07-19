@@ -132,14 +132,36 @@ export default function DataGrid({
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {loading ? (
-                            <tr>
-                                <td colSpan={columns.length + (onAction ? 1 : 0)} className="px-4 py-16 text-center">
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="w-8 h-8 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
-                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 animate-pulse">Synchronizing entities...</span>
-                                    </div>
-                                </td>
-                            </tr>
+                            Array.from({ length: 5 }).map((_, rowIndex) => (
+                                <tr key={rowIndex} className="animate-pulse border-b border-slate-100">
+                                    {columns.map((col, colIndex) => (
+                                        <td 
+                                            key={colIndex} 
+                                            className={cn(
+                                                "text-[12px] font-medium text-slate-700 tabular-nums tracking-tight",
+                                                col.wrap ? "whitespace-normal" : "whitespace-nowrap",
+                                                density === 'compact' ? "px-5 py-2.5" : "px-5 py-3.5",
+                                                col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
+                                                col.sticky && "sticky left-0 bg-white z-10"
+                                            )}
+                                        >
+                                            <div 
+                                                className={cn(
+                                                    "h-3 bg-slate-200 rounded-md",
+                                                    colIndex % 3 === 0 ? "w-24" : colIndex % 3 === 1 ? "w-32" : "w-16",
+                                                    col.align === 'center' && "mx-auto",
+                                                    col.align === 'right' && "ml-auto"
+                                                )}
+                                            />
+                                        </td>
+                                    ))}
+                                    {onAction && (
+                                        <td className="px-5 py-3 text-right">
+                                            <div className="h-6 w-6 bg-slate-200 rounded-sm ml-auto" />
+                                        </td>
+                                    )}
+                                </tr>
+                            ))
                         ) : filteredData.length > 0 ? (
                             filteredData.map((row, rowIdx) => (
                                 <tr
@@ -176,7 +198,7 @@ export default function DataGrid({
                         ) : (
                             <tr>
                                 <td colSpan={columns.length + (onAction ? 1 : 0)} className="px-4 py-16 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">
-                                    Entity registry empty / No records found
+                                    No Data Available
                                 </td>
                             </tr>
                         )}

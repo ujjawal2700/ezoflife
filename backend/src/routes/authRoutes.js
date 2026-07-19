@@ -19,12 +19,17 @@ import {
     updateProfileImage,
     getDraftCart,
     updateDraftCart,
-    lookupCustomerByPhone
+    lookupCustomerByPhone,
+    getSubAdminActivationDetails,
+    activateSubAdmin
 } from '../controllers/authController.js';
 import { getVendorPayoutHistory } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
 
 const router = express.Router();
+
+router.get('/sub-admin-activation-details', getSubAdminActivationDetails);
+router.post('/activate-sub-admin', activateSubAdmin);
 
 router.post('/temp-seed', tempSeedUser);
 router.post('/request-otp', requestOtp);

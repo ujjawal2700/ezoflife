@@ -594,28 +594,6 @@ export default function Users() {
       );
     }
 
-    if (activeTab === 'Customer' && selectedCustomerType === 'individual') {
-      baseCols.push(
-        {
-          header: 'Card Name',
-          key: 'cardName',
-          render: (val, row) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
-              {row.cardName || 'N/A'}
-            </span>
-          )
-        },
-        {
-          header: 'UPI ID',
-          key: 'upiId',
-          render: (val, row) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-              {row.upiId || 'N/A'}
-            </span>
-          )
-        }
-      );
-    }
 
     if (activeTab === 'Vendor' && selectedVendorType === 'registered') {
       baseCols.push(
@@ -723,9 +701,42 @@ export default function Users() {
           );
         }
       });
-    }
+    } else if (activeTab === 'Vendor' || activeTab === 'Supplier') {
+      baseCols.push({
+        header: 'Location',
+        key: 'address',
+        render: (val, row) => {
+          const isSupplier = row.role === 'Supplier';
+          const addressVal = isSupplier 
+            ? (row.supplierDetails?.address || row.address || val)
+            : (row.shopDetails?.address || row.address || val);
+            
+          if (!addressVal) {
+            return <span className="text-[10px] text-slate-400 font-bold uppercase">No Address Set</span>;
+          }
+          
+          const cityVal = isSupplier ? (row.supplierDetails?.city || row.city) : (row.shopDetails?.city || row.city);
+          const stateVal = isSupplier ? (row.supplierDetails?.state || row.state) : (row.shopDetails?.state || row.state);
+          const pincodeVal = isSupplier ? (row.supplierDetails?.pincode || row.pincode) : (row.shopDetails?.pincode || row.pincode);
 
-    if (!(activeTab === 'Customer' && selectedCustomerType === 'individual')) {
+          return (
+            <button
+              onClick={() => setSelectedAddressForModal({
+                type: 'Default',
+                address: addressVal,
+                city: cityVal,
+                state: stateVal,
+                pincode: pincodeVal,
+                location: row.location
+              })}
+              className="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all cursor-pointer shadow-sm"
+            >
+              Default
+            </button>
+          );
+        }
+      });
+    } else {
       baseCols.push({
         header: 'Location',
         key: 'address',
@@ -877,14 +888,21 @@ export default function Users() {
         <DataGrid 
           title=""
           showTotalEntities={false}
-          leftContent={
-              /* Geofence Filter (Searchable Custom Dropdown) */
+          leftContent={null}
+          columns={columns}
+          data={paginatedUsers}
+          loading={loading}
+          showSearch={false}
+          showFilter={false}
+          actions={
+            <div className="flex items-center gap-3 justify-end">
+              {/* Geofence Filter (Searchable Custom Dropdown) */}
               <div className="relative flex items-center w-[160px] z-[40]">
                   <button
                       onClick={() => setShowGeofenceDropdown(!showGeofenceDropdown)}
                       className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <span className="truncate">{selectedGeofence === 'All' ? 'All Geofences' : selectedGeofence}</span>
+                      <span className="truncate">{selectedGeofence === 'All' ? 'Geofences' : selectedGeofence}</span>
                       <ChevronDown size={12} className="text-slate-400" />
                   </button>
                   {showGeofenceDropdown && (
@@ -914,7 +932,7 @@ export default function Users() {
                                       }}
                                       className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedGeofence === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
                                   >
-                                      All Geofences
+                                      Geofences
                                   </button>
                                   {geofences
                                       .map(g => g.areaName || g.name)
@@ -941,34 +959,29 @@ export default function Users() {
                       </>
                   )}
               </div>
-          }
-          columns={columns}
-          data={paginatedUsers}
-          loading={loading}
-          showSearch={false}
-          showFilter={false}
-          actions={
-            <div className="flex items-center gap-3 justify-end">
+
               {/* Role Filter */}
-              <div className="relative flex items-center w-[160px]">
-                  <select
-                      value={activeTab}
-                      onChange={(e) => {
-                          const val = e.target.value;
-                          setActiveTab(val);
-                          setSearchParams(val === 'All' ? {} : { role: val });
-                      }}
-                      className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
-                  >
-                      {tabs.map(tab => (
-                          <option key={tab} value={tab}>{tab === 'All' ? 'Role' : `${tab}s`}</option>
-                      ))}
-                  </select>
-                  <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
-              </div>
+              {!roleParam && (
+                  <div className="relative flex items-center w-[160px]">
+                      <select
+                          value={activeTab}
+                          onChange={(e) => {
+                              const val = e.target.value;
+                              setActiveTab(val);
+                              setSearchParams(val === 'All' ? {} : { role: val });
+                          }}
+                          className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
+                      >
+                          {tabs.map(tab => (
+                              <option key={tab} value={tab}>{tab === 'All' ? 'Role' : `${tab}s`}</option>
+                          ))}
+                      </select>
+                      <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
+                  </div>
+              )}
 
               {/* Customer Type Filter (Visible only when on Customer Tab) */}
-              {activeTab === 'Customer' && (
+              {activeTab === 'Customer' && !typeParam && (
                   <div className="relative flex items-center w-[160px]">
                       <select
                           value={selectedCustomerType}
@@ -979,7 +992,7 @@ export default function Users() {
                           }}
                           className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                       >
-                          <option value="All">All Customers</option>
+                          <option value="All">Customers</option>
                           <option value="individual">Individual</option>
                           <option value="retail">Business</option>
                       </select>
@@ -988,7 +1001,7 @@ export default function Users() {
               )}
 
               {/* Vendor Type Filter (Visible only when on Vendor Tab) */}
-              {activeTab === 'Vendor' && (
+              {activeTab === 'Vendor' && !vendorTypeParam && (
                   <div className="relative flex items-center w-[160px]">
                       <select
                           value={selectedVendorType}
@@ -999,7 +1012,7 @@ export default function Users() {
                           }}
                           className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                       >
-                          <option value="All">All Vendors</option>
+                          <option value="All">Vendors</option>
                           <option value="registered">Registered</option>
                           <option value="unregistered">Unregistered</option>
                       </select>
@@ -1013,7 +1026,7 @@ export default function Users() {
                       onClick={() => setShowNameDropdown(!showNameDropdown)}
                       className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <span className="truncate">{selectedName === 'All' ? 'All Names' : selectedName}</span>
+                      <span className="truncate">{selectedName === 'All' ? 'Names' : selectedName}</span>
                       <ChevronDown size={12} className="text-slate-400" />
                   </button>
                   {showNameDropdown && (
@@ -1043,7 +1056,7 @@ export default function Users() {
                                       }}
                                       className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedName === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
                                   >
-                                      All Names
+                                      Names
                                   </button>
                                   {uniqueNames
                                       .filter(name => name !== 'All')
@@ -1076,7 +1089,7 @@ export default function Users() {
                       onClick={() => setShowCityDropdown(!showCityDropdown)}
                       className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <span className="truncate">{selectedCity === 'All' ? 'All Cities' : selectedCity}</span>
+                      <span className="truncate">{selectedCity === 'All' ? 'Cities' : selectedCity}</span>
                       <ChevronDown size={12} className="text-slate-400" />
                   </button>
                   {showCityDropdown && (
@@ -1106,7 +1119,7 @@ export default function Users() {
                                       }}
                                       className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedCity === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
                                   >
-                                      All Cities
+                                      Cities
                                   </button>
                                   {uniqueCities
                                       .filter(city => city !== 'All')
@@ -1139,7 +1152,7 @@ export default function Users() {
                       onClick={() => setShowStateDropdown(!showStateDropdown)}
                       className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <span className="truncate">{selectedState === 'All' ? 'All States' : selectedState}</span>
+                      <span className="truncate">{selectedState === 'All' ? 'States' : selectedState}</span>
                       <ChevronDown size={12} className="text-slate-400" />
                   </button>
                   {showStateDropdown && (
@@ -1169,7 +1182,7 @@ export default function Users() {
                                       }}
                                       className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedState === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
                                   >
-                                      All States
+                                      States
                                   </button>
                                   {uniqueStates
                                       .filter(state => state !== 'All')
@@ -1202,7 +1215,7 @@ export default function Users() {
                       onClick={() => setShowPincodeDropdown(!showPincodeDropdown)}
                       className="w-full flex items-center justify-between bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <span className="truncate">{selectedPincode === 'All' ? 'All Pincodes' : selectedPincode}</span>
+                      <span className="truncate">{selectedPincode === 'All' ? 'Pincodes' : selectedPincode}</span>
                       <ChevronDown size={12} className="text-slate-400" />
                   </button>
                   {showPincodeDropdown && (
@@ -1232,7 +1245,7 @@ export default function Users() {
                                       }}
                                       className={`w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-slate-900 transition-colors ${selectedPincode === 'All' ? 'bg-slate-100 text-slate-900' : 'text-slate-700'}`}
                                   >
-                                      All Pincodes
+                                      Pincodes
                                   </button>
                                   {uniquePincodes
                                       .filter(pin => pin !== 'All')
@@ -1269,7 +1282,7 @@ export default function Users() {
                       }}
                       className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
                   >
-                      <option value="All">All Statuses</option>
+                      <option value="All">Statuses</option>
                       <option value="Active">Active</option>
                       <option value="Blocked">Blocked</option>
                       {activeTab !== 'Customer' && <option value="Pending">Pending</option>}
