@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MASTER_SERVICES } from '../../../shared/data/sharedData';
-import { orderApi, serviceApi, authApi, promotionApi, masterServiceApi, mediaApi } from '../../../lib/api';
+import { orderApi, serviceApi, authApi, promotionApi, masterServiceApi, mediaApi, geofenceApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import toast from 'react-hot-toast';
@@ -206,6 +206,7 @@ const CartPage = () => {
   });
   const [activePhotoService, setActivePhotoService] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const [garmentPhotos, setGarmentPhotos] = useState(() => {
@@ -384,6 +385,25 @@ const CartPage = () => {
     syncAddresses();
   }, []);
 
+  // Sync Geofence Zone whenever selected pickup address changes
+  useEffect(() => {
+    const checkGeofenceForPickup = async () => {
+      const lat = selectedPickupAddress?.location?.lat;
+      const lng = selectedPickupAddress?.location?.lng;
+      if (lat && lng) {
+        try {
+          const zoneInfo = await geofenceApi.checkAvailability(lat, lng);
+          if (zoneInfo && zoneInfo.available) {
+            useLocationStore.getState().setZoneData(zoneInfo);
+          }
+        } catch (err) {
+          console.warn('⚠️ CartPage: Geofence check failed for pickup address:', err);
+        }
+      }
+    };
+    checkGeofenceForPickup();
+  }, [selectedPickupAddress]);
+
   const updateQuantity = (id, delta) => {
     const current = quantities[id] || 0;
     const next = Math.max(0, current + delta);
@@ -410,7 +430,15 @@ const CartPage = () => {
   };
 
   const { pricingFactor, zone, allowDiscount, platformMultiplier: zonePlatformMultiplier, minPlatformFee: zoneMinPlatformFee, maxPlatformFee: zoneMaxPlatformFee, expressMultiplier: zoneExpressMultiplier, heritageMultiplier: zoneHeritageMultiplier } = useLocationStore();
-  const activePlatformMultiplier = zone ? (zonePlatformMultiplier !== undefined ? zonePlatformMultiplier : 0) : 0;
+  
+  // Use zone platform multiplier if defined, otherwise fallback to global platformMultiplier config
+  const rawPlatformMultiplier = (zone && zonePlatformMultiplier !== undefined && zonePlatformMultiplier !== null)
+    ? zonePlatformMultiplier 
+    : (platformMultiplier || 0);
+
+  // Convert multiplier to rate: If multiplier >= 1 (e.g. 1.2 for 20%), rate is 0.2. If multiplier < 1 (e.g. 0.05 for 5%), rate is 0.05.
+  const activePlatformRate = rawPlatformMultiplier >= 1 ? (rawPlatformMultiplier - 1) : rawPlatformMultiplier;
+
   const activeMinPlatformFee = zone ? (zoneMinPlatformFee || 0) : 0;
   const activeMaxPlatformFee = zone ? (zoneMaxPlatformFee || null) : null;
   const activeExpressMultiplier = zone ? (zoneExpressMultiplier !== undefined ? zoneExpressMultiplier : expressMultiplier) : expressMultiplier;
@@ -439,8 +467,9 @@ const CartPage = () => {
     }, 0);
     
     const expressSurcharge = totalBase * (currentExpressMultiplier - 1);
+    const baseWithExpress = totalBase + expressSurcharge;
     
-    let platformFee = totalBase * activePlatformMultiplier;
+    let platformFee = baseWithExpress * activePlatformRate;
     if (activeMinPlatformFee > 0 && platformFee < activeMinPlatformFee) {
         platformFee = activeMinPlatformFee;
     }
@@ -449,7 +478,7 @@ const CartPage = () => {
     }
     
     return totalBase + expressSurcharge + platformFee;
-  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, activePlatformMultiplier, activeMinPlatformFee, activeMaxPlatformFee]);
+  }, [cartItems, quantities, areaMultiplier, currentExpressMultiplier, activePlatformRate, activeMinPlatformFee, activeMaxPlatformFee]);
 
   const V = V_Items + normalLogisticsConfig;
   const taxAmount = useMemo(() => {
@@ -490,8 +519,9 @@ const CartPage = () => {
     
     // Additive logic breakdown based on Base Price
     const expressSurcharge = baseWithArea * (currentExpressMultiplier - 1);
+    const baseWithExpress = baseWithArea + expressSurcharge;
     
-    let platformFee = baseWithArea * activePlatformMultiplier;
+    let platformFee = baseWithExpress * activePlatformRate;
     if (activeMinPlatformFee > 0 && platformFee < activeMinPlatformFee) {
         platformFee = activeMinPlatformFee;
     }
@@ -506,7 +536,7 @@ const CartPage = () => {
         logisticsFee: normalLogisticsConfig,
         gstAmount: taxAmount
     };
-  }, [cartItems, quantities, areaMultiplier, activePlatformMultiplier, activeMinPlatformFee, activeMaxPlatformFee, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
+  }, [cartItems, quantities, areaMultiplier, activePlatformRate, activeMinPlatformFee, activeMaxPlatformFee, currentExpressMultiplier, normalLogisticsConfig, taxAmount]);
 
   const subtotal = priceBreakdown.baseWithArea;
 
@@ -665,7 +695,7 @@ const CartPage = () => {
         deliveryMode: isExpress ? 'Express' : 'Normal',
         deliveryCharge: normalLogisticsConfig,
         areaMultiplier: areaMultiplier,
-        platformMultiplier: activePlatformMultiplier,
+        platformMultiplier: activePlatformRate,
         minPlatformFee: activeMinPlatformFee,
         maxPlatformFee: activeMaxPlatformFee,
         expressMultiplier: activeExpressMultiplier,
@@ -699,15 +729,49 @@ const CartPage = () => {
     if (files.length === 0 || !activePhotoService) return;
     
     setUploading(true);
+    setUploadProgress(0);
     try {
       const uploadedUrls = [];
+      let currentFileIndex = 0;
+
       for (const file of files) {
-        const formData = new FormData();
-        formData.append('media', file);
-        const res = await mediaApi.upload(formData);
-        if (res.url) {
-          uploadedUrls.push(res.url);
+        const url = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const formData = new FormData();
+          formData.append('media', file);
+
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const fileProgress = Math.round((event.loaded / event.total) * 100);
+              const overallProgress = Math.round(
+                ((currentFileIndex * 100) + fileProgress) / files.length
+              );
+              setUploadProgress(overallProgress);
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try {
+                const res = JSON.parse(xhr.responseText);
+                resolve(res.url);
+              } catch (e) {
+                reject(new Error('Invalid response'));
+              }
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status}`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Network error'));
+          xhr.open('POST', `${BASE_URL}/media/upload`);
+          xhr.send(formData);
+        });
+
+        if (url) {
+          uploadedUrls.push(url);
         }
+        currentFileIndex++;
       }
 
       setItemPhotos(prev => {
@@ -725,7 +789,7 @@ const CartPage = () => {
       toast.error('Failed to upload photos');
     } finally {
       setUploading(false);
-      setActivePhotoService(null);
+      setUploadProgress(0);
       e.target.value = ''; // Reset input
     }
   };
@@ -1054,7 +1118,10 @@ const CartPage = () => {
                       const serviceName = cartItems.find(i => (i._id || i.id) === itemId)?.name || 'Article';
                       return (
                         <div key={`${itemId}-${pIdx}`} className="flex flex-col gap-1.5">
-                          <div className="aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 relative group">
+                          <div 
+                            onClick={() => setActivePhotoService({ id: itemId, name: serviceName })}
+                            className="aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 relative group cursor-pointer active:scale-95 transition-transform"
+                          >
                             <img src={photo} alt="" className="w-full h-full object-cover" />
                           </div>
                           <p className="text-[7px] font-black text-slate-900/60 uppercase truncate text-center px-1 tracking-tight">
@@ -1096,6 +1163,21 @@ const CartPage = () => {
                       <span className="material-symbols-outlined text-base">close</span>
                     </button>
                   </div>
+
+                  {uploading && (
+                    <div className="w-full space-y-2 py-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
+                        <span>Uploading...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-white transition-all duration-300 rounded-full"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Existing Photos Grid */}
                   {itemPhotos[activePhotoService.id]?.length > 0 ? (
