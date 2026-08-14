@@ -633,7 +633,9 @@ const CartPage = () => {
           description: `Full Payment`,
           order_id: rzpOrder.id,
           handler: async function (response) {
-            await finalizeOrder(userId, response.razorpay_payment_id, 'Online');
+            // The full Razorpay response is forwarded so the server can verify the
+            // signature. Payment success is confirmed by the backend, not here.
+            await finalizeOrder(userId, response, 'Online');
           },
           prefill: {
             name: userData.displayName || '',
@@ -654,7 +656,7 @@ const CartPage = () => {
     }
   };
 
-  const finalizeOrder = async (userId, paymentId, method) => {
+  const finalizeOrder = async (userId, paymentResponse, method) => {
     try {
       setLoading(true);
 
@@ -688,10 +690,11 @@ const CartPage = () => {
         dropAddress: isSameAddress ? (selectedPickupAddress?.address || '') : (selectedDropAddress?.address || ''),
         dropLocation: isSameAddress ? (selectedPickupAddress?.location || defaultCenter) : (selectedDropAddress?.location || defaultCenter),
         totalAmount: finalTotal,
-        paymentStatus: (method === 'Online' || amountToPay === 0) ? 'Paid' : 'Pending',
         paymentMethod: amountToPay === 0 ? 'Wallet' : method,
         useWallet: useWallet,
-        razorpayPaymentId: paymentId,
+        razorpayPaymentId: paymentResponse?.razorpay_payment_id || null,
+        razorpayOrderId: paymentResponse?.razorpay_order_id || null,
+        razorpaySignature: paymentResponse?.razorpay_signature || null,
         deliveryMode: isExpress ? 'Express' : 'Normal',
         deliveryCharge: normalLogisticsConfig,
         areaMultiplier: areaMultiplier,
@@ -713,9 +716,12 @@ const CartPage = () => {
         localStorage.removeItem('order_photos');
         localStorage.removeItem('order_notes');
         localStorage.removeItem('item_photos');
-        
+
         // Go directly to tracking for both Online and COD
         navigate(`/user/tracking/${response._id}`);
+      } else {
+        // The server rejected the order — most often a payment it could not verify.
+        alert(response.message || 'Order could not be placed. Please try again.');
       }
     } catch (err) {
       alert('Error finalizing order');

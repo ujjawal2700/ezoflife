@@ -6,6 +6,7 @@ import { orderApi, logisticsApi } from '../../../lib/api';
 import socket from '../../../lib/socket';
 import { toast } from 'react-hot-toast';
 import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 import FindingVendorScreen from '../components/FindingVendorScreen';
 import UserHeader from '../components/UserHeader';
 
@@ -39,12 +40,7 @@ const OrderTrackingPage = () => {
     return handshake ? handshake.otp : null;
   }, [order]);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    version: '3.64',
-    libraries: ['drawing', 'places', 'geometry']
-  });
+  const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
   const fetchOrder = async (isManual = false) => {
     try {

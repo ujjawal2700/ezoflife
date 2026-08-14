@@ -1,8 +1,10 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import Job from '../src/models/Job.js';
 
 async function migrate() {
-    const uri = "mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0";
+    const uri = process.env.MONGODB_URI;
     await mongoose.connect(uri);
     
     const result = await Job.updateMany(

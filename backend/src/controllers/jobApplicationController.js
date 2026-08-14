@@ -4,6 +4,7 @@ import Job from '../models/Job.js';
 import User from '../models/User.js';
 import { getIO } from '../socket.js';
 import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } from '../utils/emailHelper.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const submitApplication = async (req, res) => {
     try {
@@ -113,7 +114,7 @@ export const getApplicationsForJob = async (req, res) => {
         const applications = await JobApplication.find({ jobId }).sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -124,7 +125,7 @@ export const getAllApplications = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -141,7 +142,7 @@ export const getVendorApplications = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -152,7 +153,7 @@ export const updateApplicationStatus = async (req, res) => {
         const application = await JobApplication.findByIdAndUpdate(id, { status }, { new: true });
         res.json(application);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -161,6 +162,6 @@ export const deleteApplication = async (req, res) => {
         await JobApplication.findByIdAndDelete(req.params.id);
         res.json({ message: 'Application deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };

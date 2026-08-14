@@ -16,6 +16,7 @@ import {
     createRazorpayOrder,
     cancelOrder
 } from '../controllers/orderController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -44,7 +45,9 @@ router.post('/cancel/:id', cancelOrder);
 
 // Admin: Get all orders
 router.get('/all', getAllOrders);
-router.delete('/:id', deleteOrder);
+// Destructive and admin-only: deleting an order is not something a customer,
+// vendor or anonymous caller may ever do.
+router.delete('/:id', verifyAdmin, deleteOrder);
 
 // Specific order by ID (Must be at the bottom)
 router.get('/:id', getOrderById);

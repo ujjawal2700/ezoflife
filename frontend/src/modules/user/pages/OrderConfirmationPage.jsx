@@ -222,7 +222,6 @@ const OrderConfirmationPage = () => {
                     if (order?.orderId || order?._id) {
                       const displayId = order.orderId || order._id;
                       addNotification('order_placed', 'Order Confirmed', `Your laundry request ${displayId} has been successfully queued.`, 'user');
-                      addNotification('order_placed', `New Order ${displayId}`, 'A new laundry request is available for pickup.', 'rider');
                     }
                     navigate('/user/success', { state: { order } });
 

@@ -4,9 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { serviceApi, orderApi, authApi, masterServiceApi, mediaApi, promotionApi, geofenceApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import { GoogleMap, Marker, Autocomplete, useJsApiLoader } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 import { locationService } from '../../../lib/locationService';
 
-const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places', 'geometry'];
 
 const getAvailableDates = () => {
     const dates = [];
@@ -227,12 +227,7 @@ const WalkInOrderPage = () => {
 
     const mapRef = useRef(null);
 
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        version: '3.64',
-        libraries: GOOGLE_MAPS_LIBRARIES
-    });
+    const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
     const vendorData = JSON.parse(localStorage.getItem('vendorData') || '{}');
     const getVendorId = () => {

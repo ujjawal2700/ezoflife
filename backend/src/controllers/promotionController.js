@@ -1,4 +1,5 @@
 import Promotion from '../models/Promotion.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const createPromotion = async (req, res) => {
     try {
@@ -75,7 +76,7 @@ export const getVendorPromotions = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(promotions);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -89,7 +90,7 @@ export const togglePromotionStatus = async (req, res) => {
         await promotion.save();
         res.json(promotion);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -98,7 +99,7 @@ export const deletePromotion = async (req, res) => {
         await Promotion.findByIdAndDelete(req.params.id);
         res.json({ message: 'Promotion deleted' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -106,8 +107,14 @@ export const deletePromotion = async (req, res) => {
 export const validatePromotion = async (req, res) => {
     try {
         const { code, vendorId, orderValue } = req.body;
-        const promo = await Promotion.findOne({ 
-            code: code.toUpperCase(), 
+
+        // Without this, a missing code throws on .toUpperCase() and surfaces as a 500.
+        if (!code || typeof code !== 'string') {
+            return res.status(400).json({ message: 'Promo code is required' });
+        }
+
+        const promo = await Promotion.findOne({
+            code: code.toUpperCase(),
             status: 'Active',
             approval_status: 'APPROVED',
             expiryDate: { $gte: new Date() },
@@ -131,7 +138,7 @@ export const validatePromotion = async (req, res) => {
 
         res.json(promo);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -180,7 +187,7 @@ export const getApplicablePromos = async (req, res) => {
         res.json(promos);
     } catch (error) {
         console.error('❌ [PROMO] Fetch Error:', error);
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -193,7 +200,7 @@ export const getAllPromotions = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(promotions);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -206,7 +213,7 @@ export const approvePromotion = async (req, res) => {
         await promotion.save();
         res.json(promotion);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -221,7 +228,7 @@ export const rejectPromotion = async (req, res) => {
         await promotion.save();
         res.json(promotion);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -302,6 +309,6 @@ export const autogenerateCode = async (req, res) => {
 
         res.json({ code });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };

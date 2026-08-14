@@ -1,4 +1,5 @@
 import RoleTemplate from '../models/RoleTemplate.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const getRoleTemplates = async (req, res) => {
     try {
@@ -22,7 +23,7 @@ export const getRoleTemplates = async (req, res) => {
         const templates = await RoleTemplate.find(query).sort({ createdAt: -1 });
         res.json(templates);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -56,7 +57,7 @@ export const createRoleTemplate = async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({ message: 'A role template with this name already exists.' });
         }
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -88,7 +89,7 @@ export const updateRoleTemplate = async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({ message: 'A role template with this name already exists.' });
         }
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -100,6 +101,6 @@ export const deleteRoleTemplate = async (req, res) => {
         }
         res.json({ message: 'Role template deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };

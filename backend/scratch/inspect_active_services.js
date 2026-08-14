@@ -1,10 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import MasterPricing from '../src/models/MasterPricing.js';
 import MasterService from '../src/models/MasterService.js';
 import Category from '../src/models/Category.js';
 import ServiceArea from '../src/models/ServiceArea.js';
 
-const MONGO_URI = 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0';
+const MONGO_URI = process.env.MONGODB_URI;
 
 async function run() {
     try {

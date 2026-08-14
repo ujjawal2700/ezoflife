@@ -39,13 +39,6 @@ const BottomNav = () => {
           { label: 'Profile', icon: 'person', path: '/user/profile' },
           { label: 'More', icon: 'menu', path: '/user/more' }
         ];
-      // case 'rider':
-      //   return [
-      //     { label: 'Deliveries', icon: 'delivery_dining', path: '/rider/dashboard' },
-      //     { label: 'History', icon: 'history', path: '/rider/history' },
-      //     { label: 'Profile', icon: 'person', path: '/user/profile' },
-      //     { label: 'More', icon: 'menu', path: '/user/more' }
-      //   ];
       default: // customer
         return [
           { label: 'Home', icon: 'home', path: '/user/home' },

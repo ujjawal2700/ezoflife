@@ -477,21 +477,32 @@ app.get('/api/maintenance/fix-master-categories', async (req, res) => {
         const MasterService = (await import('./src/models/MasterService.js')).default;
         const Category = (await import('./src/models/Category.js')).default;
         
-        // 1. Find or create the "General" category
-        let generalCat = await Category.findOne({ name: /General/i });
+        // 1. Find or create the "General" category.
+        // NOTE: Category uses mainCategory/subCategory — this block previously
+        // referenced name/description, which do not exist on the schema, so the
+        // endpoint always failed validation and returned 500.
+        let generalCat = await Category.findOne({ mainCategory: /General/i });
         if (!generalCat) {
-            generalCat = await new Category({ name: 'General', description: 'Default Category' }).save();
+            generalCat = await new Category({
+                mainCategory: 'General',
+                subCategory: 'General',
+                isActive: true
+            }).save();
         }
 
-        // 2. Find services with string category "General"
-        // Since Mongoose might throw error on find if we use string for ObjectId field, 
-        // we use lean() or direct collection access if needed, but let's try standard find first
+        // 2. Repair services still carrying a legacy string category.
+        // The current field is `categoryId`; older documents used `category`.
         const allServices = await MasterService.find({}).lean();
-        const invalidServices = allServices.filter(s => typeof s.category === 'string' && s.category === 'General');
-        
+        const invalidServices = allServices.filter(
+            s => typeof s.category === 'string' || !s.categoryId
+        );
+
         let fixedCount = 0;
         for (const service of invalidServices) {
-            await MasterService.findByIdAndUpdate(service._id, { category: generalCat._id });
+            await MasterService.findByIdAndUpdate(service._id, {
+                categoryId: generalCat._id,
+                $unset: { category: '' }
+            });
             fixedCount++;
         }
 

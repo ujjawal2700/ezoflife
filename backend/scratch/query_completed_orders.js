@@ -1,10 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import User from '../src/models/User.js';
 import B2BOrder from '../src/models/B2BOrder.js';
 
 async function run() {
   try {
-    const mongoUri = 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0';
+    const mongoUri = process.env.MONGODB_URI;
     await mongoose.connect(mongoUri);
     console.log('Connected to MongoDB');
 

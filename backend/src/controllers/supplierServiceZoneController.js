@@ -1,4 +1,5 @@
 import SupplierServiceZone from '../models/SupplierServiceZone.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const supplierServiceZoneController = {
     create: async (req, res) => {
@@ -76,7 +77,7 @@ export const supplierServiceZoneController = {
             const zones = await SupplierServiceZone.find(query).sort({ createdAt: -1 });
             res.json(zones);
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -116,7 +117,7 @@ export const supplierServiceZoneController = {
             await SupplierServiceZone.findByIdAndDelete(id);
             res.json({ message: 'Supplier service zone deleted successfully' });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -125,7 +126,7 @@ export const supplierServiceZoneController = {
             await SupplierServiceZone.deleteMany({});
             res.json({ message: 'All supplier service zones cleared successfully' });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -198,7 +199,7 @@ export const supplierServiceZoneController = {
                 results
             });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     }
 };

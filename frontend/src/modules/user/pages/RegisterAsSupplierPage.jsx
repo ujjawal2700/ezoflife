@@ -6,8 +6,8 @@ import { BASE_URL } from '../../../lib/api';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import LocationPicker from '../../../shared/components/LocationPicker';
 import { useLoadScript } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 
-const GOOGLE_MAPS_LIBRARIES = ['places'];
 
 const getFieldStatus = (fieldName, isRevisionRequired, applicationStatus) => {
     if (!isRevisionRequired || !applicationStatus?.rejectionFlags) return 'normal';
@@ -126,10 +126,7 @@ const RegisterAsSupplierPage = () => {
   const [showAmountInput, setShowAmountInput] = useState(false);
   const [amountEntered, setAmountEntered] = useState('');
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES
-  });
+  const { isLoaded } = useLoadScript(GOOGLE_MAPS_LOADER_OPTIONS);
 
   const { setPickerOpen, location: selectedLoc } = useLocationStore();
 

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { b2bOrderApi } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { GoogleMap, useJsApiLoader, Marker, Polyline, DirectionsRenderer } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 
 const mapContainerStyle = {
   width: '100%',
@@ -25,12 +26,7 @@ const B2BOrderTrackingPage = () => {
   const [otpInput, setOtpInput] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    version: '3.64',
-    libraries: ['drawing', 'places', 'geometry']
-  });
+  const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
   const fetchOrder = async (isManual = false) => {
     try {

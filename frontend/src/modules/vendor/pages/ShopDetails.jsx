@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GoogleMap, useLoadScript, Marker, Autocomplete } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 import { authApi, masterServiceApi } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 
-const libraries = ['places'];
 const mapContainerStyle = {
     width: '100%',
     height: '100%'
@@ -169,10 +169,7 @@ const ShopDetails = () => {
     const autocompleteRef = useRef(null);
     const mapRef = useRef(null);
 
-    const { isLoaded, loadError } = useLoadScript({
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        libraries
-    });
+    const { isLoaded, loadError } = useLoadScript(GOOGLE_MAPS_LOADER_OPTIONS);
 
     const reverseGeocode = useCallback((lat, lng) => {
         const geocoder = new window.google.maps.Geocoder();

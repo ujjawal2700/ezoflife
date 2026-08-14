@@ -337,7 +337,7 @@ export default function DisputeCenter() {
               <p className="text-[9px] font-bold text-slate-400 uppercase leading-relaxed tracking-wider">
                 1. Verify item weight from pickup log.<br/>
                 2. Check vendor dispatch photo.<br/>
-                3. Compare with rider delivery photo.<br/>
+                3. Compare with delivery partner photo.<br/>
                 4. Match with customer provided image.
               </p>
            </div>

@@ -31,6 +31,14 @@ export const markAsRead = async (req, res) => {
 export const clearAll = async (req, res) => {
     try {
         const { userId, role } = req.query;
+
+        // Without this, a missing role throws on .toLowerCase() and 500s. A
+        // missing userId would also match nothing and delete nothing, so both
+        // are required explicitly.
+        if (!userId || !role) {
+            return res.status(400).json({ message: 'userId and role are required' });
+        }
+
         await Notification.deleteMany({ recipient: userId, role: role.toLowerCase() });
         res.status(200).json({ message: 'Notifications cleared' });
     } catch (err) {

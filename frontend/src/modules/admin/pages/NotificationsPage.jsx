@@ -133,7 +133,6 @@ export default function NotificationsPage() {
                                 >
                                     <option>All Customers</option>
                                     <option>Active Vendors</option>
-                                    <option>All Riders</option>
                                     <option>Premium Members</option>
                                 </select>
                             </div>

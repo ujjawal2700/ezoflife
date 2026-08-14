@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authApi, geofenceApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import { Autocomplete } from '@react-google-maps/api';
+import { waitForGoogleMaps } from '../../../lib/googleMaps';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import { locationService } from '../../../lib/locationService';
 
@@ -15,17 +16,11 @@ const VendorAddressesPage = () => {
   const [isLoaded, setIsLoaded] = useState(!!window.google);
 
   React.useEffect(() => {
-    if (window.google) {
-      setIsLoaded(true);
-    } else {
-      const interval = setInterval(() => {
-        if (window.google) {
-          setIsLoaded(true);
-          clearInterval(interval);
-        }
-      }, 500);
-      return () => clearInterval(interval);
-    }
+    let cancelled = false;
+    waitForGoogleMaps()
+      .then(() => { if (!cancelled) setIsLoaded(true); })
+      .catch((err) => console.error('Google Maps failed to load:', err.message));
+    return () => { cancelled = true; };
   }, []);
 
   const [autocomplete, setAutocomplete] = useState(null);

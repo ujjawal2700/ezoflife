@@ -17,7 +17,6 @@ import AdminVendorDetail from '../pages/AdminVendorDetail';
 import PricingConfig from '../pages/PricingConfig';
 import HelpDesk from '../pages/HelpDesk';
 import DisputeCenter from '../pages/DisputeCenter';
-import Riders from '../pages/Riders';
 import MaterialConfig from '../pages/MaterialConfig';
 import FAQManagement from '../pages/FAQManagement';
 import FeedbackManagement from '../pages/FeedbackManagement';
@@ -141,7 +140,6 @@ const AdminRoutes = () => {
         <Route path="/pricing" element={<PricingConfig />} />
         <Route path="/services" element={<Services />} />
         <Route path="/master-services" element={<MasterServiceManagement />} />
-        <Route path="/riders" element={<Riders />} />
         <Route path="/help-desk" element={<HelpDesk />} />
         <Route path="/dispute-center" element={<DisputeCenter />} />
         <Route path="/users" element={<Users />} />

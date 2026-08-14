@@ -2,9 +2,9 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleMap, useJsApiLoader, Marker, StandaloneSearchBox, Autocomplete } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 import { authApi } from '../../../lib/api';
 
-const libraries = ['drawing', 'places', 'geometry'];
 const mapContainerStyle = { width: '100%', height: '100%' };
 const defaultCenter = { lat: 28.4595, lng: 77.0266 }; // Gurgaon
 
@@ -65,12 +65,7 @@ const ProfileCreationPage = () => {
     const [mapAddress, setMapAddress] = useState('');
     const searchBoxRef = useRef(null);
 
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        version: '3.64',
-        libraries
-    });
+    const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
     const userId = mergedUser.id || mergedUser._id; 
     const riderId = userId || '66112c3f8e4b8a2e5c8b4569';

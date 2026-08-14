@@ -1,5 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import('mongoose').then(async (mongoose) => {
-    await mongoose.connect('mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0');
+    await mongoose.connect(process.env.MONGODB_URI);
     
     // 1. Check MasterService
     const MasterService = mongoose.model('MasterService', new mongoose.Schema({}, { strict: false }));

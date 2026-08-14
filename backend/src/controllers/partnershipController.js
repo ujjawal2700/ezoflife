@@ -1,5 +1,6 @@
 import PartnershipInquiry from '../models/PartnershipInquiry.js';
 import { sendPartnershipConfirmation, sendAdminPartnershipNotification } from '../utils/emailHelper.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const submitPartnershipInquiry = async (req, res) => {
     try {
@@ -19,7 +20,7 @@ export const submitPartnershipInquiry = async (req, res) => {
 
         res.status(201).json(inquiry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -51,7 +52,7 @@ export const getAllPartnershipInquiries = async (req, res) => {
         const inquiries = await PartnershipInquiry.find(filter).sort({ createdAt: -1 });
         res.status(200).json(inquiries);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -87,7 +88,7 @@ export const getPartnershipFilters = async (req, res) => {
             dates
         });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -98,7 +99,7 @@ export const deletePartnershipInquiry = async (req, res) => {
         if (!inquiry) return res.status(404).json({ message: 'Partnership inquiry not found' });
         res.status(200).json({ message: 'Partnership inquiry deleted successfully' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -130,7 +131,7 @@ export const updatePartnershipStatus = async (req, res) => {
         if (!inquiry) return res.status(404).json({ message: 'Partnership inquiry not found' });
         res.status(200).json(inquiry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -143,7 +144,7 @@ export const getMyPartnershipInquiries = async (req, res) => {
         const inquiries = await PartnershipInquiry.find({ email }).sort({ createdAt: -1 });
         res.status(200).json(inquiries);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -161,7 +162,7 @@ export const updatePartnershipNotes = async (req, res) => {
         if (!inquiry) return res.status(404).json({ message: 'Partnership inquiry not found' });
         res.status(200).json(inquiry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 

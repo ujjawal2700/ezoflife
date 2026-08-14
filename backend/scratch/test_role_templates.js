@@ -5,7 +5,7 @@ import { createRoleTemplate, updateRoleTemplate } from '../src/controllers/roleT
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0";
+const MONGODB_URI = process.env.MONGODB_URI;
 
 async function testRoleTemplates() {
     console.log('Connecting to MongoDB...');

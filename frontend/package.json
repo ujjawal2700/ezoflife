@@ -7,7 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "node node_modules/@playwright/test/cli.js test",
+    "test:e2e:ui": "node node_modules/@playwright/test/cli.js test --ui",
+    "test:e2e:headed": "node node_modules/@playwright/test/cli.js test --headed",
+    "test:e2e:report": "node node_modules/@playwright/test/cli.js show-report",
+    "test:e2e:install": "node node_modules/playwright/cli.js install chromium",
+    "test": "node node_modules/vitest/vitest.mjs run",
+    "test:watch": "node node_modules/vitest/vitest.mjs",
+    "test:coverage": "node node_modules/vitest/vitest.mjs run --coverage"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -37,13 +45,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.1",
+    "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
-    "vite": "^8.0.1"
+    "jsdom": "^30.0.1",
+    "jsonwebtoken": "^9.0.3",
+    "vite": "^8.0.1",
+    "vitest": "^4.1.10"
   }
 }

@@ -2,6 +2,7 @@ import Specialist from '../models/Specialist.js';
 import LaborRequisition from '../models/LaborRequisition.js';
 import Notification from '../models/Notification.js';
 import { getIO } from '../socket.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const addSpecialist = async (req, res) => {
     try {
@@ -9,7 +10,7 @@ export const addSpecialist = async (req, res) => {
         await specialist.save();
         res.status(201).json(specialist);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -18,7 +19,7 @@ export const getAllSpecialists = async (req, res) => {
         const specialists = await Specialist.find().sort({ createdAt: -1 });
         res.status(200).json(specialists);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -27,13 +28,22 @@ export const deleteSpecialist = async (req, res) => {
         await Specialist.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: 'Specialist deleted' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
 export const createRequisition = async (req, res) => {
     try {
         const { vendorId, vendorName, items, totalAmount } = req.body;
+
+        // Without this, a missing items array throws on .length and surfaces as a 500.
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ message: 'At least one requisition item is required' });
+        }
+        if (!vendorId) {
+            return res.status(400).json({ message: 'Vendor ID is required' });
+        }
+
         console.log(`📩 New Requisition from ${vendorName} (${vendorId}) - ${items.length} skills`);
         
         const requisition = new LaborRequisition({ vendorId, vendorName, items, totalAmount });
@@ -66,7 +76,7 @@ export const createRequisition = async (req, res) => {
         
         res.status(201).json(requisition);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -75,7 +85,7 @@ export const getAllRequisitions = async (req, res) => {
         const requisitions = await LaborRequisition.find().sort({ createdAt: -1 });
         res.status(200).json(requisitions);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -113,6 +123,6 @@ export const assignRequisition = async (req, res) => {
 
         res.status(200).json(requisition);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };

@@ -1,4 +1,5 @@
 import Ticket from '../models/Ticket.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 // Create a new support ticket
 export const createTicket = async (req, res) => {
@@ -34,7 +35,7 @@ export const createTicket = async (req, res) => {
 
         res.status(201).json(newTicket);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -45,7 +46,7 @@ export const getCustomerTickets = async (req, res) => {
         const tickets = await Ticket.find({ customer: customerId }).sort({ createdAt: -1 });
         res.status(200).json(tickets);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -58,7 +59,7 @@ export const getAllTickets = async (req, res) => {
             .sort({ createdAt: -1 });
         res.status(200).json(tickets);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -100,7 +101,7 @@ export const addMessage = async (req, res) => {
 
         res.status(200).json(ticket);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -128,7 +129,7 @@ export const updateTicketStatus = async (req, res) => {
         
         res.status(200).json(ticket);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -152,7 +153,7 @@ export const updateTicket = async (req, res) => {
         await ticket.save();
         res.status(200).json(ticket);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -164,7 +165,7 @@ export const deleteTicket = async (req, res) => {
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
         res.status(200).json({ message: 'Ticket deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -180,6 +181,6 @@ export const getTicketDetails = async (req, res) => {
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
         res.status(200).json(ticket);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };

@@ -2,6 +2,7 @@ import Media from '../models/Media.js';
 import AdInquiry from '../models/AdInquiry.js';
 import { sendInquiryConfirmation, sendAdminInquiryNotification } from '../utils/emailHelper.js';
 import { sendWhatsAppMessage, sendSMSMessage } from '../utils/communicationHelper.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const uploadMedia = async (req, res) => {
     console.log('--- POST Upload Media Kit Requested (Cloudinary) ---');
@@ -37,7 +38,7 @@ export const uploadMedia = async (req, res) => {
         if (errStr.toLowerCase().includes('limit') || errStr.toLowerCase().includes('quota') || errStr.toLowerCase().includes('capacity') || errStr.toLowerCase().includes('storage') || errStr.toLowerCase().includes('full')) {
             console.error('🚨 [CRITICAL] Cloudinary limit reached or account is out of storage capacity during database save/processing!');
         }
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -50,7 +51,7 @@ export const uploadMultipleMedia = async (req, res) => {
         const fileUrls = req.files.map(file => file.path);
         res.status(201).json({ urls: fileUrls });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -59,7 +60,7 @@ export const getMediaHistory = async (req, res) => {
         const history = await Media.find().sort({ uploadedAt: -1 });
         res.status(200).json(history);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -75,7 +76,7 @@ export const getLatestMedia = async (req, res) => {
         res.status(200).json(latest);
     } catch (err) {
         console.error('Error in getLatestMedia:', err);
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -103,7 +104,7 @@ export const submitInquiry = async (req, res) => {
 
         res.status(201).json(inquiry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -127,7 +128,7 @@ export const getAllInquiries = async (req, res) => {
         const inquiries = await AdInquiry.find(filter).sort({ createdAt: -1 });
         res.status(200).json(inquiries);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -145,7 +146,7 @@ export const getInquiryFilters = async (req, res) => {
             budgets: budgets.filter(v => v !== null && v !== undefined).sort((a, b) => a - b)
         });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -156,7 +157,7 @@ export const deleteInquiry = async (req, res) => {
         if (!inquiry) return res.status(404).json({ message: 'Inquiry not found' });
         res.status(200).json({ message: 'Inquiry deleted successfully' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -188,7 +189,7 @@ export const updateInquiryStatus = async (req, res) => {
         if (!inquiry) return res.status(404).json({ message: 'Inquiry not found' });
         res.status(200).json(inquiry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -206,7 +207,7 @@ export const updateInquiryNotes = async (req, res) => {
         if (!inquiry) return res.status(404).json({ message: 'Inquiry not found' });
         res.status(200).json(inquiry);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 
@@ -219,7 +220,7 @@ export const getMyInquiries = async (req, res) => {
         const inquiries = await AdInquiry.find({ email }).sort({ createdAt: -1 });
         res.status(200).json(inquiries);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(httpStatusForError(err)).json({ message: err.message });
     }
 };
 

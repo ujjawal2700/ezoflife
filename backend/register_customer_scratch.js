@@ -1,7 +1,9 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 (async () => {
     try {
-        const uri = 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0';
+        const uri = process.env.MONGODB_URI;
         await mongoose.connect(uri);
         const User = mongoose.connection.collection('users');
         const otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);

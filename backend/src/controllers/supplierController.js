@@ -3,10 +3,17 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { getIO } from '../socket.js';
 import axios from 'axios';
+import { sendError, httpStatusForError } from '../utils/errorResponse.js';
 
 export const verifyGst = async (req, res) => {
     try {
         const { gstNumber } = req.body;
+
+        // Bad input should not be sent upstream only to come back as a 500.
+        if (!gstNumber || typeof gstNumber !== 'string') {
+            return res.status(400).json({ message: 'GST number is required' });
+        }
+
         console.log(`🔍 [SIGNZY] Verifying GST: ${gstNumber}`);
 
         const apiKey = process.env.SIGNZY_API_KEY;
@@ -33,7 +40,7 @@ export const verifyGst = async (req, res) => {
         if (process.env.NODE_ENV === 'development') {
             return res.json({ success: true, message: 'GST Verified (Dev Fallback)', data: { status: 'Active' } });
         }
-        res.status(500).json({ message: 'GST Verification failed', error: error.message });
+        sendError(res, error, 'GST Verification failed');
     }
 };
 
@@ -121,7 +128,7 @@ export const submitApplication = async (req, res) => {
         res.status(201).json({ message: 'Application submitted successfully', application: newApplication });
     } catch (error) {
         console.error('Submit Supplier Application Error:', error);
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -145,7 +152,7 @@ export const getAllApplications = async (req, res) => {
         const applications = await SupplierApplication.find(query).populate('user', 'name phone email');
         res.status(200).json(applications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -155,7 +162,7 @@ export const getApplicationById = async (req, res) => {
         if (!application) return res.status(404).json({ message: 'Application not found' });
         res.status(200).json(application);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -195,7 +202,7 @@ export const initialApproveApplication = async (req, res) => {
             stage: application.onboardingStage 
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -220,7 +227,7 @@ export const selectProducts = async (req, res) => {
             stage: application.onboardingStage
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -361,7 +368,7 @@ export const finalApproveApplication = async (req, res) => {
             stage: application.onboardingStage
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -383,6 +390,6 @@ export const rejectApplication = async (req, res) => {
             message: `Application ${targetStatus === 'Revision_Required' ? 'sent for revision' : 'rejected'}` 
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };

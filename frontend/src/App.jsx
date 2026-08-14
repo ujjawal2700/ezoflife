@@ -4,26 +4,19 @@ import UserRoutes from './modules/user/routes/userRoutes'
 import VendorRoutes from './modules/vendor/routes/VendorRoutes'
 import SupplierRoutes from './modules/supplier/routes/SupplierRoutes'
 import AdminRoutes from './modules/admin/routes/AdminRoutes'
-// import RiderRoutes from './modules/rider/routes/RiderRoutes'
 import ScrollToTop from './shared/components/ScrollToTop'
 import GlobalToast from './shared/components/GlobalToast'
 import LocationPrompt from './shared/components/LocationPrompt'
 import LocationPicker from './shared/components/LocationPicker'
 import GlobalCartButton from './modules/user/components/GlobalCartButton'
 import { useJsApiLoader } from '@react-google-maps/api'
+import { GOOGLE_MAPS_LOADER_OPTIONS } from './lib/googleMaps'
 import { onMessageListener } from './lib/firebase'
 import toast, { Toaster } from 'react-hot-toast'
 import './index.css'
 
-const GOOGLE_MAPS_LIBRARIES = ['drawing', 'places', 'geometry'];
-
 function App() {
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    version: '3.64',
-    libraries: GOOGLE_MAPS_LIBRARIES
-  });
+  const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
   React.useEffect(() => {
     onMessageListener()

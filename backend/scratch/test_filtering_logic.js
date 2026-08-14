@@ -1,3 +1,5 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import '../src/models/Order.js';
 import '../src/models/User.js';
@@ -22,7 +24,7 @@ function isPointInPolygon(lat, lng, polygon) {
 async function testLogic() {
     try {
         console.log('Connecting to DB...');
-        await mongoose.connect('mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0');
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected.');
         
         const Order = mongoose.model('Order');

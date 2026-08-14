@@ -1,8 +1,10 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import mongoose from 'mongoose';
 import Service from '../src/models/Service.js';
 import User from '../src/models/User.js';
 
-const MONGO_URI = 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0';
+const MONGO_URI = process.env.MONGODB_URI;
 
 async function runTest() {
     try {

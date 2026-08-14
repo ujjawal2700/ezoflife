@@ -11,6 +11,7 @@ import { sendSMSMessage, sendWhatsAppMessage } from '../utils/communicationHelpe
 import ShiprocketService from '../services/ShiprocketService.js';
 import Razorpay from 'razorpay';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
+import { verifyRazorpayPayment } from '../utils/paymentVerification.js';
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
 import ServiceArea from '../models/ServiceArea.js';
@@ -212,6 +213,12 @@ export const createRazorpayOrder = async (req, res) => {
         const { amount, currency = 'INR' } = req.body;
         console.log('💳 [RAZORPAY] Received request for amount:', amount);
 
+        // A missing or nonsensical amount is bad input, not a server fault.
+        // Razorpay would otherwise reject it and the error would surface as a 500.
+        if (amount === undefined || amount === null || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
+            return res.status(400).json({ message: 'A positive amount is required' });
+        }
+
         if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
             console.error('❌ [RAZORPAY] Keys are missing in .env');
             return res.status(500).json({ message: 'Razorpay keys not configured on server' });
@@ -261,6 +268,12 @@ export const createOrder = async (req, res) => {
         const customerId = req.body.customerId; 
 
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
+
+        // Reject a malformed id up front. Without this, findById throws a CastError
+        // that surfaces as a 500 — bad client input should never read as a server fault.
+        if (!mongoose.Types.ObjectId.isValid(customerId)) {
+            return res.status(400).json({ message: 'Invalid Customer ID' });
+        }
 
         const customerUser = await User.findById(customerId);
         if (!customerUser) return res.status(404).json({ message: 'Customer user not found' });
@@ -411,19 +424,13 @@ export const createOrder = async (req, res) => {
 
         const finalTotal = finalV + finalGst;
         
+        // Wallet is only calculated here. The balance is not debited until payment
+        // has been confirmed below, so a failed or forged payment can never consume
+        // the customer's credit.
         let walletDeduction = 0;
-        if (req.body.useWallet) {
-            if (customerUser && customerUser.walletBalance > 0) {
-                walletDeduction = Math.min(customerUser.walletBalance, finalTotal);
-                customerUser.walletBalance = Math.max(0, customerUser.walletBalance - walletDeduction);
-                await customerUser.save();
-                console.log(`💸 [WALLET] Deducted ₹${walletDeduction} from customer ${customerUser.phone} for order`);
-            }
+        if (req.body.useWallet && customerUser.walletBalance > 0) {
+            walletDeduction = Math.min(customerUser.walletBalance, finalTotal);
         }
-
-        const remainingTotal = Math.max(0, finalTotal - walletDeduction);
-        const calculatedAdvance = (remainingTotal * (multipliers.advancePerc / 100));
-        const calculatedDue = remainingTotal - calculatedAdvance;
 
         // B2B Promotions priority discovery & matching
         const serviceArea = await ServiceArea.findOne({
@@ -502,6 +509,62 @@ export const createOrder = async (req, res) => {
             }
         }
 
+        // --- Payment resolution (server-authoritative) ---
+        // The paymentStatus reported by the client is deliberately ignored. The server
+        // recalculates what is owed and an order only reaches a Paid state once Razorpay
+        // itself confirms the payment.
+
+        // A claimed discount is capped at what the promotion is actually configured to
+        // give, so the payable amount cannot be shrunk by editing the request body.
+        let validatedDiscount = 0;
+        if (appliedPromo) {
+            const isPercentage = ['Percentage', 'PERCENTAGE'].includes(appliedPromo.discountType);
+            const maxDiscount = isPercentage
+                ? finalTotal * (Number(appliedPromo.discountValue) || 0) / 100
+                : Number(appliedPromo.discountValue) || 0;
+            validatedDiscount = Math.max(0, Math.min(Number(req.body.discountAmount) || 0, maxDiscount));
+        }
+
+        const payableTotal = Math.max(0, finalTotal - validatedDiscount);
+        const remainingTotal = Math.max(0, payableTotal - walletDeduction);
+        const calculatedAdvance = (remainingTotal * (multipliers.advancePerc / 100));
+        const calculatedDue = remainingTotal - calculatedAdvance;
+
+        let resolvedPaymentStatus = 'Pending';
+        let resolvedPaymentMethod = 'COD';
+        let verifiedPaymentId = null;
+
+        if (remainingTotal <= 0) {
+            // Fully covered by wallet credit — there is nothing left to collect.
+            resolvedPaymentStatus = 'Paid';
+            resolvedPaymentMethod = 'Wallet';
+        } else if (req.body.paymentMethod === 'Online') {
+            const verification = await verifyRazorpayPayment({
+                razorpay_order_id: req.body.razorpayOrderId,
+                razorpay_payment_id: req.body.razorpayPaymentId,
+                razorpay_signature: req.body.razorpaySignature,
+                expectedAmount: remainingTotal
+            });
+
+            if (!verification.ok) {
+                console.warn(`🚫 [PAYMENT] Rejected order for customer ${customerId}: ${verification.reason}`);
+                return res.status(400).json({
+                    message: `Payment could not be verified. ${verification.reason}`
+                });
+            }
+
+            resolvedPaymentStatus = 'Paid';
+            resolvedPaymentMethod = 'Online';
+            verifiedPaymentId = verification.paymentId;
+        }
+
+        // Payment is settled, so the wallet can now safely be debited.
+        if (walletDeduction > 0) {
+            customerUser.walletBalance = Math.max(0, customerUser.walletBalance - walletDeduction);
+            await customerUser.save();
+            console.log(`💸 [WALLET] Deducted ₹${walletDeduction} from customer ${customerUser.phone} for order`);
+        }
+
         const newOrder = new Order({
             customer: customerId,
             items,
@@ -514,14 +577,14 @@ export const createOrder = async (req, res) => {
             totalAmount: Math.round(finalTotal),
             advanceAmount: Math.round(calculatedAdvance),
             dueAmount: Math.round(calculatedDue),
-            paymentStatus: req.body.paymentStatus || 'Pending',
-            paymentMethod: req.body.paymentMethod || 'COD',
-            razorpayPaymentId: req.body.razorpayPaymentId || null,
+            paymentStatus: resolvedPaymentStatus,
+            paymentMethod: resolvedPaymentMethod,
+            razorpayPaymentId: verifiedPaymentId,
             deliveryMode: deliveryMode || 'Normal',
             tier: req.body.selectedTier || 'Essential',
             deliveryCharge: Number(deliveryCharge) || 0,
             promoApplied: req.body.promoApplied || null,
-            discountAmount: req.body.discountAmount || 0,
+            discountAmount: validatedDiscount,
             walletAmountDeducted: Math.round(walletDeduction),
             specialInstructions: specialInstructions || '',
             customerPhotos: customerPhotos || [],

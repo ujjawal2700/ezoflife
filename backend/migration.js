@@ -5,7 +5,7 @@ dotenv.config();
 
 const migrate = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://ashutoshbankey21306_db_user:fzx3knNMlyguewFZ@cluster0.dyxvq4j.mongodb.net/test?appName=Cluster0');
+        await mongoose.connect(process.env.MONGODB_URI);
         console.log('Connected to DB. Starting migration...');
 
         const mapping = {

@@ -1322,50 +1322,16 @@ export const orderApi = {
     },
     deleteOrder: async (id) => {
         try {
+            // Admin-only endpoint. The URL contains no '/admin' segment, so the
+            // global interceptor does not attach the token — send it explicitly.
+            const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
             const response = await fetch(`${BASE_URL}/orders/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
             });
             return await response.json();
         } catch (error) {
             console.error('Delete Order Error:', error);
-            throw error;
-        }
-    },
-    getRiderTasks: async (riderId) => {
-        try {
-            const response = await fetch(`${BASE_URL}/orders/rider/${riderId}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Get Rider Tasks Error:', error);
-            throw error;
-        }
-    },
-    acceptTask: async (orderId, riderId) => {
-        try {
-            const response = await fetch(`${BASE_URL}/orders/accept/${orderId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ riderId })
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Accept Task Error:', error);
-            throw error;
-        }
-    },
-    getRiderStats: async (riderId) => {
-        if (riderId === '66112c3f8e4b8a2e5c8b4568') {
-            return {
-                weeklyEarnings: 5420,
-                tasksToday: 8,
-                lifetimeRating: 4.92
-            };
-        }
-        try {
-            const response = await fetch(`${BASE_URL}/orders/rider-stats/${riderId}`);
-            return await response.json();
-        } catch (error) {
-            console.error('Get Rider Stats Error:', error);
             throw error;
         }
     },

@@ -6,6 +6,7 @@ import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import SystemConfig from '../models/SystemConfig.js';
 import { getNextDeliveryDate, generateCycleId, isBeforeCutoff, DAYS } from '../utils/cycleHelper.js';
 import admin from '../utils/firebaseAdmin.js';
+import { sendError } from '../utils/errorResponse.js';
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_placeholder',
@@ -252,7 +253,7 @@ export const placeB2BOrder = async (req, res) => {
 
     } catch (err) {
         console.error('💥 [B2B_AGGREGATION_ERROR]:', err);
-        res.status(500).json({ message: 'Internal server error while placing order', error: err.message });
+        sendError(res, err, 'Internal server error while placing order');
     }
 };
 
@@ -735,7 +736,7 @@ export const updateB2BDeliveryDate = async (req, res) => {
         res.status(200).json({ message: 'Delivery date updated successfully', order });
     } catch (err) {
         console.error('Update Delivery Date Error:', err);
-        res.status(500).json({ message: 'Error updating delivery date', error: err.message });
+        sendError(res, err, 'Error updating delivery date');
     }
 };
 

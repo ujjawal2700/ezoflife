@@ -448,7 +448,7 @@ const Dashboard = () => {
             setAcceptingId(orderId);
             await orderApi.vendorAcceptOrder(orderId, vendorId);
             fetchAllData(); // Refresh everything
-            alert('Order Accepted! Riders notified for pickup.');
+            alert('Order Accepted! Pickup requested from Shiprocket.');
         } catch (err) {
             console.error('Accept error:', err);
             alert('Failed to accept order. It might have been taken by another vendor.');

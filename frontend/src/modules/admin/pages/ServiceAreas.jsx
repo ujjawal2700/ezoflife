@@ -5,11 +5,11 @@ import {
   Edit2, ChevronRight, ZapIcon, Percent, Shield, TrendingUp, Circle, Eye
 } from 'lucide-react';
 import { GoogleMap, useJsApiLoader, DrawingManager, Polygon, Autocomplete, Marker, InfoWindow } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 import PageHeader from '../components/common/PageHeader';
 import toast from 'react-hot-toast';
 import { BASE_URL } from '../../../lib/api';
 
-const libraries = ['drawing', 'places', 'geometry'];
 const mapContainerStyle = { width: '100%', height: '100%' };
 const defaultCenter = { lat: 19.9975, lng: 73.7898 }; // Nashik default
 
@@ -66,12 +66,7 @@ export default function ServiceAreas() {
   // Searched location marker
   const [searchedLocation, setSearchedLocation] = useState(null);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    version: '3.64',
-    libraries
-  });
+  const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
   // ─── Fetch all areas ───────────────────────────────────────────────────────
   const fetchAreas = useCallback(async () => {

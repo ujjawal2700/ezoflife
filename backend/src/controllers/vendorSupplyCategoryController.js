@@ -1,4 +1,5 @@
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const vendorSupplyCategoryController = {
     create: async (req, res) => {
@@ -63,7 +64,7 @@ export const vendorSupplyCategoryController = {
             const categories = await VendorSupplyCategory.find(query).sort({ excelCategoryId: 1 });
             res.json(categories);
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -93,7 +94,7 @@ export const vendorSupplyCategoryController = {
             await VendorSupplyCategory.findByIdAndDelete(id);
             res.json({ message: 'Vendor supply category deleted successfully' });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -102,7 +103,7 @@ export const vendorSupplyCategoryController = {
             await VendorSupplyCategory.deleteMany({});
             res.json({ message: 'All vendor supply categories cleared successfully' });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -156,7 +157,7 @@ export const vendorSupplyCategoryController = {
                 results
             });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     }
 };

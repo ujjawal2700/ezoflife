@@ -14,7 +14,6 @@ import ApprovalPending from '../pages/ApprovalPending';
 // Main app pages
 import Dashboard from '../pages/Dashboard';
 import OrderDetails from '../pages/OrderDetails';
-// import RiderVerification from '../pages/RiderVerification';
 import Earnings from '../pages/Earnings';
 import ServiceManagement from '../pages/ServiceManagement';
 import AddServicePage from '../pages/AddServicePage';
@@ -67,7 +66,6 @@ const VendorRoutes = () => {
         {/* Main App */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/order/:id" element={<OrderDetails />} />
-        {/* <Route path="/rider-verification/:orderId" element={<RiderVerification />} /> */}
         <Route path="/earnings" element={<Earnings />} />
         <Route path="/services" element={<ServiceManagement />} />
         <Route path="/my-services" element={<VendorMyServices />} />

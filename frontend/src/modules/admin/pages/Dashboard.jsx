@@ -346,7 +346,7 @@ export default function Dashboard() {
                                         { label: 'Total Submitted', value: analytics?.orderLifecycleB2C.totalSubmitted, color: 'bg-blue-500', width: '100%' },
                                         { label: 'Claimed / Accepted', value: analytics?.orderLifecycleB2C.totalAccepted, color: 'bg-indigo-500', width: `${(analytics?.orderLifecycleB2C.totalAccepted / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%` },
                                         { label: 'In processing', value: analytics?.orderLifecycleB2C.inProgress, color: 'bg-amber-500', width: `${(analytics?.orderLifecycleB2C.inProgress / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%` },
-                                        { label: 'Ready for Rider', value: analytics?.orderLifecycleB2C.readyForDispatch, color: 'bg-purple-500', width: `${(analytics?.orderLifecycleB2C.readyForDispatch / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%` }
+                                        { label: 'Ready for Pickup', value: analytics?.orderLifecycleB2C.readyForDispatch, color: 'bg-purple-500', width: `${(analytics?.orderLifecycleB2C.readyForDispatch / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%` }
                                     ].map((funnel, idx) => (
                                         <div key={idx} className="space-y-1.5">
                                             <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-600 tracking-wider">

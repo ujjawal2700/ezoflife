@@ -1,10 +1,10 @@
 # Loondry Platform — Client Deliverable Guide
 
-> **Platform Overview:** Loondry (Ez of Life) is a multi-persona on-demand laundry logistics platform serving Customers, Vendors (laundry shops), Riders (delivery agents), Admin (platform operations), and Suppliers (B2B laundry partners).
+> **Platform Overview:** Loondry (Ez of Life) is a multi-persona on-demand laundry logistics platform serving Customers, Vendors (laundry shops), Admin (platform operations), and Suppliers (B2B laundry partners). Pickup and delivery are fulfilled by Shiprocket; the platform runs no delivery fleet of its own.
 >
 > **Frontend Stack:** React 19 + Vite, TailwindCSS v4, Framer Motion, Recharts, Zustand, React Router v7
 >
-> **Current Status:** All frontend screens are complete, interactive with mock/localStorage data, and ready for backend API integration.
+> **Current Status:** All frontend screens are built and 127 of 155 are wired to the live backend. The backend (Express + MongoDB) is substantially complete. Remaining gaps are listed in §7.
 
 ---
 
@@ -12,7 +12,7 @@
 
 1. [Customer (User) Portal](#1-customer-user-portal)
 2. [Vendor Portal](#2-vendor-portal)
-3. [Rider Portal](#3-rider-portal)
+3. [Logistics & Delivery (Shiprocket)](#3-logistics--delivery-shiprocket)
 4. [Admin Panel](#4-admin-panel)
 5. [Supplier Portal](#5-supplier-portal)
 6. [Cross-Platform Features](#6-cross-platform-features)
@@ -58,7 +58,7 @@ The Customer Portal is a premium mobile-first interface designed for end consume
 | Express Toggle | One-tap `Express Delivery` toggle applies a **1.5× surcharge**. Total updates in real-time. |
 | Price Breakdown | Transparent 4-line formula display: Base Rate + Aggregator Fee + Logistics Fee × Express Surcharge = Final Total. |
 | Pickup/Drop-off Time Slots | Grid slot picker for both pickup and delivery — Morning / Afternoon / Evening options. |
-| Pre-Pickup Photo Upload | Optional camera roll or file input for customers to capture garments before rider arrives. Thumbnail preview shown inline. |
+| Pre-Pickup Photo Upload | Optional camera roll or file input for customers to capture garments before the delivery partner arrives. Thumbnail preview shown inline. |
 | Address Selector | Picks from the saved address book or lets user add a new one inline. |
 | Payment Method Selector | Chooses from saved payment methods or COD. |
 
@@ -69,16 +69,16 @@ The Customer Portal is a premium mobile-first interface designed for end consume
 The platform uses a **4-Step Logistics Handshake Protocol** clearly shown on every tracking screen.
 
 ```
-STEP 1: Pickup      — Rider arrives, Customer provides OTP-1 to confirm handover
-STEP 2: Intake      — Rider delivers to Vendor; Vendor scans/confirms items
+STEP 1: Pickup      — Delivery partner arrives, Customer provides OTP-1 to confirm handover
+STEP 2: Intake      — Partner delivers to Vendor; Vendor scans/confirms items
 STEP 3: Processing  — Vendor completes laundry work; marks order "Ready"
-STEP 4: Handover    — Return Rider picks up; Customer confirms final OTP at doorstep
+STEP 4: Handover    — Return partner collects; Customer confirms final OTP at doorstep
 ```
 
 | Screen | Route | Description |
 |--------|-------|-------------|
 | Order Confirmation | `/user/order-confirmation` | Final review of services, address, slot, and total. "Confirm Order" fires the platform-wide notification cascade. |
-| Order Tracking | `/user/track/:id` | Live 4-step progress bar with step labels. Shows rider ETA, current stage, and vendor name. |
+| Order Tracking | `/user/track/:id` | Live 4-step progress bar with step labels. Shows delivery partner ETA, current stage, and vendor name. |
 | Delivery Verification | `/user/delivery-verification` | Displays pickup photos for verification. Customer enters **Final OTP** (Step 4). Auto-navigates to Payment on verification. |
 | Payment | `/user/payment` | Payment method confirmation and order settlement screen. |
 
@@ -162,12 +162,11 @@ The operational command center for the vendor.
 | Screen | Route | Description |
 |--------|-------|-------------|
 | Order Details | `/vendor/order/:id` | Full order view: 4-step handshake progress bar, customer info, item list with prices, special instructions, "Mark as Ready" action. |
-| Rider Verification | `/vendor/rider-verification/:id` | Vendor sees a 4-digit OTP and the rider enters it on their device. Confirms handover chain of custody. |
 | Walk-In Order | `/vendor/walk-in` | Manual order creation terminal for customers who physically visit the shop. |
 
 **"Mark as Ready" Action:** When triggered, fires real-time notifications to:
 - **Customer** → "Cleaning Complete. Your order is packed."
-- **Rider** → "Order is ready at [Shop Name] for final delivery pickup."
+- **Shiprocket** → Return pickup is requested from the shop for final delivery.
 
 ---
 
@@ -213,7 +212,7 @@ A campaign control center for vendor-side discounts.
 |---------|-------------|
 | Vendor Profile | Shop name, photo, address, category, operating hours display. |
 | Edit Profile | Full edit form for all shop details. |
-| Notifications | Vendor-specific notification feed (incoming orders, rider arrivals, settlement confirmations). |
+| Notifications | Vendor-specific notification feed (incoming orders, delivery partner arrivals, settlement confirmations). |
 | Support | In-app support/help center for vendor-specific issues. |
 | B2B Fulfillment | Dedicated page to manage large-volume B2B laundry contracts (hotel/gym/corporate). |
 | Order History | Complete historical order log with status filters and revenue tracking. |
@@ -221,43 +220,18 @@ A campaign control center for vendor-side discounts.
 
 ---
 
-## 3. Rider Portal
+## 3. Logistics & Delivery (Shiprocket)
 
-**Entry Point:** `/rider` → Rider Dashboard (if authenticated)
+The platform does not operate its own delivery fleet and has no rider-facing app. All pickup and delivery movement is handled by **Shiprocket**, the third-party logistics provider.
 
-The Rider Portal is a focused, high-density operational interface for delivery agents managing pickup and delivery tasks.
+**What this means operationally:**
 
----
+- Shiprocket assigns a delivery partner to each pickup and each return leg. The platform does not recruit, onboard, schedule, or pay delivery agents.
+- The assigned partner's name, phone, and live location are returned by Shiprocket and surfaced to the Customer on the tracking screen and to the Vendor on the order screen.
+- The **4-Step Handshake** (see §6.3) is unchanged. OTP verification still gates each handover — the codes are simply exchanged with the Shiprocket partner rather than an in-house rider.
+- Delivery costs appear in Admin as **Logistics Disbursements** — a payable to Shiprocket rather than per-rider settlements.
 
-### 3.1 Rider Dashboard
-
-- **Task Queue** — Live list of assigned tasks with order ID, source/destination, and type (Pickup / Delivery).
-- **Status Indicators** — Each task card shows distance, priority, and expected completion metrics.
-- **Action Navigation** — Tap any task card to open the full Task Details manifest.
-
----
-
-### 3.2 Task Details (4-Step Execution Flow)
-
-The core workflow screen for riders, structured as a 3-step verification wizard.
-
-| Step | Action | Notifications Fired |
-|------|--------|---------------------|
-| **Step 1: Navigate** | View pickup address, operator memo/instructions. Tap "Arrived at Location." | Customer: "Rider Arrived" / Vendor: "Rider at Shop" |
-| **Step 2: Verify Manifest** | Checklist of all items. Check-mark each item. Mandatory photo capture (simulated). Once all verified → "Verify & Lock Manifest." | Customer: "Pickup Logged" / Vendor: "In-Transit to Shop" |
-| **Step 3: Handoff OTP** | Display 4-digit handover code to the vendor/customer. "Finish & Sync Trip" closes the task. | Customer: "Landed at Shop" / Vendor: "Order Handover Complete" |
-
-**4-Step Handshake Progress Bar** is shown at the top of Task Details indicating which step of the logistics chain is currently active.
-
-- **Call Button** — Direct tap-to-call for the vendor or customer contact.
-
----
-
-### 3.3 Rider Wallet
-
-- **Earnings Today** — Real-time display of daily income.
-- **Trip Breakdown** — Per-delivery earnings list with order ID, distance, and payout.
-- **Settlement History** — Weekly/monthly payout records.
+> **Integration status:** `ShiprocketService` is currently a **mock**. It simulates partner assignment and prints pickup OTPs to the server console. Connecting the live Shiprocket account is outstanding work — see §7.
 
 ---
 
@@ -284,7 +258,7 @@ The Admin Panel is a full enterprise-grade desktop management interface (`slate/
 |--------|-------------|
 | Gross Merchandise Volume (GMV) | Total platform order value with growth % indicator. |
 | Platform Net Yield | Fee revenue after vendor payouts (15% base take rate). |
-| Logistics Disbursements | Total rider payments with pending count. |
+| Logistics Disbursements | Total Shiprocket delivery cost with pending count. |
 | Vendor Settlements | Total weekly vendor payout amount. |
 
 **System Health Panel:**
@@ -335,14 +309,7 @@ The Admin Panel is a full enterprise-grade desktop management interface (`slate/
 
 ---
 
-### 4.6 Rider Management
-
-- Full rider list with assignment status, earnings, and task completion rate.
-- Individual rider performance profile.
-
----
-
-### 4.7 Order Management
+### 4.6 Order Management
 
 | Feature | Description |
 |---------|-------------|
@@ -351,7 +318,7 @@ The Admin Panel is a full enterprise-grade desktop management interface (`slate/
 
 ---
 
-### 4.8 Financial Operations
+### 4.7 Financial Operations
 
 | Feature | Description |
 |---------|-------------|
@@ -360,7 +327,7 @@ The Admin Panel is a full enterprise-grade desktop management interface (`slate/
 
 ---
 
-### 4.9 Dispute Center
+### 4.8 Dispute Center
 
 - Queue of active logistics disputes.
 - Each dispute shows: Order ID, Type (COD missing, damaged item, missed pickup), involved parties.
@@ -368,33 +335,32 @@ The Admin Panel is a full enterprise-grade desktop management interface (`slate/
 
 ---
 
-### 4.10 Help Desk
+### 4.9 Help Desk
 
 - Technical support ticket queue from all user personas.
 - Ticket assignment, status update, and resolution workflow.
 
 ---
 
-### 4.11 Services Management
+### 4.10 Services Management
 
 - Platform-level service catalog management.
 - Add, edit, activate, deactivate any service type offered across all vendors.
 
 ---
 
-### 4.12 Analytics — 5 Report Types
+### 4.11 Analytics — 4 Report Types
 
 | Report | Description |
 |--------|-------------|
 | Revenue Overview | Area chart of platform revenue over time. |
 | Orders by Category | Bar chart segmented by service type. |
 | Market Segmentation | Donut/Pie chart showing order distribution by category (Laundry / Dry Clean / Ironing / Premium). |
-| Operational Global Pulse | Key KPIs: Fulfillment rate, API latency, system faults, avg. order value, active riders/vendors, handshake success rate. |
-| Fleet Performance | Rider metrics: active riders, tasks per rider, delivery success rate. |
+| Operational Global Pulse | Key KPIs: Fulfillment rate, API latency, system faults, avg. order value, active vendors, handshake success rate. |
 
 ---
 
-### 4.13 B2B Leads Repository
+### 4.12 B2B Leads Repository
 
 Dedicated page for enterprise inquiry management.
 
@@ -455,12 +421,12 @@ A platform-wide Zustand-powered real-time notification system covering **12 BRD-
 | # | Event | Recipient |
 |---|-------|-----------|
 | 1 | Order Confirmed | Customer |
-| 2 | Rider Assigned | Customer |
-| 3 | Rider Arrived (OTP-1 Generated) | Customer + Vendor |
+| 2 | Delivery Partner Assigned | Customer |
+| 3 | Delivery Partner Arrived (OTP-1 Generated) | Customer + Vendor |
 | 4 | Pickup Logged / Manifest Locked | Customer + Vendor |
 | 5 | Landed at Shop (Handshake 1 Done) | Customer + Vendor |
 | 6 | Processing Started | Customer |
-| 7 | Cleaning Complete / Order Ready | Customer + Rider |
+| 7 | Cleaning Complete / Order Ready | Customer + Shiprocket |
 | 8 | Reverse Pickup OTP | Vendor |
 | 9 | Out for Delivery | Customer |
 | 10 | At Doorstep | Customer |
@@ -479,7 +445,6 @@ A platform-wide Zustand-powered real-time notification system covering **12 BRD-
 |--------|-------|
 | Customer (User) | Teal `#89ECDA` background, black typography, premium glassmorphism cards |
 | Vendor | White/Black tactical — black gradients, high-contrast typography |
-| Rider | Slate/Emerald operational — dark cards, emerald accent for action states |
 | Admin | Enterprise white — `slate-900` borders, flat minimal typography |
 | Supplier | Unified with Vendor design language |
 
@@ -497,7 +462,6 @@ Every persona sees the same progress indicator with the same 4 labels:
 ```
 
 - Customer sees it in `OrderTrackingPage`.
-- Rider sees it in `TaskDetails`.
 - Vendor sees it in `OrderDetails`.
 
 ---
@@ -508,7 +472,7 @@ Every persona sees the same progress indicator with the same 4 labels:
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| All 5 persona portals with auth | ✅ Complete | User, Vendor, Rider, Admin, Supplier |
+| All 4 persona portals with auth | ✅ Complete | User, Vendor, Admin, Supplier |
 | Customer full order journey | ✅ Complete | Splash → Auth → Home → Cart → Confirm → Track → Deliver → Pay |
 | 4-Step Handshake Protocol (all personas) | ✅ Complete | Standardized labels and progress bars |
 | Vendor Service Management + Toggles | ✅ Complete | Real-time profit margin calculator |
@@ -521,7 +485,6 @@ Every persona sees the same progress indicator with the same 4 labels:
 | Notification Store (12 events) | ✅ Complete | Zustand-based, persona-filtered |
 | GlobalToast Manager | ✅ Complete | Fires on all BRD trigger events |
 | Live notification badge in User Header | ✅ Complete | Animated red badge |
-| Rider 3-step Task Execution + OTP | ✅ Complete | With notification fires at each step |
 | Express Surcharge (1.5×) in Cart | ✅ Complete | Real-time total update |
 | Price Breakdown Display | ✅ Complete | 4-line formula transparency |
 | Delivery Verification → Auto Pay | ✅ Complete | No manual button after Final OTP |
@@ -533,18 +496,21 @@ Every persona sees the same progress indicator with the same 4 labels:
 
 ---
 
-### ⚠️ Known Limitations (Frontend-Only — Requires Backend)
+### ⚠️ Known Limitations (Outstanding Work)
 
-| Item | Description |
-|------|-------------|
-| Data Persistence | All data resets on page refresh. localStorage is used for mock state only. |
-| Real-time Updates | Toast notifications are UI-layer mock triggers. True real-time requires WebSocket/SSE from backend. |
-| Photo Uploads | Pre-pickup and manifest photos are simulated (click-to-confirm). Actual upload requires S3 integration. |
-| OTP Delivery | OTP entry is simulated — any code is accepted. WhatsApp/SMS gateway integration needed. |
-| Payment | Payment confirmation is UI-only. Razorpay/Stripe webhook integration required. |
-| Map/GPS Tracking | Order tracking shows a placeholder map image. Google Maps SDK integration needed. |
-| PDF Invoice | "Download Invoice" uses `window.print()`. A proper PDF generation service (e.g., PDFKit) is needed. |
-| Push Notifications | Notifications are in-app only. Firebase Cloud Messaging (FCM) integration needed for device push. |
+| Item | Status | Description |
+|------|--------|-------------|
+| OTP Delivery | ⚠️ Open | OTP is **hardcoded to `123456`** for every account while development continues. No SMS/WhatsApp gateway is connected — messages are logged to the server console only. **Must be replaced with a real gateway before launch.** |
+| Shiprocket Logistics | ⚠️ Open | `ShiprocketService` is a mock. It simulates partner assignment and prints pickup OTPs to the console. The live Shiprocket account is not yet connected. |
+| Static Screens | ⚠️ Open | 28 of 155 screens still render demo data rather than live records — notably Admin Pricing Config, Analytics, Reports and B2B Leads, and the Supplier Rate Card, Wallet and Fulfillment pages. |
+| Environment Config | ⚠️ Open | No `.env` is committed and no template is documented. Razorpay keys currently fall back to placeholders. |
+| Data Persistence | ✅ Done | Backed by MongoDB via Mongoose across ~35 models. |
+| Real-time Updates | ✅ Done | Socket.io server and client are live; order status changes push to connected clients. |
+| Payment | ✅ Done | Razorpay is integrated for both B2C and B2B. Payments are verified **server-side** by signature and captured amount before an order is marked Paid — the client can no longer declare its own payment status. |
+| Photo Uploads | ✅ Done | Cloudinary-backed uploads via Multer. (Some legacy files still sit on local disk — see cleanup notes.) |
+| Map/GPS Tracking | ✅ Done | Google Maps SDK loaded via `@react-google-maps/api`, with live partner location on the tracking screen. |
+| PDF Invoice | ✅ Done | PDFKit on the backend, jsPDF on the frontend. |
+| Push Notifications | ✅ Done | Firebase Cloud Messaging wired through `firebase-admin`. |
 
 ---
 
@@ -573,11 +539,11 @@ The frontend is **fully ready for API integration**. Here is the API contract ma
 - `POST /vendor/promotions` — Create promotion/coupon
 - `GET /vendor/earnings` — Fetch earnings data
 
-### Rider APIs
-- `GET /rider/tasks` — Fetch assigned tasks
-- `PATCH /rider/tasks/:id/arrived` — Mark arrived at location
-- `PATCH /rider/tasks/:id/verify` — Lock manifest
-- `PATCH /rider/tasks/:id/complete` — Complete handoff
+### Logistics APIs (Shiprocket)
+- `POST /logistics/request` — Request a handshake (generates the OTP for a handover leg)
+- `POST /logistics/verify` — Verify a handshake OTP and advance the order stage
+
+> Pickup and return legs are dispatched through `ShiprocketService` from within the order flow rather than via dedicated routes. Shiprocket status callbacks are not yet wired — see §7.
 
 ### Admin APIs
 - `GET /admin/dashboard` — Fetch GMV, metrics, alerts

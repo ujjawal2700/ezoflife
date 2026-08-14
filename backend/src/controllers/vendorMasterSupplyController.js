@@ -4,6 +4,7 @@ import SupplierApplication from '../models/SupplierApplication.js';
 import SupplierServiceZone from '../models/SupplierServiceZone.js';
 import ServiceArea from '../models/ServiceArea.js';
 import fs from 'fs';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 const logToFile = (msg) => {
     try {
@@ -288,7 +289,7 @@ export const vendorMasterSupplyController = {
             const populated = await populateDeliveryFrequencies(supplies);
             res.json(populated);
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -339,7 +340,7 @@ export const vendorMasterSupplyController = {
             await VendorMasterSupply.findByIdAndDelete(id);
             res.json({ message: 'Supply item deleted successfully' });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -348,7 +349,7 @@ export const vendorMasterSupplyController = {
             await VendorMasterSupply.deleteMany({});
             res.json({ message: 'All supply items cleared successfully' });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -440,7 +441,7 @@ export const vendorMasterSupplyController = {
                 results
             });
         } catch (error) {
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     },
 
@@ -594,7 +595,7 @@ export const vendorMasterSupplyController = {
             res.json(formatted);
         } catch (error) {
             console.error('Error in getLiveCatalog:', error);
-            res.status(500).json({ message: error.message });
+            res.status(httpStatusForError(error)).json({ message: error.message });
         }
     }
 };

@@ -29,9 +29,7 @@ export default function Analytics() {
   ], []);
 
   const operationalStats = useMemo(() => [
-    { label: 'Active Riders', value: '142' },
     { label: 'Active Vendors', value: '32' },
-    { label: 'Tasks / Rider', value: '14.2' },
     { label: 'Handshake KPI', value: '98%', variant: 'emerald' }
   ], []);
 

@@ -1,5 +1,6 @@
 import Feedback from '../models/Feedback.js';
 import User from '../models/User.js';
+import { sendError } from '../utils/errorResponse.js';
 
 // Submit new feedback
 export const submitFeedback = async (req, res) => {
@@ -24,7 +25,7 @@ export const submitFeedback = async (req, res) => {
         await newFeedback.save();
         res.status(201).json({ message: 'Feedback submitted successfully', feedback: newFeedback });
     } catch (error) {
-        res.status(500).json({ message: 'Error submitting feedback', error: error.message });
+        sendError(res, error, 'Error submitting feedback');
     }
 };
 
@@ -38,7 +39,7 @@ export const getVendorFeedbacks = async (req, res) => {
             .sort({ createdAt: -1 });
         res.status(200).json(feedbacks);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching vendor feedbacks', error: error.message });
+        sendError(res, error, 'Error fetching vendor feedbacks');
     }
 };
 
@@ -76,7 +77,7 @@ export const getAllFeedbacks = async (req, res) => {
             .sort({ createdAt: -1 });
         res.status(200).json(feedbacks);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching feedbacks', error: error.message });
+        sendError(res, error, 'Error fetching feedbacks');
     }
 };
 
@@ -123,6 +124,6 @@ export const deleteFeedback = async (req, res) => {
         await Feedback.findByIdAndDelete(id);
         res.status(200).json({ message: 'Feedback deleted' });
     } catch (error) {
-        res.status(500).json({ message: 'Error deleting feedback', error: error.message });
+        sendError(res, error, 'Error deleting feedback');
     }
 };

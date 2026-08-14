@@ -2,6 +2,7 @@ import Job from '../models/Job.js';
 import JobApplication from '../models/JobApplication.js';
 import User from '../models/User.js';
 import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } from '../utils/emailHelper.js';
+import { httpStatusForError } from '../utils/errorResponse.js';
 
 // Vendor: Post a new job
 export const createJob = async (req, res) => {
@@ -32,7 +33,7 @@ export const createJob = async (req, res) => {
         await newJob.save();
         res.status(201).json(newJob);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -43,7 +44,7 @@ export const getVendorJobs = async (req, res) => {
         const jobs = await Job.find({ vendor: vendorId }).sort({ createdAt: -1 });
         res.json(jobs);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -55,7 +56,7 @@ export const getAllActiveJobs = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(jobs);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -127,7 +128,7 @@ export const applyToJob = async (req, res) => {
         res.status(201).json(application);
     } catch (error) {
         console.error('❌ [JOBS] Apply error:', error);
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -148,7 +149,7 @@ export const getVendorApplications = async (req, res) => {
         res.json(applications);
     } catch (error) {
         console.error('❌ [JOBS] Fetch vendor apps error:', error);
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -162,7 +163,7 @@ export const getAdminApplications = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -171,7 +172,7 @@ export const getAdminAllJobs = async (req, res) => {
         const jobs = await Job.find().sort({ createdAt: -1 });
         res.json(jobs);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -182,7 +183,7 @@ export const deleteJob = async (req, res) => {
         await JobApplication.deleteMany({ job: req.params.id });
         res.json({ message: 'Job and associated applications deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -191,7 +192,7 @@ export const updateJob = async (req, res) => {
         const job = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(job);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -200,7 +201,7 @@ export const updateJobStatus = async (req, res) => {
         const job = await Job.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         res.json(job);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -209,7 +210,7 @@ export const updateApplicationStatus = async (req, res) => {
         const application = await JobApplication.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
         res.json(application);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -252,7 +253,7 @@ export const updateApplicationNotes = async (req, res) => {
         if (!application) return res.status(404).json({ message: 'Application not found' });
         res.json(application);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -261,7 +262,7 @@ export const deleteApplication = async (req, res) => {
         await JobApplication.findByIdAndDelete(req.params.id);
         res.json({ message: 'Application deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -272,7 +273,7 @@ export const getAppliedJobIds = async (req, res) => {
         const jobIds = applications.map(app => app.job.toString());
         res.json(jobIds);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 
@@ -284,7 +285,7 @@ export const getApplicantApplications = async (req, res) => {
             .sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
 

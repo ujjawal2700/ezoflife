@@ -9,8 +9,8 @@ import {
 import toast from 'react-hot-toast';
 import { adminApi, geofenceApi, BASE_URL } from '../../../lib/api';
 import { GoogleMap, useJsApiLoader, Polygon, Marker } from '@react-google-maps/api';
+import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
 
-const mapLibraries = ['drawing', 'places', 'geometry'];
 
 const getYouTubeEmbedUrl = (url) => {
   if (!url || typeof url !== 'string') return null;
@@ -38,12 +38,7 @@ const AdminVendorRequestDetailPage = () => {
   const [checkingArea, setCheckingArea] = useState(false);
   const [areas, setAreas] = useState([]);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    version: '3.64',
-    libraries: mapLibraries
-  });
+  const { isLoaded } = useJsApiLoader(GOOGLE_MAPS_LOADER_OPTIONS);
 
   useEffect(() => {
     const fetchAreas = async () => {
