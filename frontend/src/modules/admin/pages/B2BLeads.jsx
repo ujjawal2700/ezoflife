@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { 
     Building2, 
     Mail, 
@@ -15,53 +15,58 @@ import {
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
+import { partnershipApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
+
+/** Statuses that count as still in play, for the pipeline stats. */
+const OPEN_STATUSES = ['Lead Received', 'Under Verification', 'Proposal Sent', 'Contract Drafting', 'Account Setup'];
+const WON_STATUSES = ['Active'];
 
 export default function B2BLeads() {
-    const leads = useMemo(() => [
-        { 
-            id: 'B2B-001', 
-            company: 'The Grand Regency Hotel', 
-            contact: 'Sarah Jenkins', 
-            email: 'sarah@regency.com', 
-            requirement: 'Daily Linen & Towel Laundry (500kg+)', 
-            status: 'New', 
-            date: '2026-04-04' 
-        },
-        { 
-            id: 'B2B-002', 
-            company: 'Fit & Flow Gym Network', 
-            contact: 'Mike Ross', 
-            email: 'mike@fitflow.com', 
-            requirement: 'Weekly Towel Wash (200 units)', 
-            status: 'Contacted', 
-            date: '2026-04-03' 
-        },
-        { 
-            id: 'B2B-003', 
-            company: 'Precision Med Labs', 
-            contact: 'Dr. Anita', 
-            email: 'admin@pmed.com', 
-            requirement: 'Sterilized Apron Cleaning', 
-            status: 'Quoted', 
-            date: '2026-04-02' 
-        },
-        { 
-            id: 'B2B-004', 
-            company: 'Corporate Suites HSR', 
-            contact: 'John Doe', 
-            email: 'procurement@corpsuites.com', 
-            requirement: 'Staff Uniforms (Dry Clean)', 
-            status: 'Qualified', 
-            date: '2026-04-01' 
-        }
-    ], []);
+    const [inquiries, setInquiries] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const leadStats = useMemo(() => [
-        { label: 'New Inquiries', value: '12', subValue: '+4 today', variant: 'slate' },
-        { label: 'Active Negotiations', value: '28', variant: 'slate' },
-        { label: 'Estimated Pipeline', value: '₹4.8M', variant: 'primary' },
-        { label: 'Conversion Rate', value: '32.4%', variant: 'dark' }
-    ], []);
+    const fetchLeads = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const data = await partnershipApi.getAll();
+            setInquiries(Array.isArray(data) ? data : (data?.inquiries || []));
+        } catch (err) {
+            console.error('Failed to load B2B leads:', err);
+            toast.error('Could not load B2B leads');
+            setInquiries([]);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+    // Map the API record onto the shape this table renders.
+    const leads = useMemo(() => inquiries.map(i => ({
+        id: i._id,
+        company: i.companyName,
+        contact: i.phone || i.email,
+        email: i.email,
+        requirement: i.proposal || i.partnershipType || '—',
+        status: i.status || 'Lead Received',
+        date: (i.submittedAt || i.createdAt || '').slice(0, 10)
+    })), [inquiries]);
+
+    const leadStats = useMemo(() => {
+        const total = inquiries.length;
+        const fresh = inquiries.filter(i => (i.status || 'Lead Received') === 'Lead Received').length;
+        const active = inquiries.filter(i => OPEN_STATUSES.includes(i.status) && i.status !== 'Lead Received').length;
+        const won = inquiries.filter(i => WON_STATUSES.includes(i.status)).length;
+        const conversion = total ? ((won / total) * 100).toFixed(1) : '0.0';
+
+        return [
+            { label: 'New Inquiries', value: String(fresh), subValue: `${total} total`, variant: 'slate' },
+            { label: 'Active Negotiations', value: String(active), variant: 'slate' },
+            { label: 'Converted', value: String(won), variant: 'primary' },
+            { label: 'Conversion Rate', value: `${conversion}%`, variant: 'dark' }
+        ];
+    }, [inquiries]);
 
     const leadColumns = useMemo(() => [
         { 
@@ -145,12 +150,24 @@ export default function B2BLeads() {
                 </div>
 
                 {/* Lead Registry */}
-                <DataGrid 
-                    title="Enterprise Inquiry Feed"
-                    columns={leadColumns}
-                    data={leads}
-                    onAction={(row) => console.log('Opening lead', row.id)}
-                />
+                {isLoading ? (
+                    <div className="py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                        Loading inquiries…
+                    </div>
+                ) : leads.length === 0 ? (
+                    <div className="py-16 text-center">
+                        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">No B2B inquiries yet</p>
+                        <p className="mt-2 text-[10px] text-slate-400">
+                            Submissions from the Partnership Inquiry form appear here.
+                        </p>
+                    </div>
+                ) : (
+                    <DataGrid
+                        title="Enterprise Inquiry Feed"
+                        columns={leadColumns}
+                        data={leads}
+                    />
+                )}
             </div>
         </div>
     );

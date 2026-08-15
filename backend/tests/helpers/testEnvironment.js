@@ -48,7 +48,12 @@ const waitFor = async (check, { timeoutMs = 45000, intervalMs = 300, label = 'co
     }
 };
 
-export const startTestEnvironment = async ({ silent = true } = {}) => {
+/**
+ * @param {object}  [opts]
+ * @param {boolean} [opts.silent] pipe server output to /dev/null
+ * @param {object}  [opts.env]    extra env vars for the server process
+ */
+export const startTestEnvironment = async ({ silent = true, env: extraEnv = {} } = {}) => {
     const dbPath = mkdtempSync(join(tmpdir(), 'ezoflife-test-db-'));
     const mongoPort = await freePort();
     const appPort = await freePort();
@@ -81,6 +86,7 @@ export const startTestEnvironment = async ({ silent = true } = {}) => {
             PORT: String(appPort),
             // Deterministic secret so tests can mint their own tokens.
             JWT_SECRET: process.env.JWT_SECRET || 'test_secret_key',
+            ...extraEnv
         },
         // Set ROUTE_LOG=<file> to record every request the suite makes (morgan
         // output), which is how endpoint coverage is measured.

@@ -1,25 +1,75 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { b2bOrderApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
+
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const SupplierWallet = () => {
     const navigate = useNavigate();
     const [isRequesting, setIsRequesting] = useState(false);
     const [requestSuccess, setRequestSuccess] = useState(false);
+    const [orders, setOrders] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const transactions = useMemo(() => [
-        { id: '#WAL-8822', type: 'Settlement', vendor: 'Spinzyt - HSR', amount: '₹14,290', date: 'Oct 23, 10:45 AM', status: 'Credited' },
-        { id: '#WAL-8821', type: 'Material Sale', vendor: 'Spinzyt - Ind', amount: '₹4,800', date: 'Oct 23, 08:30 AM', status: 'Processing' },
-        { id: '#WAL-8818', type: 'Settlement', vendor: 'FabriCare - Wfd', amount: '₹22,150', date: 'Oct 22, 06:15 PM', status: 'Credited' }
-    ], []);
+    const supplierId = useMemo(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('supplierData') || localStorage.getItem('user') || '{}');
+            return s._id || s.id || (s.user && (s.user._id || s.user.id)) || null;
+        } catch { return null; }
+    }, []);
+
+    useEffect(() => {
+        if (!supplierId) { setIsLoading(false); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await b2bOrderApi.getSupplierOrders(supplierId);
+                if (!cancelled) setOrders(Array.isArray(data) ? data : (data?.orders || []));
+            } catch (err) {
+                console.error('Failed to load supplier wallet:', err);
+                if (!cancelled) toast.error('Could not load wallet');
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [supplierId]);
+
+    // Settlements derived from this supplier's B2B orders.
+    const transactions = useMemo(() => orders.slice(0, 20).map(o => ({
+        id: o.orderId || `#${String(o._id).slice(-6).toUpperCase()}`,
+        type: o.escrowStatus === 'Released' ? 'Settlement' : 'Material Sale',
+        vendor: o.vendor?.shopDetails?.name || o.vendor?.displayName || 'Vendor',
+        amount: inr(o.totalAmount),
+        date: o.createdAt
+            ? new Date(o.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+            : '—',
+        status: o.paymentStatus === 'Paid' ? 'Credited' : 'Processing'
+    })), [orders]);
+
+    // Only released escrow is genuinely available to withdraw.
+    const availableBalance = useMemo(
+        () => orders
+            .filter(o => o.paymentStatus === 'Paid' && o.escrowStatus === 'Released')
+            .reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0),
+        [orders]
+    );
 
     const handlePayout = () => {
+        if (availableBalance <= 0) {
+            toast.error('No balance available for payout');
+            return;
+        }
         setIsRequesting(true);
+        // Payout requests are processed by Admin; no self-service endpoint yet.
         setTimeout(() => {
             setIsRequesting(false);
             setRequestSuccess(true);
+            toast.success('Payout request noted — Admin will process it');
             setTimeout(() => setRequestSuccess(false), 3000);
-        }, 1500);
+        }, 800);
     };
 
     return (
@@ -38,7 +88,7 @@ const SupplierWallet = () => {
                     ></motion.div>
                     
                     <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Available for Payout</p>
-                    <h2 className="text-4xl font-black text-white tracking-tighter mb-8 leading-none">₹84,250.00</h2>
+                    <h2 className="text-4xl font-black text-white tracking-tighter mb-8 leading-none">{isLoading ? "—" : inr(availableBalance)}</h2>
                     
                     <div className="flex gap-3">
                         <motion.button 

@@ -1,37 +1,100 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, ShoppingBag, Users, Zap, Calendar, Download, Filter, Target, Activity, Cpu, Monitor, IndianRupee, Star, ShieldCheck } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
-import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import MetricRow from '../components/cards/MetricRow';
 import ChartPanel from '../components/cards/ChartPanel';
+import { dashboardApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
+
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const pct = (num, den) => (den ? ((num / den) * 100).toFixed(1) : '0.0');
 
 export default function Analytics() {
   const COLORS = useMemo(() => ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], []);
 
-  const revenueFlow = useMemo(() => mockAdminData.revenueFlow, []);
-  const orderStats = useMemo(() => mockAdminData.orderStats, []);
-  const marketSegmentation = useMemo(() => [
-    { name: 'Laundry', value: 400 },
-    { name: 'Dry Clean', value: 300 },
-    { name: 'Ironing', value: 300 },
-    { name: 'Premium', value: 200 },
-  ], []);
+  const [analytics, setAnalytics] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const performanceKPIs = useMemo(() => [
-    { label: 'Fulfillment KPI', value: '99.8%', delta: '↗ +0.02', variant: 'emerald' },
-    { label: 'Network Latency', value: '42ms', delta: 'STABLE', variant: 'slate' },
-    { label: 'System Faults', value: '00', delta: 'OPTIMAL', variant: 'rose' },
-    { label: 'Avg Order Value', value: '₹482', delta: '↗ +12%', variant: 'blue' }
-  ], []);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await dashboardApi.getAnalytics();
+        if (!cancelled) setAnalytics(res?.data || null);
+      } catch (err) {
+        console.error('Failed to load analytics:', err);
+        if (!cancelled) toast.error('Could not load analytics');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const operationalStats = useMemo(() => [
-    { label: 'Active Vendors', value: '32' },
-    { label: 'Handshake KPI', value: '98%', variant: 'emerald' }
-  ], []);
+  const financials = analytics?.financials;
+  const lifecycle = analytics?.orderLifecycleB2C;
+  const vendors = analytics?.vendorPerformance;
+  const customers = analytics?.customerAnalytics;
+
+  // Revenue split, derived from the real financial figures.
+  const revenueFlow = useMemo(() => {
+    if (!financials) return [];
+    return [
+      { name: 'Gross Revenue', value: financials.grossRevenue || 0 },
+      { name: 'Vendor Payouts', value: financials.vendorPayouts || 0 },
+      { name: 'Logistics', value: financials.logisticsPayouts || 0 },
+      { name: 'Net Profit', value: financials.netProfit || 0 }
+    ];
+  }, [financials]);
+
+  // Where live orders currently sit.
+  const orderStats = useMemo(() => {
+    if (!lifecycle) return [];
+    return [
+      { name: 'Submitted', value: lifecycle.totalSubmitted || 0 },
+      { name: 'Accepted', value: lifecycle.totalAccepted || 0 },
+      { name: 'In Progress', value: lifecycle.inProgress || 0 },
+      { name: 'Ready', value: lifecycle.readyForDispatch || 0 },
+      { name: 'Outbound', value: lifecycle.outboundLogistics || 0 }
+    ];
+  }, [lifecycle]);
+
+  const marketSegmentation = useMemo(() => {
+    const cohorts = vendors?.cohorts;
+    if (!cohorts) return [];
+    return [
+      { name: 'Local', value: cohorts.local || 0 },
+      { name: 'Proprietorship', value: cohorts.proprietorship || 0 },
+      { name: 'Partnership', value: cohorts.partnership || 0 },
+      { name: 'Pvt Ltd', value: cohorts.pvtLtd || 0 },
+      { name: 'Franchise', value: cohorts.franchise || 0 }
+    ].filter(s => s.value > 0);
+  }, [vendors]);
+
+  const performanceKPIs = useMemo(() => {
+    const submitted = lifecycle?.totalSubmitted || 0;
+    const accepted = lifecycle?.totalAccepted || 0;
+    const gross = financials?.grossRevenue || 0;
+    const aov = submitted ? gross / submitted : 0;
+
+    return [
+      { label: 'Acceptance Rate', value: `${pct(accepted, submitted)}%`, variant: 'emerald' },
+      { label: 'Gross Revenue', value: inr(gross), variant: 'blue' },
+      { label: 'Logistics Bounces', value: String(lifecycle?.logisticsBounces ?? 0), variant: 'rose' },
+      { label: 'Avg Order Value', value: inr(aov), variant: 'slate' }
+    ];
+  }, [lifecycle, financials]);
+
+  const operationalStats = useMemo(() => ([
+    { label: 'Active Vendors', value: String(vendors?.totalVendors ?? 0) },
+    { label: 'Total Customers', value: String(customers?.totalCustomers ?? 0) },
+    { label: 'Dormant Vendors', value: String(vendors?.dormantCount ?? 0), variant: 'rose' },
+    { label: 'Net Profit', value: inr(financials?.netProfit), variant: 'emerald' }
+  ]), [vendors, customers, financials]);
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-25/50 pb-20">
@@ -46,10 +109,29 @@ export default function Analytics() {
       {/* Analytics Performance Layer */}
       <div className="bg-white border-b border-slate-200 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 divide-x divide-slate-100 max-w-[1600px] mx-auto w-full">
-            <MetricRow label="Monthly Growth" value="12.42%" change="+1.2%" trend="up" icon={TrendingUp} />
-            <MetricRow label="User Satisfaction" value="4.8/5" change="+0.2" trend="up" icon={Star} />
-            <MetricRow label="Daily Growth" value="₹12.4K" change="-1.2K" trend="up" icon={IndianRupee} />
-            <MetricRow label="Overall Compliance" value="100%" trend="up" icon={ShieldCheck} />
+            <MetricRow
+              label="Gross Revenue"
+              value={inr(financials?.grossRevenue)}
+              trend="up"
+              icon={IndianRupee}
+            />
+            <MetricRow
+              label="Avg Vendor Rating"
+              value={vendors?.averageRating ? `${Number(vendors.averageRating).toFixed(1)}/5` : '—'}
+              trend="up"
+              icon={Star}
+            />
+            <MetricRow
+              label="Acceptance Rate"
+              value={`${pct(lifecycle?.totalAccepted || 0, lifecycle?.totalSubmitted || 0)}%`}
+              trend="up"
+              icon={TrendingUp}
+            />
+            <MetricRow
+              label="Wallet Liability"
+              value={inr(financials?.walletLiability)}
+              icon={ShieldCheck}
+            />
         </div>
       </div>
 
@@ -74,7 +156,7 @@ export default function Analytics() {
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
                   <Tooltip contentStyle={{ borderRadius: '1px', border: '1px solid #f1f5f9', fontWeight: 'black', textTransform: 'uppercase' }} />
-                  <Area type="monotone" dataKey="revenue" stroke="#3b82f6" fillOpacity={1} fill="url(#colorAnalytics)" strokeWidth={4} />
+                  <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorAnalytics)" strokeWidth={4} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -92,7 +174,7 @@ export default function Analytics() {
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
                   <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '1px', border: '1px solid #f1f5f9' }} />
-                  <Bar dataKey="orders" fill="#3b82f6" radius={[1, 1, 0, 0]} barSize={24}>
+                  <Bar dataKey="value" fill="#3b82f6" radius={[1, 1, 0, 0]} barSize={24}>
                     {orderStats.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} opacity={0.8} />
                     ))}

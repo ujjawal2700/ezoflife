@@ -1,22 +1,75 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import VendorHeader from '../components/VendorHeader';
+import { authApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 
 const EditProfile = () => {
     const navigate = useNavigate();
     const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
     const vendorData = JSON.parse(vendorDataRaw);
     const vData = vendorData.user || vendorData;
+    const vendorId = vData._id || vData.id || null;
 
+    // Seeded from the cached session, then replaced by the server's copy below.
     const initialFormData = useMemo(() => ({
-        shopName: vData.displayName || vData.shopName || 'Pristine Cleaners',
-        ownerName: vData.ownerName || vData.displayName || 'Vendor Partner',
-        email: vData.email || 'vendor@example.com',
-        phone: vData.phone ? `+91 ${vData.phone}` : '+91 98765 43210',
+        shopName: vData.shopDetails?.name || vData.displayName || '',
+        ownerName: vData.ownerName || vData.displayName || '',
+        email: vData.email || '',
+        phone: vData.phone ? `+91 ${vData.phone}` : '',
     }), [vData]);
 
     const [formData, setFormData] = useState(initialFormData);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (!vendorId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await authApi.getProfile(vendorId);
+                const u = res?.user || res;
+                if (!u || cancelled) return;
+                setFormData({
+                    shopName: u.shopDetails?.name || u.displayName || '',
+                    ownerName: u.ownerName || u.displayName || '',
+                    email: u.email || '',
+                    phone: u.phone ? `+91 ${u.phone}` : ''
+                });
+            } catch (err) {
+                console.error('Failed to load vendor profile:', err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [vendorId]);
+
+    const handleSave = async () => {
+        if (!vendorId) return toast.error('No vendor session found');
+        try {
+            setIsSaving(true);
+            const updated = await authApi.updateProfile(vendorId, {
+                displayName: formData.shopName,
+                ownerName: formData.ownerName,
+                email: formData.email,
+                shopDetails: { name: formData.shopName }
+            });
+
+            // Keep the cached session in step so other screens show the new name.
+            try {
+                const cached = JSON.parse(localStorage.getItem('vendorData') || '{}');
+                localStorage.setItem('vendorData', JSON.stringify({ ...cached, ...(updated?.user || updated) }));
+            } catch { /* cache refresh is best-effort */ }
+
+            toast.success('Profile updated');
+            navigate(-1);
+        } catch (err) {
+            console.error('Failed to save vendor profile:', err);
+            toast.error(err.message || 'Could not save profile');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="bg-[#F8FAFC] text-[#1E293B] min-h-screen pb-32 font-sans">
@@ -93,12 +146,13 @@ const EditProfile = () => {
                 </div>
 
                 <div className="mt-8">
-                    <motion.button 
+                    <motion.button
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => navigate('/vendor/profile')}
-                        className="w-full py-5 rounded-2xl bg-[#3D5AFE] text-white font-bold text-lg shadow-xl shadow-[#3D5AFE]/20 flex items-center justify-center gap-3 hover:bg-[#304FFE] transition-all"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="w-full py-5 rounded-2xl bg-[#3D5AFE] text-white font-bold text-lg shadow-xl shadow-[#3D5AFE]/20 flex items-center justify-center gap-3 hover:bg-[#304FFE] transition-all disabled:opacity-60"
                     >
-                        <span>Save Changes</span>
+                        <span>{isSaving ? 'Saving…' : 'Save Changes'}</span>
                         <span className="material-symbols-outlined text-[20px]">check</span>
                     </motion.button>
                 </div>

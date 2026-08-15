@@ -20,7 +20,6 @@ import {
   Search,
   ChevronDown
 } from 'lucide-react';
-import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
@@ -156,13 +155,8 @@ export default function Payments() {
         }));
     }
 
-    return mockAdminData.payoutRequests.map(item => ({
-        ...item,
-        type: activeTab,
-        method: 'ONLINE',
-        customer: 'RAHUL SHARMA',
-        transactionId: `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-    }));
+    // Nothing to show for this tab yet — never fabricate payout rows.
+    return [];
   }, [activeTab, customerData, vendorData]);
 
   const filteredPaymentsData = useMemo(() => {
@@ -218,11 +212,17 @@ export default function Payments() {
         ];
     }
 
+    // Overall view — aggregated from the same real datasets, never invented.
+    const inflow = customerData.reduce((acc, c) => acc + (c.totalSpent || 0), 0);
+    const outflow = vendorData.reduce((acc, v) => acc + (v.totalPaid || 0), 0);
+    const owedToVendors = vendorData.reduce((acc, v) => acc + ((v.totalEarnings || 0) - (v.totalPaid || 0)), 0);
+    const k = (n) => `₹${(n / 1000).toFixed(1)}K`;
+
     return [
-        { label: 'Total Inflow', value: '₹4.2M', change: 'This Month', trend: 'up', icon: ArrowDownLeft, color: 'emerald-400' },
-        { label: 'Total Outflow', value: '₹2.8M', change: 'Settlements', trend: 'up', icon: ArrowUpRight, color: 'rose-400' },
-        { label: 'Escrow Balance', value: '₹1.1M', change: 'System Held', trend: 'up', icon: Wallet, color: 'white' },
-        { label: 'Refund Volume', value: '₹42K', change: 'Last 7 Days', trend: 'down', icon: RefreshCcw, color: 'amber-400' }
+        { label: 'Total Inflow', value: k(inflow), change: 'Customer payments', trend: 'up', icon: ArrowDownLeft, color: 'emerald-400' },
+        { label: 'Total Outflow', value: k(outflow), change: 'Settled to vendors', trend: 'up', icon: ArrowUpRight, color: 'rose-400' },
+        { label: 'Pending Payout', value: k(owedToVendors), change: 'Owed to vendors', trend: 'up', icon: Wallet, color: 'white' },
+        { label: 'Net Position', value: k(inflow - outflow), change: 'Inflow − outflow', trend: 'up', icon: RefreshCcw, color: 'amber-400' }
     ];
   }, [activeTab, customerData, vendorData]);
 

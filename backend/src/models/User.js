@@ -193,6 +193,23 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    /**
+     * Saved payment methods.
+     *
+     * DELIBERATELY stores no full card number, CVV or expiry-with-PAN — only the
+     * display remnants needed to render a saved-method list. Storing real card
+     * data would put this system in PCI-DSS scope; use Razorpay tokenisation if
+     * true saved-card charging is ever required.
+     */
+    paymentMethods: [{
+        type: { type: String, enum: ['card', 'upi'], required: true },
+        brand: { type: String, default: '' },      // visa / google_pay / …
+        last4: { type: String, default: '' },      // display only
+        expiry: { type: String, default: '' },     // MM/YY, display only
+        holder: { type: String, default: '' },
+        handle: { type: String, default: '' },     // UPI VPA
+        isDefault: { type: Boolean, default: false }
+    }],
     cardName: {
         type: String,
         default: ''

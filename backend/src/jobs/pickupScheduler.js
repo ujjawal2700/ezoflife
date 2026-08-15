@@ -1,170 +1,96 @@
 import cron from 'node-cron';
 import Order from '../models/Order.js';
-import User from '../models/User.js';
-import ShiprocketService from '../services/ShiprocketService.js';
-import Notification from '../models/Notification.js';
+import { dispatchPickup, dispatchReturn } from '../services/logistics/dispatch.js';
 
 /**
- * Smart Pickup Scheduler
- * Runs every 5 minutes to check for orders that need Shiprocket pickup requests.
+ * Pickup & delivery scheduler.
+ *
+ * Every 5 minutes it looks for orders whose trigger time has passed and asks
+ * the logistics provider to collect them. Booking itself — including the
+ * idempotency guard — lives in services/logistics/dispatch.js, so a re-run
+ * during a slow provider response cannot double-book.
+ *
+ * Enabled by SHIPROCKET_ENABLED. While that is false the provider resolves to
+ * the mock, so this loop is safe to leave running in development.
  */
+
+const CRON_EXPR = process.env.LOGISTICS_CRON || '*/5 * * * *';
+
+/**
+ * Orders waiting to be collected from the customer.
+ *
+ * `vendorAcceptOrder` is what makes an order collectable: it sets
+ * pickupStatus='scheduled' and status='RIDER_ARRIVING'. The status list must
+ * therefore include RIDER_ARRIVING or this query matches nothing — which is
+ * exactly what the original `status: 'Assigned'` did (not even a valid enum
+ * value). PICKUP_ASSIGNED is included so an order already mid-dispatch is
+ * still retried after a failure.
+ */
+const findPendingPickups = (now) => Order.find({
+    pickupStatus: 'scheduled',
+    pickupTriggerTime: { $lte: now },
+    status: { $in: ['RIDER_ARRIVING', 'PICKUP_ASSIGNED', 'ORDER_PLACED'] }
+}).select('_id orderId').lean();
+
+/** Orders the vendor has finished, waiting to go back to the customer. */
+const findPendingDeliveries = (now) => Order.find({
+    deliveryStatus: 'scheduled',
+    deliveryTriggerTime: { $lte: now },
+    // Previously 'Ready', also not in the enum.
+    status: 'READY_FOR_DISPATCH'
+}).select('_id orderId').lean();
+
+const runOnce = async () => {
+    const now = new Date();
+
+    const [pickups, deliveries] = await Promise.all([
+        findPendingPickups(now),
+        findPendingDeliveries(now)
+    ]);
+
+    if (pickups.length === 0 && deliveries.length === 0) return { pickups: 0, deliveries: 0 };
+
+    console.log(`⏰ [SCHEDULER] ${pickups.length} pickup(s), ${deliveries.length} delivery(ies) due`);
+
+    let booked = 0;
+    for (const o of pickups) {
+        const r = await dispatchPickup(o._id);
+        if (r.ok && !r.skipped) booked++;
+        if (!r.ok) console.warn(`⚠️  [SCHEDULER] pickup for ${o.orderId}: ${r.reason}`);
+    }
+
+    for (const o of deliveries) {
+        const r = await dispatchReturn(o._id);
+        if (r.ok && !r.skipped) {
+            booked++;
+            // Only advance the order once a courier is actually engaged.
+            await Order.updateOne({ _id: o._id }, { $set: { status: 'OUT_FOR_DELIVERY' } });
+        }
+        if (!r.ok) console.warn(`⚠️  [SCHEDULER] delivery for ${o.orderId}: ${r.reason}`);
+    }
+
+    return { pickups: pickups.length, deliveries: deliveries.length, booked };
+};
+
 export const initPickupScheduler = () => {
-    // Temporarily disabled as per user request
-    console.log('⏸️ [SCHEDULER] Automatic pickup scheduler is currently paused.');
-    return;
-    // Run every 5 minutes
-    cron.schedule('*/5 * * * *', async () => {
-        console.log('⏰ [SCHEDULER] Checking for scheduled pickups...');
-        
+    if (String(process.env.LOGISTICS_SCHEDULER || 'true').toLowerCase() === 'false') {
+        console.log('⏸️  [SCHEDULER] disabled via LOGISTICS_SCHEDULER=false');
+        return;
+    }
+
+    cron.schedule(CRON_EXPR, async () => {
         try {
-            const now = new Date();
-            
-            // Find orders that are:
-            // 1. Scheduled for pickup
-            // 2. Trigger time has passed
-            // 3. Status is still 'Assigned' (or 'Pending' if we want to support that)
-            const pendingPickups = await Order.find({
-                pickupStatus: 'scheduled',
-                pickupTriggerTime: { $lte: now },
-                status: 'Assigned'
-            }).populate('customer vendor');
-
-            if (pendingPickups.length === 0) {
-                return;
-            }
-
-            console.log(`📦 [SCHEDULER] Found ${pendingPickups.length} orders to trigger Shiprocket API.`);
-
-            for (const order of pendingPickups) {
-                try {
-                    const customer = order.customer;
-                    const isRetail = customer.customerType === 'retail';
-                    
-                    console.log(`🚚 [SHIPROCKET] Triggering automatic pickup for order: ${order.orderId}`);
-                    
-                    // 1. Create Return Order (Customer -> Vendor)
-                    const srOrder = await ShiprocketService.createReturnOrder(order, customer, !isRetail);
-                    
-                    if (srOrder && srOrder.shipment_id) {
-                        order.shipmentDetails = {
-                            shipmentId: srOrder.shipment_id,
-                            orderId: srOrder.order_id,
-                            isQC: !isRetail,
-                            lastStatus: 'CREATED'
-                        };
-                        
-                        // 2. Check Serviceability
-                        const pincode = customer.location?.pincode || customer.pincode || '452010';
-                        const serviceability = await ShiprocketService.checkServiceability(pincode, !isRetail);
-                        
-                        if (serviceability?.data?.available_courier_companies?.length > 0) {
-                            const bestCourier = serviceability.data.available_courier_companies[0];
-                            
-                            // 3. Assign AWB
-                            const awbData = await ShiprocketService.generateAWB(srOrder.shipment_id, bestCourier.courier_company_id);
-                            
-                            if (awbData?.response?.data?.awb_code) {
-                                order.shipmentDetails.awbCode = awbData.response.data.awb_code;
-                                order.shipmentDetails.courierName = bestCourier.courier_name;
-                                
-                                // 4. Request Pickup
-                                const pickupData = await ShiprocketService.generatePickup(srOrder.shipment_id);
-                                const token = pickupData?.response?.data?.pickup_token_number || pickupData?.pickup_token_number;
-                                
-                                if (token) {
-                                    order.shipmentDetails.pickupTokenNumber = token;
-                                    order.pickupStatus = 'requested';
-                                    console.log(`✅ [SCHEDULER] Shiprocket Pickup Requested! Token: ${token}`);
-                                    
-                                    // Notify Customer
-                                    if (customer.fcmToken) {
-                                        const admin = (await import('../utils/firebaseAdmin.js')).default;
-                                        await admin.messaging().send({
-                                            notification: {
-                                                title: 'Rider Assigned! 🛵',
-                                                body: `A rider is coming for your order ${order.orderId}`
-                                            },
-                                            token: customer.fcmToken
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    await order.save();
-                } catch (orderErr) {
-                    console.error(`❌ [SCHEDULER] Error processing order ${order.orderId}:`, orderErr.message);
-                    
-                    // Fallback logic
-                    if (order.fallbackEnabled && order.pickupStatus === 'scheduled') {
-                        console.log(`🔄 [SCHEDULER] Fallback: Rescheduling order ${order.orderId} for next day.`);
-                        const nextDay = new Date(order.pickupTriggerTime);
-                        nextDay.setDate(nextDay.getDate() + 1);
-                        order.pickupTriggerTime = nextDay;
-                        order.pickupStatus = 'rescheduled';
-                        await order.save();
-                    }
-                }
-            }
-            // --- PART 2: DELIVERY TRIGGERS ---
-            const pendingDeliveries = await Order.find({
-                deliveryStatus: 'scheduled',
-                deliveryTriggerTime: { $lte: now },
-                status: 'Ready'
-            }).populate('customer vendor');
-
-            if (pendingDeliveries.length > 0) {
-                console.log(`📦 [SCHEDULER] Found ${pendingDeliveries.length} deliveries to trigger.`);
-                for (const order of pendingDeliveries) {
-                    try {
-                        console.log(`🚚 [SHIPROCKET] Triggering automatic delivery for order: ${order.orderId}`);
-                        const customer = order.customer;
-                        
-                        // 1. Create Forward Order (Vendor -> Customer)
-                        const fwdOrder = await ShiprocketService.createForwardOrder(order, customer);
-                        
-                        if (fwdOrder && fwdOrder.shipment_id) {
-                            order.deliveryShipmentDetails = {
-                                shipmentId: fwdOrder.shipment_id,
-                                orderId: fwdOrder.order_id,
-                                lastStatus: 'CREATED'
-                            };
-                            
-                            // 2. Check Serviceability from Vendor
-                            const vPincode = order.vendor?.shopDetails?.pincode || '452010';
-                            const serviceability = await ShiprocketService.checkServiceability(vPincode, false);
-                            
-                            if (serviceability?.data?.available_courier_companies?.length > 0) {
-                                const bestCourier = serviceability.data.available_courier_companies[0];
-                                
-                                // 3. Assign AWB
-                                const awbData = await ShiprocketService.generateAWB(fwdOrder.shipment_id, bestCourier.courier_company_id);
-                                if (awbData?.response?.data?.awb_code) {
-                                    order.deliveryShipmentDetails.awbCode = awbData.response.data.awb_code;
-                                    order.deliveryShipmentDetails.courierName = bestCourier.courier_name;
-                                    
-                                    // 4. Request Pickup from Vendor
-                                    const pickupData = await ShiprocketService.generatePickup(fwdOrder.shipment_id);
-                                    const token = pickupData?.response?.data?.pickup_token_number || pickupData?.pickup_token_number;
-                                    
-                                    if (token) {
-                                        order.deliveryShipmentDetails.pickupTokenNumber = token;
-                                        order.deliveryStatus = 'requested';
-                                        order.status = 'Out for Delivery';
-                                        console.log(`✅ [SCHEDULER] Shiprocket Delivery Requested! Token: ${token}`);
-                                    }
-                                }
-                            }
-                        }
-                        await order.save();
-                    } catch (delErr) {
-                        console.error(`❌ [SCHEDULER] Delivery error for ${order.orderId}:`, delErr.message);
-                    }
-                }
-            }
+            await runOnce();
         } catch (err) {
-            console.error('❌ [SCHEDULER] Fatal Error:', err.message);
+            console.error('❌ [SCHEDULER] run failed:', err.message);
         }
     });
+
+    const mode = String(process.env.SHIPROCKET_ENABLED || '').toLowerCase() === 'true'
+        ? 'live provider'
+        : 'mock provider';
+    console.log(`🚚 [SCHEDULER] started (${CRON_EXPR}, ${mode})`);
 };
+
+// Exported so tests can drive one pass without waiting on cron.
+export { runOnce as runSchedulerOnce };

@@ -1,21 +1,49 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { b2bOrderApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 
 const SupplierFulfillmentPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [status, setStatus] = useState('Processing');
     const [isDownloading, setIsDownloading] = useState(false);
+    const [order, setOrder] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     const stages = useMemo(() => ['Processing', 'Dispatched', 'Delivered'], []);
-    
-    const manifestItems = useMemo(() => [
-        { id: 'VEN-01', vendor: 'Elite Laundry Hub', qty: '45 kg', location: 'Brooklyn Zone' },
-        { id: 'VEN-22', vendor: 'Heritage Pristine', qty: '82 kg', location: 'Manhattan Zone' },
-        { id: 'VEN-45', vendor: 'Metro Cleaners', qty: '32 kg', location: 'Queens Zone' },
-        { id: 'VEN-88', vendor: 'Swift Wash', qty: '55 kg', location: 'Bronx Zone' },
-    ], []);
+
+    useEffect(() => {
+        if (!id) { setIsLoading(false); return; }
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await b2bOrderApi.getById(id);
+                const o = data?.order || data;
+                if (cancelled || !o) return;
+                setOrder(o);
+                if (o.status) setStatus(o.status);
+            } catch (err) {
+                console.error('Failed to load fulfillment order:', err);
+                if (!cancelled) toast.error('Could not load this batch');
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [id]);
+
+    // The manifest is the order's line items.
+    const manifestItems = useMemo(() => {
+        const items = order?.items || [];
+        return items.map((it, idx) => ({
+            id: it.skuId || it.sku || `LINE-${idx + 1}`,
+            vendor: order?.vendor?.shopDetails?.name || order?.vendor?.displayName || 'Vendor',
+            qty: it.quantity ? `${it.quantity} ${it.unit || ''}`.trim() : '—',
+            location: order?.vendor?.shopDetails?.city || order?.deliveryAddress || '—'
+        }));
+    }, [order]);
 
     const handleDownload = () => {
         setIsDownloading(true);

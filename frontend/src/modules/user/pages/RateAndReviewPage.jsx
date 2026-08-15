@@ -1,26 +1,49 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { feedbackApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 
 const RateAndReviewPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const stats = useMemo(() => [
-    { label: 'Quality', val: 'Excellent' },
-    { label: 'Speed', val: 'Fast' },
-    { label: 'Service', val: 'Polite' }
-  ], []);
+  // The order being reviewed is passed through from the tracking/orders screen.
+  const { orderId, vendorId } = location.state || {};
 
-  const handleReview = () => {
-    setIsSubmitted(true);
-    console.log('Submitted Review:', { rating, comment, selectedTags });
-    setTimeout(() => {
-        navigate('/user/home');
-    }, 2500);
+  const userId = useMemo(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return u._id || u.id || null;
+    } catch { return null; }
+  }, []);
+
+  const handleReview = async () => {
+    if (isSubmitting) return;
+    try {
+      setIsSubmitting(true);
+      await feedbackApi.submit({
+        userId,
+        orderId,
+        vendorId,
+        rating,
+        // Tags are appended so they are not lost — the API stores a single comment.
+        comment: [comment, selectedTags.join(', ')].filter(Boolean).join(' — '),
+        category: 'order'
+      });
+      setIsSubmitted(true);
+      setTimeout(() => navigate('/user/home'), 2000);
+    } catch (err) {
+      console.error('Failed to submit review:', err);
+      toast.error(err.message || 'Could not submit your review');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const containerVariants = useMemo(() => ({

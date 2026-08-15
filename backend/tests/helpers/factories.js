@@ -29,6 +29,47 @@ export const orderPayload = (customerId, overrides = {}) => ({
 export const tokenFor = (role, id = '6a7d56c980a151d5ad8b17d0') =>
     jwt.sign({ id, role, phone: '0000000000' }, SECRET, { expiresIn: '15m' });
 
+/**
+ * A vendor that is actually able to accept an order.
+ *
+ * `vendorAcceptOrder` rejects a vendor unless every serviceId on the order
+ * appears in shopDetails.services as active + approved, so a bare vendor
+ * account is not enough for any end-to-end pickup test.
+ *
+ * Writes directly to the throwaway test database — there is no API for
+ * attaching approved services to a vendor.
+ */
+export const makeVendorCapableOf = async (mongoUri, vendorId, serviceIds) => {
+    const mongoose = (await import('mongoose')).default;
+    const User = (await import('../../src/models/User.js')).default;
+
+    const created = mongoose.connection.readyState === 0;
+    if (created) await mongoose.connect(mongoUri);
+
+    await User.updateOne(
+        { _id: vendorId },
+        {
+            $set: {
+                status: 'approved',
+                'shopDetails.name': 'Test Laundry',
+                'shopDetails.address': '45 Vendor Road, Indore',
+                'shopDetails.pincode': '452001',
+                'shopDetails.city': 'Indore',
+                'shopDetails.services': serviceIds.map((id, i) => ({
+                    id: String(id),
+                    name: `Test Service ${i + 1}`,
+                    adminRate: 100,
+                    vendorRate: 90,
+                    active: true,
+                    status: 'approved'
+                }))
+            }
+        }
+    );
+
+    if (created) await mongoose.disconnect();
+};
+
 /** Register + verify a user through the real auth endpoints. */
 export const createUser = async (api, baseUrl, phone, role = 'Customer') => {
     await api(baseUrl, '/api/auth/request-otp', {

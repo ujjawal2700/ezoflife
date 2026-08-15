@@ -4,7 +4,6 @@ import { ShoppingBag, Search, Download, Filter, FileText, PlusCircle, ExternalLi
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';

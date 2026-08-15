@@ -98,10 +98,28 @@ export default function MaterialConfig() {
             {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Categories', value: '08', icon: Box, trend: 'Primary' },
-                    { label: 'Live Items', value: materials.length.toString().padStart(2, '0'), icon: Tag, trend: 'Neutral' },
-                    { label: 'Warehouse Stock', value: '1.4k', icon: Package, trend: 'Success' },
-                    { label: 'Asset Value', value: '₹4.2L', icon: IndianRupee, trend: 'Warning' },
+                    {
+                        label: 'Total Categories',
+                        value: String(new Set(materials.map(m => m.category).filter(Boolean)).size).padStart(2, '0'),
+                        icon: Box, trend: 'Primary'
+                    },
+                    {
+                        label: 'Live Items',
+                        value: materials.length.toString().padStart(2, '0'),
+                        icon: Tag, trend: 'Neutral'
+                    },
+                    {
+                        label: 'Warehouse Stock',
+                        value: String(materials.reduce((s, m) => s + (Number(m.stock ?? m.quantity) || 0), 0)),
+                        icon: Package, trend: 'Success'
+                    },
+                    {
+                        label: 'Asset Value',
+                        value: `₹${materials
+                            .reduce((s, m) => s + (Number(m.price ?? m.rate) || 0) * (Number(m.stock ?? m.quantity) || 0), 0)
+                            .toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                        icon: IndianRupee, trend: 'Warning'
+                    },
                 ].map((stat, i) => (
                     <div key={i} className="bg-white p-5 rounded-sm border border-slate-100 shadow-sm relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-20 h-20 bg-slate-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110" />

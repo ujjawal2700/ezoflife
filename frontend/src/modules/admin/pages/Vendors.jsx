@@ -27,7 +27,6 @@ import {
   CreditCard
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
@@ -84,14 +83,26 @@ export default function Vendors() {
     fetchVendors();
   }, []);
 
-  const vendors = useMemo(() => realVendors.length > 0 ? realVendors : mockAdminData.vendors, [realVendors]);
+  // No mock fallback: an empty vendor list must render as empty, not as fake vendors.
+  const vendors = realVendors;
 
-  const vendorStats = useMemo(() => [
-    { label: 'Network Avg Rating', value: '4.82', trend: 'up', change: '+0.04', icon: Star },
-    { label: 'Total Partner Settlements', value: '₹1.42M', trend: 'up', change: '+122K', icon: IndianRupee, currency: 'INR' },
-    { label: 'Active Hubs', value: '28', trend: 'up', change: '+3', icon: Store },
-    { label: 'Fulfillment Velocity', value: '94.2%', trend: 'up', change: '+2.4%', icon: Activity }
-  ], []);
+  // Derived from the vendors actually loaded — no invented network figures.
+  const vendorStats = useMemo(() => {
+    const total = vendors.length;
+    const approved = vendors.filter(v => (v.status || '').toLowerCase() === 'approved').length;
+    const rated = vendors.filter(v => Number(v.rating) > 0);
+    const avgRating = rated.length
+      ? (rated.reduce((s, v) => s + Number(v.rating), 0) / rated.length).toFixed(2)
+      : '—';
+    const totalOrders = vendors.reduce((s, v) => s + (Number(v.totalOrders) || 0), 0);
+
+    return [
+      { label: 'Network Avg Rating', value: String(avgRating), icon: Star },
+      { label: 'Total Vendors', value: String(total), icon: Store },
+      { label: 'Approved Hubs', value: String(approved), icon: Activity },
+      { label: 'Orders Fulfilled', value: String(totalOrders), icon: IndianRupee }
+    ];
+  }, [vendors]);
 
   // ... columns ...
   const vendorColumns = useMemo(() => [

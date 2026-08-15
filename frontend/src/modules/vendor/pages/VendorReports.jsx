@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { orderApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, LabelList, PieChart, Pie, Cell, Legend } from 'recharts';
@@ -192,6 +194,33 @@ const CustomCalendar = ({ startDate, endDate, onChangeRange }) => {
 
 
 const VendorReports = () => {
+  const [vendorOrders, setVendorOrders] = useState([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+
+  const vendorId = useMemo(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem('vendorData') || localStorage.getItem('user') || '{}');
+      return v._id || v.id || (v.user && (v.user._id || v.user.id)) || null;
+    } catch { return null; }
+  }, []);
+
+  useEffect(() => {
+    if (!vendorId) { setIsLoadingOrders(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await orderApi.getVendorOrders(vendorId);
+        if (!cancelled) setVendorOrders(Array.isArray(data) ? data : (data?.orders || []));
+      } catch (err) {
+        console.error('Failed to load vendor orders for reports:', err);
+        if (!cancelled) toast.error('Could not load report data');
+      } finally {
+        if (!cancelled) setIsLoadingOrders(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [vendorId]);
+
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState('current_month'); // 'current_month', '3_months', '6_months'
   const [isCustomOpen, setIsCustomOpen] = useState(false);
@@ -225,14 +254,29 @@ const VendorReports = () => {
     }
   };
 
-  const mockGstLedger = [
-    { invoiceNo: 'INV-2026-001', date: '10 Jun 2026', client: 'Grand Plaza Hotel', type: 'B2B', gstin: '27AAAEZ1234F1Z1', taxable: 4237.28, rate: 18, gst: 762.72, total: 5000 },
-    { invoiceNo: 'INV-2026-002', date: '11 Jun 2026', client: 'Ramesh Kumar', type: 'B2C', gstin: 'N/A', taxable: 677.97, rate: 18, gst: 122.03, total: 800 },
-    { invoiceNo: 'INV-2026-003', date: '11 Jun 2026', client: 'Apex Corporate Hub', type: 'B2B', gstin: '27AABCA5678D2Z9', taxable: 10169.49, rate: 18, gst: 1830.51, total: 12000 },
-    { invoiceNo: 'INV-2026-004', date: '12 Jun 2026', client: 'Priya Sharma', type: 'B2C', gstin: 'N/A', taxable: 423.73, rate: 18, gst: 76.27, total: 500 }
-  ];
+  // GST ledger derived from this vendor's real orders.
+  const gstLedger = useMemo(() => vendorOrders.map(o => {
+    const total = Number(o.totalAmount) || 0;
+    const gst = Number(o.priceBreakdown?.gstAmount) || 0;
+    const taxable = Math.max(0, total - gst);
+    const isB2B = o.orderType === 'B2B' || Boolean(o.customer?.gstNumber);
 
-  const filteredLedger = mockGstLedger.filter(row => {
+    return {
+      invoiceNo: o.orderId || String(o._id).slice(-8).toUpperCase(),
+      date: o.createdAt
+        ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : '—',
+      client: o.customer?.displayName || o.customer?.phone || 'Walk-in Customer',
+      type: isB2B ? 'B2B' : 'B2C',
+      gstin: o.customer?.gstNumber || 'N/A',
+      taxable: Number(taxable.toFixed(2)),
+      rate: taxable > 0 ? Number(((gst / taxable) * 100).toFixed(0)) : 0,
+      gst: Number(gst.toFixed(2)),
+      total
+    };
+  }), [vendorOrders]);
+
+  const filteredLedger = gstLedger.filter(row => {
     if (gstFilter === 'b2b') return row.type === 'B2B';
     if (gstFilter === 'b2c') return row.type === 'B2C';
     return true;
@@ -242,7 +286,7 @@ const VendorReports = () => {
     const headers = ['Invoice No', 'Date', 'Client Name', 'Type', 'GSTIN', 'Taxable Value (INR)', 'GST Rate (%)', 'GST Amount (INR)', 'Total Amount (INR)'];
     const csvRows = [
       headers.join(','),
-      ...mockGstLedger.map(row => [
+      ...gstLedger.map(row => [
         row.invoiceNo,
         row.date,
         `"${row.client}"`,

@@ -1,5 +1,5 @@
 import Order from '../models/Order.js';
-import shiprocketService from '../services/ShiprocketService.js';
+import { getLogisticsProvider } from '../services/logistics/index.js';
 
 /**
  * Logistics Handshake Controller
@@ -18,10 +18,17 @@ export const requestHandshake = async (req, res) => {
         // Generate a 4-digit OTP
         const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-        // If rider is not assigned yet in mock mode, assign one
+        // The delivery partner comes from the provider (or a webhook). If none
+        // is known yet, look it up from the booked task rather than inventing one.
         if (!order.riderDetails || !order.riderDetails.phone) {
-            const assignment = await shiprocketService.assignRider(order.orderId);
-            order.riderDetails = assignment.rider;
+            const provider = getLogisticsProvider();
+            // Tracking is indexed by AWB, so prefer it over the internal task id.
+            const ref = order.deliveryShipmentDetails?.awbCode || order.deliveryShipmentDetails?.taskId
+                     || order.shipmentDetails?.awbCode   || order.shipmentDetails?.taskId;
+            if (ref) {
+                const status = await provider.getStatus(ref);
+                if (status.ok && status.partner) order.riderDetails = status.partner;
+            }
         }
 
         // Update or Add handshake record
@@ -40,12 +47,11 @@ export const requestHandshake = async (req, res) => {
 
         await order.save();
 
-        // "Send" SMS to Rider (Logs to Terminal)
-        await shiprocketService.sendOtpToRider(order.riderDetails.phone, otp, order.orderId);
-
-        res.status(200).json({ 
-            message: `Handshake OTP requested for ${phase}. SMS sent to Rider.`,
-            rider: order.riderDetails
+        // The handover OTP is shown to the customer/vendor in-app; the delivery
+        // partner reads it from their own app. Nothing is sent from here.
+        res.status(200).json({
+            message: `Handshake OTP requested for ${phase}.`,
+            rider: order.riderDetails || null
         });
 
     } catch (error) {

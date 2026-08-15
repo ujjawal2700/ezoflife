@@ -1,18 +1,26 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import VendorHeader from '../components/VendorHeader';
+import { authApi, vendorPaymentApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
+
+const EMPTY_BANK = { beneficiary: '', accountNumber: '', ifsc: '', bankName: '' };
 
 const PayoutSettings = () => {
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
-    
-    const initialBankData = useMemo(() => ({
-        beneficiary: 'Pristine Cleaners Pvt. Ltd.',
-        accountNumber: '000000000000',
-        ifsc: 'SBIN0001235',
-        bankName: 'State Bank of India'
-    }), []);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [bankData, setBankData] = useState(EMPTY_BANK);
+    const [earnings, setEarnings] = useState(null);
+
+    const vendorId = useMemo(() => {
+        try {
+            const v = JSON.parse(localStorage.getItem('vendorData') || localStorage.getItem('user') || '{}');
+            return v._id || v.id || null;
+        } catch { return null; }
+    }, []);
 
     const payoutFields = useMemo(() => [
         { id: 'beneficiary', label: 'Beneficiary', icon: 'account_circle' },
@@ -21,11 +29,60 @@ const PayoutSettings = () => {
         { id: 'bankName', label: 'Bank Name', icon: 'account_balance' }
     ], []);
 
-    const [bankData, setBankData] = useState(initialBankData);
+    const load = useCallback(async () => {
+        if (!vendorId) { setIsLoading(false); return; }
+        try {
+            const [profile, summary] = await Promise.all([
+                authApi.getProfile(vendorId).catch(() => null),
+                vendorPaymentApi.getEarningsSummary?.(vendorId).catch(() => null)
+            ]);
 
-    const handleSave = () => {
-        setIsEditing(false);
-        // Here you would typically make an API call
+            const bank = profile?.bankDetails || profile?.user?.bankDetails || {};
+            setBankData({
+                beneficiary: bank.accountHolderName || '',
+                accountNumber: bank.accountNumber || '',
+                ifsc: bank.ifscCode || '',
+                bankName: bank.bankName || ''
+            });
+            setEarnings(summary || null);
+        } catch (err) {
+            console.error('Failed to load payout settings:', err);
+            toast.error('Could not load payout details');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [vendorId]);
+
+    useEffect(() => { load(); }, [load]);
+
+    // Settlements run weekly on Friday (see backend settlement cycle).
+    const nextSettlementDate = useMemo(() => {
+        const d = new Date();
+        const daysUntilFriday = (5 - d.getDay() + 7) % 7 || 7;
+        d.setDate(d.getDate() + daysUntilFriday);
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    }, []);
+
+    const handleSave = async () => {
+        if (!vendorId) return toast.error('No vendor session found');
+        try {
+            setIsSaving(true);
+            await authApi.updateProfile(vendorId, {
+                bankDetails: {
+                    accountHolderName: bankData.beneficiary,
+                    accountNumber: bankData.accountNumber,
+                    ifscCode: bankData.ifsc,
+                    bankName: bankData.bankName
+                }
+            });
+            toast.success('Payout details saved');
+            setIsEditing(false);
+        } catch (err) {
+            console.error('Failed to save payout details:', err);
+            toast.error(err.message || 'Could not save payout details');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -42,7 +99,13 @@ const PayoutSettings = () => {
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -ml-32 -mb-32"></div>
                 
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] opacity-40 mb-2">Available for Settlement</p>
-                <h2 className="text-4xl font-bold tracking-tighter mb-8">₹12,840.40</h2>
+                <h2 className="text-4xl font-bold tracking-tighter mb-8">
+                    {isLoading
+                        ? '—'
+                        : `₹${Number(
+                            earnings?.pendingSettlement ?? earnings?.availableBalance ?? earnings?.totalEarnings ?? 0
+                          ).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                </h2>
                 
                 <div className="flex items-center gap-12">
                     <div className="space-y-1">
@@ -55,7 +118,7 @@ const PayoutSettings = () => {
                     <div className="w-[1px] h-6 bg-white/20"></div>
                     <div className="space-y-1">
                         <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Next Cycle</p>
-                        <p className="text-sm font-bold">Oct 27, 2026</p>
+                        <p className="text-sm font-bold">{nextSettlementDate}</p>
                     </div>
                 </div>
             </motion.section>
@@ -93,7 +156,9 @@ const PayoutSettings = () => {
                                     />
                                 ) : (
                                     <p className="text-base font-bold text-on-surface tracking-tight pl-6">
-                                        {field.id === 'accountNumber' ? `${bankData[field.id].slice(0, 4)} •••• •••• ${bankData[field.id].slice(-4)}` : bankData[field.id]}
+                                        {field.id === 'accountNumber' && bankData[field.id]
+                                            ? `${bankData[field.id].slice(0, 4)} •••• •••• ${bankData[field.id].slice(-4)}`
+                                            : (bankData[field.id] || '—')}
                                     </p>
                                 )}
                             </div>

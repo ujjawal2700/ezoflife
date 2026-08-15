@@ -40,12 +40,24 @@ export default function Services() {
     fetchServices();
   }, []);
 
-  const serviceStats = useMemo(() => [
-    { label: 'Service Points', value: data.length.toString(), change: '+2', trend: 'up', icon: Sparkles },
-    { label: 'Laundry Yield', value: '₹124.2K', change: '+12.4K', trend: 'up', icon: IndianRupee, currency: 'INR' },
-    { label: 'Dry Clean Base', value: '08', change: '+1', trend: 'up', icon: Layers },
-    { label: 'Network Avg Price', value: '₹420', change: '+18', trend: 'up', icon: Settings, currency: 'INR' }
-  ], [data.length]);
+  // Derived from the loaded catalogue — no invented yield or pricing figures.
+  const serviceStats = useMemo(() => {
+    const priced = data.filter(s => Number(s.basePrice ?? s.price) > 0);
+    const avgPrice = priced.length
+      ? Math.round(priced.reduce((sum, s) => sum + Number(s.basePrice ?? s.price), 0) / priced.length)
+      : 0;
+    const active = data.filter(s => s.isActive !== false && s.isActive !== 'n').length;
+    const dryClean = data.filter(s =>
+      /dry\s*clean/i.test(s.category?.name || s.category || s.name || '')
+    ).length;
+
+    return [
+      { label: 'Service Points', value: data.length.toString(), icon: Sparkles },
+      { label: 'Active Services', value: active.toString(), icon: Layers },
+      { label: 'Dry Clean Base', value: dryClean.toString(), icon: Layers },
+      { label: 'Network Avg Price', value: `₹${avgPrice}`, icon: Settings, currency: 'INR' }
+    ];
+  }, [data]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);

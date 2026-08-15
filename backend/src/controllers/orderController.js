@@ -8,7 +8,7 @@ import fs from 'fs';
 import { getIO } from '../socket.js';
 import { sendWalkInWhatsApp } from '../utils/whatsappHelper.js';
 import { sendSMSMessage, sendWhatsAppMessage } from '../utils/communicationHelper.js';
-import ShiprocketService from '../services/ShiprocketService.js';
+import { dispatchReturn } from '../services/logistics/dispatch.js';
 import Razorpay from 'razorpay';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
 import { verifyRazorpayPayment } from '../utils/paymentVerification.js';
@@ -805,6 +805,7 @@ export const updateOrderStatus = async (req, res) => {
         if (!order) return res.status(404).json({ message: 'Order not found' });
 
         const updateData = { status };
+        let shouldDispatchReturn = false;
 
         if (status === 'READY_FOR_DISPATCH') {
             if (order.orderType === 'Walk-In' && !order.riderDropOff) {
@@ -823,15 +824,28 @@ export const updateOrderStatus = async (req, res) => {
                 order.deliveryTriggerTime = deliveryTriggerTime;
                 order.deliveryStatus = 'scheduled';
 
-                // Local rider allocation, notifications, and broadcasts are bypassed because Shiprocket handles all deliveries.
+                // Local rider allocation is bypassed — the logistics provider
+                // fulfils the return leg. Dispatch happens after the save below,
+                // so a provider outage can never block the vendor's update.
                 order.nearbyRiders = [];
-                order.rider = null; 
+                order.rider = null;
                 order.deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+                shouldDispatchReturn = true;
             }
         }
 
         order.status = status;
         await order.save();
+
+        // Book the return leg once the order is safely persisted. dispatchReturn
+        // is idempotent, so the scheduler retrying later is harmless.
+        if (shouldDispatchReturn) {
+            const result = await dispatchReturn(order._id);
+            if (!result.ok) {
+                // Left as deliveryStatus 'scheduled' for the scheduler to retry.
+                console.warn(`⚠️  [LOGISTICS] return dispatch deferred for ${order.orderId}: ${result.reason}`);
+            }
+        }
 
         const updatedOrder = await Order.findById(id)
             .populate('customer', 'displayName phone address email customerType gstNumber')

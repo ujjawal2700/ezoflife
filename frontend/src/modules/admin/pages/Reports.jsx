@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   BarChart3, 
@@ -25,18 +25,60 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
-import { mockAdminData } from '../data/mockData';
 import PageHeader from '../components/common/PageHeader';
 import MetricRow from '../components/cards/MetricRow';
 import ChartPanel from '../components/cards/ChartPanel';
+import { dashboardApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 
 export default function Reports() {
   const [searchParams] = useSearchParams();
   const type = searchParams.get('type') || 'revenue';
   const COLORS = useMemo(() => ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], []);
 
-  const revenueFlow = useMemo(() => mockAdminData.revenueFlow, []);
-  const orderStats = useMemo(() => mockAdminData.orderStats, []);
+  const [analytics, setAnalytics] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await dashboardApi.getAnalytics();
+        if (!cancelled) setAnalytics(res?.data || null);
+      } catch (err) {
+        console.error('Failed to load report data:', err);
+        if (!cancelled) toast.error('Could not load report data');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const financials = analytics?.financials;
+  const lifecycle = analytics?.orderLifecycleB2C;
+
+  const revenueFlow = useMemo(() => {
+    if (!financials) return [];
+    return [
+      { name: 'Gross Revenue', value: financials.grossRevenue || 0 },
+      { name: 'Vendor Payouts', value: financials.vendorPayouts || 0 },
+      { name: 'Logistics', value: financials.logisticsPayouts || 0 },
+      { name: 'Net Profit', value: financials.netProfit || 0 }
+    ];
+  }, [financials]);
+
+  const orderStats = useMemo(() => {
+    if (!lifecycle) return [];
+    return [
+      { name: 'Submitted', value: lifecycle.totalSubmitted || 0 },
+      { name: 'Accepted', value: lifecycle.totalAccepted || 0 },
+      { name: 'In Progress', value: lifecycle.inProgress || 0 },
+      { name: 'Ready', value: lifecycle.readyForDispatch || 0 },
+      { name: 'Outbound', value: lifecycle.outboundLogistics || 0 },
+      { name: 'Reverse', value: lifecycle.reverseLogistics || 0 }
+    ];
+  }, [lifecycle]);
   
   const reportTitles = {
     tat: "Vendor TAT Report",
@@ -96,7 +138,7 @@ export default function Reports() {
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} dy={10} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
                             <Tooltip contentStyle={{ borderRadius: '1px', border: '1px solid #f1f5f9', fontWeight: 'black', textTransform: 'uppercase' }} />
-                            <Area type="monotone" dataKey="revenue" stroke="#0f172a" fillOpacity={1} fill="url(#colorReport)" strokeWidth={4} />
+                            <Area type="monotone" dataKey="value" stroke="#0f172a" fillOpacity={1} fill="url(#colorReport)" strokeWidth={4} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
@@ -114,7 +156,7 @@ export default function Reports() {
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} dy={10} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
                             <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '1px', border: '1px solid #f1f5f9' }} />
-                            <Bar dataKey="orders" fill="#0f172a" radius={[1, 1, 0, 0]} barSize={32}>
+                            <Bar dataKey="value" fill="#0f172a" radius={[1, 1, 0, 0]} barSize={32}>
                                 {orderStats.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
@@ -139,10 +181,28 @@ export default function Reports() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                 {[
-                    { label: 'Confidence Score', value: '98.2%', desc: 'Based on verified transactions' },
-                    { label: 'Forecast Delta', value: '+14.2%', desc: 'Estimated growth next cycle' },
-                    { label: 'Anomaly Index', value: '0.04%', desc: 'Detected outliers in set' },
-                    { label: 'Actionable Leads', value: '42', desc: 'Identified optimization nodes' }
+                    {
+                        label: 'Orders Submitted',
+                        value: String(lifecycle?.totalSubmitted ?? 0),
+                        desc: 'Total orders in the period'
+                    },
+                    {
+                        label: 'Acceptance Rate',
+                        value: lifecycle?.totalSubmitted
+                            ? `${((lifecycle.totalAccepted / lifecycle.totalSubmitted) * 100).toFixed(1)}%`
+                            : '0.0%',
+                        desc: 'Accepted by a vendor'
+                    },
+                    {
+                        label: 'Logistics Bounces',
+                        value: String(lifecycle?.logisticsBounces ?? 0),
+                        desc: 'Failed pickup or delivery legs'
+                    },
+                    {
+                        label: 'Net Profit',
+                        value: `₹${Number(financials?.netProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
+                        desc: 'Gross revenue less payouts'
+                    }
                 ].map((intel, i) => (
                     <div key={i} className="space-y-2 border-l-2 border-slate-50 pl-6">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{intel.label}</span>

@@ -1,21 +1,41 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { vendorMasterSupplyApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 
 const SupplierRateCard = () => {
     const navigate = useNavigate();
 
-    const initialRates = useMemo(() => [
-        { id: 1, name: 'Eco-Friendly Detergent', unit: 'kg', baseRate: 120.00, inStock: true },
-        { id: 2, name: 'Biodegradable Bags', unit: 'unit', baseRate: 1.50, inStock: true },
-        { id: 3, name: 'Starch Concentrate', unit: 'L', baseRate: 85.00, inStock: false },
-        { id: 4, name: 'Fabric Softener', unit: 'L', baseRate: 95.00, inStock: true },
-    ], []);
-
-    const [rates, setRates] = useState(initialRates);
+    const [rates, setRates] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     const ADMIN_FEE = useMemo(() => 1.15, []); // 15% Platform fee
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await vendorMasterSupplyApi.getAll();
+                const list = Array.isArray(data) ? data : (data?.supplies || data?.data || []);
+                if (cancelled) return;
+                setRates(list.map(s => ({
+                    id: s._id,
+                    name: s.materialName,
+                    unit: s.quantity || 'unit',
+                    baseRate: Number(s.wholesaleRate) || 0,
+                    inStock: s.isActive !== 'n'
+                })));
+            } catch (err) {
+                console.error('Failed to load rate card:', err);
+                if (!cancelled) toast.error('Could not load rate card');
+            } finally {
+                if (!cancelled) setIsLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     const handleRateChange = (id, newRate) => {
         setRates(prev => prev.map(item => item.id === id ? { ...item, baseRate: parseFloat(newRate) || 0 } : item));
@@ -25,11 +45,23 @@ const SupplierRateCard = () => {
         setRates(prev => prev.map(item => item.id === id ? { ...item, inStock: !item.inStock } : item));
     };
 
-    const handleSave = () => {
-        setIsSaving(true);
-        setTimeout(() => {
+    const handleSave = async () => {
+        try {
+            setIsSaving(true);
+            // Persist each edited row. The API updates one supply at a time.
+            await Promise.all(rates.map(r =>
+                vendorMasterSupplyApi.update(r.id, {
+                    wholesaleRate: r.baseRate,
+                    isActive: r.inStock ? 'y' : 'n'
+                })
+            ));
+            toast.success('Rate card saved');
+        } catch (err) {
+            console.error('Failed to save rate card:', err);
+            toast.error(err.message || 'Could not save rate card');
+        } finally {
             setIsSaving(false);
-        }, 1200);
+        }
     };
 
     const containerVariants = useMemo(() => ({

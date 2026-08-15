@@ -147,6 +147,9 @@ const orderSchema = new mongoose.Schema({
         default: 0
     },
     shipmentDetails: {
+        // taskId is the provider-agnostic booking handle and the idempotency
+        // key: once set, this leg has been dispatched and must not be re-booked.
+        taskId: String,
         shipmentId: String,
         orderId: String, // Shiprocket's internal order ID
         awbCode: String,
@@ -157,6 +160,7 @@ const orderSchema = new mongoose.Schema({
         pickupTokenNumber: String
     },
     deliveryShipmentDetails: {
+        taskId: String,
         shipmentId: String,
         orderId: String,
         awbCode: String,

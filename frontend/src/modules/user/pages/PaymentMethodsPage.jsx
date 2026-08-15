@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { authApi } from '../../../lib/api';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -6,10 +8,31 @@ const PaymentMethodsPage = () => {
   const navigate = useNavigate();
   
   // State Management
-  const [methods, setMethods] = useState([
-    { id: '1', type: 'card', brand: 'visa', last4: '4242', expiry: '12/26', holder: 'Julian Mendoza' },
-    { id: '2', type: 'upi', brand: 'google_pay', handle: 'julian.m@okaxis' }
-  ]);
+  const [methods, setMethods] = useState([]);
+
+  const userId = useMemo(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || '{}');
+      return u._id || u.id || null;
+    } catch { return null; }
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authApi.getProfile(userId);
+        const saved = (res?.user || res)?.paymentMethods || [];
+        if (!cancelled) {
+          setMethods(saved.map((m, i) => ({ id: m._id || String(i), ...m })));
+        }
+      } catch (err) {
+        console.error('Failed to load payment methods:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMethod, setEditingMethod] = useState(null);
@@ -48,7 +71,7 @@ const PaymentMethodsPage = () => {
   ], []);
 
   const handleDelete = (id) => {
-    setMethods(prev => prev.filter(m => m.id !== id));
+    persist(methods.filter(m => m.id !== id));
   };
 
   const handleEdit = (method) => {
@@ -69,26 +92,55 @@ const PaymentMethodsPage = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e) => {
+  /**
+   * Only display-safe fields are persisted — never the full card number.
+   * Storing a PAN would put this system in PCI-DSS scope.
+   */
+  const toStored = (m) => ({
+    type: m.type,
+    brand: m.brand || '',
+    last4: m.last4 || '',
+    expiry: m.expiry || '',
+    holder: m.holder || '',
+    handle: m.handle || ''
+  });
+
+  const persist = async (next) => {
+    setMethods(next);
+    if (!userId) return;
+    try {
+      await authApi.updateProfile(userId, { paymentMethods: next.map(toStored) });
+    } catch (err) {
+      console.error('Failed to save payment methods:', err);
+      toast.error('Could not save payment method');
+    }
+  };
+
+  const handleSave = async (e) => {
     e.preventDefault();
+
+    let next;
     if (editingMethod) {
-      setMethods(prev => prev.map(m => 
-        m.id === editingMethod.id 
-          ? { 
-              ...m, 
-              ...formData, 
-              last4: formData.type === 'card' ? (formData.cardNumber.includes('••') ? m.last4 : formData.cardNumber.slice(-4)) : m.last4 
-            } 
+      next = methods.map(m =>
+        m.id === editingMethod.id
+          ? {
+              ...m,
+              ...formData,
+              last4: formData.type === 'card'
+                ? (formData.cardNumber.includes('••') ? m.last4 : formData.cardNumber.slice(-4))
+                : m.last4
+            }
           : m
-      ));
+      );
     } else {
-      const newMethod = {
+      next = [...methods, {
         id: Math.random().toString(36).substr(2, 9),
         ...formData,
         last4: formData.type === 'card' ? formData.cardNumber.slice(-4) : undefined
-      };
-      setMethods(prev => [...prev, newMethod]);
+      }];
     }
+
+    await persist(next);
     setIsModalOpen(false);
   };
 

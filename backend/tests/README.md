@@ -1,14 +1,14 @@
 # Backend Test Suite
 
-87 automated tests covering unit logic, API behaviour, security, concurrency,
-load, stress and volume. Browser E2E lives in `frontend/e2e/`.
+823 automated tests covering unit logic, API behaviour, security, concurrency,
+logistics dispatch, load, stress and volume. Browser E2E lives in `frontend/e2e/`.
 
 ## Running
 
 ```bash
-npm test              # unit + API (87 tests, ~15s)
-npm run test:unit     # pure logic, no database (36 tests, <1s)
-npm run test:api      # full-stack API tests (51 tests, ~12s)
+npm test              # unit + API (823 tests, ~40s)
+npm run test:unit     # pure logic, no database (62 tests, <1s)
+npm run test:api      # full-stack API tests (761 tests, ~35s)
 npm run test:watch    # re-run unit tests on change
 
 npm run test:load        # sustained read load
@@ -49,12 +49,17 @@ tests/
     pricingEngine.test.js
     timeUtils.test.js
     paymentVerification.test.js
+    logisticsProvider.test.js
   api/                   full request/response against the real server
+    contract.test.js              every registered endpoint (auto-derived)
     paymentSecurity.test.js
     authorization.test.js
     auth.test.js
     orderLifecycle.test.js
     concurrency.test.js
+    logistics.test.js             dispatch + webhook
+    logisticsWebhookAuth.test.js  webhook secret enforcement
+    pickupDispatch.test.js        vendor accept -> scheduler -> booking
   load/
     loadTest.js          load + volume harness (dependency-free)
 ```
@@ -71,6 +76,10 @@ tests/
 | `auth` | OTP leaking in responses; unsigned/never-expiring tokens |
 | `orderLifecycle` | Order identifiers, status transitions, price breakdown, input validation |
 | `concurrency` | Order-number collisions under simultaneous writes |
+| `logisticsProvider` | Provider selection failing open; token-cache stampede; webhook status mis-mapping |
+| `logistics` | Duplicate delivery bookings; a webhook mutating the wrong order |
+| `logisticsWebhookAuth` | An unauthenticated caller marking an order delivered |
+| `pickupDispatch` | The scheduler filter and `vendorAcceptOrder` drifting apart so pickups never fire |
 
 ## Testing choices
 
@@ -85,7 +94,7 @@ hard to read.
 
 ## Endpoint coverage — 100%
 
-All **261 registered endpoints** are exercised, verified by capturing real
+All **262 registered endpoints** are exercised, verified by capturing real
 request traffic during a run:
 
 ```bash
@@ -117,8 +126,11 @@ will fail — that failure is the reminder to flip the assertion to expect
 
 ## Not covered
 
-- **Shiprocket** — the service is a mock, so there is nothing meaningful to test
-  until the real integration lands.
+- **Shiprocket Quick dispatch** — authentication is implemented and tested; the
+  four dispatch methods await the Quick API specification, so they are covered
+  only by "fails safely" assertions. Everything around them — flow wiring,
+  idempotency, webhook — is tested against `MockProvider`.
+  See `src/services/logistics/README.md`.
 - **Pagination limits** — `getMyOrders` returns every order unbounded (see below).
 
 ## Performance findings
