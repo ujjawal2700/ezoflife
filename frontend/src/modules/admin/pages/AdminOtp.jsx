@@ -7,7 +7,7 @@ import { safeStorage } from '../../../lib/safeStorage';
 const AdminOtp = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { phone, channel } = location.state || { phone: 'ADMIN', channel: 'WhatsApp' };
+  const { phone } = location.state || { phone: 'ADMIN' };
   
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
@@ -94,7 +94,7 @@ const AdminOtp = () => {
   const handleResend = async () => {
     try {
       setError('');
-      await authApi.requestOtp(phone, channel, 'login', { role: 'Admin' });
+      await authApi.requestOtp(phone, 'WhatsApp', 'login', { role: 'Admin' });
       setTimer(60);
     } catch (err) {
       setError('Failed to resend OTP.');

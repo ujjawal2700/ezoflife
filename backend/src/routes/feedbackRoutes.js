@@ -7,9 +7,9 @@ import {
     getFeedbackFilters,
     deleteFeedback 
 } from '../controllers/feedbackController.js';
-import { verifyAdmin } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
-router.post('/submit', submitFeedback);
+router.post('/submit', verifyUser, submitFeedback);
 router.get('/vendor/:vendorId', getVendorFeedbacks);
 
 // Admin-only routes

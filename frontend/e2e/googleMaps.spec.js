@@ -43,6 +43,14 @@ const collectConsole = (page) => {
 
 test.skip(!hasMapsKey, 'VITE_GOOGLE_MAPS_API_KEY not configured');
 
+/**
+ * These are the only specs that depend on a live third-party service. Under the
+ * full suite the Google SDK occasionally loads slowly enough to trip the wait —
+ * a different test each run, all passing in isolation. Retry rather than let
+ * Google's latency turn the suite red; a genuine break still fails all attempts.
+ */
+test.describe.configure({ retries: 2 });
+
 test('no loader-conflict error on a maps-bearing route', async ({ page }) => {
     const errors = collectConsole(page);
 

@@ -1,10 +1,11 @@
 import express from 'express';
 import Referral from '../models/Referral.js';
+import { verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Route to record a new referral
-router.post('/', async (req, res) => {
+router.post('/', verifyUser, async (req, res) => {
     try {
         const { referrer, referredPhone } = req.body;
         if (!referrer || !referredPhone) {

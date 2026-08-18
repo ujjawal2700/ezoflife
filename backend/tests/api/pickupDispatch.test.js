@@ -15,12 +15,14 @@ import mongoose from 'mongoose';
 import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser, makeVendorCapableOf } from '../helpers/factories.js';
 
-let env, customerId, vendorId;
+let env, customerId, vendorId, customerToken, vendorToken;
 
 before(async () => {
     env = await startTestEnvironment();
-    customerId = (await createUser(api, env.baseUrl, '9990000007', 'Customer')).id;
-    vendorId = (await createUser(api, env.baseUrl, '9990000008', 'Vendor')).id;
+    const customer = await createUser(api, env.baseUrl, '9990000007', 'Customer');
+    const vendor = await createUser(api, env.baseUrl, '9990000008', 'Vendor');
+    customerId = customer.id; customerToken = customer.token;
+    vendorId = vendor.id;     vendorToken = vendor.token;
     assert.ok(customerId && vendorId, 'fixtures should exist');
 
     // The vendor must offer the order's services or acceptance is refused.
@@ -30,17 +32,20 @@ before(async () => {
 after(async () => { if (env) await env.stop(); });
 
 const newOrder = async () => {
-    const res = await api(env.baseUrl, '/api/orders', { method: 'POST', body: orderPayload(customerId) });
+    const res = await api(env.baseUrl, '/api/orders', {
+        method: 'POST', body: orderPayload(customerId), token: customerToken
+    });
     assert.equal(res.status, 201);
     return res.body;
 };
 
+// The accepting vendor is now taken from the token, not the body.
 const vendorAccept = (orderId) =>
     api(env.baseUrl, `/api/orders/vendor-accept/${orderId}`, {
-        method: 'POST', body: { vendorId }
+        method: 'POST', body: {}, token: vendorToken
     });
 
-const getOrder = async (id) => (await api(env.baseUrl, `/api/orders/${id}`)).body;
+const getOrder = async (id) => (await api(env.baseUrl, `/api/orders/${id}`, { token: customerToken })).body;
 
 describe('vendor acceptance schedules the pickup', () => {
     test('sets pickupStatus to scheduled', async () => {

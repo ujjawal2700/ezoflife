@@ -1,13 +1,24 @@
 import Promotion from '../models/Promotion.js';
+import { isOwnerOrAdmin } from '../middleware/authMiddleware.js';
 import { httpStatusForError } from '../utils/errorResponse.js';
 
 export const createPromotion = async (req, res) => {
     try {
         const promoData = { ...req.body };
+
+        // A PLATFORM promotion is auto-approved and costs the platform money, so
+        // only an Admin may declare one. A vendor's promotion is always theirs
+        // and always starts PENDING, whatever the body claims.
         if (promoData.owner_type === 'PLATFORM') {
+            if (req.user?.role !== 'Admin') {
+                return res.status(403).json({ message: 'Only an admin may create a platform promotion' });
+            }
             promoData.approval_status = 'APPROVED';
         } else {
             promoData.approval_status = 'PENDING';
+            if (req.user?.role !== 'Admin') {
+                promoData.vendorId = req.user?.id;   // ignore any body-supplied owner
+            }
         }
         
         // Map camelCase fields to snake_case fields if passed
@@ -68,7 +79,10 @@ export const createPromotion = async (req, res) => {
 
 export const getVendorPromotions = async (req, res) => {
     try {
-        const { vendorId } = req.query;
+        // A vendor only ever sees their own promotions; Admins may query any.
+        const vendorId = (req.user?.role === 'Admin' && req.query.vendorId)
+            ? req.query.vendorId
+            : req.user?.id;
         if (!vendorId || vendorId === 'undefined') {
             return res.status(400).json({ message: 'Valid Vendor ID is required' });
         }
@@ -86,6 +100,10 @@ export const togglePromotionStatus = async (req, res) => {
         const promotion = await Promotion.findById(id);
         if (!promotion) return res.status(404).json({ message: 'Promotion not found' });
 
+        if (!isOwnerOrAdmin(req, promotion.vendorId)) {
+            return res.status(403).json({ message: 'You cannot modify this promotion' });
+        }
+
         promotion.status = promotion.status === 'Active' ? 'Paused' : 'Active';
         await promotion.save();
         res.json(promotion);
@@ -96,6 +114,13 @@ export const togglePromotionStatus = async (req, res) => {
 
 export const deletePromotion = async (req, res) => {
     try {
+        const promo = await Promotion.findById(req.params.id);
+        if (!promo) return res.status(404).json({ message: 'Promotion not found' });
+
+        if (!isOwnerOrAdmin(req, promo.vendorId)) {
+            return res.status(403).json({ message: 'You cannot delete this promotion' });
+        }
+
         await Promotion.findByIdAndDelete(req.params.id);
         res.json({ message: 'Promotion deleted' });
     } catch (error) {
@@ -237,6 +262,10 @@ export const updatePromotion = async (req, res) => {
         const { id } = req.params;
         const promo = await Promotion.findById(id);
         if (!promo) return res.status(404).json({ message: 'Promotion not found' });
+
+        if (!isOwnerOrAdmin(req, promo.vendorId)) {
+            return res.status(403).json({ message: 'You cannot modify this promotion' });
+        }
 
         const updates = req.body;
 

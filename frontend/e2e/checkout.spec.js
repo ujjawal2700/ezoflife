@@ -100,10 +100,10 @@ test.describe('payment security through the real checkout UI', () => {
 
         // Drive the app's own order call with the forged payment.
         await page.goto('/user/auth');
-        const result = await page.evaluate(async ({ apiUrl, customerId }) => {
+        const result = await page.evaluate(async ({ apiUrl, customerId, token }) => {
             const res = await fetch(`${apiUrl}/orders`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     customerId,
                     items: [{ serviceId: '000000000000000000000001', name: 'X', quantity: 1, price: 100 }],
@@ -120,16 +120,21 @@ test.describe('payment security through the real checkout UI', () => {
                 })
             });
             return { status: res.status, body: await res.json() };
-        }, { apiUrl: API_URL, customerId });
+        }, { apiUrl: API_URL, customerId, token: auth.token });
 
         expect(result.status).toBe(400);
         expect(JSON.stringify(result.body)).toMatch(/could not be verified|signature/i);
 
-        // And nothing paid was persisted.
-        const list = await request.get(`${API_URL}/orders/my?customerId=${customerId}`);
+        // And nothing paid was persisted. This read must be authenticated —
+        // an unauthenticated 401 would yield an empty list and pass vacuously.
+        const list = await request.get(`${API_URL}/orders/my`, {
+            headers: { Authorization: `Bearer ${auth.token}` }
+        });
+        expect(list.status(), 'verification read was not authorised').toBe(200);
+
         const orders = await list.json();
-        const paid = (Array.isArray(orders) ? orders : orders.orders || [])
-            .filter(o => o.paymentStatus === 'Paid');
+        const all = Array.isArray(orders) ? orders : (orders.orders || []);
+        const paid = all.filter(o => o.paymentStatus === 'Paid');
         expect(paid, 'a forged payment created a paid order').toHaveLength(0);
     });
 
@@ -165,10 +170,10 @@ test.describe('payment security through the real checkout UI', () => {
         const customerId = auth.user?._id || auth.user?.id;
 
         await page.goto('/user/auth');
-        const result = await page.evaluate(async ({ apiUrl, customerId }) => {
+        const result = await page.evaluate(async ({ apiUrl, customerId, token }) => {
             const res = await fetch(`${apiUrl}/orders`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({
                     customerId,
                     items: [{ serviceId: '000000000000000000000001', name: 'X', quantity: 1, price: 100 }],
@@ -182,7 +187,7 @@ test.describe('payment security through the real checkout UI', () => {
                 })
             });
             return { status: res.status, body: await res.json() };
-        }, { apiUrl: API_URL, customerId });
+        }, { apiUrl: API_URL, customerId, token: auth.token });
 
         expect(result.status).toBe(201);
         expect(result.body.paymentStatus).toBe('Pending');

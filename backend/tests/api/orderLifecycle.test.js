@@ -9,18 +9,21 @@ import assert from 'node:assert/strict';
 import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser, tokenFor } from '../helpers/factories.js';
 
-let env, customerId;
+let env, customerId, customerToken;
 
 before(async () => {
     env = await startTestEnvironment();
     const user = await createUser(api, env.baseUrl, '9990000003', 'Customer');
     customerId = user.id;
+    customerToken = user.token;
 }, { timeout: 90000 });
 
 after(async () => { if (env) await env.stop(); });
 
 const create = (overrides) =>
-    api(env.baseUrl, '/api/orders', { method: 'POST', body: orderPayload(customerId, overrides) });
+    api(env.baseUrl, '/api/orders', {
+        method: 'POST', body: orderPayload(customerId, overrides), token: customerToken
+    });
 
 describe('order creation', () => {
     test('creates an order and returns an id', async () => {
@@ -79,23 +82,30 @@ describe('order creation', () => {
 });
 
 describe('order creation validation', () => {
-    test('rejects a missing customerId', async () => {
+    // Identity now comes from the token, so a body customerId is no longer part
+    // of the contract for a normal caller — these cover what still can go wrong.
+
+    test('a body customerId is not required — the token supplies it', async () => {
         const body = orderPayload(customerId);
         delete body.customerId;
-        const res = await api(env.baseUrl, '/api/orders', { method: 'POST', body });
-        assert.equal(res.status, 400);
+        const res = await api(env.baseUrl, '/api/orders', { method: 'POST', body, token: customerToken });
+        assert.equal(res.status, 201);
     });
 
-    test('rejects an unknown customerId', async () => {
+    test('rejects an unknown customerId when an Admin supplies one', async () => {
         const res = await api(env.baseUrl, '/api/orders', {
-            method: 'POST', body: orderPayload('60000000000000000000000a')
+            method: 'POST',
+            body: orderPayload('60000000000000000000000a'),
+            token: tokenFor('Admin')
         });
         assert.equal(res.status, 404);
     });
 
-    test('does not 500 on a malformed customerId', async () => {
+    test('does not 500 on a malformed customerId from an Admin', async () => {
         const res = await api(env.baseUrl, '/api/orders', {
-            method: 'POST', body: orderPayload('not-an-object-id')
+            method: 'POST',
+            body: orderPayload('not-an-object-id'),
+            token: tokenFor('Admin')
         });
         assert.ok(res.status >= 400 && res.status < 500,
             `expected a 4xx, got ${res.status}`);
@@ -105,19 +115,19 @@ describe('order creation validation', () => {
 describe('order retrieval', () => {
     test('fetches a created order by id', async () => {
         const created = await create();
-        const res = await api(env.baseUrl, `/api/orders/${created.body._id}`);
+        const res = await api(env.baseUrl, `/api/orders/${created.body._id}`, { token: customerToken });
         assert.equal(res.status, 200);
         assert.equal(res.body._id, created.body._id);
     });
 
     test('returns 404 for an id that does not exist', async () => {
-        const res = await api(env.baseUrl, '/api/orders/60000000000000000000000b');
+        const res = await api(env.baseUrl, '/api/orders/60000000000000000000000b', { token: customerToken });
         assert.equal(res.status, 404);
     });
 
     test('lists the orders belonging to a customer', async () => {
         await create();
-        const res = await api(env.baseUrl, `/api/orders/my?customerId=${customerId}`);
+        const res = await api(env.baseUrl, '/api/orders/my', { token: customerToken });
         assert.equal(res.status, 200);
         const orders = Array.isArray(res.body) ? res.body : (res.body.orders || []);
         assert.ok(orders.length > 0, 'customer should have orders');
@@ -128,18 +138,18 @@ describe('status transitions', () => {
     test('moves an order to a new status', async () => {
         const created = await create();
         const res = await api(env.baseUrl, `/api/orders/status/${created.body._id}`, {
-            method: 'PATCH', body: { status: 'PROCESSING' }
+            method: 'PATCH', body: { status: 'PROCESSING' }, token: customerToken
         });
-        assert.ok(res.status < 400);
+        assert.ok(res.status < 400, `status update refused with ${res.status}`);
 
-        const after = await api(env.baseUrl, `/api/orders/${created.body._id}`);
+        const after = await api(env.baseUrl, `/api/orders/${created.body._id}`, { token: customerToken });
         assert.equal(after.body.status, 'PROCESSING');
     });
 
     test('rejects a status outside the allowed set', async () => {
         const created = await create();
         const res = await api(env.baseUrl, `/api/orders/status/${created.body._id}`, {
-            method: 'PATCH', body: { status: 'TOTALLY_INVALID_STATUS' }
+            method: 'PATCH', body: { status: 'TOTALLY_INVALID_STATUS' }, token: customerToken
         });
         assert.ok(res.status >= 400, `invalid status was accepted (${res.status})`);
     });

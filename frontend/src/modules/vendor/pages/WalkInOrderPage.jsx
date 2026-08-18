@@ -677,7 +677,7 @@ const WalkInOrderPage = () => {
         }
         setIsSendingOtp(true);
         try {
-            await authApi.requestOtp(customerPhone, 'SMS', undefined, { role: 'Customer', name: tempName.trim() });
+            await authApi.requestOtp(customerPhone, 'WhatsApp', undefined, { role: 'Customer', name: tempName.trim() });
             toast.success('OTP sent to customer\'s mobile number!');
             setOtpValue('');
             setShowOtpField(true);

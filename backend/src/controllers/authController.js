@@ -8,9 +8,23 @@ import {
     sendAdminSupplierApplicationNotification
 } from '../utils/emailHelper.js';
 import { sendWhatsAppMessage, sendSMSMessage } from '../utils/communicationHelper.js';
+import { getWhatsAppProvider } from '../services/whatsapp/index.js';
 
-// Mock OTP Generator - Hardcoded to 123456 for Testing
-const generateOTP = () => '123456';
+/**
+ * WhatsApp is the ONLY OTP channel — there is no SMS fallback for login/signup.
+ *
+ * While no live WhatsApp Business account is configured (WHATSAPP_ENABLED is
+ * unset or credentials are missing), the mock provider is selected and the OTP
+ * is the fixed demo value '123456' for every account — there is no way to
+ * prove real delivery without a live account, so a fixed code keeps the whole
+ * app usable and testable end-to-end. The moment a live provider is selected,
+ * this switches to a genuine random 6-digit code with no other changes
+ * required. See src/services/whatsapp/README.md.
+ */
+const generateOTP = () =>
+    getWhatsAppProvider().name === 'mock'
+        ? '123456'
+        : String(Math.floor(100000 + Math.random() * 900000));
 
 export const getVendorEarnings = async (req, res) => {
     try {
@@ -59,8 +73,12 @@ export const getVendorEarnings = async (req, res) => {
 
 export const requestOtp = async (req, res) => {
     try {
-        const { phone, channel, mode, customerType } = req.body; 
+        // `channel` is no longer read: WhatsApp is the only OTP transport, so a
+        // client cannot ask for anything else. Kept in the destructure removed
+        // — nothing downstream depends on it any more.
+        const { phone, mode, customerType } = req.body;
         const requestedRole = req.body.role || 'Customer'; // Capitalized
+        const whatsapp = getWhatsAppProvider();
 
         // ADMIN BYPASS FOR TESTING
         if (phone === '9999999994') {
@@ -68,13 +86,19 @@ export const requestOtp = async (req, res) => {
             if (!admin) {
                 return res.status(404).json({ message: 'Your number is not registered' });
             }
+            const bypassOtp = generateOTP();
             admin.role = 'Admin';
             admin.status = 'approved';
-            admin.otp = '123456';
+            admin.otp = bypassOtp;
             admin.otpExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
             await admin.save();
             console.log(`🛡️ [ADMIN_BYPASS] Master Admin activated for ${phone}`);
-            return res.status(200).json({ message: 'Admin OTP sent successfully', role: 'Admin', mock: true });
+            // Best-effort delivery — this is a testing bypass, so it must not
+            // block or fail the response if WhatsApp is unreachable.
+            whatsapp.sendOtp(phone, bypassOtp).catch(err =>
+                console.error('Admin bypass OTP send failed:', err.message)
+            );
+            return res.status(200).json({ message: 'Admin OTP sent successfully', role: 'Admin', mock: whatsapp.name === 'mock' });
         }
 
         if (!phone) {
@@ -130,13 +154,19 @@ export const requestOtp = async (req, res) => {
         user.otpExpiry = otpExpiry;
         await user.save();
 
-        // Terminal Logging
-        console.log('\n----------------------------------------');
-        console.log(`📡 [${channel || 'SYSTEM'}] OTP Request (UNIFIED)`);
-        console.log(`📱 Phone: +91 ${phone}`);
-        console.log(`🔑 OTP: ${otp}`);
-        console.log(`👤 Active Role: ${user.role}`);
-        console.log('----------------------------------------\n');
+        // Actually deliver the code. In demo mode this always succeeds (and
+        // logs the OTP to the console); once a live WhatsApp account is
+        // configured, a real delivery failure is reported to the caller
+        // instead of silently claiming success.
+        const delivery = await whatsapp.sendOtp(phone, otp);
+        if (!delivery.ok) {
+            console.error(`❌ [AUTH] OTP could not be delivered to ${phone}: ${delivery.reason}`);
+            return res.status(502).json({
+                message: 'Could not deliver the OTP on WhatsApp. Please try again shortly.'
+            });
+        }
+
+        console.log(`👤 [AUTH] OTP requested for ${phone} — role: ${user.role}, mode: ${mode || 'login'}`);
 
         res.status(200).json({ message: 'OTP sent successfully', role: user.role });
     } catch (err) {
@@ -880,7 +910,7 @@ export const vendorLogin = async (req, res) => {
 export const tempSeedUser = async (req, res) => {
     try {
         const phone = '9926723112';
-        const otp = '123456';
+        const otp = generateOTP();
         let user = await User.findOne({ phone });
         
         if (user) {

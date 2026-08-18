@@ -25,16 +25,20 @@ import {
 } from '../controllers/authController.js';
 import { getVendorPayoutHistory } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
+import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.get('/sub-admin-activation-details', getSubAdminActivationDetails);
 router.post('/activate-sub-admin', activateSubAdmin);
 
-router.post('/temp-seed', tempSeedUser);
+// DEV SCAFFOLDING — provisions a hardcoded account with a known OTP. Gated to
+// Admin so it is no longer a public backdoor; it should be deleted outright once
+// nothing depends on it.
+router.post('/temp-seed', verifyAdmin, tempSeedUser);
 router.post('/request-otp', requestOtp);
 router.post('/verify-otp', verifyOtp);
-router.post('/update-fcm-token', updateFcmToken);
+router.post('/update-fcm-token', verifyUser, updateFcmToken);
 router.post('/admin-login', adminLogin);
 router.post('/register-vendor', registerVendor);
 router.post('/vendor-login', vendorLogin);

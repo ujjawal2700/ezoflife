@@ -12,6 +12,7 @@ import { dispatchReturn } from '../services/logistics/dispatch.js';
 import Razorpay from 'razorpay';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
 import { verifyRazorpayPayment } from '../utils/paymentVerification.js';
+import { resolveActorId, isOwnerOrAdmin } from '../middleware/authMiddleware.js';
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
 import ServiceArea from '../models/ServiceArea.js';
@@ -265,7 +266,10 @@ export const createOrder = async (req, res) => {
             specialInstructions,
             customerPhotos
         } = req.body;
-        const customerId = req.body.customerId; 
+        // Identity comes from the verified token. A body-supplied customerId is
+        // honoured for Admins only (support / staff-raised orders) — otherwise
+        // any caller could place an order in somebody else's name.
+        const customerId = resolveActorId(req, 'customerId');
 
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
 
@@ -724,7 +728,14 @@ export const createOrder = async (req, res) => {
 
 export const getMyOrders = async (req, res) => {
     try {
-        const { customerId, startDate, endDate, orderType } = req.query;
+        const { startDate, endDate, orderType } = req.query;
+
+        // A customer may only list their own orders. Admins may pass ?customerId
+        // to look at somebody else's; for everyone else the token decides.
+        const customerId = (req.user?.role === 'Admin' && req.query.customerId)
+            ? req.query.customerId
+            : req.user?.id;
+
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
 
         logToFile(`[DEBUG] Fetching orders for CustomerID: ${customerId}. Detecting phone...`);
@@ -785,7 +796,13 @@ export const getMyOrders = async (req, res) => {
 
 export const getVendorOrders = async (req, res) => {
     try {
-        const { vendorId } = req.query;
+        // A vendor may only list orders assigned to them; Admins may query any.
+        const vendorId = (req.user?.role === 'Admin' && req.query.vendorId)
+            ? req.query.vendorId
+            : req.user?.id;
+
+        if (!vendorId) return res.status(400).json({ message: 'Vendor ID required' });
+
         const orders = await Order.find({ vendor: vendorId }).populate('customer', 'displayName phone').sort({ createdAt: -1 });
         res.status(200).json(orders);
     } catch (err) {
@@ -803,6 +820,15 @@ export const updateOrderStatus = async (req, res) => {
             .populate('vendor', 'shopDetails address location');
             
         if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        // Only the assigned vendor, the owning customer, or an Admin may move an
+        // order along. Without this any logged-in account could mark any order
+        // DELIVERED.
+        const isAssignedVendor = isOwnerOrAdmin(req, order.vendor);
+        const isOwningCustomer = isOwnerOrAdmin(req, order.customer);
+        if (!isAssignedVendor && !isOwningCustomer) {
+            return res.status(403).json({ message: 'You cannot update this order' });
+        }
 
         const updateData = { status };
         let shouldDispatchReturn = false;
@@ -1222,8 +1248,10 @@ export const getPoolOrders = async (req, res) => {
 export const vendorAcceptOrder = async (req, res) => {
     try {
         const { id } = req.params;
-        const { vendorId } = req.body;
-        
+        // The accepting vendor is whoever is logged in. Accepting an order "as"
+        // another vendor is an Admin-only action.
+        const vendorId = resolveActorId(req, 'vendorId');
+
         const order = await Order.findById(id);
         if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.vendor) return res.status(400).json({ message: 'Order already accepted by another vendor' });
@@ -1457,6 +1485,13 @@ export const getOrderById = async (req, res) => {
             .populate('rider', 'displayName phone');
 
         if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        // An order is visible to the customer who placed it, the vendor handling
+        // it, or an Admin — not to any logged-in account that guesses an id.
+        if (!isOwnerOrAdmin(req, order.customer) && !isOwnerOrAdmin(req, order.vendor)) {
+            return res.status(403).json({ message: 'You cannot view this order' });
+        }
+
         res.status(200).json(order);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching order details', error: err.message });
@@ -1474,6 +1509,11 @@ export const markOrderReady = async (req, res) => {
         const { id } = req.params;
         const order = await Order.findById(id);
         if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        // Only the vendor processing this order (or an Admin) may mark it ready.
+        if (!isOwnerOrAdmin(req, order.vendor)) {
+            return res.status(403).json({ message: 'You cannot mark this order ready' });
+        }
 
         order.status = 'READY_FOR_DISPATCH';
         
@@ -1830,6 +1870,11 @@ export const cancelOrder = async (req, res) => {
         const order = await Order.findById(id);
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Only the customer who placed it (or an Admin) may cancel.
+        if (!isOwnerOrAdmin(req, order.customer)) {
+            return res.status(403).json({ message: 'You cannot cancel this order' });
         }
 
         // 1. Check time limit: 2 hours (120 minutes)

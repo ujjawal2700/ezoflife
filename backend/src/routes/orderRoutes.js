@@ -16,40 +16,42 @@ import {
     createRazorpayOrder,
     cancelOrder
 } from '../controllers/orderController.js';
-import { verifyAdmin } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyAdminOrVendor, verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Diagnostic
 router.get('/trace', (req, res) => res.json({ msg: 'Order Router is ALIVE' }));
 
-// Get pool orders (unassigned) - MUST BE ABOVE /:id
-router.get('/pool', getPoolOrders);
-router.get('/vendor', getVendorOrders);
-router.get('/my', getMyOrders);
-router.get('/nearby-vendors', handleGetNearbyVendors);
-router.post('/vendor-accept/:id', vendorAcceptOrder);
+// ─── Reads ────────────────────────────────────────────────────────────────────
+// Authenticated so a caller can only ask about their own scope; the handlers
+// narrow further (a customer sees their orders, a vendor sees theirs).
+router.get('/pool', verifyUser, getPoolOrders);
+router.get('/vendor', verifyUser, getVendorOrders);
+router.get('/my', verifyUser, getMyOrders);
+router.get('/nearby-vendors', verifyUser, handleGetNearbyVendors);
 
-// Create new order
-router.post('/', createOrder);
-router.post('/walk-in', createWalkInOrder);
-router.post('/razorpay', createRazorpayOrder);
+// ─── Writes ───────────────────────────────────────────────────────────────────
+// Every mutation requires a token. Identity is taken from that token inside the
+// handlers — a body-supplied customerId is honoured for Admins only.
+router.post('/vendor-accept/:id', verifyUser, vendorAcceptOrder);
 
-// Update order status
-router.patch('/status/:id', updateOrderStatus);
-router.post('/mark-ready/:id', markOrderReady);
-router.post('/verify-handshake/:id', verifyHandshake);
-router.post('/cancel/:id', cancelOrder);
+router.post('/', verifyUser, createOrder);
+router.post('/walk-in', verifyAdminOrVendor, createWalkInOrder);   // raised at the counter
+router.post('/razorpay', verifyUser, createRazorpayOrder);
 
-// Rider Specific Routes (Decommissioned - Handled by Shiprocket/LogisticsController)
+router.patch('/status/:id', verifyUser, updateOrderStatus);
+router.post('/mark-ready/:id', verifyUser, markOrderReady);
+router.post('/verify-handshake/:id', verifyUser, verifyHandshake);
+router.post('/cancel/:id', verifyUser, cancelOrder);
 
-// Admin: Get all orders
-router.get('/all', getAllOrders);
-// Destructive and admin-only: deleting an order is not something a customer,
-// vendor or anonymous caller may ever do.
+// ─── Admin only ───────────────────────────────────────────────────────────────
+router.get('/all', verifyAdmin, getAllOrders);
+// Destructive: deleting an order is not something a customer or vendor may do.
 router.delete('/:id', verifyAdmin, deleteOrder);
 
-// Specific order by ID (Must be at the bottom)
-router.get('/:id', getOrderById);
+// Specific order by ID (Must be at the bottom). Ownership is enforced in the
+// handler so a customer cannot read somebody else's order.
+router.get('/:id', verifyUser, getOrderById);
 
 export default router;

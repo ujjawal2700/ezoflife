@@ -11,14 +11,14 @@ import {
     initiateBankVerification,
     completeBankVerification
 } from '../controllers/supplierController.js';
-import { verifyAdmin } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/verify-gst', verifyGst);
-router.post('/initiate-bank-verify', initiateBankVerification);
-router.post('/complete-bank-verify', completeBankVerification);
-router.post('/apply/:userId', submitApplication);
+router.post('/verify-gst', verifyUser, verifyGst);
+router.post('/initiate-bank-verify', verifyUser, initiateBankVerification);
+router.post('/complete-bank-verify', verifyUser, completeBankVerification);
+router.post('/apply/:userId', verifyUser, submitApplication);
 router.get('/my-status/:userId', (req, res) => {
     // We will define this in controller or inline here for speed
     import('../models/SupplierApplication.js').then(m => {
@@ -35,7 +35,7 @@ router.get('/requests/:id', verifyAdmin, getApplicationById);
 
 // Two-Stage Approval Workflow
 router.patch('/requests/:id/approve-initial', verifyAdmin, initialApproveApplication);
-router.post('/select-products', selectProducts);
+router.post('/select-products', verifyUser, selectProducts);
 router.patch('/requests/:id/approve-final', verifyAdmin, finalApproveApplication);
 
 router.patch('/requests/:id/reject', verifyAdmin, rejectApplication);

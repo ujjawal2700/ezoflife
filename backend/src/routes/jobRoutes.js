@@ -34,9 +34,9 @@ const upload = multer({ storage });
 
 const router = express.Router();
 
-import { verifyAdmin } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
-router.post('/', createJob);
+router.post('/', verifyAdmin, createJob);
 router.get('/admin/all', verifyAdmin, getAdminAllJobs);
 router.get('/admin/applications', verifyAdmin, getAdminApplications);
 router.get('/vendor', getVendorJobs); // Expected ?vendorId=
@@ -45,11 +45,11 @@ router.post('/apply', upload.single('resume'), applyToJob);
 router.get('/vendor/:vendorId/applications', getVendorApplications);
 router.get('/applicant/:applicantId/applied-job-ids', getAppliedJobIds);
 router.get('/applicant/:applicantId/applications', getApplicantApplications);
-router.patch('/applications/:id/status', updateApplicationStatus);
+router.patch('/applications/:id/status', verifyAdmin, updateApplicationStatus);
 router.put('/applications/:id/notes', verifyAdmin, updateApplicationNotes);
-router.delete('/applications/:id', deleteApplication);
-router.patch('/:id/status', updateJobStatus);
-router.put('/:id', updateJob);
+router.delete('/applications/:id', verifyAdmin, deleteApplication);
+router.patch('/:id/status', verifyAdmin, updateJobStatus);
+router.put('/:id', verifyAdmin, updateJob);
 router.delete('/:id', verifyAdmin, deleteJob);
 
 // Role Templates Master Data

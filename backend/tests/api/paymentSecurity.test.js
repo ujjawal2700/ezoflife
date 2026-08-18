@@ -10,19 +10,22 @@ import assert from 'node:assert/strict';
 import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser } from '../helpers/factories.js';
 
-let env, customerId;
+let env, customerId, customerToken;
 
 before(async () => {
     env = await startTestEnvironment();
     const user = await createUser(api, env.baseUrl, '9990000001', 'Customer');
     customerId = user.id;
+    customerToken = user.token;
     assert.ok(customerId, 'test customer must exist');
 }, { timeout: 90000 });
 
 after(async () => { if (env) await env.stop(); });
 
 const placeOrder = (overrides) =>
-    api(env.baseUrl, '/api/orders', { method: 'POST', body: orderPayload(customerId, overrides) });
+    api(env.baseUrl, '/api/orders', {
+        method: 'POST', body: orderPayload(customerId, overrides), token: customerToken
+    });
 
 describe('an order can never be marked Paid without a verified payment', () => {
     test('rejects a claimed Paid status with no payment evidence at all', async () => {

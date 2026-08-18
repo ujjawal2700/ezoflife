@@ -14,12 +14,13 @@ import assert from 'node:assert/strict';
 import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser } from '../helpers/factories.js';
 
-let env, customerId;
+let env, customerId, customerToken;
 
 before(async () => {
     env = await startTestEnvironment();
     const user = await createUser(api, env.baseUrl, '9990000004', 'Customer');
     customerId = user.id;
+    customerToken = user.token;
 }, { timeout: 90000 });
 
 after(async () => { if (env) await env.stop(); });
@@ -27,7 +28,9 @@ after(async () => { if (env) await env.stop(); });
 const createMany = async (n) => {
     const results = await Promise.all(
         Array.from({ length: n }, () =>
-            api(env.baseUrl, '/api/orders', { method: 'POST', body: orderPayload(customerId) })
+            api(env.baseUrl, '/api/orders', {
+                method: 'POST', body: orderPayload(customerId), token: customerToken
+            })
         )
     );
     return results;

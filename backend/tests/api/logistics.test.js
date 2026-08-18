@@ -11,28 +11,31 @@ import mongoose from 'mongoose';
 import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser, tokenFor } from '../helpers/factories.js';
 
-let env, customerId;
+let env, customerId, customerToken;
 
 before(async () => {
     env = await startTestEnvironment();
     const user = await createUser(api, env.baseUrl, '9990000005', 'Customer');
     customerId = user.id;
+    customerToken = user.token;
 }, { timeout: 90000 });
 
 after(async () => { if (env) await env.stop(); });
 
 const newOrder = async () => {
-    const res = await api(env.baseUrl, '/api/orders', { method: 'POST', body: orderPayload(customerId) });
+    const res = await api(env.baseUrl, '/api/orders', {
+        method: 'POST', body: orderPayload(customerId), token: customerToken
+    });
     assert.equal(res.status, 201, 'fixture order should be created');
     return res.body;
 };
 
 const markReady = (id) =>
     api(env.baseUrl, `/api/orders/status/${id}`, {
-        method: 'PATCH', body: { status: 'READY_FOR_DISPATCH' }
+        method: 'PATCH', body: { status: 'READY_FOR_DISPATCH' }, token: customerToken
     });
 
-const getOrder = async (id) => (await api(env.baseUrl, `/api/orders/${id}`)).body;
+const getOrder = async (id) => (await api(env.baseUrl, `/api/orders/${id}`, { token: customerToken })).body;
 
 describe('return-leg dispatch on READY_FOR_DISPATCH', () => {
     test('marking an order ready books a delivery task', async () => {

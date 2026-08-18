@@ -30,6 +30,16 @@ export const tokenFor = (role, id = '6a7d56c980a151d5ad8b17d0') =>
     jwt.sign({ id, role, phone: '0000000000' }, SECRET, { expiresIn: '15m' });
 
 /**
+ * Order routes now require a token, and identity is taken from it rather than
+ * from the body. `asUser` binds a session so a suite reads as the actor:
+ *
+ *   const customer = asUser(api, env.baseUrl, session.token);
+ *   await customer('/api/orders', { method: 'POST', body });
+ */
+export const asUser = (api, baseUrl, token) =>
+    (path, opts = {}) => api(baseUrl, path, { ...opts, token: opts.token ?? token });
+
+/**
  * A vendor that is actually able to accept an order.
  *
  * `vendorAcceptOrder` rejects a vendor unless every serviceId on the order

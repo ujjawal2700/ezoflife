@@ -11,12 +11,13 @@ import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser } from '../helpers/factories.js';
 
 const SECRET = 'test-webhook-secret-value';
-let env, customerId;
+let env, customerId, customerToken;
 
 before(async () => {
     env = await startTestEnvironment({ env: { LOGISTICS_WEBHOOK_SECRET: SECRET } });
     const user = await createUser(api, env.baseUrl, '9990000006', 'Customer');
     customerId = user.id;
+    customerToken = user.token;
 }, { timeout: 90000 });
 
 after(async () => { if (env) await env.stop(); });
@@ -64,20 +65,20 @@ describe('webhook secret enforcement', () => {
 describe('an unauthenticated caller cannot move order state', () => {
     test('a rejected webhook leaves the order untouched', async () => {
         const created = await api(env.baseUrl, '/api/orders', {
-            method: 'POST', body: orderPayload(customerId)
+            method: 'POST', body: orderPayload(customerId), token: customerToken
         });
         const id = created.body._id;
 
         await api(env.baseUrl, `/api/orders/status/${id}`, {
-            method: 'PATCH', body: { status: 'READY_FOR_DISPATCH' }
+            method: 'PATCH', body: { status: 'READY_FOR_DISPATCH' }, token: customerToken
         });
-        const taskId = (await api(env.baseUrl, `/api/orders/${id}`)).body.deliveryShipmentDetails.taskId;
+        const taskId = (await api(env.baseUrl, `/api/orders/${id}`, { token: customerToken })).body.deliveryShipmentDetails.taskId;
 
         // Forged "delivered" with no secret.
         const forged = await post({ taskId, status: 'DELIVERED' });
         assert.equal(forged.status, 401);
 
-        const after = (await api(env.baseUrl, `/api/orders/${id}`)).body;
+        const after = (await api(env.baseUrl, `/api/orders/${id}`, { token: customerToken })).body;
         assert.notEqual(after.status, 'DELIVERED', 'an unauthenticated webhook marked the order delivered');
     });
 });

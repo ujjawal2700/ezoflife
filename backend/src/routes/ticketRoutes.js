@@ -13,7 +13,7 @@ import {
 const router = express.Router();
 
 // Customer Routes
-router.post('/create', createTicket);
+router.post('/create', verifyUser, createTicket);
 router.get('/customer/:customerId', getCustomerTickets);
 router.get('/order/:orderId', async (req, res) => {
     try {
@@ -25,11 +25,11 @@ router.get('/order/:orderId', async (req, res) => {
     }
 });
 router.get('/:ticketId', getTicketDetails);
-router.put('/:ticketId', updateTicket);
-router.delete('/:ticketId', deleteTicket);
-router.post('/:ticketId/message', addMessage);
+router.put('/:ticketId', verifyUser, updateTicket);
+router.delete('/:ticketId', verifyAdmin, deleteTicket);
+router.post('/:ticketId/message', verifyUser, addMessage);
 
-import { verifyAdmin } from '../middleware/authMiddleware.js';
+import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
 // Admin Routes
 router.get('/admin/all', verifyAdmin, getAllTickets);

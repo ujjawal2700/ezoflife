@@ -1,31 +1,44 @@
-// Global fetch interceptor to catch unauthorized/expired admin requests and automatically attach Authorization headers
+/**
+ * Global fetch interceptor.
+ *
+ * Attaches the session JWT to EVERY call to our own API. It previously matched a
+ * hand-maintained list of "/admin"-ish URLs, which meant customer and vendor
+ * requests went out unauthenticated — so the server had no choice but to trust
+ * ids in the request body. Any new authenticated route also had to be added to
+ * that list by hand, and was silently unauthenticated until someone remembered.
+ *
+ * Sending a token to a public endpoint is harmless; the server ignores it.
+ */
 const originalFetch = window.fetch;
+
+/**
+ * Pick the token for the portal currently being used. Each portal stores its own
+ * key, and a browser may hold several (e.g. staff testing both apps).
+ */
+const getSessionToken = () => {
+    const path = (typeof window !== 'undefined' && window.location?.pathname) || '';
+    const pick = (...keys) => keys.map(k => localStorage.getItem(k)).find(Boolean) || null;
+
+    if (path.startsWith('/admin')) return pick('adminToken', 'token');
+    if (path.startsWith('/vendor')) return pick('vendorToken', 'token');
+    if (path.startsWith('/supplier')) return pick('supplierToken', 'token');
+    return pick('token', 'user_auth_token', 'vendorToken', 'supplierToken', 'adminToken');
+};
+
+/** Is this request going to our own backend? */
+const isOwnApi = (url) => {
+    if (!url) return false;
+    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+    return url.startsWith(base) || url.includes('/api/');
+};
+
 window.fetch = async (input, init) => {
     let url = typeof input === 'string' ? input : (input instanceof Request ? input.url : '');
     let options = init || {};
-    
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+
+    const token = getSessionToken();
     if (token) {
-        const urlLower = url.toLowerCase();
-        const isAdminEndpoint = urlLower.includes('/admin') || 
-                                (urlLower.includes('/geofence') && !urlLower.includes('/check-availability') && !urlLower.includes('/public/')) || 
-                                urlLower.includes('/area-overrides') || 
-                                (urlLower.includes('/master-pricing') && !urlLower.includes('fenceid=')) ||
-                                urlLower.includes('/supplier/requests') ||
-                                urlLower.includes('/labor/add') ||
-                                urlLower.includes('/labor/active-requests') ||
-                                urlLower.includes('/labor/place-request/') ||
-                                (urlLower.includes('/jobs/') && !urlLower.includes('/jobs/active') && !urlLower.includes('/jobs/apply') && !urlLower.includes('/jobs/vendor')) ||
-                                (urlLower.includes('/services') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) ||
-                                (urlLower.includes('/materials') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) ||
-                                (urlLower.includes('/categories') && (options.method === 'POST' || options.method === 'PUT' || options.method === 'DELETE')) ||
-                                (urlLower.includes('/faqs') && (options.method === 'POST' || options.method === 'PATCH' || options.method === 'DELETE')) ||
-                                (urlLower.includes('/feedback') && options.method === 'DELETE') ||
-                                (urlLower.includes('/tickets/admin')) ||
-                                (urlLower.includes('/partnerships/all')) ||
-                                (urlLower.includes('/media/inquiries'));
-                                
-        if (isAdminEndpoint) {
+        if (isOwnApi(url)) {
             if (typeof input === 'string') {
                 options.headers = options.headers || {};
                 if (options.headers instanceof Headers) {

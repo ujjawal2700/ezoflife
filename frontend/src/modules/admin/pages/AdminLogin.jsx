@@ -7,7 +7,6 @@ import { authApi } from '../../../lib/api';
 const AdminLogin = () => {
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
-  const [otpChannel, setOtpChannel] = useState('WhatsApp'); // 'WhatsApp' or 'SMS'
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastRequestedPhone, setLastRequestedPhone] = useState('');
@@ -19,13 +18,13 @@ const AdminLogin = () => {
     setLoading(true);
     setApiError('');
     try {
-      const response = await authApi.requestOtp(phoneVal, otpChannel, 'login', { role: 'Admin' });
+      const response = await authApi.requestOtp(phoneVal, 'WhatsApp', 'login', { role: 'Admin' });
       
       // Always set lastRequestedPhone to prevent infinite loops on error
       setLastRequestedPhone(phoneVal);
 
       if (response.message === 'OTP sent successfully' || response.message === 'Admin OTP sent successfully') {
-        navigate('/admin/otp', { state: { phone: phoneVal, channel: otpChannel } });
+        navigate('/admin/otp', { state: { phone: phoneVal, channel: 'WhatsApp' } });
       } else {
         const errorMsg = response.message || 'Something went wrong';
         setApiError(errorMsg);

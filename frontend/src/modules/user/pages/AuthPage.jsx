@@ -10,7 +10,6 @@ const AuthPage = () => {
 
   const [loginPhone, setLoginPhone] = useState('');
   const [signupPhone, setSignupPhone] = useState('');
-  const [otpChannel, setOtpChannel] = useState('WhatsApp'); // 'WhatsApp' or 'SMS'
   const [apiError, setApiError] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastRequestedPhone, setLastRequestedPhone] = useState('');
@@ -23,13 +22,13 @@ const AuthPage = () => {
     setLoading(true);
     setApiError('');
     try {
-      const response = await authApi.requestOtp(phone, otpChannel, type, extraData);
+      const response = await authApi.requestOtp(phone, 'WhatsApp', type, extraData);
       
       // Always set lastRequestedPhone to prevent infinite loops on error
       setLastRequestedPhone(phone);
 
       if (response.message === 'OTP sent successfully') {
-        navigate('/user/otp', { state: { phone, channel: otpChannel } });
+        navigate('/user/otp', { state: { phone, channel: 'WhatsApp' } });
       } else {
         const errorMsg = response.message || 'Something went wrong';
         setApiError(errorMsg);
@@ -89,18 +88,6 @@ const AuthPage = () => {
   const authTabs = useMemo(() => [
     { key: true, label: 'Login' },
     { key: false, label: 'Signup' }
-  ], []);
-
-  const WhatsAppIcon = ({ size = 16, className = "" }) => (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
-      <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217s.231.001.332.005c.109.004.258-.041.404.311.162.391.549 1.341.597 1.438.048.097.08.21.014.34-.066.13-.1.21-.2.325-.1.115-.21.257-.3.346-.1.091-.205.19-.087.394.119.204.529.873 1.137 1.414.783.699 1.444.916 1.646 1.017.204.102.323.086.444-.053.121-.139.521-.606.66-.813.14-.208.28-.174.472-.102.193.072 1.224.577 1.436.683.213.106.356.159.408.249.053.09.053.519-.091.924z"/>
-    </svg>
-  );
-
-  const otpChannels = useMemo(() => [
-    { id: 'WhatsApp', icon: 'chat', color: 'text-green-600' },
-    { id: 'Both', icon: 'all_inclusive', color: 'text-indigo-600' },
-    { id: 'SMS', icon: 'sms', color: 'text-primary' }
   ], []);
 
   return (

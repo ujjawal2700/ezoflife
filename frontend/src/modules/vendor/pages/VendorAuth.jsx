@@ -31,14 +31,6 @@ const VendorAuth = () => {
         visible: { opacity: 1, y: 0 }
     }), []);
 
-    const otpChannels = useMemo(() => [
-        { id: 'WhatsApp', icon: 'chat', color: 'text-green-600' },
-        { id: 'Both', icon: 'all_inclusive', color: 'text-indigo-600' },
-        { id: 'SMS', icon: 'sms', color: 'text-primary' }
-    ], []);
-
-    const [otpChannel, setOtpChannel] = useState('WhatsApp');
-
     return (
         <div className="bg-background font-body text-on-background min-h-[100dvh] flex flex-col overflow-x-hidden">
             {/* Hero */}
@@ -102,20 +94,6 @@ const VendorAuth = () => {
                                         </motion.div>
 
                                         <div className="space-y-6">
-                                            {/* OTP Channel Selector */}
-                                            <motion.div variants={itemVariants} className="flex bg-surface-container-low p-1 rounded-2xl border border-slate-300">
-                                                {otpChannels.map(channel => (
-                                                    <button 
-                                                        key={channel.id}
-                                                        onClick={() => setOtpChannel(channel.id)}
-                                                        className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-[1rem] text-[9px] font-black uppercase tracking-widest transition-all ${otpChannel === channel.id ? `bg-white shadow-sm ${channel.color}` : 'text-on-surface-variant opacity-40'}`}
-                                                    >
-                                                        <span className="material-symbols-outlined text-sm">{channel.icon}</span>
-                                                        {channel.id}
-                                                    </button>
-                                                ))}
-                                            </motion.div>
-
                                             <motion.div variants={itemVariants} className="relative group">
                                                 <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2.5 ml-1">Mobile Number</label>
                                                 <div className={`flex items-center bg-surface-container-low rounded-2xl p-1 border border-slate-300 transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/20 ${loginPhone.length > 0 && loginPhone.length !== 10 ? 'focus-within:ring-error/20 ring-error/10' : ''}`}>
@@ -132,6 +110,10 @@ const VendorAuth = () => {
                                                 {loginPhone.length > 0 && loginPhone.length !== 10 && (
                                                     <p className="text-[9px] text-error font-bold mt-2 ml-1 animate-pulse">Enter a valid 10-digit number</p>
                                                 )}
+                                                <p className="text-[10px] text-emerald-600 font-black mt-2.5 ml-1 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+                                                    OTP will be sent to WhatsApp
+                                                </p>
                                             </motion.div>
 
                                             <motion.button
@@ -141,9 +123,9 @@ const VendorAuth = () => {
                                                     if (loginPhone.length === 10) {
                                                         setApiError('');
                                                         try {
-                                                            const response = await authApi.requestOtp(loginPhone, otpChannel, 'login', 'Vendor');
+                                                            const response = await authApi.requestOtp(loginPhone, 'WhatsApp', 'login', 'Vendor');
                                                             if (response.message === 'OTP sent successfully') {
-                                                                navigate('/vendor/otp', { state: { phone: loginPhone, channel: otpChannel } });
+                                                                navigate('/vendor/otp', { state: { phone: loginPhone, channel: 'WhatsApp' } });
                                                             } else {
                                                                 setApiError(response.message || 'Something went wrong');
                                                             }
@@ -173,20 +155,6 @@ const VendorAuth = () => {
                                         </motion.div>
 
                                         <div className="space-y-4">
-                                            {/* OTP Channel Selector */}
-                                            <motion.div variants={itemVariants} className="flex bg-surface-container-low p-1 rounded-2xl border border-slate-300 mb-2">
-                                                {otpChannels.map(channel => (
-                                                    <button 
-                                                        key={channel.id}
-                                                        onClick={() => setOtpChannel(channel.id)}
-                                                        className={`flex-1 flex items-center justify-center gap-1 py-3 rounded-[1rem] text-[9px] font-black uppercase tracking-widest transition-all ${otpChannel === channel.id ? `bg-white shadow-sm ${channel.color}` : 'text-on-surface-variant opacity-40'}`}
-                                                    >
-                                                        <span className="material-symbols-outlined text-sm">{channel.icon}</span>
-                                                        {channel.id}
-                                                    </button>
-                                                ))}
-                                            </motion.div>
-
                                             <motion.div variants={itemVariants}>
                                                 <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-2.5 ml-1">Shop Name</label>
                                                 <input
@@ -217,6 +185,10 @@ const VendorAuth = () => {
                                                 {registerPhone.length > 0 && registerPhone.length !== 10 && (
                                                     <p className="text-[9px] text-error font-bold mt-2 ml-1">Enter a valid 10-digit number</p>
                                                 )}
+                                                <p className="text-[10px] text-emerald-600 font-black mt-2.5 ml-1 flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
+                                                    OTP will be sent to WhatsApp
+                                                </p>
                                             </motion.div>
 
                                             <motion.button
@@ -226,10 +198,10 @@ const VendorAuth = () => {
                                                     if (isRegisterValid) {
                                                         setApiError('');
                                                         try {
-                                                            const response = await authApi.requestOtp(registerPhone, otpChannel, 'signup', 'Vendor');
+                                                            const response = await authApi.requestOtp(registerPhone, 'WhatsApp', 'signup', 'Vendor');
                                                             if (response.message === 'OTP sent successfully') {
                                                                 // Note: we can also save shop name here or pass it to next step
-                                                                navigate('/vendor/otp', { state: { phone: registerPhone, channel: otpChannel, shopName: registerShop } });
+                                                                navigate('/vendor/otp', { state: { phone: registerPhone, channel: 'WhatsApp', shopName: registerShop } });
                                                             } else {
                                                                 setApiError(response.message || 'Something went wrong');
                                                             }

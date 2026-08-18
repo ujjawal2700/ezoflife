@@ -1,11 +1,10 @@
 /**
  * Authorization on order routes.
  *
- * Note: several order routes are still unauthenticated by design decision
- * pending a `verifyUser` middleware. Where that is the case, the test asserts
- * the CURRENT behaviour and is marked with a TODO so the suite goes red the
- * day the route is secured — that is the signal to tighten the assertion, not
- * a passing bill of health.
+ * All order mutations are behind `verifyUser`, and identity is taken from the
+ * token rather than the request body. These tests cover both halves: that a
+ * token is required at all, and that holding *a* token does not let you act on
+ * somebody else's order.
  */
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,7 +24,7 @@ after(async () => { if (env) await env.stop(); });
 
 const newOrder = async () => {
     const res = await api(env.baseUrl, '/api/orders', {
-        method: 'POST', body: orderPayload(customerId)
+        method: 'POST', body: orderPayload(customerId), token: customerToken
     });
     assert.equal(res.status, 201, 'fixture order should be created');
     return res.body._id;
@@ -73,8 +72,11 @@ describe('DELETE /api/orders/:id is admin-only', () => {
     test('the order is genuinely gone after an admin delete', async () => {
         const id = await newOrder();
         await api(env.baseUrl, `/api/orders/${id}`, { method: 'DELETE', token: tokenFor('Admin') });
-        const after = await api(env.baseUrl, `/api/orders/${id}`);
-        assert.ok(after.status === 404 || after.body === null, `order still retrievable (${after.status})`);
+
+        // Read back as Admin — an anonymous read would now be refused with 401,
+        // which would mask whether the record actually went.
+        const after = await api(env.baseUrl, `/api/orders/${id}`, { token: tokenFor('Admin') });
+        assert.equal(after.status, 404, `order still retrievable (${after.status})`);
     });
 });
 
@@ -95,24 +97,94 @@ describe('admin-only route groups reject non-admins', () => {
     });
 });
 
-describe('KNOWN GAPS — these routes are still unauthenticated', () => {
-    // TODO: secure with a verifyUser middleware + ownership checks.
-    // When that lands, these tests will fail and must be flipped to expect 401/403.
+describe('order mutations require authentication', () => {
+    // These were the KNOWN GAPS block. The routes are now behind verifyUser and
+    // identity is taken from the token, so the assertions are inverted.
 
-    test('TODO(security): order creation accepts an arbitrary customerId', async () => {
+    test('order creation is refused without a token', async () => {
         const res = await api(env.baseUrl, '/api/orders', {
             method: 'POST', body: orderPayload(customerId)
         });
-        assert.equal(res.status, 201,
-            'If this now fails, order creation was secured — update this test to expect 401.');
+        assert.equal(res.status, 401);
     });
 
-    test('TODO(security): status can be changed without a token', async () => {
+    test('status cannot be changed without a token', async () => {
         const id = await newOrder();
         const res = await api(env.baseUrl, `/api/orders/status/${id}`, {
             method: 'PATCH', body: { status: 'DELIVERED' }
         });
-        assert.ok(res.status < 400,
-            'If this now fails, status updates were secured — update this test to expect 401.');
+        assert.equal(res.status, 401);
+    });
+
+    test('cancellation is refused without a token', async () => {
+        const id = await newOrder();
+        const res = await api(env.baseUrl, `/api/orders/cancel/${id}`, { method: 'POST', body: {} });
+        assert.equal(res.status, 401);
+    });
+
+    test('an order cannot be read without a token', async () => {
+        const id = await newOrder();
+        const res = await api(env.baseUrl, `/api/orders/${id}`);
+        assert.equal(res.status, 401);
+    });
+});
+
+describe('a customer cannot act as another customer', () => {
+    test('a body-supplied customerId is ignored — the order belongs to the caller', async () => {
+        const other = await createUser(api, env.baseUrl, '9990000021', 'Customer');
+
+        // Caller is `customerToken`, but the body claims someone else placed it.
+        const res = await api(env.baseUrl, '/api/orders', {
+            method: 'POST',
+            body: orderPayload(other.id),
+            token: customerToken
+        });
+
+        assert.equal(res.status, 201);
+        const owner = res.body.customer?._id || res.body.customer;
+        assert.equal(
+            String(owner), String(customerId),
+            'the order was attributed to the id in the body rather than the token holder'
+        );
+    });
+
+    test('one customer cannot read another customer\'s order', async () => {
+        const id = await newOrder();                                   // owned by customerId
+        const intruder = await createUser(api, env.baseUrl, '9990000022', 'Customer');
+
+        const res = await api(env.baseUrl, `/api/orders/${id}`, { token: intruder.token });
+        assert.equal(res.status, 403);
+    });
+
+    test('one customer cannot cancel another customer\'s order', async () => {
+        const id = await newOrder();
+        const intruder = await createUser(api, env.baseUrl, '9990000023', 'Customer');
+
+        const res = await api(env.baseUrl, `/api/orders/cancel/${id}`, {
+            method: 'POST', body: {}, token: intruder.token
+        });
+        assert.equal(res.status, 403);
+    });
+
+    test('an unrelated vendor cannot change an order\'s status', async () => {
+        const id = await newOrder();
+        const stranger = await createUser(api, env.baseUrl, '9990000024', 'Vendor');
+
+        const res = await api(env.baseUrl, `/api/orders/status/${id}`, {
+            method: 'PATCH', body: { status: 'DELIVERED' }, token: stranger.token
+        });
+        assert.equal(res.status, 403);
+    });
+
+    test('a customer only sees their own orders in /my', async () => {
+        await newOrder();
+        const intruder = await createUser(api, env.baseUrl, '9990000025', 'Customer');
+
+        // Even asking for someone else's id, the token decides.
+        const res = await api(env.baseUrl, `/api/orders/my?customerId=${customerId}`, {
+            token: intruder.token
+        });
+        const orders = Array.isArray(res.body) ? res.body : (res.body.orders || []);
+        assert.equal(orders.length, 0, 'a customer saw another customer\'s orders');
     });
 });
