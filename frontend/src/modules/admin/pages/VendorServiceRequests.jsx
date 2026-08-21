@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ClipboardList, 
@@ -9,7 +10,8 @@ import {
   AlertTriangle,
   FolderOpen,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
@@ -17,6 +19,7 @@ import { serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 
 export default function VendorServiceRequests() {
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(null);
@@ -446,9 +449,21 @@ export default function VendorServiceRequests() {
                               </button>
                             </>
                           ) : (
-                            <span className="px-2.5 py-1 text-[8px] font-black text-amber-500 bg-amber-50 rounded uppercase tracking-wider border border-amber-100">
-                              Setup Category/Service First
-                            </span>
+                            <button
+                              onClick={() => navigate('/admin/master-services', { 
+                                state: { 
+                                  openCreate: true, 
+                                  itemName: req.name, 
+                                  basePrice: req.basePrice, 
+                                  description: req.description 
+                                } 
+                              })}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white text-[9px] font-black uppercase tracking-wider border border-amber-200/80 transition-all shadow-sm active:scale-95 cursor-pointer group"
+                              title="Click to create Master Service & Category for this request"
+                            >
+                              <Plus className="w-3.5 h-3.5 text-amber-500 group-hover:text-white group-hover:rotate-90 transition-transform" />
+                              <span>Setup Category/Service First</span>
+                            </button>
                           )}
                         </div>
                       </td>

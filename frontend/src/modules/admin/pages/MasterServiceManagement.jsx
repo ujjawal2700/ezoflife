@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { masterServiceApi, categoryApi } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
@@ -10,6 +11,7 @@ import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 
 const MasterServiceManagement = () => {
+    const location = useLocation();
     const [services, setServices] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,6 +52,22 @@ const MasterServiceManagement = () => {
         fetchCategories();
         fetchServices();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.openCreate) {
+            setCurrentService(null);
+            setFormData(prev => ({
+                ...prev,
+                itemName: location.state.itemName || '',
+                basePrice: location.state.basePrice || 0,
+                description: location.state.description || ''
+            }));
+            setIsModalOpen(true);
+            if (location.state.itemName) {
+                toast.success(`Pre-filled details for: ${location.state.itemName}`, { icon: '✨' });
+            }
+        }
+    }, [location.state]);
 
     const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
 
