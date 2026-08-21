@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { materialApi, b2bOrderApi, adminApi } from '../../../lib/api';
+import { materialApi, b2bOrderApi, adminApi, BASE_URL } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import B2BInvoicePrint from '../components/B2BInvoicePrint';
 import { Printer, X, FileText } from 'lucide-react';
@@ -52,7 +52,6 @@ const MaterialRequestPage = () => {
     const [orderChatMessages, setOrderChatMessages] = useState([]);
     const [chatLoading, setChatLoading] = useState(false);
     const messagesEndRef = React.useRef(null);
-    const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
     useEffect(() => {
         sessionStorage.setItem('vendorB2BCart', JSON.stringify(cart));
     }, [cart]);
@@ -957,7 +956,6 @@ const MaterialRequestPage = () => {
                                                 onClick={async () => {
                                                     if (!chatModal.message.trim()) return;
                                                     try {
-                                                        const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
                                                         await fetch(`${BASE_URL}/vendor-product-queries/message`, {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },

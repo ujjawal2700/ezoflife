@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { masterServiceApi, categoryApi } from '../../../lib/api';
+import { masterServiceApi, categoryApi, BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -23,7 +23,7 @@ const PricingPreview = () => {
     const fetchInitialData = async () => {
         try {
             const [areaData, catData] = await Promise.all([
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/geofence/areas`).then(res => res.json()),
+                fetch(`${BASE_URL}/geofence/areas`).then(res => res.json()),
                 categoryApi.getAll()
             ]);
             setAreas(areaData);

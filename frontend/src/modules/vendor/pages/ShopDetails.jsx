@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GoogleMap, useLoadScript, Marker, Autocomplete } from '@react-google-maps/api';
 import { GOOGLE_MAPS_LOADER_OPTIONS } from '../../../lib/googleMaps';
-import { authApi, masterServiceApi } from '../../../lib/api';
+import { authApi, masterServiceApi, BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 
 const mapContainerStyle = {
@@ -84,11 +84,11 @@ const ShopDetails = () => {
         if (location && location.lat && location.lng) {
             const fetchPricing = async () => {
                 try {
-                    const geoRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/geofence/check-availability?lat=${location.lat}&lng=${location.lng}`);
+                    const geoRes = await fetch(`${BASE_URL}/geofence/check-availability?lat=${location.lat}&lng=${location.lng}`);
                     if (geoRes.ok) {
                         const geoData = await geoRes.json();
                         if (geoData.available && geoData.areaId) {
-                            const pricingRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/master-pricing?fenceId=${geoData.areaId}&limit=10000`);
+                            const pricingRes = await fetch(`${BASE_URL}/master-pricing?fenceId=${geoData.areaId}&limit=10000`);
                             if (pricingRes.ok) {
                                 const pData = await pricingRes.json();
                                 const pMap = {};

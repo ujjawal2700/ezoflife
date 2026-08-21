@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { legalApi, mediaApi, UPLOADS_URL } from '../../../lib/api';
+import { legalApi, mediaApi, UPLOADS_URL, BASE_URL } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
 const AdminLegalPage = ({ type }) => {
@@ -74,7 +74,7 @@ const AdminLegalPage = ({ type }) => {
         setPdfUrl(''); // Clear current URL until upload succeeds
 
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/media/upload-pdf`, true);
+        xhr.open('POST', `${BASE_URL}/media/upload-pdf`, true);
 
         xhr.upload.onprogress = (event) => {
             if (event.lengthComputable) {

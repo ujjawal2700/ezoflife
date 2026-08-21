@@ -21,7 +21,7 @@ export default function DisputeCenter() {
 
   useEffect(() => {
     fetchTickets();
-    socketRef.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+    socketRef.current = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
     
     socketRef.current.on('new_ticket', (data) => {
       // Refresh list if it's a dispute category

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { masterServiceApi, areaOverrideApi, categoryApi } from '../../../lib/api';
+import { masterServiceApi, areaOverrideApi, categoryApi, BASE_URL } from '../../../lib/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -25,7 +25,7 @@ const AreaPricingOverrides = () => {
     const fetchInitialData = async () => {
         try {
             const [areaRes, serviceRes] = await Promise.all([
-                fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/geofence/areas`).then(res => res.json()),
+                fetch(`${BASE_URL}/geofence/areas`).then(res => res.json()),
                 masterServiceApi.getAll()
             ]);
             setAreas(areaRes);
@@ -76,7 +76,7 @@ const AreaPricingOverrides = () => {
         if (!selectedAreaId) return;
         setMultiplierSaving(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001/api'}/geofence/areas/${selectedAreaId}`, {
+            const res = await fetch(`${BASE_URL}/geofence/areas/${selectedAreaId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pricingFactor: parseFloat(newVal) })

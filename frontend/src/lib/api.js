@@ -25,11 +25,21 @@ const getSessionToken = () => {
     return pick('token', 'user_auth_token', 'vendorToken', 'supplierToken', 'adminToken');
 };
 
+const getApiBaseUrl = () => {
+    let raw = (import.meta.env.VITE_API_URL || 'http://localhost:5001/api').trim().replace(/\/$/, '');
+    if (!raw.endsWith('/api')) {
+        raw += '/api';
+    }
+    return raw;
+};
+
+export const BASE_URL = getApiBaseUrl();
+export const UPLOADS_URL = BASE_URL.replace(/\/api$/, '') + '/uploads/';
+
 /** Is this request going to our own backend? */
 const isOwnApi = (url) => {
     if (!url) return false;
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-    return url.startsWith(base) || url.includes('/api/');
+    return url.startsWith(BASE_URL) || url.includes('/api/');
 };
 
 window.fetch = async (input, init) => {
@@ -91,9 +101,6 @@ window.fetch = async (input, init) => {
     }
     return res;
 };
-
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
-export const UPLOADS_URL = BASE_URL.replace('/api', '') + '/uploads/';
 
 // ─── Admin Auth Helpers ───────────────────────────────────────────────────────
 // These are used by every admin API call to attach the JWT token.
