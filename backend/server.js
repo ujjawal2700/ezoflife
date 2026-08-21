@@ -69,19 +69,39 @@ initPickupScheduler();
 startOrderAggregationJob();
 
 // Middleware
-const allowedOrigins = [
-    process.env.FRONTEND_URL?.replace(/\/$/, ''), 
+const envOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map(o => o.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+const defaultOrigins = [
     'http://localhost:5173', 
-    'http://localhost:5174'
-].filter(Boolean);
+    'http://localhost:5174',
+    'https://ezoflife-six.vercel.app'
+];
+
+const allowedOrigins = Array.from(new Set([...envOrigins, ...defaultOrigins]));
 
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
         
-        const cleanOrigin = origin.replace(/\/$/, '');
-        if (allowedOrigins.includes(cleanOrigin) || allowedOrigins.includes('*')) {
+        let cleanOrigin = origin.trim().replace(/\/$/, '');
+        try {
+            cleanOrigin = new URL(origin).origin;
+        } catch (e) {}
+
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed === '*') return true;
+            let cleanAllowed = allowed.trim().replace(/\/$/, '');
+            try {
+                cleanAllowed = new URL(allowed).origin;
+            } catch (e) {}
+            return cleanOrigin === cleanAllowed;
+        });
+
+        if (isAllowed || cleanOrigin.endsWith('.vercel.app')) {
             callback(null, true);
         } else {
             console.log('🚫 CORS Blocked Origin:', origin);
