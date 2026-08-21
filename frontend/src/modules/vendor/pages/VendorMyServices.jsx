@@ -201,25 +201,79 @@ const VendorMyServices = () => {
         }
     }, [vendorId]);
 
-    const toggleService = (serviceId) => {
-        if (!editMode) return;
+    const toggleServiceDirectly = async (serviceId) => {
+        const targetService = services.find(s => (s._id || s.id) === serviceId);
+        if (!targetService) return;
+
+        if (targetService.approvalStatus !== 'Approved' && targetService.approvalStatus !== undefined) {
+            if (targetService.approvalStatus === 'Rejected') {
+                toast.error('This service was rejected by the Admin.');
+            } else {
+                toast.error('This service is waiting for Admin approval.');
+            }
+            return;
+        }
+
+        const newActiveState = !targetService.active;
+
         setServices(prev => prev.map(item => {
             if ((item._id || item.id) === serviceId) {
-                if (item.approvalStatus !== 'Approved') {
-                    alert(item.approvalStatus === 'Rejected' ? 'This service was rejected by the Admin.' : 'This service is waiting for Admin approval. You cannot activate it yet.');
-                    return item;
-                }
-                const newStatus = !item.active;
-                if (newStatus === false) {
-                    toast('If you save this service as inactive, you will not receive notifications for it.', {
-                        icon: '⚠️',
-                        duration: 4000
-                    });
-                }
-                return { ...item, active: newStatus };
+                return { ...item, active: newActiveState, status: newActiveState ? 'Active' : 'Inactive' };
             }
             return item;
         }));
+
+        try {
+            if (!vendorId) return;
+            const profile = await authApi.getProfile(vendorId);
+            let currentServices = profile.shopDetails?.services || [];
+            
+            const sId = serviceId;
+            const existingIdx = currentServices.findIndex(s => (s.id === sId || s._id === sId));
+
+            if (existingIdx !== -1) {
+                currentServices[existingIdx].active = newActiveState;
+            } else {
+                currentServices.push({
+                    id: sId,
+                    name: targetService.name,
+                    vendorRate: Number(targetService.basePrice),
+                    adminRate: Number(targetService.basePrice),
+                    status: 'approved',
+                    icon: targetService.icon,
+                    active: newActiveState,
+                    normalTime: '',
+                    expressTime: ''
+                });
+            }
+
+            const updatedShopDetails = {
+                ...(profile.shopDetails || {}),
+                services: currentServices
+            };
+
+            await authApi.updateProfile(vendorId, { shopDetails: updatedShopDetails });
+
+            if (targetService.vendorId || targetService.isMaster === false) {
+                await serviceApi.update(sId, { 
+                    status: newActiveState ? 'Active' : 'Inactive',
+                    basePrice: Number(targetService.basePrice)
+                });
+            }
+
+            toast.success(`Service "${targetService.name}" is now ${newActiveState ? 'Active' : 'Inactive'}!`, {
+                icon: newActiveState ? '⚡' : '⏸️'
+            });
+        } catch (err) {
+            console.error('Toggle service error:', err);
+            toast.error('Failed to update service status');
+            setServices(prev => prev.map(item => {
+                if ((item._id || item.id) === serviceId) {
+                    return { ...item, active: !newActiveState };
+                }
+                return item;
+            }));
+        }
     };
 
     const handleOpenServiceEditModal = (service) => {
@@ -603,14 +657,17 @@ const VendorMyServices = () => {
                                                                         Accept
                                                                     </button>
                                                                 ) : (
-                                                                    <div 
-                                                                        className={`w-10 h-5 rounded-full relative transition-all duration-300 opacity-90 ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
+                                                                    <button 
+                                                                        type="button"
+                                                                        onClick={() => toggleServiceDirectly(service._id || service.id)}
+                                                                        className={`w-10 h-5 rounded-full relative transition-all duration-300 opacity-90 cursor-pointer hover:scale-105 active:scale-95 ${service.active ? 'bg-slate-900' : 'bg-slate-200'}`}
+                                                                        title={service.active ? "Click to deactivate" : "Click to activate"}
                                                                     >
                                                                         <motion.div 
                                                                             animate={{ x: service.active ? 22 : 2 }}
                                                                             className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
                                                                         />
-                                                                    </div>
+                                                                    </button>
                                                                 )}
                                                             </div>
                                                         </td>
