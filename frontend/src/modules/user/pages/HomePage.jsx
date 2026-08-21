@@ -541,10 +541,15 @@ const HomePage = () => {
       
       // Fetch all categories to check which ones are active
       const activeCategoryIds = new Set();
+      const activeCategoryNames = new Set();
       try {
         const allCats = await categoryApi.getAll();
         if (Array.isArray(allCats)) {
-          allCats.filter(c => c.isActive).forEach(c => activeCategoryIds.add(c._id.toString()));
+          allCats.filter(c => c.isActive).forEach(c => {
+            if (c._id) activeCategoryIds.add(c._id.toString());
+            if (c.mainCategory) activeCategoryNames.add(c.mainCategory.trim().toLowerCase());
+            if (c.subCategory) activeCategoryNames.add(c.subCategory.trim().toLowerCase());
+          });
         }
       } catch (err) {
         console.error('Error loading active categories:', err);
@@ -571,14 +576,21 @@ const HomePage = () => {
           subCategoryName: catObj?.subCategory || (typeof s.subCategory === 'string' ? s.subCategory : s.subCategory?.name)
         };
       }).filter(s => {
-        const isActive = s.status === 'Active' || s.isActive === true;
+        const isActive = s.status === 'Active' || s.isActive === true || s.active === true;
         const isApproved = s.isMaster || s.approvalStatus === 'Approved';
         const target = (s.targetAudience || 'both').toLowerCase();
-        const isMatch = target === 'both' || target === customerType || (customerType === 'retail' && target === 'individual');
+        const isMatch = target === 'both' || target === customerType || (customerType === 'retail' && target === 'individual') || !s.targetAudience;
         
-        // Category must be active
-        const sCatId = s.categoryId?._id || s.categoryId || s.category?._id || s.category;
-        const isCategoryActive = sCatId ? activeCategoryIds.has(sCatId.toString()) : true;
+        // Category must be active (check both ObjectId and category name string)
+        const sCatId = s.categoryId?._id || s.categoryId;
+        const catName = typeof s.category === 'string' ? s.category.trim().toLowerCase() : (s.category?.mainCategory || s.mainCategory || '').trim().toLowerCase();
+        
+        let isCategoryActive = true;
+        if (sCatId && activeCategoryIds.size > 0 && activeCategoryIds.has(sCatId.toString())) {
+          isCategoryActive = true;
+        } else if (catName && activeCategoryNames.size > 0) {
+          isCategoryActive = activeCategoryNames.has(catName);
+        }
 
         const isCurrIndActive = s.isMaster ? (String(s.curr_ind || 'y').toLowerCase() === 'y') : true;
 

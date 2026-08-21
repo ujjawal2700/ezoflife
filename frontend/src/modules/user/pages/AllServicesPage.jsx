@@ -30,7 +30,7 @@ const AllServicesPage = () => {
         ...(Array.isArray(customRes) ? customRes.map(s => ({ ...s, isMaster: false })) : [])
       ];
 
-      setServices(combined.filter(s => (s.status === 'Active' || s.isActive === true) && (s.isMaster || s.approvalStatus === 'Approved')));
+      setServices(combined.filter(s => (s.status === 'Active' || s.isActive === true || s.active === true) && (s.isMaster || s.approvalStatus === 'Approved')));
     } catch (error) {
       console.error('Error fetching services:', error);
     } finally {

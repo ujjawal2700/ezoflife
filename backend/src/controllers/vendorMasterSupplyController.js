@@ -459,11 +459,20 @@ export const vendorMasterSupplyController = {
                 return res.status(404).json({ message: 'Vendor not found' });
             }
 
-            // 2. Resolve matching pincodes based on coordinates/geofence
+            // 2. Resolve matching pincodes based on coordinates/geofence/address
             const matchingPincodes = [];
-            const vendorPincode = vendor.shopDetails?.pincode;
-            if (vendorPincode) {
-                matchingPincodes.push(vendorPincode);
+            const rawPincode = vendor.shopDetails?.pincode || vendor.pincode || vendor.supplierDetails?.pincode;
+            if (rawPincode) {
+                matchingPincodes.push(String(rawPincode).trim());
+            }
+
+            // Extract 6-digit pincode from address strings if pincode field is missing
+            if (matchingPincodes.length === 0) {
+                const fullAddr = `${vendor.address || ''} ${vendor.shopDetails?.address || ''} ${vendor.businessAddress || ''}`;
+                const pinMatch = fullAddr.match(/\b[1-9][0-9]{5}\b/);
+                if (pinMatch) {
+                    matchingPincodes.push(pinMatch[0]);
+                }
             }
 
             const vLat = Number(vendor.location?.lat || 0);
@@ -485,26 +494,24 @@ export const vendorMasterSupplyController = {
 
                 if (serviceArea && serviceArea.pincodes && serviceArea.pincodes.length > 0) {
                     serviceArea.pincodes.forEach(pin => {
-                        if (!matchingPincodes.includes(pin)) {
-                            matchingPincodes.push(pin);
+                        if (!matchingPincodes.includes(String(pin).trim())) {
+                            matchingPincodes.push(String(pin).trim());
                         }
                     });
                 }
             }
 
-            if (matchingPincodes.length === 0) {
-                return res.status(400).json({ message: 'Vendor has no pincode configured and coordinates are outside any active Service Area geofence' });
+            // 3. Find active Supplier Service Zones
+            const SupplierServiceZone = (await import('../models/SupplierServiceZone.js')).default;
+            let zoneQuery = { isActive: true };
+            if (matchingPincodes.length > 0) {
+                zoneQuery.pincodes = { $in: matchingPincodes };
             }
 
-            // 3. Find active Supplier Service Zones that serve any of these pincodes
-            const SupplierServiceZone = (await import('../models/SupplierServiceZone.js')).default;
-            const zones = await SupplierServiceZone.find({
-                pincodes: { $in: matchingPincodes },
-                isActive: true
-            });
+            const zones = await SupplierServiceZone.find(zoneQuery);
 
             // Extract supplierIds and map their delivery settings
-            const supplierIds = zones.map(z => z.supplierId);
+            let supplierIds = zones.map(z => z.supplierId);
             const supplierZoneMap = {};
             zones.forEach(z => {
                 supplierZoneMap[z.supplierId] = {
@@ -515,12 +522,15 @@ export const vendorMasterSupplyController = {
                 };
             });
 
-            // 4. Find all active supplies in VendorMasterSupply belonging to these suppliers
+            // 4. Find all active supplies in VendorMasterSupply
             const query = {
                 isActive: 'y',
-                approvalStatus: { $in: ['Approved', null, undefined] },
-                supplierId: { $in: supplierIds }
+                approvalStatus: { $in: ['Approved', null, undefined] }
             };
+
+            if (supplierIds.length > 0) {
+                query.supplierId = { $in: supplierIds };
+            }
 
             const supplies = await VendorMasterSupply.find(query)
                 .populate('categoryId')

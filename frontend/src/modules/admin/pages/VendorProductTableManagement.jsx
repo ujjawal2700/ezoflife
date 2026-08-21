@@ -693,6 +693,72 @@ const VendorProductTableManagement = () => {
                                     />
                                 </div>
 
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Wholesale Rate (₹) *</label>
+                                    <input 
+                                        type="number" required min="0"
+                                        value={formData.wholesaleRate}
+                                        onChange={(e) => setFormData({ ...formData, wholesaleRate: e.target.value })}
+                                        placeholder="E.g. 500"
+                                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Quantity / Stock Unit *</label>
+                                    <input 
+                                        type="text" required
+                                        value={formData.quantity}
+                                        onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                                        placeholder="E.g. 25 Kg Bag, 100 Units"
+                                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Supplier ID</label>
+                                    <input 
+                                        type="text"
+                                        value={formData.supplierId}
+                                        onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
+                                        placeholder="E.g. SUP-001"
+                                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Supplier Facility Name</label>
+                                    <input 
+                                        type="text"
+                                        value={formData.supplierFacilityName}
+                                        onChange={(e) => setFormData({ ...formData, supplierFacilityName: e.target.value })}
+                                        placeholder="E.g. Central Warehouse"
+                                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Bulk Discount (%)</label>
+                                    <input 
+                                        type="number" min="0" max="100"
+                                        value={formData.bulkDiscount}
+                                        onChange={(e) => setFormData({ ...formData, bulkDiscount: e.target.value })}
+                                        placeholder="0"
+                                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Bulk Threshold (Units)</label>
+                                    <input 
+                                        type="number" min="0"
+                                        value={formData.bulkThreshold}
+                                        onChange={(e) => setFormData({ ...formData, bulkThreshold: e.target.value })}
+                                        placeholder="0"
+                                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-sm text-xs font-bold text-slate-800 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                    />
+                                </div>
+
                                 <div className="space-y-1.5 col-span-2">
                                     <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Active Status</label>
                                     <select

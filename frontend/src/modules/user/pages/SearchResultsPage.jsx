@@ -28,7 +28,7 @@ const SearchResultsPage = () => {
         const combined = [
             ...masterRes.map(s => ({ ...s, isMaster: true })),
             ...vendorRes.map(s => ({ ...s, isMaster: false }))
-        ].filter(s => s.status === 'Active' && (s.isMaster || s.approvalStatus === 'Approved'));
+        ].filter(s => (s.status === 'Active' || s.isActive === true || s.active === true) && (s.isMaster || s.approvalStatus === 'Approved'));
 
         setServices(combined);
       } catch (err) {

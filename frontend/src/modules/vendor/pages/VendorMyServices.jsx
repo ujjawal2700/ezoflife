@@ -254,11 +254,13 @@ const VendorMyServices = () => {
 
             await authApi.updateProfile(vendorId, { shopDetails: updatedShopDetails });
 
-            if (targetService.vendorId || targetService.isMaster === false) {
+            try {
                 await serviceApi.update(sId, { 
                     status: newActiveState ? 'Active' : 'Inactive',
-                    basePrice: Number(targetService.basePrice)
+                    basePrice: Number(targetService.basePrice || 0)
                 });
+            } catch (e) {
+                console.log('Skipped direct Service.update for master service');
             }
 
             toast.success(`Service "${targetService.name}" is now ${newActiveState ? 'Active' : 'Inactive'}!`, {
