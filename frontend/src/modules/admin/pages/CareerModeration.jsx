@@ -119,10 +119,13 @@ const CareerModeration = ({ creatorFilter = 'Admin' }) => {
         try {
             setLoading(true);
             const data = await jobApi.getAdminAll();
-            // Filter based on creator role (Admin or Vendor)
-            const filteredJobs = (Array.isArray(data) ? data : []).filter(
-                job => job.creatorRole === creatorFilter
-            );
+            // Filter based on creator role (Admin, Vendor, Supplier or All)
+            const filteredJobs = (Array.isArray(data) ? data : []).filter(job => {
+                if (!creatorFilter || creatorFilter === 'All') return true;
+                const role = (job.creatorRole || 'Vendor').trim().toLowerCase();
+                const target = creatorFilter.trim().toLowerCase();
+                return role === target;
+            });
             setJobs(filteredJobs);
         } catch (error) {
             console.error('Fetch all jobs error:', error);

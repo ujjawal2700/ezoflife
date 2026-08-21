@@ -4,10 +4,15 @@ import User from '../models/User.js';
 import { sendJobApplicationConfirmation, sendAdminJobApplicationNotification } from '../utils/emailHelper.js';
 import { httpStatusForError } from '../utils/errorResponse.js';
 
-// Vendor: Post a new job
+// Vendor/Supplier/Admin: Post a new job
 export const createJob = async (req, res) => {
     try {
-        const { title, category, jobType, type, description, experience, salary, location, skills, requirements, vendorId, companyName, creatorRole, shiftStartTime, shiftEndTime } = req.body;
+        const { 
+            title, category, jobType, type, description, experience, 
+            salary, minSalary, maxSalary, city, area, pincode, location, hideAddress,
+            skills, requirements, vendorId, companyName, creatorRole, 
+            shiftStartTime, shiftEndTime, status 
+        } = req.body;
         
         const count = await Job.countDocuments();
         const jobCode = `JOB-${String(count + 1).padStart(4, '0')}`;
@@ -19,20 +24,27 @@ export const createJob = async (req, res) => {
             description, 
             experience, 
             salary, 
+            minSalary,
+            maxSalary,
+            city,
+            area,
+            pincode,
             location, 
+            hideAddress: hideAddress || false,
             skills,
             requirements,
             shiftStartTime,
             shiftEndTime,
             jobCode,
-            vendor: creatorRole === 'Admin' ? null : vendorId,
+            vendor: (creatorRole === 'Admin' || !vendorId) ? null : vendorId,
             companyName,
             creatorRole: creatorRole || 'Vendor',
-            status: 'Active'
+            status: status || 'Active'
         });
         await newJob.save();
         res.status(201).json(newJob);
     } catch (error) {
+        console.error('Create job error:', error);
         res.status(httpStatusForError(error)).json({ message: error.message });
     }
 };
@@ -51,8 +63,10 @@ export const getVendorJobs = async (req, res) => {
 // Customer/Public: Get all active jobs
 export const getAllActiveJobs = async (req, res) => {
     try {
-        const jobs = await Job.find({ status: 'Active' })
-            .populate('vendor', 'displayName profileImage')
+        const jobs = await Job.find({ 
+            status: { $in: ['Active', 'Open', 'Published'] } 
+        })
+            .populate('vendor', 'displayName profileImage shopDetails supplierDetails')
             .sort({ createdAt: -1 });
         res.json(jobs);
     } catch (error) {
@@ -156,10 +170,13 @@ export const getVendorApplications = async (req, res) => {
 export const getAdminApplications = async (req, res) => {
     try {
         const { creatorRole } = req.query;
-        const query = creatorRole ? { creatorRole } : {};
+        let query = {};
+        if (creatorRole && creatorRole !== 'All') {
+            query = { creatorRole: { $regex: new RegExp(`^${creatorRole}$`, 'i') } };
+        }
         const applications = await JobApplication.find(query)
-            .populate('job', 'title')
-            .populate('applicant', 'displayName profileImage email')
+            .populate('job', 'title creatorRole companyName location status')
+            .populate('applicant', 'displayName profileImage email phone')
             .sort({ createdAt: -1 });
         res.json(applications);
     } catch (error) {
@@ -169,7 +186,9 @@ export const getAdminApplications = async (req, res) => {
 
 export const getAdminAllJobs = async (req, res) => {
     try {
-        const jobs = await Job.find().sort({ createdAt: -1 });
+        const jobs = await Job.find()
+            .populate('vendor', 'displayName profileImage email phone shopDetails supplierDetails')
+            .sort({ createdAt: -1 });
         res.json(jobs);
     } catch (error) {
         res.status(httpStatusForError(error)).json({ message: error.message });
