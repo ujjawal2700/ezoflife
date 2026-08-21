@@ -61,20 +61,30 @@ export const getAllServices = async (req, res) => {
             let masterServiceDetails = null;
 
             if (!service.isMaster && service.approvalStatus === 'Pending') {
-                const cat = await Category.findOne({
-                    mainCategory: { $regex: new RegExp(`^${service.category.trim()}$`, 'i') },
-                    subCategory: { $regex: new RegExp(`^${service.subCategory.trim()}$`, 'i') }
-                });
+                const escapeRegex = (str) => (str || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&').trim();
+                const categoryName = escapeRegex(service.category);
+                const serviceName = escapeRegex(service.name);
 
-                if (cat) {
-                    const masterSvc = await MasterService.findOne({
-                        itemName: { $regex: new RegExp(`^${service.name.trim()}$`, 'i') },
-                        categoryId: cat._id
+                let cat = null;
+                if (categoryName) {
+                    cat = await Category.findOne({
+                        $or: [
+                            { mainCategory: { $regex: new RegExp(categoryName, 'i') } },
+                            { subCategory: { $regex: new RegExp(categoryName, 'i') } }
+                        ]
                     });
-                    if (masterSvc) {
-                        hasMasterService = true;
-                        masterServiceDetails = masterSvc;
-                    }
+                }
+
+                let masterSvc = null;
+                if (serviceName) {
+                    masterSvc = await MasterService.findOne({
+                        itemName: { $regex: new RegExp(`^${serviceName}$`, 'i') }
+                    });
+                }
+
+                if (cat || masterSvc) {
+                    hasMasterService = true;
+                    masterServiceDetails = masterSvc;
                 }
             }
 
