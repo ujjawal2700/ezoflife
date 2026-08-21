@@ -1252,3 +1252,50 @@ export const getSubAdmins = async (req, res) => {
         res.status(500).json({ message: 'Error fetching sub-admins' });
     }
 };
+
+// Get counts for admin sidebar badges needing attention
+export const getSidebarCounts = async (req, res) => {
+    try {
+        const User = (await import('../models/User.js')).default;
+        const SupplierApplication = (await import('../models/SupplierApplication.js')).default;
+        const Service = (await import('../models/Service.js')).default;
+        const VendorMasterSupply = (await import('../models/VendorMasterSupply.js')).default;
+
+        let HelpDeskTicket = null;
+        try { HelpDeskTicket = (await import('../models/HelpDeskTicket.js')).default; } catch (e) {}
+
+        let Dispute = null;
+        try { Dispute = (await import('../models/Dispute.js')).default; } catch (e) {}
+
+        const [
+            vendorRegCount,
+            supplierRegCount,
+            vendorServiceCount,
+            supplierProductCount,
+            ticketCount,
+            disputeCount
+        ] = await Promise.all([
+            User.countDocuments({ role: 'Vendor', status: 'pending' }),
+            SupplierApplication.countDocuments({ status: 'Pending' }),
+            Service.countDocuments({ isMaster: false, approvalStatus: 'Pending' }),
+            VendorMasterSupply.countDocuments({ approvalStatus: 'Pending' }),
+            HelpDeskTicket ? HelpDeskTicket.countDocuments({ status: { $in: ['Open', 'In Progress', 'Pending'] } }) : Promise.resolve(0),
+            Dispute ? Dispute.countDocuments({ status: 'Pending' }) : Promise.resolve(0)
+        ]);
+
+        const registrationTotal = vendorRegCount + supplierRegCount;
+
+        res.status(200).json({
+            vendorRegistrations: vendorRegCount,
+            supplierRegistrations: supplierRegCount,
+            registrationTotal,
+            vendorServices: vendorServiceCount,
+            supplierProducts: supplierProductCount,
+            supportTickets: ticketCount,
+            disputes: disputeCount
+        });
+    } catch (err) {
+        console.error('Sidebar counts error:', err);
+        res.status(500).json({ message: 'Error fetching sidebar counts' });
+    }
+};

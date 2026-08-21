@@ -864,6 +864,17 @@ export const b2bOrderApi = {
 
 
 export const adminApi = {
+    getSidebarCounts: async () => {
+        try {
+            const response = await fetch(`${BASE_URL}/admin/sidebar-counts`, {
+                headers: adminAuthHeaders()
+            });
+            return await response.json();
+        } catch (error) {
+            console.error('Sidebar Counts Error:', error);
+            return {};
+        }
+    },
     getStats: async () => {
         try {
             const response = await fetch(`${BASE_URL}/admin/stats`, {

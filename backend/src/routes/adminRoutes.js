@@ -2,6 +2,7 @@ console.log('--- ADMIN ROUTES MODULE LOADED ---');
 import express from 'express';
 import { 
     getPendingApprovals, 
+    getSidebarCounts,
     approveVendor, 
     approveFinalVendor,
     rejectVendor, 
@@ -56,6 +57,7 @@ router.delete('/vendors/:id', deleteVendor);
 router.get('/customers', getCustomers);
 router.post('/register-customer', registerCustomer);
 router.get('/pending-approvals', getPendingApprovals);
+router.get('/sidebar-counts', getSidebarCounts);
 router.post('/approve-vendor/:id', approveVendor);
 router.post('/reject-vendor/:id', rejectVendor);
 router.delete('/users-clear-all', clearAllUsers);

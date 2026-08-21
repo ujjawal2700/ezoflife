@@ -392,16 +392,16 @@ const SupplierMySupplies = () => {
             };
             
             const response = await vendorMasterSupplyApi.update(editingSupply._id, payload);
-            if (response && response._id) {
+            if (response && (response._id || response.success !== false)) {
                 toast.success('Supply item updated successfully!');
                 setEditingSupply(null);
                 fetchSupplies();
             } else {
-                toast.error('Failed to update supply item');
+                toast.error(response?.message || 'Failed to update supply item');
             }
         } catch (error) {
             console.error('Update supply error:', error);
-            toast.error('Failed to update supply item');
+            toast.error(error.message || 'Failed to update supply item');
         }
     };
 

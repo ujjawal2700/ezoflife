@@ -125,6 +125,8 @@ const RegisterAsSupplierPage = () => {
   const [isBankVerified, setIsBankVerified] = useState(false);
   const [showAmountInput, setShowAmountInput] = useState(false);
   const [amountEntered, setAmountEntered] = useState('');
+  const [demoNote, setDemoNote] = useState('');
+  const [demoAmount, setDemoAmount] = useState('');
 
   const { isLoaded } = useLoadScript(GOOGLE_MAPS_LOADER_OPTIONS);
 
@@ -431,7 +433,14 @@ const RegisterAsSupplierPage = () => {
         if (response.ok) {
             toast.success(result.message, { id: loadingToast, duration: 6000 });
             setShowAmountInput(true);
-            console.log(result.demoNote); // For testing
+            if (result.demoNote || result.demoAmount) {
+                const note = result.demoNote || `[DEMO MODE]: Generated Penny Drop Amount is ₹${result.demoAmount}`;
+                setDemoNote(note);
+                if (result.demoAmount) {
+                    setDemoAmount(String(result.demoAmount));
+                    setAmountEntered(String(result.demoAmount));
+                }
+            }
         } else {
             throw new Error(result.message);
         }
@@ -1357,20 +1366,38 @@ const RegisterAsSupplierPage = () => {
                                     animate={{ height: 'auto', opacity: 1 }}
                                     className="mt-4 p-4 bg-primary/5 rounded-2xl border border-primary/10 space-y-3"
                                 >
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-primary">Enter Exact Amount Received (₹)</label>
+                                    {demoNote && (
+                                        <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-between shadow-sm">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm">💡</span>
+                                                <span>{demoNote}</span>
+                                            </div>
+                                            {demoAmount && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setAmountEntered(String(demoAmount))}
+                                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest transition-all shadow-sm cursor-pointer shrink-0 ml-2"
+                                                >
+                                                    Auto-Fill ₹{demoAmount}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-primary block ml-0.5">Enter Exact Amount Received (₹)</label>
                                     <div className="flex gap-2">
                                         <input 
                                             type="number"
                                             step="0.01"
                                             value={amountEntered}
                                             onChange={(e) => setAmountEntered(e.target.value)}
-                                            placeholder="e.g. 1.45"
+                                            placeholder="e.g. 1.44"
                                             className="flex-1 bg-white border border-primary/20 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-primary"
                                         />
                                         <button 
                                             type="button"
                                             onClick={handleBankVerifyComplete}
-                                            className="px-6 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-widest"
+                                            className="px-6 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-widest active:scale-95 transition-all shadow-md shadow-primary/20 cursor-pointer"
                                         >
                                             Confirm
                                         </button>
@@ -1381,7 +1408,7 @@ const RegisterAsSupplierPage = () => {
                             <p className="text-[8px] font-bold text-slate-400 italic mt-1 ml-1">
                                 {isBankVerified 
                                     ? "* This bank account is verified and ready for settlements."
-                                    : "* RazorpayX Penny Drop verification will trigger a small random transfer."
+                                    : "* Demo Mode: Enter any test bank account & IFSC code (e.g. BSRNR04F4). Click Verify Account to generate your demo penny transfer amount."
                                 }
                             </p>
                             </FieldHighlight>

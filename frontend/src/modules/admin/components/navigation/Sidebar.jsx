@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -35,9 +35,12 @@ import {
     Factory,
     Rocket,
     MapPin,
-    Share2
+    Share2,
+    Search,
+    X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adminApi } from '../../../lib/api';
 
 const navItems = [
     {
@@ -187,13 +190,14 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
     const [expandedMenu, setExpandedMenu] = useState(null);
     const [expandedSubMenus, setExpandedSubMenus] = useState({});
     const [adminPermissions, setAdminPermissions] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sidebarCounts, setSidebarCounts] = useState({});
 
     useEffect(() => {
         try {
             const adminDataStr = localStorage.getItem('adminData');
             if (adminDataStr) {
                 const adminData = JSON.parse(adminDataStr);
-                // Main admin has no adminRole assigned or has the admin@ezoflife.com email
                 if (adminData && (adminData.email === 'admin@ezoflife.com' || !adminData.adminRole)) {
                     setAdminPermissions(null);
                 } else if (adminData && adminData.adminPermissions) {
@@ -205,18 +209,84 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
         }
     }, []);
 
+    // Fetch pending count badges for admin attention
+    useEffect(() => {
+        const fetchCounts = async () => {
+            try {
+                const res = await adminApi.getSidebarCounts();
+                if (res && typeof res === 'object') {
+                    setSidebarCounts(res);
+                }
+            } catch (e) {
+                console.error('Error fetching sidebar counts:', e);
+            }
+        };
+        fetchCounts();
+        const interval = setInterval(fetchCounts, 15000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const getBadgeCount = (label) => {
+        switch (label) {
+            case 'Registration Approval':
+                return sidebarCounts.registrationTotal || 0;
+            case 'Vendor Registration Request':
+                return sidebarCounts.vendorRegistrations || 0;
+            case 'Supplier Registration Request':
+                return sidebarCounts.supplierRegistrations || 0;
+            case 'Vendor Service Request':
+                return sidebarCounts.vendorServices || 0;
+            case 'Supplier Product Request':
+                return sidebarCounts.supplierProducts || 0;
+            case 'Support Tickets':
+                return sidebarCounts.supportTickets || 0;
+            case 'Missing Item Dispute':
+                return sidebarCounts.disputes || 0;
+            default:
+                return 0;
+        }
+    };
+
     // Filter navItems based on admin permissions
-    const filteredNavItems = navItems.map(group => {
-        const filteredItems = group.items.filter(item => {
-            if (!adminPermissions) return true;
-            
-            // Sub-admins only see permitted modules
-            return adminPermissions.some(perm => 
-                perm.trim().toLowerCase() === item.label.trim().toLowerCase()
-            );
-        });
-        return { ...group, items: filteredItems };
-    }).filter(group => group.items.length > 0);
+    const filteredNavItems = useMemo(() => {
+        return navItems.map(group => {
+            const filteredItems = group.items.filter(item => {
+                if (!adminPermissions) return true;
+                return adminPermissions.some(perm => 
+                    perm.trim().toLowerCase() === item.label.trim().toLowerCase()
+                );
+            });
+            return { ...group, items: filteredItems };
+        }).filter(group => group.items.length > 0);
+    }, [adminPermissions]);
+
+    // Filter navItems based on sidebar search input
+    const searchFilteredNavItems = useMemo(() => {
+        if (!searchTerm.trim()) return filteredNavItems;
+
+        const query = searchTerm.trim().toLowerCase();
+        return filteredNavItems.map(group => {
+            const matchingItems = group.items.filter(item => {
+                const itemMatches = item.label.toLowerCase().includes(query);
+                const subItemMatches = item.subItems && item.subItems.some(sub => {
+                    const subMatches = sub.label.toLowerCase().includes(query);
+                    const nestedMatches = sub.subItems && sub.subItems.some(n => n.label.toLowerCase().includes(query));
+                    return subMatches || nestedMatches;
+                });
+                return itemMatches || subItemMatches;
+            });
+            return { ...group, items: matchingItems };
+        }).filter(group => group.items.length > 0);
+    }, [filteredNavItems, searchTerm]);
+
+    useEffect(() => {
+        if (searchTerm.trim()) {
+            const firstWithSub = searchFilteredNavItems.flatMap(g => g.items).find(i => i.subItems && i.subItems.length > 0);
+            if (firstWithSub) {
+                setExpandedMenu(firstWithSub.label);
+            }
+        }
+    }, [searchTerm, searchFilteredNavItems]);
 
     useEffect(() => {
         // Auto-expand menu item if a sub-item is active
@@ -227,7 +297,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 return currentPath === subPathOnly;
             })
         );
-        if (matchingItem) {
+        if (matchingItem && !searchTerm.trim()) {
             setExpandedMenu(matchingItem.label);
         }
         
@@ -238,7 +308,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
         if (fullPath.includes('role=Vendor')) {
             setExpandedSubMenus(prev => ({ ...prev, 'Vendor Management': true }));
         }
-    }, [location.pathname, location.search, adminPermissions]);
+    }, [location.pathname, location.search, filteredNavItems, searchTerm]);
 
     return (
         <>
@@ -262,7 +332,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 `}
             >
                 {/* Header / Brand */}
-                <div className="h-14 flex items-center justify-between px-6 border-b border-slate-100">
+                <div className="h-14 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
                     {!isCollapsed ? (
                         <div className="flex items-center gap-2.5">
                             <div className="w-7 h-7 bg-slate-900 rounded-sm flex items-center justify-center">
@@ -290,12 +360,37 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                     </button>
                 </div>
 
+                {/* Sidebar Search Bar */}
+                {(!isCollapsed || isMobileOpen) && (
+                    <div className="px-3 pt-3 pb-2 border-b border-slate-100 bg-slate-50/50 shrink-0">
+                        <div className="relative flex items-center">
+                            <Search size={13} className="absolute left-2.5 text-slate-400 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search menu section..."
+                                className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-800 focus:border-slate-900 transition-all outline-none"
+                            />
+                            {searchTerm && (
+                                <button 
+                                    type="button" 
+                                    onClick={() => setSearchTerm('')} 
+                                    className="absolute right-2 text-slate-400 hover:text-slate-900 p-0.5"
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* Navigation Selection Engine */}
-                <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto no-scrollbar">
-                    {filteredNavItems.map((group) => (
+                <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto no-scrollbar">
+                    {searchFilteredNavItems.map((group) => (
                         <div key={group.group} className="space-y-1.5">
                             {(!isCollapsed || isMobileOpen) && (
-                                <div className="px-3 mb-2">
+                                <div className="px-3 mb-1">
                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">
                                         {group.group}
                                     </span>
@@ -305,6 +400,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                 const isActive = location.pathname === item.path || (item.subItems && item.subItems.some(sub => location.pathname === sub.path.split('?')[0]));
                                 const isExpanded = expandedMenu === item.label;
                                 const hasSubItems = item.subItems && item.subItems.length > 0;
+                                const badgeCount = getBadgeCount(item.label);
 
                                 return (
                                     <div key={item.label}>
@@ -317,13 +413,18 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                     setIsMobileOpen(false);
                                                 }
                                             }}
-                                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-sm transition-all duration-200 group relative ${
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-all duration-200 group relative ${
                                                 isActive 
                                                   ? "bg-slate-900 text-white shadow-slate-200" 
                                                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                             }`}
                                         >
-                                            <item.icon size={16} className={`shrink-0 ${isActive ? "text-white" : "group-hover:text-slate-900 transition-colors"}`} />
+                                            <div className="relative shrink-0 flex items-center">
+                                                <item.icon size={16} className={`${isActive ? "text-white" : "group-hover:text-slate-900 transition-colors"}`} />
+                                                {(isCollapsed && !isMobileOpen) && badgeCount > 0 && (
+                                                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
+                                                )}
+                                            </div>
                                             {(!isCollapsed || isMobileOpen) && (
                                                 <>
                                                     <span className={`font-bold text-[10px] uppercase tracking-[0.05em] flex-1 text-left whitespace-nowrap overflow-hidden transition-all ${
@@ -331,6 +432,16 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                     }`}>
                                                         {item.label}
                                                     </span>
+                                                    
+                                                    {/* Numerical Badge for Attention */}
+                                                    {badgeCount > 0 && (
+                                                        <span className={`px-1.5 py-0.5 rounded-full text-[8.5px] font-black leading-none shrink-0 ${
+                                                            isActive ? "bg-rose-500 text-white" : "bg-rose-500 text-white shadow-sm"
+                                                        }`}>
+                                                            {badgeCount}
+                                                        </span>
+                                                    )}
+
                                                     {hasSubItems && (
                                                         <ChevronDown 
                                                             size={12} 
@@ -353,6 +464,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                     {item.subItems.map((sub) => {
                                                         const hasNestedItems = sub.subItems && sub.subItems.length > 0;
                                                         const isSubActive = location.pathname + location.search === sub.path || (hasNestedItems && sub.subItems.some(nested => location.pathname + location.search === nested.path));
+                                                        const subBadgeCount = getBadgeCount(sub.label);
                                                         
                                                         if (hasNestedItems) {
                                                             const isSubMenuExpanded = !!expandedSubMenus[sub.label];
@@ -397,34 +509,39 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                                                             }`}
                                                                                         >
                                                                                             {nested.label}
-                                                                                            </button>
-                                                                                        );
-                                                                                    })}
-                                                                                </motion.div>
-                                                                            )}
-                                                                        </AnimatePresence>
-                                                                    </div>
-                                                                );
-                                                            }
-
-                                                            return (
-                                                                <button
-                                                                    key={sub.label}
-                                                                    onClick={() => {
-                                                                        navigate(sub.path);
-                                                                        setIsMobileOpen(false);
-                                                                    }}
-                                                                    className={`w-full text-left px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
-                                                                        isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/30"
-                                                                    }`}
-                                                                >
-                                                                    {sub.label}
-                                                                </button>
+                                                                                        </button>
+                                                                                    );
+                                                                                })}
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                </div>
                                                             );
-                                                        })}
-                                                    </motion.div>
-                                                )}
-                                            </AnimatePresence>
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                key={sub.label}
+                                                                onClick={() => {
+                                                                    navigate(sub.path);
+                                                                    setIsMobileOpen(false);
+                                                                }}
+                                                                className={`w-full flex items-center justify-between text-left px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
+                                                                    isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/30"
+                                                                }`}
+                                                            >
+                                                                <span>{sub.label}</span>
+                                                                {subBadgeCount > 0 && (
+                                                                    <span className="px-1.5 py-0.5 rounded-full text-[8px] font-black leading-none bg-rose-500 text-white shrink-0 ml-2">
+                                                                        {subBadgeCount}
+                                                                    </span>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 );
                             })}
@@ -433,7 +550,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                 </nav>
 
                 {/* Tactical Footer */}
-                <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+                <div className="p-3 border-t border-slate-100 bg-slate-50/50 shrink-0">
                     <button
                         onClick={() => {
                             localStorage.clear();

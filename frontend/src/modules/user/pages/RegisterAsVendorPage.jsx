@@ -347,6 +347,9 @@ const RegisterAsVendorPage = () => {
         if (result.success) {
             setShowAmountInput(true);
             setDemoNote(result.demoNote || '');
+            if (result.demoAmount) {
+                setAmountEntered(String(result.demoAmount));
+            }
             toast.success(result.message);
         } else {
             toast.error(result.message || 'Failed to initiate verification');

@@ -66,8 +66,9 @@ export const initiateBankVerification = async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: 'A small random amount has been sent to your bank account. Please check your SMS and enter the exact amount.',
-            demoNote: `[DEMO ONLY]: The amount sent is ₹${randomAmount}`
+            message: `Penny Drop Generated (Demo Mode): ₹${randomAmount}. Please enter ${randomAmount} below to confirm.`,
+            demoAmount: randomAmount,
+            demoNote: `[DEMO MODE]: Generated Penny Drop Amount is ₹${randomAmount}`
         });
     } catch (error) {
         console.error('❌ [RAZORPAYX] Payout Error:', error.message);
