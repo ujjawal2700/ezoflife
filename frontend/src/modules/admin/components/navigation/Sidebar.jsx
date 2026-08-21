@@ -40,7 +40,7 @@ import {
     X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { adminApi } from '../../../lib/api';
+import { adminApi } from '../../../../lib/api';
 
 const navItems = [
     {
