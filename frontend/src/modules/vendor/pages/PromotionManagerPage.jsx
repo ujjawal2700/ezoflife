@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { promotionApi, serviceApi, authApi, BASE_URL } from '../../../lib/api';
+import { promotionApi, serviceApi, authApi, vendorMasterSupplyApi, BASE_URL } from '../../../lib/api';
 
 const PromotionManagerPage = () => {
     const navigate = useNavigate();
@@ -26,9 +26,9 @@ const PromotionManagerPage = () => {
     }, [promos, activeTab]);
 
     const vendorId = useMemo(() => {
-        const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+        const vendorDataRaw = localStorage.getItem('vendorData') || localStorage.getItem('supplierData') || localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
         const vendorData = JSON.parse(vendorDataRaw);
-        const id = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id || localStorage.getItem('vendor_id');
+        const id = vendorData._id || vendorData.id || vendorData.user?._id || vendorData.user?.id || localStorage.getItem('vendor_id') || localStorage.getItem('supplier_id');
         return id ? String(id) : null;
     }, []);
 
@@ -68,17 +68,33 @@ const PromotionManagerPage = () => {
     const fetchServices = async () => {
         try {
             const profile = await authApi.getProfile(vendorId);
-            if (profile?.shopDetails?.services) {
+            if (profile?.shopDetails?.services && profile.shopDetails.services.length > 0) {
                 const approvedServices = profile.shopDetails.services
-                    .filter(s => s.status === 'approved')
+                    .filter(s => s.status === 'approved' || !s.status)
                     .map(s => ({
-                        _id: s.id,
+                        _id: s.id || s._id,
                         name: s.name,
                         icon: s.icon
                     }));
                 setServices(approvedServices);
             } else {
-                setServices([]);
+                try {
+                    const phone = profile?.phone || '';
+                    const supplierCode = `SUP-${phone ? phone.slice(-4) : '001'}`;
+                    const res = await vendorMasterSupplyApi.getAll({ supplierId: supplierCode });
+                    const supplyItems = Array.isArray(res) ? res : (res?.data || res?.supplies || []);
+                    if (supplyItems.length > 0) {
+                        setServices(supplyItems.map(s => ({
+                            _id: s._id || s.id,
+                            name: s.name || s.itemName || s.productName,
+                            icon: s.image || s.icon
+                        })));
+                    } else {
+                        setServices([]);
+                    }
+                } catch (err) {
+                    setServices([]);
+                }
             }
         } catch (e) {
             console.error('Fetch services error:', e);

@@ -14,4 +14,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['recharts', 'react-is', '@react-google-maps/api'],
   },
-})
+});

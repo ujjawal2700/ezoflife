@@ -14,6 +14,7 @@ import SupplierLaborRequestPage from '../pages/SupplierLaborRequestPage';
 import SupplierCreateJobRequisition from '../pages/SupplierCreateJobRequisition';
 import SupplierAddressesPage from '../pages/SupplierAddressesPage';
 import SupplierNotifications from '../pages/SupplierNotifications';
+import PromotionManagerPage from '../../vendor/pages/PromotionManagerPage';
 
 import SupplierAuth from '../pages/SupplierAuth';
 import SupplierOtp from '../pages/SupplierOtp';
@@ -40,6 +41,7 @@ const SupplierRoutes = () => {
         <Route path="/more" element={<SupplierMorePage />} />
         <Route path="/labor-request" element={<SupplierLaborRequestPage />} />
         <Route path="/labor-request/create" element={<SupplierCreateJobRequisition />} />
+        <Route path="/promotions" element={<PromotionManagerPage />} />
         
         {/* Default redirect to dashboard */}
         <Route path="*" element={<Navigate to="/supplier/dashboard" replace />} />

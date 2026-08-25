@@ -95,7 +95,7 @@ const SupplierSupplies = () => {
                     <motion.div 
                         whileHover={{ y: -3 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => toast('Marketing Hub coming soon!', { icon: '📢' })}
+                        onClick={() => navigate('/supplier/promotions')}
                         className="col-span-2 bg-white rounded-[1.8rem] p-5 shadow-[0_15px_40px_rgba(0,0,0,0.04)] relative overflow-hidden group cursor-pointer border border-slate-100"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-rose-50/40 rounded-full blur-[60px] -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-700"></div>

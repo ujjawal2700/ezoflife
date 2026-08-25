@@ -305,19 +305,19 @@ export const autogenerateCode = async (req, res) => {
             return res.status(404).json({ message: 'Vendor not found' });
         }
 
-        let vendorName = vendor.shopDetails?.name || vendor.displayName || vendor.name || 'VEN';
-        vendorName = vendorName.replace(/[^a-zA-Z]/g, '').toUpperCase();
-        if (vendorName.length < 3) {
-            vendorName = (vendorName + 'VEN').substring(0, 3);
+        const isSupplier = vendor.role === 'Supplier';
+        let entityName = vendor.supplierDetails?.businessName || vendor.shopDetails?.name || vendor.displayName || vendor.name || (isSupplier ? 'SUP' : 'VEN');
+        entityName = entityName.replace(/[^a-zA-Z]/g, '').toUpperCase();
+        if (entityName.length < 3) {
+            entityName = (entityName + (isSupplier ? 'SUP' : 'VEN')).substring(0, 3);
         } else {
-            vendorName = vendorName.substring(0, 3);
+            entityName = entityName.substring(0, 3);
         }
 
-        const prefix = `VEN${vendorName}`;
+        const prefix = `${isSupplier ? 'SUP' : 'VEN'}${entityName}`;
 
         const lastPromo = await Promotion.findOne({
             vendorId: vendorId,
-            owner_type: 'VENDOR',
             code: new RegExp(`^${prefix}\\d{3}$`)
         }).sort({ createdAt: -1 });
 

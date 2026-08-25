@@ -53,3 +53,6 @@ coverage/
 *.local
 # Added by code-review-graph
 .code-review-graph/
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
