@@ -16,6 +16,8 @@ import {
 import * as XLSX from 'xlsx';
 import { BASE_URL } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
+import { TableRowSkeleton } from '../components/skeletons/TableSkeleton';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TablePagination, StatusBadge, UserAvatarCell } from '@/shared/components/ui/table';
 
 const AdminSupplierRequestsPage = () => {
     const navigate = useNavigate();
@@ -80,17 +82,23 @@ const AdminSupplierRequestsPage = () => {
     };
 
     const uniqueSuppliers = React.useMemo(() => {
-        const names = unfilteredRequests.map(item => item.contactPersonName).filter(Boolean);
+        const names = unfilteredRequests
+            .filter(req => req.status !== 'Approved' && req.onboardingStage !== 'Onboarded')
+            .map(item => item.contactPersonName).filter(Boolean);
         return [...new Set(names)].sort();
     }, [unfilteredRequests]);
 
     const uniqueBusinesses = React.useMemo(() => {
-        const names = unfilteredRequests.map(item => item.registeredBusinessName).filter(Boolean);
+        const names = unfilteredRequests
+            .filter(req => req.status !== 'Approved' && req.onboardingStage !== 'Onboarded')
+            .map(item => item.registeredBusinessName).filter(Boolean);
         return [...new Set(names)].sort();
     }, [unfilteredRequests]);
 
     const uniquePhones = React.useMemo(() => {
-        const phones = unfilteredRequests.map(item => item.user?.phone).filter(Boolean);
+        const phones = unfilteredRequests
+            .filter(req => req.status !== 'Approved' && req.onboardingStage !== 'Onboarded')
+            .map(item => item.user?.phone).filter(Boolean);
         return [...new Set(phones)].sort();
     }, [unfilteredRequests]);
 
@@ -104,6 +112,16 @@ const AdminSupplierRequestsPage = () => {
         }
     };
 
+    const getStageName = (stage) => {
+        switch (stage) {
+            case 'Initial_Approval_Pending': return 'Initial Review';
+            case 'Product_Selection_Phase': return 'Product Selection';
+            case 'Final_Approval_Pending': return 'Final Review';
+            case 'Onboarded': return 'Onboarded';
+            default: return stage || 'Pending';
+        }
+    };
+
     useEffect(() => {
         setPage(1);
     }, [startDate, endDate]);
@@ -114,6 +132,11 @@ const AdminSupplierRequestsPage = () => {
 
     const filteredRequests = React.useMemo(() => {
         return requests.filter(req => {
+            // Strictly exclude already verified & onboarded suppliers
+            if (req.status === 'Approved' || req.onboardingStage === 'Onboarded') {
+                return false;
+            }
+
             // 1. Text Search Filter
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
@@ -252,9 +275,9 @@ const AdminSupplierRequestsPage = () => {
             <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
 
                 {/* Table Container */}
-                <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs font-['Poppins',sans-serif]">
                     {/* Grid Header Strip with Filters on the Right */}
-                    <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+                    <div className="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
                         {/* Date & Text Search Filters on the Left */}
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="relative">
@@ -322,108 +345,91 @@ const AdminSupplierRequestsPage = () => {
                         </div>
                     </div>
                     <div className="overflow-x-auto w-full">
-                        <table className="w-full text-left border-collapse min-w-[950px]">
-                            <thead>
-                                <tr className="bg-slate-50/50 border-b border-slate-100">
-                                    <th className="w-[18%] min-w-[130px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Supplier Name</th>
-                                    <th className="w-[20%] min-w-[140px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Business Name</th>
-                                    <th className="w-[12%] min-w-[110px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Contact Number</th>
-                                    <th className="w-[13%] min-w-[110px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Application Date</th>
-                                    <th className="w-[13%] min-w-[110px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Onboarding Status</th>
-                                    <th className="w-[14%] min-w-[120px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Current Phase</th>
-                                    <th className="w-[10%] min-w-[130px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
+                        <Table style={{ minWidth: '950px' }}>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="min-w-[130px]">Supplier Name</TableHead>
+                                    <TableHead className="min-w-[140px]">Business Name</TableHead>
+                                    <TableHead className="min-w-[110px]">Contact Number</TableHead>
+                                    <TableHead className="min-w-[110px]">Application Date</TableHead>
+                                    <TableHead className="min-w-[110px]">Onboarding Status</TableHead>
+                                    <TableHead className="min-w-[120px]">Current Phase</TableHead>
+                                    <TableHead className="min-w-[130px] text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan={7} className="py-20 text-center">
-                                            <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Syncing Supplier Data...</p>
-                                        </td>
-                                    </tr>
+                                    Array.from({ length: 6 }).map((_, i) => (
+                                        <TableRowSkeleton key={i} cols={7} />
+                                    ))
                                 ) : filteredRequests.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="py-32 text-center">
-                                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-4">
-                                                <Factory size={32} />
+                                    <TableRow className="hover:bg-transparent">
+                                        <TableCell colSpan={7} className="h-48 text-center">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300">
+                                                    <Factory size={28} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-slate-800">Pipeline Empty</h3>
+                                                    <p className="text-xs text-slate-400 font-medium mt-1">No active supplier requests found.</p>
+                                                </div>
                                             </div>
-                                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Pipeline Empty</h3>
-                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">No active supplier requests found.</p>
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ) : (
                                     paginatedRequests.map((req) => (
-                                        <tr key={req._id} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-6 py-5">
-                                                <span className="text-sm font-black text-slate-900 tracking-tight whitespace-nowrap">{req.contactPersonName || req.user?.name || '—'}</span>
-                                            </td>
-                                            <td className="px-6 py-5 whitespace-normal break-words">
-                                                <span className="text-xs font-bold text-slate-600">{req.registeredBusinessName || '—'}</span>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <span className="text-xs font-bold text-slate-600 tabular-nums whitespace-nowrap">{req.user?.phone || 'No Phone'}</span>
-                                            </td>
-                                            <td className="px-6 py-5">
+                                        <TableRow key={req._id} className="group hover:bg-slate-50/70 transition-colors border-b border-slate-200/70">
+                                            <TableCell>
+                                                <UserAvatarCell
+                                                    name={req.contactPersonName || req.user?.name || '—'}
+                                                    subtitle={req.user?.email || req.user?.phone}
+                                                />
+                                            </TableCell>
+                                            <TableCell className="whitespace-normal">
+                                                <span className="text-[14.5px] text-slate-700 font-normal">{req.registeredBusinessName || '—'}</span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-[14.5px] text-slate-700 tabular-nums whitespace-nowrap">{req.user?.phone || 'No Phone'}</span>
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex items-center gap-2 whitespace-nowrap">
-                                                    <Clock size={14} className="text-slate-300" />
-                                                    <span className="text-[11px] font-bold text-slate-600 tabular-nums">
+                                                    <Clock size={15} className="text-slate-400" />
+                                                    <span className="text-[14.5px] text-slate-700 tabular-nums">
                                                         {new Date(req.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                     </span>
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${req.status === 'Approved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
-                                                    {req.status === 'Approved' ? <CheckCircle2 size={10} /> : <Clock size={10} />}
-                                                    {req.status}
+                                            </TableCell>
+                                            <TableCell>
+                                                <StatusBadge status={req.status} />
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border w-fit whitespace-nowrap ${getStageColor(req.onboardingStage)}`}>
+                                                    {formatStageName(req.onboardingStage)}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex flex-col">
-                                                    <span className={`px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border w-fit whitespace-nowrap ${getStageColor(req.onboardingStage)}`}>
-                                                        {formatStageName(req.onboardingStage)}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-5 text-right">
+                                            </TableCell>
+                                            <TableCell className="text-right">
                                                 <button 
                                                     onClick={() => navigate(`/admin/supplier-requests/${req._id}`)}
-                                                    className="h-10 px-6 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-lg active:scale-95 whitespace-nowrap cursor-pointer ml-auto"
+                                                    className="h-9 px-4 rounded-lg bg-slate-900 text-white text-xs font-medium inline-flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors whitespace-nowrap cursor-pointer shadow-xs ml-auto"
                                                 >
                                                     <Eye size={14} />
                                                     Process Phase
                                                 </button>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ))
                                 )}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </div>
                     
                     {/* Pagination Controls */}
                     {filteredRequests.length > 0 && (
-                        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
-                            <div className="flex items-center gap-1">
-                                <button 
-                                    disabled={page <= 1 || loading}
-                                    onClick={() => setPage(p => p - 1)}
-                                    className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
-                                    Prev
-                                </button>
-                                <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
-                                    PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
-                                </span>
-                                <button 
-                                    disabled={page >= totalPages || loading}
-                                    onClick={() => setPage(p => p + 1)}
-                                    className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        </div>
+                        <TablePagination
+                            page={page}
+                            totalPages={totalPages}
+                            onPageChange={setPage}
+                        />
                     )}
                 </div>
             </div>

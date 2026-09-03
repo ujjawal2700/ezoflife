@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Briefcase, Search, BadgeCheck, DollarSign, Clock, Users, Building2, MapPin, X, ArrowLeft, Sparkles, CheckCircle2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { jobApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -172,55 +174,50 @@ const CareersPage = () => {
     }), []);
 
     return (
-        <div className="bg-slate-50/50 text-on-surface min-h-screen pb-32 font-body">
-            <header className="px-6 pt-4 flex items-center mb-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -mr-32 -mt-32"></div>
-                
-                <div className="flex items-center gap-4 relative z-10">
-                    <motion.button 
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate(-1)}
-                        className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-on-surface border border-outline-variant/10"
-                    >
-                        <span className="material-symbols-outlined text-xl">arrow_back</span>
-                    </motion.button>
+        <div className="bg-[#f8fafc] text-slate-900 min-h-screen pb-36 font-['Poppins',sans-serif]">
+            <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+                {/* Hero Header */}
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-5">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tighter leading-none">Careers</h1>
-                        <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest opacity-40 mt-1">Join the Ecosystem</p>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 mb-2">
+                            <Briefcase size={13} className="text-slate-700" />
+                            <span>Careers & Opportunities</span>
+                        </div>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                            Join The SPINZYT Team
+                        </h1>
+                        <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+                            Help us build the next generation of laundry and garment care logistics across India.
+                        </p>
                     </div>
-                </div>
-            </header>
 
-            <main className="px-4 max-w-2xl mx-auto">
-                {/* Switcher Tabs */}
-                <div className="bg-slate-100 p-1.5 rounded-2xl flex w-full mb-6 border border-slate-200/40 shadow-sm">
-                    <button 
-                        onClick={() => setActiveTab('Jobs')}
-                        className={`flex-1 py-3 items-center justify-center gap-2 flex rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                            activeTab === 'Jobs' 
-                            ? 'bg-white text-slate-900 shadow-sm font-black' 
-                            : 'text-slate-400 hover:text-slate-700'
-                        }`}
-                    >
-                        <span className="material-symbols-outlined text-[16px]">work</span>
-                        Active Jobs
-                    </button>
-                    <button 
-                        onClick={() => setActiveTab('Applied')}
-                        className={`flex-1 py-3 items-center justify-center gap-2 flex rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                            activeTab === 'Applied' 
-                            ? 'bg-white text-slate-900 shadow-sm font-black' 
-                            : 'text-slate-400 hover:text-slate-700'
-                        }`}
-                    >
-                        <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
-                        Submitted Jobs
-                        {myApplications.length > 0 && (
-                            <span className="bg-primary text-white text-[8px] font-black px-1.5 py-0.5 rounded-full ml-1 animate-pulse">
-                                {myApplications.length}
-                            </span>
-                        )}
-                    </button>
+                    {/* Switcher Tabs */}
+                    <div className="bg-slate-100/90 p-1 rounded-2xl flex max-w-sm border border-slate-200/60">
+                        <button 
+                            onClick={() => setActiveTab('Jobs')}
+                            className={cn(
+                                "flex-1 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
+                                activeTab === 'Jobs' ? "bg-white text-slate-900 shadow-xs font-semibold" : "text-slate-600 hover:text-slate-900"
+                            )}
+                        >
+                            <Briefcase size={14} />
+                            <span>Active Openings</span>
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('Applied')}
+                            className={cn(
+                                "flex-1 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer",
+                                activeTab === 'Applied' ? "bg-white text-slate-900 shadow-xs font-semibold" : "text-slate-600 hover:text-slate-900"
+                            )}
+                        >
+                            <span>My Applications</span>
+                            {myApplications.length > 0 && (
+                                <span className="bg-slate-900 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full ml-1">
+                                    {myApplications.length}
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {activeTab === 'Jobs' ? (
@@ -445,9 +442,23 @@ const CareersPage = () => {
                                         </motion.div>
                                     ))
                                 ) : (
-                                    <div className="py-20 text-center opacity-40">
-                                        <span className="material-symbols-outlined text-5xl mb-4">person_search</span>
-                                        <p className="text-xs font-bold uppercase tracking-widest">No matching roles found.</p>
+                                    <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center space-y-3 shadow-2xs">
+                                        <Briefcase size={40} className="mx-auto text-slate-300" />
+                                        <h3 className="text-base font-semibold text-slate-800">No matching positions found</h3>
+                                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                                            {searchQuery || nameFilter || salaryFilter 
+                                                ? 'Try clearing your filters or search terms to see all opportunities.' 
+                                                : 'We currently do not have open roles matching this criteria. New roles are posted regularly!'}
+                                        </p>
+                                        {(searchQuery || nameFilter || salaryFilter) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setSearchQuery(''); setNameFilter(''); setSalaryFilter(''); }}
+                                                className="mt-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-medium hover:bg-slate-800 transition-colors cursor-pointer"
+                                            >
+                                                Clear All Filters
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </motion.div>

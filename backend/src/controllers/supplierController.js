@@ -135,7 +135,7 @@ export const submitApplication = async (req, res) => {
 
 export const getAllApplications = async (req, res) => {
     try {
-        const { supplierName, businessName, phone } = req.query;
+        const { supplierName, businessName, phone, status, all } = req.query;
         const query = {};
 
         if (supplierName) {
@@ -148,6 +148,14 @@ export const getAllApplications = async (req, res) => {
             const matchingUsers = await User.find({ phone }).select('_id');
             const userIds = matchingUsers.map(u => u._id);
             query.user = { $in: userIds };
+        }
+
+        // Only return pending/revision supplier requests needing admin verification
+        if (status) {
+            query.status = status;
+        } else if (all !== 'true') {
+            query.status = { $in: ['Pending', 'pending', 'Revision_Required'] };
+            query.onboardingStage = { $ne: 'Onboarded' };
         }
 
         const applications = await SupplierApplication.find(query).populate('user', 'name phone email');

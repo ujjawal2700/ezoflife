@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { User, Phone, Mail, MapPin, CheckCircle2, Shield, FileText, LogOut, Camera, Home, Briefcase, Plus, ChevronRight, Edit3 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { authApi, geofenceApi } from '../../../lib/api';
 import { useLocationStore } from '../../../shared/stores/locationStore';
@@ -193,180 +195,246 @@ const UserProfilePage = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="text-slate-900 min-h-screen pb-20 font-sans bg-slate-50/50"
-    >
-      <main className="max-w-md mx-auto px-4 pt-4 space-y-4">
+    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
+      <main className="flex-1 pb-44 sm:pb-36 max-w-4xl mx-auto w-full px-3.5 sm:px-6 py-4 sm:py-8 space-y-5 sm:space-y-6">
         
-        {/* UNIFIED PROFILE BOX */}
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden relative">
+        {/* Header Title */}
+        <div className="flex flex-row items-center justify-between gap-2.5">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight truncate">Account Settings</h1>
+            <p className="text-[11px] sm:text-sm text-slate-500 mt-0.5 truncate sm:overflow-visible sm:whitespace-normal">Manage your profile details and delivery locations.</p>
+          </div>
           {!isEditing ? (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={() => setIsEditing(true)}
-              className="absolute top-4 right-4 bg-slate-950 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg z-10"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-2xs cursor-pointer shrink-0"
             >
-              MANAGE PROFILE
-            </motion.button>
+              <Edit3 size={13} className="sm:size-[14px]" />
+              <span>Edit Profile</span>
+            </button>
           ) : (
-            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
-               <button onClick={() => setIsEditing(false)} className="text-[8px] font-black text-slate-400 uppercase">Cancel</button>
-               <button onClick={handleSave} disabled={loading} className="text-[8px] font-black text-white bg-slate-950 border border-slate-950 px-2 py-1 rounded-lg">{loading ? '...' : 'SAVE'}</button>
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <button 
+                onClick={() => setIsEditing(false)} 
+                className="px-2.5 sm:px-3.5 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave} 
+                disabled={loading} 
+                className="px-3 sm:px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+              >
+                {loading ? 'Saving...' : 'Save Changes'}
+              </button>
             </div>
           )}
+        </div>
+
+        {/* 2-Column Responsive Dashboard */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6 items-start">
           
-          {/* 1. USER INFO SECTION (TOP OF BOX) */}
-          <section className="p-6 border-b border-slate-50 flex flex-col items-start space-y-4">
-            <div className="relative group">
-              <div className="w-20 h-20 rounded-[1.8rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden">
-                <img
-                  src={formData.image || user.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              {isEditing && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-[1.8rem] cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                  <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
-                  <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
-                </label>
-              )}
-            </div>
+          {/* Left Column: Identity & Legal */}
+          <div className="md:col-span-5 space-y-5 sm:space-y-6">
+            {/* Identity Card */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-2xs space-y-4 sm:space-y-5">
+              <div className="flex items-center gap-4">
+                <div className="relative group shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden">
+                    <img
+                      src={formData.image || user.image || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200"}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {isEditing && (
+                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-2xl cursor-pointer opacity-80 hover:opacity-100 transition-opacity">
+                      <input type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
+                      <Camera size={18} className="text-white" />
+                    </label>
+                  )}
+                </div>
 
-            <div className="w-full space-y-5">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base font-bold text-slate-900 truncate">
+                    {user.displayName || 'Customer'}
+                  </h3>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-xs text-emerald-600 font-medium">
+                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0" />
+                    <span>Verified Customer</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Editable or Display Fields */}
               {isEditing ? (
-                <div className="space-y-3">
+                <div className="space-y-3.5 pt-2 border-t border-slate-100">
                   <div className="space-y-1">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</p>
-                    <input type="text" value={formData.displayName} onChange={(e) => setFormData({...formData, displayName: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all" />
+                    <label className="text-xs font-medium text-slate-600">Full Name</label>
+                    <input 
+                      type="text" 
+                      value={formData.displayName} 
+                      onChange={(e) => setFormData({...formData, displayName: e.target.value})} 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all" 
+                    />
                   </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="space-y-1">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</p>
-                      <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</p>
-                      <input type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none" />
-                    </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={formData.phone} 
+                      onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all" 
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-slate-600">Email Address</label>
+                    <input 
+                      type="email" 
+                      value={formData.email} 
+                      onChange={(e) => setFormData({...formData, email: e.target.value})} 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all" 
+                    />
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</p>
-                    <h2 className="text-xl font-black tracking-tight text-slate-950 ml-1">{user.displayName || 'Guest User'}</h2>
+                <div className="space-y-3 pt-2 border-t border-slate-100 text-xs sm:text-sm">
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-slate-500 font-normal">Phone</span>
+                    <span className="font-medium text-slate-800">+91 {user.phone}</span>
                   </div>
-                  
-                  <div className="grid grid-cols-1 gap-4 pt-1">
-                    <div className="space-y-1">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</p>
-                      <div className="flex items-center gap-2 text-slate-950 font-black text-[11px] ml-1">
-                        <span className="material-symbols-outlined text-[14px] text-slate-950" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                        <span>+91 {user.phone}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1">
-                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</p>
-                      <p className="text-[11px] font-black text-slate-950 ml-1 lowercase">{user.email || 'No email added'}</p>
-                    </div>
+                  <div className="flex items-center justify-between py-1">
+                    <span className="text-slate-500 font-normal">Email</span>
+                    <span className="font-medium text-slate-800 truncate max-w-[170px]">{user.email || 'No email added'}</span>
                   </div>
                 </div>
               )}
             </div>
-          </section>
 
-          {/* 2. ADDRESS BOOK SECTION */}
-          <section className="p-5 border-b border-slate-50 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-slate-400 text-lg">location_on</span>
-                <h3 className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Saved Addresses</h3>
-              </div>
-              <button onClick={() => navigate('/user/profile/addresses')} className="text-[8px] font-black text-slate-400 uppercase border border-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-all">MANAGE ADDRESS</button>
-            </div>
-            <div className="space-y-2.5">
-              {(user.addresses && user.addresses.length > 0) ? (
-                user.addresses.map((addr, i) => (
-                  <div key={i} className="flex items-center justify-between gap-3 bg-slate-50/50 p-3 rounded-2xl border border-slate-100/50">
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <span className="material-symbols-outlined text-slate-400 text-base mt-0.5 shrink-0">
-                        {addr.type === 'Home' ? 'home' : addr.type === 'Office' ? 'work' : 'push_pin'}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">{addr.type}</p>
-                          {addr.isDefault && (
-                            <span className="bg-slate-950 text-white border border-slate-950 text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded">Default</span>
-                          )}
-                        </div>
-                        <p className="text-[11px] font-bold text-slate-900 truncate leading-tight mt-1">
-                          {addr.address}
-                          {addr.city && !addr.address.includes(addr.city) ? `, ${addr.city}` : ''}
-                          {addr.pincode && !addr.address.includes(addr.pincode) ? ` - ${addr.pincode}` : ''}
-                        </p>
-                      </div>
+            {/* Legal & Policy Links */}
+            <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs divide-y divide-slate-100">
+              {[
+                { label: 'Privacy Policy', icon: Shield, path: '/user/privacy?role=customer' },
+                { label: 'Terms & Conditions', icon: FileText, path: '/user/terms?role=customer' }
+              ].map((link, i) => {
+                const IconComponent = link.icon;
+                return (
+                  <button 
+                    key={i} 
+                    onClick={() => navigate(link.path)} 
+                    className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors text-left cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <IconComponent size={16} className="text-slate-400 group-hover:text-slate-700 transition-colors" />
+                      <span className="text-xs sm:text-sm font-medium text-slate-800">{link.label}</span>
                     </div>
-                    {!addr.isDefault && (
-                      <button
-                        onClick={() => handleSetDefault(addr._id || addr.id)}
-                        disabled={loading}
-                        className="text-[8px] font-black text-slate-950 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg active:scale-95 transition-all uppercase tracking-wider shrink-0 hover:bg-slate-50 disabled:opacity-50"
+                    <ChevronRight size={15} className="text-slate-400" />
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={() => { 
+                localStorage.clear();
+                navigate('/user/auth'); 
+                toast.success('Logged out successfully'); 
+              }}
+              className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl text-xs sm:text-sm font-medium text-rose-600 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <LogOut size={16} />
+              <span>Logout</span>
+            </button>
+          </div>
+
+          {/* Right Column: Saved Addresses */}
+          <div className="md:col-span-7">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <MapPin size={17} className="text-slate-700" />
+                  <h3 className="text-sm sm:text-base font-semibold text-slate-900">Saved Addresses</h3>
+                </div>
+                <button 
+                  onClick={() => navigate('/user/profile/addresses')} 
+                  className="px-2.5 sm:px-3 py-1 sm:py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200/80"
+                >
+                  Manage
+                </button>
+              </div>
+
+              {/* Address List */}
+              <div className="space-y-3">
+                {(user.addresses && user.addresses.length > 0) ? (
+                  user.addresses.map((addr, i) => {
+                    const isDefault = addr.isDefault;
+                    return (
+                      <div 
+                        key={i} 
+                        className={cn(
+                          "flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 sm:gap-3 p-3.5 sm:p-4 rounded-xl border transition-all",
+                          isDefault ? "bg-slate-50/90 border-slate-300" : "bg-white border-slate-200/80 hover:bg-slate-50/50"
+                        )}
                       >
-                        Set Default
-                      </button>
-                    )}
+                        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 shrink-0 mt-0.5">
+                            {addr.type === 'Home' ? <Home size={15} /> : addr.type === 'Office' ? <Briefcase size={15} /> : <MapPin size={15} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-slate-900 uppercase">
+                                {addr.type}
+                              </span>
+                              {isDefault && (
+                                <span className="bg-slate-900 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-600 font-normal leading-relaxed mt-1 break-words">
+                              {addr.address}
+                              {addr.city && !addr.address.includes(addr.city) ? `, ${addr.city}` : ''}
+                              {addr.pincode && !addr.address.includes(addr.pincode) ? ` - ${addr.pincode}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        {!isDefault && (
+                          <button
+                            onClick={() => handleSetDefault(addr._id || addr.id)}
+                            disabled={loading}
+                            className="text-xs font-medium text-slate-700 hover:text-slate-950 bg-white border border-slate-200 hover:bg-slate-50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+                          >
+                            Set Default
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="py-8 text-center bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+                    <MapPin size={24} className="mx-auto text-slate-400 mb-2" />
+                    <p className="text-xs font-medium text-slate-600">No saved addresses</p>
+                    <button
+                      onClick={() => navigate('/user/profile/addresses')}
+                      className="mt-3 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      Add New Address
+                    </button>
                   </div>
-                ))
-              ) : (
-                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest text-center py-2">No addresses saved</p>
-              )}
-            </div>
-          </section>
-
-
-
-          {/* 4. APP SETTINGS SECTION */}
-          <section className="divide-y divide-slate-50 bg-slate-50/20">
-            {[
-              { label: 'Privacy Policy', icon: 'security', path: '/user/privacy?role=customer' },
-              { label: 'Terms & Conditions', icon: 'description', path: '/user/terms?role=customer' }
-            ].map((link, i) => (
-              <div key={i} onClick={() => navigate(link.path)} className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all group">
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 text-lg group-hover:text-slate-950 transition-colors">{link.icon}</span>
-                  <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{link.label}</span>
-                </div>
-                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward_ios</span>
+                )}
               </div>
-            ))}
-          </section>
+            </div>
+          </div>
         </div>
 
-        {/* LOGOUT ACTION */}
-        <div className="px-2">
-          <button
-            onClick={() => { 
-              localStorage.clear();
-              navigate('/user/auth'); 
-              toast.success('Logged out successfully'); 
-            }}
-            className="w-full py-4 bg-rose-50 border border-rose-100 rounded-[1.8rem] text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-lg">logout</span>
-            Logout
-          </button>
-        </div>
-
-        {/* VERSION INFO */}
-        <div className="text-center pb-6">
-          <p className="text-[8px] font-black text-slate-200 uppercase tracking-[0.6em]">SPINZYT • VERSION 2.4.0</p>
+        {/* Footer Version Info */}
+        <div className="text-center pt-4">
+          <p className="text-xs text-slate-400 font-normal">SPINZYT • Version 2.4.0</p>
         </div>
       </main>
-    </motion.div>
+    </div>
   );
 };
 

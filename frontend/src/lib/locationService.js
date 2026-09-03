@@ -34,13 +34,15 @@ const toAddressData = (result, lat, lng) => {
     };
 };
 
-/** Promise wrapper around the callback-based Geocoder. */
+/** Promise wrapper around the callback-based Geocoder with tight 1.5s timeout. */
 const geocode = async (request) => {
-    const maps = await waitForGoogleMaps();
+    const maps = await waitForGoogleMaps(1200);
     const geocoder = new maps.Geocoder();
 
     return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Geocoder timeout')), 1800);
         geocoder.geocode(request, (results, status) => {
+            clearTimeout(timeout);
             if (status === 'OK' && results && results.length > 0) {
                 resolve(results);
             } else if (status === 'ZERO_RESULTS') {
@@ -52,48 +54,170 @@ const geocode = async (request) => {
     });
 };
 
+/** Fast parallel IP-based geolocation fallback */
+const getFallbackCoordinatesFromIP = async () => {
+    const fetchers = [
+        fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(2000) })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => data && data.latitude ? {
+                lat: Number(data.latitude),
+                lng: Number(data.longitude),
+                city: data.city || '',
+                area: data.region || '',
+                state: data.region || '',
+                pincode: data.postal || '',
+                fullAddress: [data.city, data.region, data.country_name].filter(Boolean).join(', '),
+                isFromIP: true
+            } : null)
+            .catch(() => null),
+        fetch('https://freeipapi.com/api/json', { signal: AbortSignal.timeout(2000) })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => data && data.latitude ? {
+                lat: Number(data.latitude),
+                lng: Number(data.longitude),
+                city: data.cityName || '',
+                area: data.regionName || '',
+                state: data.regionName || '',
+                pincode: data.zipCode || '',
+                fullAddress: [data.cityName, data.regionName, data.countryName].filter(Boolean).join(', '),
+                isFromIP: true
+            } : null)
+            .catch(() => null)
+    ];
+
+    try {
+        const results = await Promise.all(fetchers);
+        return results.find(Boolean) || null;
+    } catch {
+        return null;
+    }
+};
+
 export const locationService = {
     /**
-     * Get current coordinates using the browser Geolocation API.
+     * Get current coordinates ultra fast by racing cached/browser GPS and IP lookup in parallel.
      */
-    getCurrentCoordinates: () => {
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject(new Error('Geolocation is not supported by your browser'));
-                return;
-            }
+    getCurrentCoordinates: async () => {
+        // 1. Launch IP lookup in parallel immediately
+        const ipPromise = getFallbackCoordinatesFromIP();
 
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    resolve({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                        accuracy: position.coords.accuracy
-                    });
-                },
-                (error) => {
-                    reject(error);
-                },
-                {
-                    enableHighAccuracy: false, // Set to false first for faster response on mobile
-                    timeout: 20000,            // Increase timeout to 20s
-                    maximumAge: 30000          // Allow 30s old cached position
-                }
-            );
-        });
+        // 2. Launch browser geolocation with 5-minute cache and 1.8s timeout
+        let browserGeoPromise = Promise.reject(new Error('Geolocation unavailable'));
+        if (typeof navigator !== 'undefined' && navigator.geolocation) {
+            browserGeoPromise = new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            isGPS: true
+                        });
+                    },
+                    (error) => {
+                        reject(error);
+                    },
+                    {
+                        enableHighAccuracy: false,
+                        timeout: 1800,
+                        maximumAge: 300000 // 5 minutes cached position
+                    }
+                );
+            });
+        }
+
+        // Give browser GPS up to 1.8s; if it resolves, prefer it!
+        try {
+            const gpsCoords = await browserGeoPromise;
+            if (gpsCoords) return gpsCoords;
+        } catch {
+            // Browser GPS timed out or failed, continue to IP
+        }
+
+        // If GPS wasn't fast enough, use the IP lookup
+        try {
+            const ipCoords = await ipPromise;
+            if (ipCoords) return ipCoords;
+        } catch {
+            // IP failed
+        }
+
+        // Safe fallback coordinates (Delhi NCR)
+        return {
+            lat: 28.6139,
+            lng: 77.2090,
+            city: 'New Delhi',
+            area: 'Central Delhi',
+            state: 'Delhi',
+            pincode: '110001',
+            fullAddress: 'Connaught Place, New Delhi, Delhi, India',
+            isDefault: true
+        };
     },
 
     /**
-     * Reverse geocode lat/lng to a structured address.
+     * Reverse geocode lat/lng to a structured address with multiple fast fallbacks.
      */
-    reverseGeocode: async (lat, lng) => {
+    reverseGeocode: async (lat, lng, fallbackData = null) => {
+        // If fallbackData already has structured address, return it immediately without network delay
+        if (fallbackData?.fullAddress && fallbackData?.city) {
+            return {
+                fullAddress: fallbackData.fullAddress,
+                city: fallbackData.city || '',
+                area: fallbackData.area || '',
+                state: fallbackData.state || '',
+                pincode: fallbackData.pincode || '',
+                subLocal: '',
+                lat,
+                lng
+            };
+        }
+
+        // 1. Try Google Maps Geocoder with quick timeout
         try {
             const results = await geocode({ location: { lat, lng } });
-            return toAddressData(results[0], lat, lng);
-        } catch (error) {
-            console.error('Reverse Geocoding Error:', error);
-            throw error;
+            if (results && results[0]) {
+                return toAddressData(results[0], lat, lng);
+            }
+        } catch {
+            // Google maps geocoding timed out or unavailable
         }
+
+        // 2. Try OpenStreetMap Nominatim with tight 1.5s timeout
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+                headers: { 'Accept': 'application/json' },
+                signal: AbortSignal.timeout(1500)
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const addr = data.address || {};
+                return {
+                    fullAddress: data.display_name || 'Current Location',
+                    city: addr.city || addr.town || addr.village || addr.county || '',
+                    area: addr.suburb || addr.neighbourhood || addr.residential || '',
+                    state: addr.state || '',
+                    pincode: addr.postcode || '',
+                    subLocal: addr.road || '',
+                    lat,
+                    lng
+                };
+            }
+        } catch {
+            // OSM failed
+        }
+
+        // 3. Fall back to coordinates string
+        return {
+            fullAddress: `Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+            city: '',
+            area: '',
+            state: '',
+            pincode: '',
+            subLocal: '',
+            lat,
+            lng
+        };
     },
 
     /**

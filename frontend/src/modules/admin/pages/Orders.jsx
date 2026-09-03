@@ -1,9 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShoppingBag, Search, Download, Filter, FileText, PlusCircle, ExternalLink, User, Store, Calendar, ArrowRight, Eye, Edit3, Trash2, ChevronDown } from 'lucide-react';
+import { 
+  ShoppingBag, Search, Download, Filter, FileText, PlusCircle, 
+  ExternalLink, User, Store, Calendar, ArrowRight, Eye, Edit3, 
+  Trash2, ChevronDown, MapPin, X, RotateCcw, FileSpreadsheet, CheckCircle2,
+  Clock, Check
+} from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { cn } from '@/lib/utils';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
@@ -146,6 +152,7 @@ export default function Orders() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   
   // Pagination State
@@ -795,6 +802,25 @@ export default function Orders() {
     'CANCELLED'
   ], []);
 
+  const availableStatuses = useMemo(() => {
+    if (activeTab === 'Active') {
+      return [
+        'ORDER_PLACED', 
+        'PICKUP_ASSIGNED', 
+        'RIDER_ARRIVING', 
+        'IN_TRANSIT', 
+        'RECEIVED_BY_VENDOR', 
+        'PROCESSING', 
+        'READY_FOR_DISPATCH', 
+        'OUT_FOR_DELIVERY'
+      ];
+    }
+    return [
+      'DELIVERED', 
+      'CANCELLED'
+    ];
+  }, [activeTab]);
+
   const filteredOrders = allOrders;
 
   const flattenedOrders = useMemo(() => {
@@ -821,12 +847,58 @@ export default function Orders() {
     return list;
   }, [filteredOrders]);
 
+  const displayedOrders = useMemo(() => {
+    if (!searchQuery.trim()) return flattenedOrders;
+    const q = searchQuery.toLowerCase().trim();
+    return flattenedOrders.filter(order => {
+      const orderId = (order.orderId || order._id || '').toLowerCase();
+      const custName = (order.customer?.displayName || '').toLowerCase();
+      const vendorName = (order.vendor?.shopDetails?.name || order.vendor?.displayName || '').toLowerCase();
+      const zone = (order.serviceZone || '').toLowerCase();
+      const status = (order.status || '').toLowerCase();
+      const itemName = (order.singleItem?.name || '').toLowerCase();
+      return orderId.includes(q) || custName.includes(q) || vendorName.includes(q) || zone.includes(q) || status.includes(q) || itemName.includes(q);
+    });
+  }, [flattenedOrders, searchQuery]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (startDate || endDate) count++;
+    if (selectedZone) count++;
+    if (selectedCustomer) count++;
+    if (selectedStatus) count++;
+    return count;
+  }, [searchQuery, startDate, endDate, selectedZone, selectedCustomer, selectedStatus]);
+
+  const handleClearAllFilters = () => {
+    setSearchQuery('');
+    setStartDate('');
+    setEndDate('');
+    setSelectedZone('');
+    setSelectedCustomer('');
+    setSelectedStatus('');
+    setPage(1);
+  };
+
+  const handleTabChange = (newTab) => {
+    if (newTab === activeTab) return;
+    setSelectedStatus('');
+    setSearchQuery('');
+    setStartDate('');
+    setEndDate('');
+    setSelectedZone('');
+    setSelectedCustomer('');
+    setPage(1);
+    navigate(`/admin/orders?tab=${newTab}`);
+  };
+
   const orderColumns = useMemo(() => [
     { 
-      header: 'Service Zone', 
+      header: 'Service zone', 
       key: 'serviceZone',
       render: (val) => (
-        <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
           {val || 'N/A'}
         </span>
       )
@@ -834,54 +906,54 @@ export default function Orders() {
     { 
       header: 'Order ID', 
       key: 'orderId',
-      render: (val, row) => (
-        <span className="font-bold text-slate-900 text-[11px] tracking-[0.1em] uppercase group-hover:text-blue-600 transition-colors">{val}</span>
+      render: (val) => (
+        <span className="font-medium text-slate-900 text-sm">{val}</span>
       )
     },
     { 
-      header: 'Customer Name', 
+      header: 'Customer', 
       key: 'customer',
       render: (val) => (
-        <span className="font-bold text-slate-800 text-[10px] uppercase tracking-tight">{val?.displayName || 'Unknown'}</span>
+        <span className="text-sm font-medium text-slate-900">{val?.displayName || 'Unknown'}</span>
       )
     },
     { 
       header: 'Vendor ID', 
       key: 'vendor',
       render: (val) => (
-        <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
-          {val?._id || 'N/A'}
+        <span className="text-sm text-slate-600 tabular-nums">
+          {val?._id ? `#${val._id.slice(-6).toUpperCase()}` : '—'}
         </span>
       )
     },
     { 
-      header: 'Vendor Name', 
+      header: 'Vendor', 
       key: 'vendor',
       render: (val) => (
-        <span className="font-bold text-slate-800 text-[10px] uppercase tracking-tight">
-          {val?.shopDetails?.name || val?.displayName || 'N/A'}
+        <span className="text-sm font-medium text-slate-900">
+          {val?.shopDetails?.name || val?.displayName || '—'}
         </span>
       )
     },
     { 
-      header: 'Order Submitted Timestamp', 
+      header: 'Date & time', 
       key: 'createdAt', 
       render: (val) => (
-        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider tabular-nums">
-          {val ? new Date(val).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'N/A'}
+        <span className="text-sm text-slate-600 font-normal tabular-nums">
+          {val ? new Date(val).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '—'}
         </span>
       )
     },
     { 
-      header: 'Service Items JSON', 
+      header: 'Items', 
       key: 'singleItem',
       wrap: true, 
       render: (val, row) => {
-        if (!val) return <span className="text-slate-400 font-bold">-</span>;
+        if (!val) return <span className="text-slate-400 font-normal">—</span>;
         return (
-          <div className="flex items-start gap-2 max-w-[300px]">
-            <span className="font-bold text-[10px] text-slate-700 bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded block whitespace-normal break-words">
-              {val.name} (Qty: {val.quantity}, Rate: ₹{val.price})
+          <div className="flex items-center gap-2 max-w-[300px]">
+            <span className="text-sm text-slate-700 font-medium whitespace-normal break-words">
+              {val.name} <span className="text-xs text-slate-500 font-normal">({val.quantity}x @ ₹{val.price})</span>
             </span>
             {row.items && row.items.length > 1 && (
               <button
@@ -891,9 +963,9 @@ export default function Orders() {
                   setSelectedOrderIdForItems(row.orderId || row._id.slice(-6).toUpperCase());
                   setItemsModalOpen(true);
                 }}
-                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 hover:border-blue-300 rounded text-[9px] font-bold uppercase tracking-wider transition-all shrink-0 mt-0.5"
+                className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-xs font-medium transition-colors shrink-0 cursor-pointer"
               >
-                All
+                +{row.items.length - 1}
               </button>
             )}
           </div>
@@ -901,7 +973,7 @@ export default function Orders() {
       }
     },
     { 
-      header: 'Current Order Status', 
+      header: 'Status', 
       key: 'status', 
       render: (val) => <StatusBadge status={val} /> 
     },
@@ -1138,60 +1210,159 @@ export default function Orders() {
   ].filter(col => col.key !== 'actions' || activeTab === 'Completed'), [handleDownloadCustomerInvoice, handleDownloadVendorInvoice, activeTab]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
+    <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20 font-['Poppins',sans-serif]">
       <PageHeader 
-        title="" 
-        actions={[
-          {
-            customComponent: (
+        title={activeTab === 'Active' ? 'Active Orders' : 'Completed Orders'}
+        subtitle={activeTab === 'Active' ? 'Real-time tracking and lifecycle management for active customer orders.' : 'Comprehensive history of completed and fulfilled customer orders.'}
+      />
+
+      <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+
+        {/* ─── Modern SaaS Filter & Controls Card ─── */}
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 space-y-4">
+          
+          {/* Top Row: Segmented Order Tabs (Active vs Completed) + Export & Reset Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            
+            {/* Active Orders vs Completed Orders Tabs */}
+            <div className="flex items-center gap-3">
+              <div className="inline-flex p-1 bg-slate-100/80 rounded-xl border border-slate-200/70">
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('Active')}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 cursor-pointer",
+                    activeTab === 'Active'
+                      ? "bg-white text-slate-900 shadow-xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Active Orders
+                  {activeTab === 'Active' && totalOrders > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                      {totalOrders}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('Completed')}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 cursor-pointer",
+                    activeTab === 'Completed'
+                      ? "bg-white text-slate-900 shadow-xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <CheckCircle2 size={15} className={activeTab === 'Completed' ? "text-slate-900" : "text-slate-400"} />
+                  Completed Orders
+                  {activeTab === 'Completed' && totalOrders > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-200 text-slate-700 border border-slate-300/60">
+                      {totalOrders}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Right Action Buttons */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {activeFiltersCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-rose-600 bg-rose-50 hover:bg-rose-100/80 border border-rose-200/80 rounded-lg transition-colors cursor-pointer"
+                  title="Reset all filters"
+                >
+                  <RotateCcw size={14} />
+                  Reset filters ({activeFiltersCount})
+                </button>
+              )}
+
+              {/* Export Dropdown */}
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setShowExportDropdown(!showExportDropdown)}
-                  className="px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
                 >
-                  <FileText size={13} />
-                  Export Order Detail
-                  <ChevronDown size={12} className={`transition-transform duration-200 ${showExportDropdown ? 'rotate-180' : ''}`} />
+                  <Download size={15} className="text-slate-500" />
+                  Export Orders
+                  <ChevronDown size={14} className={cn("text-slate-400 transition-transform", showExportDropdown && "rotate-180")} />
                 </button>
+
                 {showExportDropdown && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowExportDropdown(false)} />
-                    <div className="absolute right-0 mt-1.5 w-32 bg-white border border-slate-200 rounded-sm shadow-lg z-50 py-1 text-left">
+                    <div className="absolute right-0 mt-1.5 w-48 bg-white border border-slate-200 rounded-xl shadow-lg z-50 py-1.5 overflow-hidden">
                       <button
+                        type="button"
                         onClick={() => {
                           setShowExportDropdown(false);
                           handleExportFile('excel');
                         }}
-                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                       >
-                        Excel
+                        <FileSpreadsheet size={16} className="text-emerald-600" />
+                        Export Excel (.xlsx)
                       </button>
                       <button
+                        type="button"
                         onClick={() => {
                           setShowExportDropdown(false);
                           handleExportFile('csv');
                         }}
-                        className="w-full text-left px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                       >
-                        CSV
+                        <FileText size={16} className="text-blue-600" />
+                        Export CSV (.csv)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowExportDropdown(false);
+                          handleExportPDF();
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                      >
+                        <FileText size={16} className="text-rose-600" />
+                        Export PDF (.pdf)
                       </button>
                     </div>
                   </>
                 )}
               </div>
-            )
-          }
-        ]}
-      />
+            </div>
+          </div>
 
-      <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+          {/* Filter Inputs Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 pt-3 border-t border-slate-100">
+            {/* Search Input */}
+            <div className="lg:col-span-4 relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search order ID, customer, vendor..."
+                className="w-full h-10 pl-10 pr-9 text-sm bg-slate-50/70 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 transition-all shadow-xs"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
 
-        {/* Dropdown Filters Row */}
-        <div className="flex justify-between items-center gap-4 flex-wrap bg-white p-3 rounded-md border border-slate-200/60 shadow-sm">
-          {/* Left Filters (Date Range only) */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">From:</span>
+            {/* Date Range Picker */}
+            <div className="lg:col-span-3 flex items-center h-10 px-3 bg-slate-50/70 border border-slate-200 rounded-lg text-slate-700 focus-within:bg-white focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-900/10 transition-all shadow-xs">
+              <Calendar size={15} className="text-slate-400 shrink-0 mr-1.5" />
               <input
                 type="date"
                 value={startDate}
@@ -1199,11 +1370,10 @@ export default function Orders() {
                   setStartDate(e.target.value);
                   setPage(1);
                 }}
-                className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
+                title="Start Date"
+                className="w-full bg-transparent text-xs text-slate-700 outline-none cursor-pointer"
               />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">To:</span>
+              <span className="text-slate-400 mx-1 text-xs">→</span>
               <input
                 type="date"
                 value={endDate}
@@ -1211,85 +1381,143 @@ export default function Orders() {
                   setEndDate(e.target.value);
                   setPage(1);
                 }}
-                className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
+                title="End Date"
+                className="w-full bg-transparent text-xs text-slate-700 outline-none cursor-pointer"
               />
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStartDate('');
+                    setEndDate('');
+                    setPage(1);
+                  }}
+                  className="text-slate-400 hover:text-slate-600 ml-1 p-0.5 cursor-pointer"
+                  title="Clear date range"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
-            {(startDate || endDate) && (
-              <button
-                onClick={() => {
-                  setStartDate('');
-                  setEndDate('');
-                  setPage(1);
-                }}
-                className="text-[9px] font-bold uppercase tracking-wider text-rose-600 hover:text-rose-700 px-3 py-1.5 transition-all bg-rose-50 hover:bg-rose-100/50 border border-rose-100 rounded-md"
-              >
-                Clear
-              </button>
-            )}
-          </div>
 
-          {/* Right Filters (Zone, Customer, Status) */}
-          <div className="flex items-center gap-3 flex-wrap justify-end">
-            {/* Zone Filter */}
-            <div className="relative flex items-center">
+            {/* Service Zone Dropdown */}
+            <div className="lg:col-span-2 relative flex items-center">
+              <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <select
                 value={selectedZone}
                 onChange={(e) => {
                   setSelectedZone(e.target.value);
                   setPage(1);
                 }}
-                className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
+                className="w-full h-10 appearance-none bg-slate-50/70 border border-slate-200 rounded-lg pl-9 pr-8 text-sm font-normal text-slate-800 hover:bg-slate-100/60 focus:bg-white focus:border-slate-400 outline-none cursor-pointer transition-all shadow-xs truncate"
               >
-                <option value="">Zone</option>
+                <option value="">All Zones</option>
                 {uniqueZonesList.map((z, idx) => (
                   <option key={z._id || idx} value={z.zoneName}>
                     {z.zoneName}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-500" />
+              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-400" />
             </div>
 
-            {/* Customer Filter */}
-            <div className="relative flex items-center">
+            {/* Customer Dropdown */}
+            <div className="lg:col-span-2 relative flex items-center">
+              <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <select
                 value={selectedCustomer}
                 onChange={(e) => {
                   setSelectedCustomer(e.target.value);
                   setPage(1);
                 }}
-                className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
+                className="w-full h-10 appearance-none bg-slate-50/70 border border-slate-200 rounded-lg pl-9 pr-8 text-sm font-normal text-slate-800 hover:bg-slate-100/60 focus:bg-white focus:border-slate-400 outline-none cursor-pointer transition-all shadow-xs truncate"
               >
-                <option value="">Customer</option>
+                <option value="">All Customers</option>
                 {uniqueCustomersList.map((name, idx) => (
                   <option key={idx} value={name}>
                     {name}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-500" />
+              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-400" />
             </div>
 
-            {/* Status Filter */}
-            <div className="relative flex items-center">
+            {/* Status Dropdown */}
+            <div className="lg:col-span-1 relative flex items-center">
+              <Filter size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <select
                 value={selectedStatus}
                 onChange={(e) => {
                   setSelectedStatus(e.target.value);
                   setPage(1);
                 }}
-                className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all"
+                className="w-full h-10 appearance-none bg-slate-50/70 border border-slate-200 rounded-lg pl-7 pr-6 text-sm font-normal text-slate-800 hover:bg-slate-100/60 focus:bg-white focus:border-slate-400 outline-none cursor-pointer transition-all shadow-xs truncate"
+                title="Filter by status"
               >
                 <option value="">Status</option>
-                {statusesList.map((status, idx) => (
+                {availableStatuses.map((status, idx) => (
                   <option key={idx} value={status}>
-                    {status.replace(/_/g, ' ')}
+                    {status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}
                   </option>
                 ))}
               </select>
-              <ChevronDown size={14} className="absolute right-3 pointer-events-none text-slate-500" />
+              <ChevronDown size={13} className="absolute right-2 pointer-events-none text-slate-400" />
             </div>
           </div>
+
+          {/* Active Filter Chips (Removable) */}
+          {activeFiltersCount > 0 && (
+            <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-slate-100 text-xs">
+              <span className="text-slate-400 font-medium">Applied:</span>
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                  Search: "{searchQuery}"
+                  <button type="button" onClick={() => setSearchQuery('')} className="hover:text-slate-900 cursor-pointer">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {(startDate || endDate) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-medium border border-slate-200">
+                  Date: {startDate || 'Start'} → {endDate || 'End'}
+                  <button type="button" onClick={() => { setStartDate(''); setEndDate(''); setPage(1); }} className="hover:text-slate-900 cursor-pointer">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {selectedZone && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 font-medium border border-blue-200/70">
+                  Zone: {selectedZone}
+                  <button type="button" onClick={() => { setSelectedZone(''); setPage(1); }} className="hover:text-blue-900 cursor-pointer">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {selectedCustomer && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-700 font-medium border border-purple-200/70">
+                  Customer: {selectedCustomer}
+                  <button type="button" onClick={() => { setSelectedCustomer(''); setPage(1); }} className="hover:text-purple-900 cursor-pointer">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              {selectedStatus && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-medium border border-amber-200/70">
+                  Status: {selectedStatus.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')}
+                  <button type="button" onClick={() => { setSelectedStatus(''); setPage(1); }} className="hover:text-amber-900 cursor-pointer">
+                    <X size={12} />
+                  </button>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleClearAllFilters}
+                className="text-slate-500 hover:text-rose-600 font-medium ml-1 transition-colors cursor-pointer text-xs"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Order List */}
@@ -1297,7 +1525,7 @@ export default function Orders() {
           <DataGrid 
             showHeader={false}
             columns={orderColumns}
-            data={flattenedOrders}
+            data={displayedOrders}
             minWidth="3200px"
             maxHeight="calc(100vh - 280px)"
             loading={loading}

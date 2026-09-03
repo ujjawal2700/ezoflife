@@ -12,6 +12,7 @@ import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, UserAvatarCell, TagBadge } from '@/shared/components/ui/table';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -374,18 +375,19 @@ export default function Users() {
         render: (val, row) => {
           const displayVal = (row.role === 'Vendor' && row.ownerName) ? row.ownerName : (val || 'Unnamed User');
           return (
-            <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
-              {displayVal}
-            </span>
+            <UserAvatarCell
+              name={displayVal}
+              subtitle={row.email || row.phone}
+            />
           );
         }
       },
       {
-        header: 'Email Address',
+        header: 'Email address',
         key: 'email',
         render: (val) => (
-          <span className="text-[10px] text-slate-500 font-bold tracking-tight">
-            {val || 'N/A'}
+          <span className="text-[14.5px] text-slate-700 font-normal">
+            {val || '—'}
           </span>
         )
       }
@@ -393,22 +395,22 @@ export default function Users() {
 
     if (activeTab === 'Vendor') {
       baseCols.push({
-        header: 'Facility Name',
+        header: 'Facility name',
         key: 'facilityName',
         render: (val, row) => (
-          <span className="text-[10px] text-slate-900 font-bold uppercase tracking-tight">
-            {row.facilityName || 'N/A'}
+          <span className="text-[15px] font-medium text-slate-900">
+            {row.facilityName || '—'}
           </span>
         )
       });
     }
 
     baseCols.push({
-      header: 'Contact Number',
+      header: 'Contact number',
       key: 'phone',
       render: (val) => (
-        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider tabular-nums">
-          {val || 'N/A'}
+        <span className="text-[14.5px] text-slate-700 font-normal tabular-nums">
+          {val || '—'}
         </span>
       )
     });
@@ -417,10 +419,11 @@ export default function Users() {
       baseCols.push({
         header: 'Role',
         key: 'role',
-        render: (val, row) => (
-          <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
-            {val || 'Customer'}
-          </span>
+        render: (val) => (
+          <TagBadge
+            label={val || 'Customer'}
+            color={val === 'Vendor' ? 'purple' : val === 'Supplier' ? 'blue' : 'slate'}
+          />
         )
       });
     }
@@ -432,19 +435,18 @@ export default function Users() {
         render: (val, row) => {
           if (row.role === 'Vendor') {
             return (
-              <span className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
-                {row.businessType || 'N/A'}
-              </span>
+              <TagBadge label={row.businessType || 'N/A'} color="slate" />
             );
           }
           if (row.role !== 'Customer') {
-            return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+            return <span className="text-sm text-slate-400 font-normal">N/A</span>;
           }
           const isBusiness = val === 'retail';
           return (
-            <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider ${isBusiness ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
-              {isBusiness ? 'Business' : 'Individual'}
-            </span>
+            <TagBadge
+              label={isBusiness ? 'Business' : 'Individual'}
+              color={isBusiness ? 'indigo' : 'slate'}
+            />
           );
         }
       });
@@ -456,26 +458,24 @@ export default function Users() {
           header: 'Type',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
-              {val?.entityType || 'N/A'}
-            </span>
+            <TagBadge label={val?.entityType || 'N/A'} color="slate" />
           )
         },
         {
           header: 'Designation',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
-              {val?.designation || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal">
+              {val?.designation || '—'}
             </span>
           )
         },
         {
-          header: 'GST Number',
+          header: 'GST number',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-              {val?.gst || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal tabular-nums">
+              {val?.gst || '—'}
             </span>
           )
         },
@@ -483,62 +483,57 @@ export default function Users() {
           header: 'Business PAN',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-              {val?.panNumber || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal tabular-nums">
+              {val?.panNumber || '—'}
             </span>
           )
         },
         {
-          header: 'Aadhaar Number',
+          header: 'Aadhaar number',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-              {val?.aadhaarNumber || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal tabular-nums">
+              {val?.aadhaarNumber || '—'}
             </span>
           )
         },
         {
-          header: 'Bank Name',
+          header: 'Bank name',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wide">
-              {val?.bankName || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal">
+              {val?.bankName || '—'}
             </span>
           )
         },
         {
-          header: 'Account Number',
+          header: 'Account number',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-              {val?.accountNumber || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal tabular-nums">
+              {val?.accountNumber || '—'}
             </span>
           )
         },
         {
-          header: 'Bank IFSC Code',
+          header: 'IFSC code',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
-              {val?.ifscCode || 'N/A'}
+            <span className="text-sm text-slate-600 font-normal tabular-nums">
+              {val?.ifscCode || '—'}
             </span>
           )
         },
         {
-          header: 'Category',
+          header: 'Categories',
           key: 'supplierDetails',
           render: (val) => {
             const categories = val?.supplyCategories || [];
-            if (categories.length === 0) return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
+            if (categories.length === 0) return <span className="text-sm text-slate-400 font-normal">—</span>;
             return (
-              <div className="flex flex-wrap gap-1 max-w-[200px]">
+              <div className="flex flex-wrap gap-1.5 max-w-[220px]">
                 {categories.map((cat, index) => (
-                  <span 
-                    key={index} 
-                    className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200"
-                  >
-                    {cat}
-                  </span>
+                  <TagBadge key={index} label={cat} color="blue" />
                 ))}
               </div>
             );
@@ -753,7 +748,7 @@ export default function Users() {
         header: 'Registration', 
         key: 'createdAt',
         render: (val) => (
-          <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
+          <span className="text-[14.5px] text-slate-700 font-normal tabular-nums">
             {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
         )
@@ -768,13 +763,13 @@ export default function Users() {
         key: 'actions', 
         align: 'right',
         render: (_, row) => (
-          <div className="flex items-center justify-end gap-2">
+          <div className="flex items-center justify-end gap-1">
             <button 
-              onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))} // Deep clone for editing
+              onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))}
               title="Edit Full Profile" 
-              className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
-              <Edit2 size={14} />
+              <Edit2 size={16} />
             </button>
           </div>
         )
@@ -1572,36 +1567,36 @@ export default function Users() {
                                 </div>
 
                                 <div className="bg-slate-50 border border-slate-100 rounded-3xl overflow-hidden">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-200/50 border-b border-slate-200">
-                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Type</th>
-                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Service Node</th>
-                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Vendor Rate</th>
-                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Current Status</th>
-                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-right">Moderation</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-200/50">
+                                    <Table className="w-full text-left border-collapse">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Type</TableHead>
+                                                <TableHead>Service Node</TableHead>
+                                                <TableHead className="text-center">Vendor Rate</TableHead>
+                                                <TableHead className="text-center">Current Status</TableHead>
+                                                <TableHead className="text-right">Moderation</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
                                             {/* 1. Master Services from ShopDetails */}
                                             {editingUser.shopDetails?.services?.map((svc, idx) => (
-                                                <tr key={`master-${idx}`} className="hover:bg-white/50 transition-colors">
-                                                    <td className="p-5">
+                                                <TableRow key={`master-${idx}`} className="hover:bg-white/50 transition-colors">
+                                                    <TableCell>
                                                         <span className="px-2 py-0.5 bg-slate-900 text-white rounded text-[7px] font-black uppercase tracking-widest">Master</span>
-                                                    </td>
-                                                    <td className="p-5">
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <div className="flex flex-col">
                                                             <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{getServiceName(svc.id)}</span>
                                                             <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">ID: {svc.id?.slice(-6).toUpperCase()}</span>
                                                         </div>
-                                                    </td>
-                                                    <td className="p-5 text-center text-xs font-black text-slate-900 tabular-nums">₹{svc.vendorRate}</td>
-                                                    <td className="p-5 text-center">
+                                                    </TableCell>
+                                                    <TableCell className="text-center">₹{svc.vendorRate}</TableCell>
+                                                    <TableCell className="text-center">
                                                         <span className={`inline-flex px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${svc.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : svc.status === 'rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
                                                             {svc.status || 'pending'}
                                                         </span>
-                                                    </td>
-                                                    <td className="p-5 text-right">
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-2">
                                                             {svc.status !== 'approved' && (
                                                                 <button 
@@ -1620,28 +1615,28 @@ export default function Users() {
                                                                 </button>
                                                             )}
                                                         </div>
-                                                    </td>
-                                                </tr>
+                                                    </TableCell>
+                                                </TableRow>
                                             ))}
                                             {/* 2. Custom Services from Collection */}
                                             {customServices.map((svc, idx) => (
-                                                <tr key={`custom-${idx}`} className="hover:bg-white/50 transition-colors">
-                                                    <td className="p-5">
+                                                <TableRow key={`custom-${idx}`} className="hover:bg-white/50 transition-colors">
+                                                    <TableCell>
                                                         <span className="px-2 py-0.5 bg-indigo-500 text-white rounded text-[7px] font-black uppercase tracking-widest">Custom</span>
-                                                    </td>
-                                                    <td className="p-5">
+                                                    </TableCell>
+                                                    <TableCell>
                                                         <div className="flex flex-col">
                                                             <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{svc.name}</span>
                                                             <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">CATEGORY: {svc.category}</span>
                                                         </div>
-                                                    </td>
-                                                    <td className="p-5 text-center text-xs font-black text-slate-900 tabular-nums">₹{svc.basePrice}</td>
-                                                    <td className="p-5 text-center">
+                                                    </TableCell>
+                                                    <TableCell className="text-center">₹{svc.basePrice}</TableCell>
+                                                    <TableCell className="text-center">
                                                         <span className={`inline-flex px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${svc.approvalStatus === 'Approved' ? 'bg-emerald-50 text-emerald-600' : svc.approvalStatus === 'Rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
                                                             {svc.approvalStatus || 'Pending'}
                                                         </span>
-                                                    </td>
-                                                    <td className="p-5 text-right">
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-2">
                                                             {svc.approvalStatus !== 'Approved' && (
                                                                 <button 
@@ -1660,16 +1655,16 @@ export default function Users() {
                                                                 </button>
                                                             )}
                                                         </div>
-                                                    </td>
-                                                </tr>
+                                                    </TableCell>
+                                                </TableRow>
                                             ))}
                                             {(!editingUser.shopDetails?.services?.length && !customServices.length) && (
-                                                <tr>
-                                                    <td colSpan={5} className="p-10 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">No service nodes configured for this vendor</td>
-                                                </tr>
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="p-10 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">No service nodes configured for this vendor</TableCell>
+                                                </TableRow>
                                             )}
-                                        </tbody>
-                                    </table>
+                                        </TableBody>
+                                    </Table>
                                 </div>
                             </section>
                         )}
@@ -1792,7 +1787,7 @@ export default function Users() {
 
                     <div className="p-10 space-y-6">
                         <div className="space-y-2">
-                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rejection Reason</label>
+                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Rejection Reason</label>
                              <textarea 
                                 autoFocus
                                 value={rejectionReason}

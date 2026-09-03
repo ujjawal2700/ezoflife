@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Calendar, Clock, Search, Plus, Minus, Camera, ShoppingBag, ArrowRight, CheckCircle2, Sparkles, X, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi, adApi, UPLOADS_URL } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
@@ -906,19 +908,18 @@ const HomePage = () => {
   );
 
   return (
-    <div className="text-on-surface min-h-[100dvh] flex flex-col">
-      <main className="flex-1 pt-0 pb-36 px-6 max-w-5xl mx-auto w-full">
-        <div className="h-[50px] shrink-0" />
+    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
+      <main className="flex-1 pb-44 sm:pb-36 max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6">
 
-        {/* 1. COMPACT PROMO BANNER */}
-        <section className="mt-2 mb-4 w-full relative px-2">
-          <div className="overflow-hidden rounded-[2rem] shadow-xl shadow-slate-100 border border-slate-100">
+        {/* 1. HERO PROMO BANNER */}
+        <section className="mb-6 w-full">
+          <div className="overflow-hidden rounded-3xl shadow-sm border border-slate-200/80">
             <AnimatePresence mode="wait">
               {dbBanner ? (
                 <motion.div
                   key={dbBanner._id}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className="relative overflow-hidden flex flex-col justify-end min-h-[140px] bg-slate-900 text-white"
+                  className="relative overflow-hidden flex flex-col justify-end min-h-[160px] sm:min-h-[220px] bg-slate-900 text-white"
                 >
                   {dbBanner.type === 'image' ? (
                     <img 
@@ -936,14 +937,14 @@ const HomePage = () => {
                       playsInline
                     />
                   )}
-                  {/* Visual Overlay to make text readable */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-0" />
+                  {/* Visual Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent z-0" />
                   
-                  <div className="relative z-10 p-5">
-                    <span className="text-white/80 text-[6px] font-black uppercase tracking-[0.3em] mb-1.5 block">
-                      {dbBanner.notes || 'Featured Campaign'}
+                  <div className="relative z-10 p-6 sm:p-8">
+                    <span className="inline-block px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-semibold uppercase tracking-wider text-white mb-2">
+                      {dbBanner.notes || 'Special Promotion'}
                     </span>
-                    <h2 className="text-lg font-black text-white leading-tight tracking-tighter">
+                    <h2 className="text-xl sm:text-3xl font-bold text-white leading-tight">
                       {dbBanner.title}
                     </h2>
                   </div>
@@ -952,14 +953,18 @@ const HomePage = () => {
                 <motion.div
                   key={banners[currentBanner].id}
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  className={`${banners[currentBanner].bg} p-4 relative overflow-hidden flex flex-col justify-end min-h-[60px]`}
+                  className={`${banners[currentBanner].bg} p-6 sm:p-8 relative overflow-hidden flex flex-col justify-end min-h-[140px] sm:min-h-[180px] rounded-3xl`}
                 >
-                  <div className="relative z-10">
-                    <span className="text-white/80 text-[6px] font-black uppercase tracking-[0.3em] mb-1 block">{banners[currentBanner].sub}</span>
-                    <h2 className="text-lg font-black text-white mb-2 leading-tight tracking-tighter">{banners[currentBanner].title}</h2>
-                    <div className="flex gap-1.5">
+                  <div className="relative z-10 max-w-xl">
+                    <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-medium uppercase tracking-wider text-white mb-2">
+                      {banners[currentBanner].sub}
+                    </span>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 leading-tight">
+                      {banners[currentBanner].title}
+                    </h2>
+                    <div className="flex gap-2">
                       {banners.map((_, i) => (
-                        <div key={i} className={`h-1 rounded-full transition-all duration-500 ${i === currentBanner ? 'w-6 bg-white' : 'w-1 bg-white/40'}`} />
+                        <div key={i} className={`h-1.5 rounded-full transition-all duration-300 ${i === currentBanner ? 'w-8 bg-white' : 'w-2 bg-white/40'}`} />
                       ))}
                     </div>
                   </div>
@@ -968,156 +973,283 @@ const HomePage = () => {
             </AnimatePresence>
           </div>
         </section>
-        {/* 2. CONSOLIDATED CONTROL ROW (ORIGINAL COMPACT DESIGN) */}
-        <div className="flex flex-row items-center justify-between gap-2 mb-4 px-0 w-full">
-          {/* Tier Toggle - Always Active */}
-          <div className="flex-1 h-12 flex gap-1.5 shrink-0">
-            {['Essential', 'Heritage'].map(tier => (
-              <button 
-                key={tier} 
-                onClick={() => {
-                  setSelectedTier(tier);
-                  setDeliveryConfirmed(true);
-                }} 
-                className={`flex-1 h-full rounded-xl font-black text-[7.5px] uppercase tracking-tighter transition-all duration-300 border ${selectedTier === tier ? (tier === 'Heritage' ? 'bg-[#996515] border-[#996515]' : 'bg-black border-black') + ' text-white shadow-lg' : 'bg-white text-slate-500 border-slate-100 shadow-sm'}`}
-              >
-                {tier}
-              </button>
-            ))}
+
+        {/* 2. CONSOLIDATED CONTROLS: TIER SELECTOR & SCHEDULE SLOT */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 w-full">
+          {/* Tier Switcher */}
+          <div className="bg-slate-100/90 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/80 shrink-0">
+            {['Essential', 'Heritage'].map(tier => {
+              const isHeritage = tier === 'Heritage';
+              const isSelected = selectedTier === tier;
+              return (
+                <button 
+                  key={tier} 
+                  onClick={() => {
+                    setSelectedTier(tier);
+                    setDeliveryConfirmed(true);
+                  }} 
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all cursor-pointer",
+                    isSelected 
+                      ? (isHeritage ? 'bg-amber-800 text-white shadow-xs font-semibold' : 'bg-slate-900 text-white shadow-xs font-semibold')
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  )}
+                >
+                  {isHeritage && <Sparkles size={14} className={isSelected ? 'text-amber-200' : 'text-amber-600'} />}
+                  <span>{tier}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Pickup & Drop-off - Depends on Delivery Type */}
+          {/* Schedule Pickup & Drop-off Button */}
           <button 
             disabled={!selectedTier}
             onClick={() => setShowSlotPicker(true)}
-            className={`flex-1 h-12 rounded-xl font-black text-[7.5px] uppercase tracking-[0.05em] border transition-all flex flex-row items-center justify-center gap-1.5 ${!selectedTier ? 'opacity-50 grayscale cursor-not-allowed bg-white text-slate-400 border-slate-100' : 'bg-slate-950 text-white border-slate-950 shadow-xl'}`}
+            className={cn(
+              "flex-1 flex items-center justify-center sm:justify-start gap-2.5 px-4 py-2.5 rounded-2xl border transition-all cursor-pointer",
+              !selectedTier 
+                ? 'opacity-50 grayscale cursor-not-allowed bg-slate-50 text-slate-400 border-slate-200' 
+                : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200 shadow-2xs'
+            )}
           >
-            <span className="material-symbols-outlined text-[14px] leading-none">calendar_today</span>
-            <span className="text-left">Schedule Pickup and Drop-off</span>
+            <Calendar size={16} className="text-slate-500 shrink-0" />
+            <div className="text-left min-w-0 truncate">
+              <span className="text-xs sm:text-sm font-medium text-slate-900 truncate">
+                {selectedPickup ? `${selectedPickup} · ${pickupTime || 'Anytime'}` : 'Schedule Pickup & Drop-off'}
+              </span>
+            </div>
+            {selectedDelivery && (
+              <span className="hidden md:inline text-xs text-slate-500 font-normal ml-auto">
+                Drop: {selectedDelivery}
+              </span>
+            )}
           </button>
         </div>
 
-        {/* 4. STICKY OPTIMIZED SEARCH & CATEGORY SECTION - Full Visibility */}
-        <div className={`transition-all duration-500 ${!selectedTier ? 'opacity-50 pointer-events-none grayscale' : 'opacity-100'}`}>
-          <div className={`${isHeaderSticky ? 'fixed top-[50px] left-0 right-0 z-[99] shadow-2xl px-4 py-2 bg-white/95 backdrop-blur-2xl rounded-b-[2.2rem] border-b border-slate-100' : 'relative z-[90] px-1 py-2'} transition-all duration-500`}>
-            <div className="max-w-5xl mx-auto w-full space-y-1">
-              {/* MINI CATEGORIES */}
-              <section className="w-full">
-
-                <div className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'pb-1' : 'pb-2'}`}>
-                  {categoriesLoading ? (
-                    [...Array(5)].map((_, i) => <div key={i} className="min-w-[65px] h-16 bg-slate-50 rounded-xl animate-pulse" />)
-                  ) : (
-                    categories.map(cat => (
-                      <motion.button
-                        key={cat.name}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleCategoryClick(cat)}
-                        className={`flex flex-row items-center justify-center transition-all duration-300 ${isHeaderSticky ? 'min-w-[70px] px-3 py-1.5 rounded-lg' : 'min-w-[80px] px-4 py-2.5 rounded-xl'} border-2 ${selectedCategory?.name === cat.name ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'}`}
-                      >
-                        <span className={`font-black uppercase tracking-widest leading-none ${isHeaderSticky ? 'text-[6px]' : 'text-[8px]'} ${selectedCategory?.name === cat.name ? 'text-white' : 'text-slate-500'}`}>{cat.name}</span>
-                      </motion.button>
-                    ))
-                  )}
-                </div>
-
-                <AnimatePresence>
-                  {subCategories.length > 0 && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className={`flex gap-2 overflow-x-auto hide-scrollbar px-1 ${isHeaderSticky ? 'mt-2' : 'mt-4'}`}>
-                      {subCategories.map(sub => (
-                        <button
-                          key={sub._id}
-                          onClick={() => setSelectedSubCategory(selectedSubCategory?._id === sub._id ? null : { ...sub, name: sub.subCategory })}
-                          className={`rounded-lg font-black uppercase tracking-widest transition-all whitespace-nowrap border ${isHeaderSticky ? 'px-3 py-1.5 text-[6px]' : 'px-5 py-2.5 text-[8px]'} ${selectedSubCategory?._id === sub._id ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-100 text-slate-500 border-transparent hover:bg-slate-200'}`}
-                        >
-                          {sub.subCategory}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </section>
-              {/* SEARCH BAR */}
-              <div className="relative group px-1">
-                <div className={`absolute inset-y-0 left-5 flex items-center pointer-events-none ${isHeaderSticky ? 'scale-75' : ''}`}>
-                  <span className={`material-symbols-outlined ${isHeritage ? 'text-[#996515]' : 'text-slate-900'} text-base opacity-40 group-focus-within:opacity-100 transition-opacity`}>search</span>
-                </div>
-                <input 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  className={`w-full bg-slate-100 border-2 border-slate-200/20 focus:border-slate-900 focus:bg-white rounded-full pr-8 ${isHeaderSticky ? 'pl-10 py-1.5 text-[8px]' : 'pl-12 py-2.5 text-[9px]'} font-black text-slate-900 placeholder:text-slate-400 outline-none transition-all shadow-sm`} 
-                  placeholder={isHeritage ? "Search..." : "Search services add to the cart"} 
-                />
-              </div>
-            </div>
+        {/* 3. SEARCH & CATEGORIES */}
+        <div className={`space-y-4 mb-8 transition-opacity duration-300 ${!selectedTier ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          {/* Search Input */}
+          <div className="relative w-full">
+            <Search size={17} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input 
+              value={searchQuery} 
+              onChange={(e) => setSearchQuery(e.target.value)} 
+              className="w-full bg-white border border-slate-200/90 rounded-2xl pl-11 pr-10 py-3 text-sm font-normal text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-900/10 shadow-2xs transition-all" 
+              placeholder={isHeritage ? "Search heritage garments..." : "Search services (e.g. Dry Cleaning, Cotton Shirt, Saree...)"} 
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
 
-          {/* 5. SERVICES LIST */}
-          <section className="mb-10 w-full px-1">
-            <div className={`flex flex-col gap-3 ${showMoreServices ? 'max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar' : ''}`}>
-              {loading ? (
-                [...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-[2rem] p-4 h-24 border border-slate-50 animate-pulse" />)
+          {/* Category Filter Pills */}
+          <div className="w-full">
+            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+              <button
+                onClick={() => { setSelectedCategory(null); setSelectedSubCategory(null); }}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors cursor-pointer border",
+                  !selectedCategory 
+                    ? "bg-slate-900 text-white border-slate-900 shadow-2xs" 
+                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                )}
+              >
+                All Services
+              </button>
+
+              {categoriesLoading ? (
+                [...Array(4)].map((_, i) => (
+                  <div key={i} className="w-24 h-9 bg-slate-100 rounded-xl animate-pulse shrink-0" />
+                ))
               ) : (
-                filteredServices.map((service, i) => {
-                  const serviceId = service._id || service.id;
-                  const qty = selectedQuantities[serviceId] || 0;
-                  const isSelected = qty > 0;
+                categories.map(cat => {
+                  const isSelected = selectedCategory?.name === cat.name;
                   return (
-                    <motion.div 
-                      key={serviceId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                      className={`rounded-[1.5rem] p-2.5 flex flex-row items-center gap-3 border transition-all duration-500 ${isSelected ? 'bg-slate-900 border-slate-900 shadow-xl scale-[1.01]' : 'bg-white border-slate-100 shadow-sm'}`}
+                    <button
+                      key={cat.name}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-colors cursor-pointer border",
+                        isSelected 
+                          ? "bg-slate-900 text-white border-slate-900 shadow-2xs" 
+                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                      )}
                     >
-                      {/* Left: Info Block */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-center">
-                        <h4 className={`font-black text-[9px] uppercase line-clamp-1 tracking-tight mb-0.5 ${isSelected ? 'text-white' : 'text-slate-900'}`}>{service.name || service.itemName}</h4>
-                        <div className="flex gap-1 items-center">
-                          <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.mainCategory || 'Cat'}</span>
-                          <span className={`w-0.5 h-0.5 rounded-full ${isSelected ? 'bg-white/20' : 'bg-slate-200'}`} />
-                          <span className={`text-[6px] font-black uppercase tracking-widest ${isSelected ? 'text-white/40' : 'text-slate-400'}`}>{service.subCategoryName || 'Sub'}</span>
-                        </div>
-                      </div>
-
-                      {/* Right: Price & Actions */}
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        {/* Price */}
-                        <div className="flex flex-col items-end">
-                          <span className={`text-[11px] font-black ${isSelected ? 'text-emerald-400' : 'text-slate-900'}`}>
-                            ₹{Math.round(((allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
-                          </span>
-                          {(allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0)) && (
-                            <span className="text-[8px] font-bold line-through text-slate-300">
-                              ₹{Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1))}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Qty Controls */}
-                        <div className={`flex items-center rounded-lg p-0.5 border shadow-inner ${isSelected ? 'bg-white/10 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
-                          <button onClick={() => updateQuantity(serviceId, -1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">remove</span></button>
-                          <span className={`text-[9px] font-black px-1.5 min-w-[20px] text-center ${isSelected ? 'text-white' : 'text-slate-900'}`}>{qty}</span>
-                          <button onClick={() => updateQuantity(serviceId, 1)} className={`w-6 h-6 flex items-center justify-center rounded-md transition-all ${isSelected ? 'text-white/60 hover:text-white' : 'text-slate-400 hover:text-slate-900'}`}><span className="material-symbols-outlined text-[12px] font-black">add</span></button>
-                        </div>
-
-                        {/* Camera */}
-                        {isSelected && (
-                          <button 
-                            onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
-                            className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${itemPhotos[serviceId]?.length > 0 ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/10 text-white/40 border border-white/10 hover:text-white'}`}
-                          >
-                            <span className="material-symbols-outlined text-[14px]">add_a_photo</span>
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
+                      {cat.name}
+                    </button>
                   );
                 })
               )}
             </div>
-          </section>
-          {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 10 && (
-            <div className="flex justify-center mt-6 mb-6"><button onClick={() => setShowMoreServices(true)} className="px-6 py-2 rounded-xl bg-slate-50 text-slate-400 font-black text-[8px] uppercase tracking-widest hover:text-slate-900 transition-all">View All Services</button></div>
-          )}
+
+            {/* Subcategories (if available) */}
+            <AnimatePresence>
+              {subCategories.length > 0 && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  exit={{ opacity: 0, height: 0 }} 
+                  className="flex gap-2 overflow-x-auto hide-scrollbar pt-2.5 pb-1"
+                >
+                  {subCategories.map(sub => {
+                    const isSelected = selectedSubCategory?._id === sub._id;
+                    return (
+                      <button
+                        key={sub._id}
+                        onClick={() => setSelectedSubCategory(isSelected ? null : { ...sub, name: sub.subCategory })}
+                        className={cn(
+                          "px-3.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer border",
+                          isSelected 
+                            ? "bg-slate-800 text-white border-slate-800" 
+                            : "bg-slate-100 text-slate-600 border-slate-200/60 hover:bg-slate-200/70"
+                        )}
+                      >
+                        {sub.subCategory}
+                      </button>
+                    );
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
+
+        {/* 4. RESPONSIVE SERVICES CATALOG GRID */}
+        <section className="mb-12 w-full">
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 h-36 border border-slate-200/80 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredServices.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-3xl border border-slate-200/80 p-8">
+              <p className="text-base font-semibold text-slate-800">No services found</p>
+              <p className="text-sm text-slate-500 mt-1">Try adjusting your search query or category filter.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {filteredServices.map((service, i) => {
+                const serviceId = service._id || service.id;
+                const qty = selectedQuantities[serviceId] || 0;
+                const isSelected = qty > 0;
+                const photosCount = itemPhotos[serviceId]?.length || 0;
+
+                const basePrice = (allowDiscount !== false ? (service.discountedPrice || service.basePrice) : service.basePrice) || 0;
+                const calculatedPrice = Math.round(basePrice * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1));
+                const originalPrice = Math.round((service.basePrice || 0) * (pricingFactor || 1) * (isExpress ? (expressMultiplier || 1) : 1) * (isHeritage ? (heritageMultiplier || 1) : 1));
+
+                return (
+                  <motion.div 
+                    key={serviceId} 
+                    initial={{ opacity: 0, y: 8 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ delay: Math.min(i * 0.02, 0.3) }}
+                    className={cn(
+                      "bg-white rounded-2xl p-4 sm:p-5 flex flex-col justify-between border transition-all hover:shadow-sm group",
+                      isSelected 
+                        ? "border-slate-900 ring-1 ring-slate-900/10 shadow-2xs" 
+                        : "border-slate-200/90 hover:border-slate-300"
+                    )}
+                  >
+                    {/* Top Details */}
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide bg-slate-100 px-2 py-0.5 rounded-md">
+                          {service.mainCategory || 'Service'}
+                        </span>
+                        {service.subCategoryName && (
+                          <span className="text-[11px] text-slate-400 font-normal">
+                            {service.subCategoryName}
+                          </span>
+                        )}
+                      </div>
+
+                      <h4 className="font-semibold text-sm sm:text-base text-slate-900 line-clamp-2 mt-2 leading-snug break-words">
+                        {service.name || service.itemName}
+                      </h4>
+                    </div>
+
+                    {/* Bottom Row: Price & Quantity Controls */}
+                    <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100">
+                      {/* Price Display */}
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-sm sm:text-base font-bold text-slate-900">
+                            ₹{calculatedPrice}
+                          </span>
+                          {allowDiscount !== false && (service.basePrice || 0) > (service.discountedPrice || 0) && (
+                            <span className="text-[11px] font-normal line-through text-slate-400">
+                              ₹{originalPrice}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right Action: Quantity Stepper & Optional Camera */}
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        {/* Camera photo upload trigger */}
+                        {isSelected && (
+                          <button 
+                            onClick={() => setActivePhotoService({ id: serviceId, name: service.name || service.itemName })} 
+                            className={cn(
+                              "w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0",
+                              photosCount > 0 
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100" 
+                                : "bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200"
+                            )}
+                            title="Upload garment photo"
+                          >
+                            <Camera size={13} className="sm:size-[14px]" />
+                            {photosCount > 0 && (
+                              <span className="ml-0.5 text-[9px] sm:text-[10px] font-bold text-emerald-800">{photosCount}</span>
+                            )}
+                          </button>
+                        )}
+
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center rounded-xl bg-slate-100/90 border border-slate-200/80 p-0.5 shrink-0">
+                          <button 
+                            onClick={() => updateQuantity(serviceId, -1)} 
+                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                          >
+                            <Minus size={12} className="sm:size-[13px]" />
+                          </button>
+                          <span className="text-xs font-semibold px-1.5 sm:px-2 min-w-[20px] sm:min-w-[24px] text-center text-slate-900">
+                            {qty}
+                          </span>
+                          <button 
+                            onClick={() => updateQuantity(serviceId, 1)} 
+                            className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-lg hover:bg-white text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                          >
+                            <Plus size={12} className="sm:size-[13px]" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )}
+
+          {!showMoreServices && !selectedCategory && !selectedSubCategory && !searchQuery && filteredServices.length >= 12 && (
+            <div className="flex justify-center mt-8">
+              <button 
+                onClick={() => setShowMoreServices(true)} 
+                className="px-6 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 font-medium text-xs hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+              >
+                View All Services
+              </button>
+            </div>
+          )}
+        </section>
 
 
 
@@ -1715,17 +1847,40 @@ const HomePage = () => {
         <AnimatePresence>
           {cartItemsCount > 0 && (
             <motion.div 
-              initial={{ y: 100, opacity: 0 }} 
+              initial={{ y: 80, opacity: 0 }} 
               animate={{ y: 0, opacity: 1 }} 
-              exit={{ y: 100, opacity: 0 }}
-              className="fixed bottom-[80px] right-6 z-[150]"
+              exit={{ y: 80, opacity: 0 }}
+              className="fixed bottom-[4.5rem] md:bottom-8 left-0 right-0 z-[150] px-3 sm:px-4 pointer-events-none flex justify-center"
             >
+              <div className="pointer-events-auto bg-slate-900 text-white px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-between gap-3 sm:gap-6 w-full max-w-md backdrop-blur-xl">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                    <ShoppingBag size={16} className="text-white sm:size-[18px]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <span className="text-xs sm:text-sm font-semibold text-white truncate">
+                        {cartItemsCount} {cartItemsCount === 1 ? 'item' : 'items'}
+                      </span>
+                      <span className="text-xs text-white/40">·</span>
+                      <span className="text-xs sm:text-sm font-bold text-emerald-400 shrink-0">
+                        ₹{Math.round(cartTotal)}
+                      </span>
+                    </div>
+                    <p className="text-[10px] sm:text-[11px] text-white/60 font-normal truncate">
+                      Tier: {selectedTier || 'Essential'}
+                    </p>
+                  </div>
+                </div>
+
                 <button 
                   onClick={handleCartClick}
-                  className="bg-primary text-white px-10 py-4.5 rounded-full font-black text-[12px] uppercase tracking-[0.2em] shadow-2xl shadow-primary/50 active:scale-95 transition-all border-2 border-white/20"
+                  className="px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white text-slate-950 font-semibold text-xs sm:text-sm hover:bg-slate-100 transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer shadow-sm active:scale-95"
                 >
-                  Review and Pay
+                  <span>Review & Pay</span>
+                  <ArrowRight size={13} className="sm:size-[15px]" />
                 </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1734,72 +1889,163 @@ const HomePage = () => {
         <AnimatePresence>
           {activePhotoService && (
             <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="relative w-full max-w-[320px] bg-white rounded-[2rem] p-6 shadow-2xl flex flex-col gap-4 max-h-[85vh] overflow-y-auto hide-scrollbar border border-slate-100">
-                <div className="flex justify-end">
-                  <button onClick={() => setActivePhotoService(null)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
-                    <span className="material-symbols-outlined text-base">close</span>
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                exit={{ opacity: 0 }} 
+                onClick={() => setActivePhotoService(null)} 
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs" 
+              />
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0, y: 10 }} 
+                animate={{ scale: 1, opacity: 1, y: 0 }} 
+                exit={{ scale: 0.95, opacity: 0, y: 10 }} 
+                className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-slate-900 space-y-5 max-h-[90vh] overflow-y-auto hide-scrollbar font-['Poppins',sans-serif]"
+              >
+                {/* Modal Header */}
+                <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[11px] font-semibold mb-1">
+                      <Camera size={12} />
+                      <span>Garment Care Photos</span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                      Photos for {activePhotoService.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-normal mt-0.5">
+                      Add photos showing stains, tears, or specific care notes.
+                    </p>
+                  </div>
+                  <button 
+                    onClick={() => setActivePhotoService(null)} 
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors cursor-pointer shrink-0 mt-0.5"
+                  >
+                    <X size={16} />
                   </button>
                 </div>
 
-                {/* Existing Photos Grid */}
+                {/* Upload Progress Bar */}
+                {uploading && (
+                  <div className="w-full space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex justify-between text-xs font-medium text-slate-600">
+                      <span className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+                        Uploading photos...
+                      </span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-slate-900 transition-all duration-300 rounded-full"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Photos Grid or Empty Dropzone */}
                 {itemPhotos[activePhotoService.id]?.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {itemPhotos[activePhotoService.id].map((photo, idx) => (
-                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100 bg-slate-50">
-                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                        <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 group shadow-2xs">
+                          <img src={photo} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePhoto(activePhotoService.id, photo)}
+                            title="Delete Photo"
+                            className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/95 text-rose-600 hover:bg-rose-50 border border-slate-200/80 shadow-xs flex items-center justify-center active:scale-90 transition-all cursor-pointer"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       ))}
+
+                      {/* Add More Tile */}
+                      <button
+                        type="button"
+                        onClick={() => galleryInputRef.current.click()}
+                        className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 hover:border-slate-400 bg-slate-50/60 hover:bg-slate-50 flex flex-col items-center justify-center gap-1.5 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer group"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-white shadow-2xs border border-slate-200/80 flex items-center justify-center text-slate-700 group-hover:scale-110 transition-transform">
+                          <Plus size={16} />
+                        </div>
+                        <span className="text-xs font-medium">Add More</span>
+                      </button>
                     </div>
 
-                    {/* Action Buttons: Add, Edit, Delete */}
-                    <div className="flex gap-2">
+                    {/* Modal Bottom Action Controls */}
+                    <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                       <button 
-                        onClick={() => galleryInputRef.current.click()}
-                        className="flex-1 bg-slate-900 text-white py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2"
-                      >
-                        <span className="material-symbols-outlined text-sm">add</span> Add
-                      </button>
-                      <button 
-                        onClick={() => {
-                          // Edit logic: for now, replace all with new selection
-                          galleryInputRef.current.click();
-                        }}
-                        className="flex-1 bg-white border border-slate-200 text-slate-900 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2"
-                      >
-                        <span className="material-symbols-outlined text-sm">edit</span> Edit
-                      </button>
-                      <button 
+                        type="button"
                         onClick={() => {
                           if (window.confirm("Delete all photos for this item?")) {
                             setItemPhotos(prev => {
                               const { [activePhotoService.id]: _, ...rest } = prev;
+                              localStorage.setItem('item_photos', JSON.stringify(rest));
                               return rest;
                             });
+                            toast.success("All photos removed");
                           }
                         }}
-                        className="flex-1 bg-rose-50 text-rose-600 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2"
+                        className="text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
                       >
-                        <span className="material-symbols-outlined text-sm">delete</span> Delete
+                        <Trash2 size={13} />
+                        <span>Delete All</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setActivePhotoService(null)}
+                        className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-medium transition-colors shadow-2xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>Done</span>
                       </button>
                     </div>
                   </div>
                 ) : (
-                  /* No Photos State: From Gallery Only */
-                  <div className="flex flex-col items-center gap-4 py-4">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => galleryInputRef.current.click()}
-                      className="w-full bg-slate-50 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 border-2 border-transparent hover:border-slate-900 transition-all"
-                    >
-                      <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-slate-900 shadow-sm border border-slate-100">
-                        <span className="material-symbols-outlined text-2xl">photo_library</span>
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Add Images</span>
-                    </motion.button>
+                  /* No Photos Upload Options */
+                  <div className="space-y-4 py-2">
+                    {/* Two-button layout */}
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Take Photo — opens native camera */}
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current.click()}
+                        className="flex flex-col items-center justify-center gap-2.5 p-5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl transition-all cursor-pointer group active:scale-95"
+                      >
+                        <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                          <Camera size={22} />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold">Take Photo</p>
+                          <p className="text-[10px] text-white/60 font-normal mt-0.5">Open camera</p>
+                        </div>
+                      </button>
+
+                      {/* Select from Gallery */}
+                      <button
+                        type="button"
+                        onClick={() => galleryInputRef.current.click()}
+                        className="flex flex-col items-center justify-center gap-2.5 p-5 bg-slate-50 hover:bg-slate-100 text-slate-800 rounded-2xl border border-slate-200 hover:border-slate-300 transition-all cursor-pointer group active:scale-95"
+                      >
+                        <div className="w-11 h-11 rounded-2xl bg-white shadow-xs border border-slate-200 flex items-center justify-center text-slate-600 group-hover:border-slate-300 transition-colors">
+                          <span className="material-symbols-outlined text-xl">photo_library</span>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-semibold">From Gallery</p>
+                          <p className="text-[10px] text-slate-400 font-normal mt-0.5">Browse files</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    <p className="text-center text-[11px] text-slate-400">
+                      PNG, JPG, HEIC · up to 10 MB each
+                    </p>
                   </div>
                 )}
+
               </motion.div>
             </div>
           )}

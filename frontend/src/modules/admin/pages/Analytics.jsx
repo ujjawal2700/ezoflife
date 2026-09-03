@@ -7,6 +7,8 @@ import {
 import PageHeader from '../components/common/PageHeader';
 import MetricRow from '../components/cards/MetricRow';
 import ChartPanel from '../components/cards/ChartPanel';
+import Skeleton from '../components/skeletons/Skeleton';
+import MetricRowSkeleton from '../components/skeletons/MetricRowSkeleton';
 import { dashboardApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -95,6 +97,41 @@ export default function Analytics() {
     { label: 'Dormant Vendors', value: String(vendors?.dormantCount ?? 0), variant: 'rose' },
     { label: 'Net Profit', value: inr(financials?.netProfit), variant: 'emerald' }
   ]), [vendors, customers, financials]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-slate-25/50 pb-20">
+        <PageHeader 
+          title="Analytics" 
+          actions={[
+            { label: 'Export Data Report', icon: Download, variant: 'secondary' },
+            { label: 'Set Goals', icon: Target, variant: 'primary' }
+          ]}
+        />
+        <MetricRowSkeleton count={4} />
+        <div className="max-w-[1600px] mx-auto w-full px-6 pt-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm space-y-4">
+              <Skeleton className="h-5 w-44 rounded" />
+              <Skeleton className="h-64 w-full rounded-2xl" />
+            </div>
+            <div className="bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm space-y-4">
+              <Skeleton className="h-5 w-44 rounded" />
+              <Skeleton className="h-64 w-full rounded-2xl" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="p-5 bg-white border border-slate-200 rounded-[1.5rem] shadow-sm space-y-2">
+                <Skeleton className="h-3 w-24 rounded" />
+                <Skeleton className="h-7 w-20 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-25/50 pb-20">

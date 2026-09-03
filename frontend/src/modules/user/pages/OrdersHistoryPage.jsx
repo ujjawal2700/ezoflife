@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Package, Clock, MapPin, Store, Navigation, FileText, MessageSquare, AlertCircle, CheckCircle2, ChevronRight, XCircle, Filter, Download } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { orderApi, adminApi } from '../../../lib/api';
 import socket from '../../../lib/socket';
 import { toast } from 'react-hot-toast';
@@ -461,376 +463,356 @@ const OrdersHistoryPage = () => {
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="text-on-background min-h-[100dvh] flex flex-col"
-    >
-      <main className="pt-[50px] pb-44 px-6 max-w-2xl mx-auto w-full">
+    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900">
+      <main className="flex-1 pb-36 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
         {loading ? (
-          <div className="py-20 text-center flex flex-col items-center">
-             <motion.div 
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full mb-6"
-            />
-            <p className="text-xs font-black uppercase tracking-[0.2em] opacity-40">Syncing with server...</p>
-            <p className="text-[10px] opacity-20 mt-4">Session: {userId || 'Guest'}</p>
+          <div className="py-24 text-center flex flex-col items-center justify-center">
+            <div className="w-10 h-10 border-3 border-slate-900 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-sm font-medium text-slate-500">Loading your orders...</p>
           </div>
         ) : (
           <>
-        <motion.section 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="mb-6 pt-4"
-        >
-          <div className="flex gap-4 mb-2">
-            <button 
-              onClick={() => setActiveTab('active')}
-              className={`flex-1 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all relative overflow-hidden ${
-                activeTab === 'active' 
-                  ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20' 
-                  : 'bg-slate-100 text-slate-400'
-              }`}
-            >
-              Active Orders
-              {activeTab === 'active' && activeOrders.length > 0 && (
-                <span className="ml-2 bg-primary text-on-primary px-2 py-0.5 rounded-full text-[8px]">{activeOrders.length}</span>
-              )}
-            </button>
-            <button 
-              onClick={() => setActiveTab('past')}
-              className={`flex-1 py-4 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-all ${
-                activeTab === 'past' 
-                  ? 'bg-slate-900 text-white shadow-2xl shadow-slate-900/20' 
-                  : 'bg-slate-100 text-slate-400'
-              }`}
-            >
-              Past Orders
-            </button>
-          </div>
-        </motion.section>
-
-        {/* Orders List */}
-        <div className="min-h-[400px]">
-          <AnimatePresence mode="wait">
-            {activeTab === 'active' ? (
-              <motion.div 
-                key="active-section"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="space-y-4"
-              >
-                {activeOrders.length > 0 ? (
-                  activeOrders.map((order) => (
-                    <motion.div 
-                      key={order._id || order.id}
-                      variants={itemVariants}
-                      whileHover={{ scale: 1.01 }}
-                      className="bg-white rounded-[2rem] p-5 relative overflow-hidden group shadow-[0_15px_40px_rgba(0,0,0,0.04)] border border-slate-100 mb-4"
-                    >
-                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-50">
-                        <div className="space-y-1">
-                          <h3 className="text-lg font-black text-slate-900 tracking-tighter leading-none">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
-                            {new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                          </p>
-                        </div>
-                        <p className="text-lg font-headline font-black text-slate-900 tracking-tighter leading-none">₹{order.totalAmount?.toFixed(2)}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-4 mb-5">
-                        <div className="flex items-center gap-3 opacity-60">
-                          <span className="material-symbols-outlined text-[16px]">storefront</span>
-                          <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest truncate max-w-[120px]">{order.vendor?.displayName || 'Spinzyt Hub'}</p>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100/50">
-                          <span className="material-symbols-outlined text-xs text-primary">schedule</span>
-                          <p className="text-[9px] font-black text-slate-900">
-                            {new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mb-5 px-1 relative">
-                        <div className="flex justify-between text-[5.5px] text-slate-400 font-black uppercase tracking-widest mb-1.5 px-0.5">
-                          <span className="text-primary">Placed</span>
-                          <span className={['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Rider Assigned</span>
-                          <span className={['IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>In Transit</span>
-                          <span className={['PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Processing</span>
-                          <span className={['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-primary' : ''}>Out for Delivery</span>
-                        </div>
-                        <div className="relative h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: 
-                                order.status === 'PICKUP_ASSIGNED' ? '25%' : 
-                                order.status === 'RIDER_ARRIVING' ? '37.5%' :
-                                order.status === 'IN_TRANSIT' ? '50%' :
-                                order.status === 'RECEIVED_BY_VENDOR' ? '62.5%' :
-                                order.status === 'PROCESSING' ? '75%' : 
-                                order.status === 'READY_FOR_DISPATCH' ? '87.5%' :
-                                ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? '100%' : '10%'
-                            }}
-                            className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-1000" 
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <motion.button 
-                          whileTap={order.status === 'ORDER_PLACED' ? {} : { scale: 0.98 }}
-                          onClick={() => {
-                            if (order.status !== 'ORDER_PLACED') {
-                              navigate(`/user/tracking/${order._id || order.id}`);
-                            }
-                          }}
-                          disabled={order.status === 'ORDER_PLACED'}
-                          className="flex-[1.5] py-3 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all bg-slate-900 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">my_location</span>
-                          Track
-                        </motion.button>
-                        
-                        <motion.button 
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => navigate('/user/verification', { state: { orderId: order._id || order.id } })}
-                          className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all"
-                        >
-                          <span className="material-symbols-outlined text-[14px]">inventory</span>
-                          Articles
-                        </motion.button>
-
-                        <motion.button 
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => navigate(`/user/chat/${order._id}`)}
-                          className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-all shrink-0"
-                        >
-                          <span className="material-symbols-outlined text-lg">chat</span>
-                        </motion.button>
-                      </div>
-
-                      {isCancellable(order) && (
-                        <div className="mt-3">
-                          <motion.button 
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => handleCancelOrder(order._id || order.id)}
-                            disabled={cancelling === (order._id || order.id)}
-                            className="w-full py-3 bg-rose-50 text-rose-600 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 border border-rose-100/50 hover:bg-rose-100 transition-all shadow-sm"
-                          >
-                            {cancelling === (order._id || order.id) ? (
-                              <div className="w-3.5 h-3.5 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <>
-                                <span className="material-symbols-outlined text-sm">cancel</span>
-                                Cancel Order
-                              </>
-                            )}
-                          </motion.button>
-                        </div>
-                      )}
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="py-20 text-center opacity-40">
-                    <span className="material-symbols-outlined text-5xl mb-4">shopping_basket</span>
-                    <p className="text-xs font-black uppercase tracking-widest">No active orders</p>
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="past-section"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                exit="hidden"
-                className="space-y-2"
-              >
-                {/* Date Filter Toggle Button */}
-                <motion.button
-                  variants={itemVariants}
-                  onClick={() => setShowDateFilter(!showDateFilter)}
-                  className={`w-full py-2.5 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all mb-3 ${
-                    showDateFilter || startDate || endDate || orderTypeFilter !== 'all'
-                      ? 'bg-primary text-white shadow-lg'
-                      : 'bg-white text-slate-900 border border-slate-200'
-                  }`}
+            {/* SEGMENTED TAB SWITCHER */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-slate-100/90 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/80 w-full max-w-md">
+                <button 
+                  onClick={() => setActiveTab('active')}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer",
+                    activeTab === 'active' 
+                      ? "bg-white text-slate-900 shadow-xs font-semibold" 
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
                 >
-                  <span className="material-symbols-outlined text-xs">filter_list</span>
-                  {startDate || endDate || orderTypeFilter !== 'all' ? 'Filters Active' : 'Filter Orders'}
-                  <span className="material-symbols-outlined text-xs transition-transform duration-300" style={{ transform: showDateFilter ? 'rotate(180deg)' : 'none' }}>expand_more</span>
-                </motion.button>
+                  <span>Active Orders</span>
+                  {activeOrders.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-bold">
+                      {activeOrders.length}
+                    </span>
+                  )}
+                </button>
+                <button 
+                  onClick={() => setActiveTab('past')}
+                  className={cn(
+                    "flex-1 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer",
+                    activeTab === 'past' 
+                      ? "bg-white text-slate-900 shadow-xs font-semibold" 
+                      : "text-slate-600 hover:text-slate-900"
+                  )}
+                >
+                  <span>Past Orders</span>
+                  {pastOrders.length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-semibold">
+                      {pastOrders.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
 
-                <AnimatePresence>
-                  {showDateFilter && (
-                    <motion.div 
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3 mb-6">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-0.5">
-                            <label className="text-[7px] font-black text-slate-300 uppercase ml-2">From</label>
+            {/* ORDERS LIST */}
+            <div className="min-h-[400px]">
+              <AnimatePresence mode="wait">
+                {activeTab === 'active' ? (
+                  <motion.div 
+                    key="active-section"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-5"
+                  >
+                    {activeOrders.length > 0 ? (
+                      activeOrders.map((order) => {
+                        const isPlaced = order.status === 'ORDER_PLACED';
+                        return (
+                          <div 
+                            key={order._id || order.id}
+                            className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/90 shadow-2xs hover:shadow-xs transition-all space-y-5"
+                          >
+                            {/* Card Header: Order ID, Date & Total Price */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-100">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2.5">
+                                  <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
+                                    {order.orderId || `#${order._id?.slice(-6)}`}
+                                  </h3>
+                                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold uppercase tracking-wide">
+                                    {order.status?.replace(/_/g, ' ') || 'In Progress'}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-500 font-normal">
+                                  Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </p>
+                              </div>
+                              <div className="text-left sm:text-right">
+                                <span className="text-lg sm:text-xl font-bold text-slate-900">
+                                  ₹{order.totalAmount?.toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Hub & Delivery Time Details */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Store size={15} className="text-slate-500 shrink-0" />
+                                <span className="font-medium text-slate-800 truncate">
+                                  {order.vendor?.displayName || 'Spinzyt Partner Hub'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Clock size={14} className="text-slate-500 shrink-0" />
+                                <span className="font-normal text-slate-600">
+                                  {new Date(order.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Order Status Progress Timeline */}
+                            <div className="space-y-2 py-1">
+                              <div className="flex justify-between text-[11px] sm:text-xs font-medium text-slate-500 px-0.5">
+                                <span className="text-slate-900 font-semibold">Placed</span>
+                                <span className={['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-slate-900 font-semibold' : ''}>Assigned</span>
+                                <span className={['IN_TRANSIT', 'RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-slate-900 font-semibold' : ''}>In Transit</span>
+                                <span className={['PROCESSING', 'READY_FOR_DISPATCH', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-slate-900 font-semibold' : ''}>Processing</span>
+                                <span className={['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? 'text-slate-900 font-semibold' : ''}>Out for Delivery</span>
+                              </div>
+                              <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
+                                <div 
+                                  style={{
+                                    width: 
+                                      order.status === 'PICKUP_ASSIGNED' ? '25%' : 
+                                      order.status === 'RIDER_ARRIVING' ? '37.5%' :
+                                      order.status === 'IN_TRANSIT' ? '50%' :
+                                      order.status === 'RECEIVED_BY_VENDOR' ? '62.5%' :
+                                      order.status === 'PROCESSING' ? '75%' : 
+                                      order.status === 'READY_FOR_DISPATCH' ? '87.5%' :
+                                      ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.status) ? '100%' : '10%'
+                                  }}
+                                  className="h-full bg-slate-900 rounded-full transition-all duration-700" 
+                                />
+                              </div>
+                            </div>
+
+                            {/* Card Actions */}
+                            <div className="flex flex-wrap items-center gap-2.5 pt-2">
+                              <button 
+                                onClick={() => {
+                                  if (!isPlaced) navigate(`/user/tracking/${order._id || order.id}`);
+                                }}
+                                disabled={isPlaced}
+                                className={cn(
+                                  "flex-1 min-w-[120px] py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer",
+                                  isPlaced 
+                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200" 
+                                    : "bg-slate-900 hover:bg-slate-800 text-white shadow-2xs"
+                                )}
+                              >
+                                <Navigation size={15} />
+                                <span>{isPlaced ? 'Order Received' : 'Track Order'}</span>
+                              </button>
+                              
+                              <button 
+                                onClick={() => navigate('/user/verification', { state: { orderId: order._id || order.id } })}
+                                className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer border border-slate-200/60"
+                              >
+                                <FileText size={15} />
+                                <span>Articles</span>
+                              </button>
+
+                              <button 
+                                onClick={() => navigate(`/user/chat/${order._id}`)}
+                                className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl flex items-center justify-center transition-colors cursor-pointer border border-slate-200/60 shrink-0"
+                                title="Chat with support"
+                              >
+                                <MessageSquare size={16} />
+                              </button>
+                            </div>
+
+                            {/* Cancel Option (if cancellable) */}
+                            {isCancellable(order) && (
+                              <div className="pt-2">
+                                <button 
+                                  onClick={() => handleCancelOrder(order._id || order.id)}
+                                  disabled={cancelling === (order._id || order.id)}
+                                  className="w-full py-2 px-3 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-medium flex items-center justify-center gap-2 border border-rose-200 transition-colors cursor-pointer"
+                                >
+                                  {cancelling === (order._id || order.id) ? (
+                                    <div className="w-3.5 h-3.5 border-2 border-rose-600 border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <>
+                                      <XCircle size={14} />
+                                      <span>Cancel Order</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8">
+                        <Package size={40} className="mx-auto text-slate-300 mb-3" />
+                        <h4 className="text-base font-semibold text-slate-800">No active orders</h4>
+                        <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                          You don't have any ongoing laundry or dry cleaning orders.
+                        </p>
+                        <button
+                          onClick={() => navigate('/user/home')}
+                          className="mt-5 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium transition-colors shadow-xs cursor-pointer"
+                        >
+                          Explore Services
+                        </button>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="past-section"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-4"
+                  >
+                    {/* Filter Toggle */}
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <button
+                        onClick={() => setShowDateFilter(!showDateFilter)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors border cursor-pointer",
+                          showDateFilter || startDate || endDate || orderTypeFilter !== 'all'
+                            ? "bg-slate-900 text-white border-slate-900"
+                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                        )}
+                      >
+                        <Filter size={14} />
+                        <span>{startDate || endDate || orderTypeFilter !== 'all' ? 'Filters Active' : 'Filter Orders'}</span>
+                      </button>
+
+                      {(startDate || endDate || orderTypeFilter !== 'all') && (
+                        <button 
+                          onClick={() => { setStartDate(''); setEndDate(''); setOrderTypeFilter('all'); }}
+                          className="text-xs text-rose-600 hover:text-rose-700 font-medium cursor-pointer"
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
+
+                    {showDateFilter && (
+                      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-slate-600">From Date</label>
                             <input 
-                              type={startDate ? "date" : "text"} 
-                              placeholder="DD/MM/YYYY"
-                              onFocus={(e) => e.target.type = 'date'}
-                              onBlur={(e) => !startDate && (e.target.type = 'text')}
+                              type="date"
                               value={startDate}
                               onChange={(e) => setStartDate(e.target.value)}
-                              className="w-full bg-slate-50 border-none rounded-lg px-3 py-2 text-[9px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-slate-400 transition-all"
                             />
                           </div>
-                          <div className="space-y-0.5">
-                            <label className="text-[7px] font-black text-slate-300 uppercase ml-2">To</label>
+                          <div className="space-y-1">
+                            <label className="text-xs font-medium text-slate-600">To Date</label>
                             <input 
-                              type={endDate ? "date" : "text"} 
-                              placeholder="DD/MM/YYYY"
-                              onFocus={(e) => e.target.type = 'date'}
-                              onBlur={(e) => !endDate && (e.target.type = 'text')}
+                              type="date"
                               value={endDate}
                               onChange={(e) => setEndDate(e.target.value)}
-                              className="w-full bg-slate-50 border-none rounded-lg px-3 py-2 text-[9px] font-bold focus:ring-2 focus:ring-primary/20 transition-all"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:bg-white focus:border-slate-400 transition-all"
                             />
                           </div>
                         </div>
-                        <div className="space-y-0.5 mt-2 relative">
-                           <label className="text-[7px] font-black text-slate-300 uppercase ml-2">Order Type</label>
-                           <button 
-                             onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                             className="w-full bg-slate-50 border-none rounded-lg px-3 py-2 text-[9px] font-bold text-left flex justify-between items-center focus:ring-2 focus:ring-primary/20 transition-all"
-                           >
-                             <span className={orderTypeFilter === 'all' ? 'text-slate-600' : 'text-slate-900'}>
-                               {orderTypeFilter === 'all' ? 'All Orders' : orderTypeFilter === 'online' ? 'Online Orders' : 'Walk-in Orders'}
-                             </span>
-                             <span className="material-symbols-outlined text-[14px] text-slate-400">expand_more</span>
-                           </button>
-                           
-                           <AnimatePresence>
-                             {showTypeDropdown && (
-                               <motion.div 
-                                 initial={{ opacity: 0, height: 0 }} 
-                                 animate={{ opacity: 1, height: 'auto' }} 
-                                 exit={{ opacity: 0, height: 0 }} 
-                                 className="mt-1 bg-white border border-slate-100 rounded-lg shadow-sm overflow-hidden"
-                               >
-                                 {[{v: 'all', l: 'All Orders'}, {v: 'online', l: 'Online Orders'}, {v: 'walk-in', l: 'Walk-in Orders'}].map(opt => (
-                                   <button 
-                                     key={opt.v} 
-                                     onClick={() => { setOrderTypeFilter(opt.v); setShowTypeDropdown(false); }} 
-                                     className={`w-full text-left px-3 py-2.5 text-[9px] font-bold hover:bg-slate-50 transition-all border-b border-slate-50 last:border-b-0 ${orderTypeFilter === opt.v ? 'text-primary bg-primary/5' : 'text-slate-600'}`}
-                                   >
-                                     {opt.l}
-                                   </button>
-                                 ))}
-                               </motion.div>
-                             )}
-                           </AnimatePresence>
-                        </div>
+                      </div>
+                    )}
 
-                        {(startDate || endDate || orderTypeFilter !== 'all') && (
-                          <button 
-                            onClick={() => { setStartDate(''); setEndDate(''); setOrderTypeFilter('all'); }}
-                            className="text-[8px] font-black text-rose-500 uppercase tracking-widest w-full py-1.5 hover:bg-rose-50 rounded-lg transition-all mt-2"
+                    {pastOrders.length > 0 ? (
+                      pastOrders.map((order) => {
+                        const isCancelled = order.status === 'CANCELLED';
+                        return (
+                          <div 
+                            key={order._id || order.id}
+                            className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs hover:shadow-xs transition-all space-y-3"
                           >
-                            Clear Filters
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-
-
-                {pastOrders.length > 0 ? (
-                  pastOrders.map((order) => (
-                    <motion.div 
-                      key={order._id || order.id}
-                      variants={itemVariants}
-                      whileHover={{ scale: 1.01 }}
-                      className="bg-white rounded-[1.2rem] p-4 relative overflow-hidden group shadow-[0_10px_30px_rgba(0,0,0,0.03)] border border-slate-100 mb-3 opacity-90 hover:opacity-100 transition-all"
-                    >
-                      <div className="flex justify-between items-center mb-3 pb-3 border-b border-slate-50">
-                        <div className="space-y-0.5">
-                          <h3 className="text-base font-bold text-slate-900 tracking-tight leading-none not-italic">{order.orderId || `#${order._id?.slice(-6)}`}</h3>
-                          <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest not-italic">{new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          {order.status === 'CANCELLED' ? (
-                            <>
-                              <span className="text-rose-600 uppercase text-[10px] font-black leading-none">Cancelled</span>
-                              <span className="text-sm font-bold text-slate-500 leading-none">₹{order.totalAmount?.toFixed(0)}</span>
-                            </>
-                          ) : (
-                            <span className="text-base font-black text-slate-900 tracking-tight leading-none">₹{order.totalAmount?.toFixed(0)}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <details className="group bg-slate-50/50 rounded-lg border border-slate-100/50 mb-3 overflow-hidden transition-all">
-                        <summary className="list-none p-3 cursor-pointer flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[12px] text-slate-400">inventory_2</span>
-                            <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest leading-none">Articles</p>
-                          </div>
-                          <span className="material-symbols-outlined text-slate-400 text-[10px] group-open:rotate-180 transition-transform">expand_more</span>
-                        </summary>
-                        <div className="px-3 pb-3 space-y-1.5">
-                          {order.items && order.items.length > 0 ? (
-                            order.items.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center bg-white/50 p-2 rounded-lg border border-slate-50">
-                                <p className="text-[8px] font-black text-slate-900 uppercase">{item.name}</p>
-                                <p className="text-[8px] font-black text-slate-900">₹{(item.price || 0) * (item.quantity || 1)}</p>
+                            <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                              <div className="space-y-0.5">
+                                <h3 className="text-base font-bold text-slate-900">
+                                  {order.orderId || `#${order._id?.slice(-6)}`}
+                                </h3>
+                                <p className="text-xs text-slate-500 font-normal">
+                                  {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </p>
                               </div>
-                            ))
-                          ) : (
-                            <p className="text-[8px] font-bold text-slate-400 italic text-center py-1">No items</p>
-                          )}
-                        </div>
-                      </details>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className={cn(
+                                  "text-xs font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wide",
+                                  isCancelled ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                )}>
+                                  {isCancelled ? 'Cancelled' : 'Delivered'}
+                                </span>
+                                <span className="text-base font-bold text-slate-900">
+                                  ₹{order.totalAmount?.toFixed(0)}
+                                </span>
+                              </div>
+                            </div>
 
-                      <div className="flex justify-between items-center mt-2">
-                        <motion.button 
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleDownloadInvoice(order)}
-                          className="py-2.5 px-8 bg-black text-white rounded-full font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-1.5"
-                        >
-                          Invoice
-                        </motion.button>
-                        <motion.button 
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            const newCart = { 'dry-clean': 2, 'ironing': 5 };
-                            localStorage.setItem('cart_quantities', JSON.stringify(newCart));
-                            navigate('/user/cart');
-                          }}
-                          className="py-2.5 px-8 bg-black text-white rounded-full font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-1.5"
-                        >
-                          Reorder
-                        </motion.button>
+                            {/* Articles Collapsible */}
+                            <details className="group bg-slate-50/60 rounded-xl border border-slate-100 overflow-hidden">
+                              <summary className="list-none p-3 cursor-pointer flex items-center justify-between text-xs font-medium text-slate-700 hover:bg-slate-100/60 transition-colors">
+                                <span className="flex items-center gap-2">
+                                  <FileText size={14} className="text-slate-400" />
+                                  <span>Order Items ({order.items?.length || 0})</span>
+                                </span>
+                                <ChevronRight size={14} className="text-slate-400 group-open:rotate-90 transition-transform" />
+                              </summary>
+                              <div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-slate-100">
+                                {order.items && order.items.length > 0 ? (
+                                  order.items.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-center text-xs py-1">
+                                      <span className="text-slate-800 font-medium">{item.name} × {item.quantity || 1}</span>
+                                      <span className="text-slate-600 font-medium">₹{(item.price || 0) * (item.quantity || 1)}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="text-xs text-slate-400 py-1">No items details</p>
+                                )}
+                              </div>
+                            </details>
+
+                            {/* Action Buttons */}
+                            <div className="flex items-center justify-between gap-3 pt-1">
+                              <button 
+                                onClick={() => handleDownloadInvoice(order)}
+                                className="py-2 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer border border-slate-200/60"
+                              >
+                                <Download size={13} />
+                                <span>Download Invoice</span>
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  navigate('/user/home');
+                                }}
+                                className="py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors cursor-pointer shadow-2xs"
+                              >
+                                Order Again
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8">
+                        <Package size={40} className="mx-auto text-slate-300 mb-3" />
+                        <h4 className="text-base font-semibold text-slate-800">No past orders</h4>
+                        <p className="text-xs sm:text-sm text-slate-500 mt-1">Your past order history will appear here.</p>
                       </div>
-                    </motion.div>
-                  ))
-                ) : (
-                  <div className="py-20 text-center opacity-40">
-                    <span className="material-symbols-outlined text-5xl mb-4">archive</span>
-                    <p className="text-xs font-black uppercase tracking-widest">No history found</p>
-                  </div>
+                    )}
+                  </motion.div>
                 )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        </>
+              </AnimatePresence>
+            </div>
+          </>
         )}
       </main>
-    </motion.div>
+    </div>
   );
 };
 

@@ -9,9 +9,25 @@ export default function MetricRow({
     trend,
     icon: Icon,
     currency,
-    sparklineData = []
+    sparklineData = [],
+    loading = false
 }) {
     const isUp = trend === 'up';
+
+    if (loading) {
+        return (
+            <div className="flex flex-col py-3 px-5 h-full justify-center min-w-0 border-r border-slate-100 last:border-r-0 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                    <div className="h-3 w-20 bg-slate-200/80 rounded animate-pulse" />
+                    <div className="h-3 w-8 bg-slate-100 rounded animate-pulse" />
+                </div>
+                <div className="flex items-end justify-between gap-3 pt-1">
+                    <div className="h-6 w-24 bg-slate-200/80 rounded-md animate-pulse" />
+                    <div className="h-6 w-14 bg-slate-100 rounded animate-pulse" />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col py-3 px-5 hover:bg-slate-50 transition-colors h-full justify-center min-w-0 border-r border-slate-100 last:border-r-0">

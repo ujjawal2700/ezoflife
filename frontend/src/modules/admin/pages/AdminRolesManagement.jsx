@@ -4,6 +4,7 @@ import { Plus, X, UserPlus, MapPin } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import { toast } from 'react-hot-toast';
 import { BASE_URL } from '../../../lib/api';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, StatusBadge, TagBadge, UserAvatarCell } from '@/shared/components/ui/table';
 
 export default function AdminRolesManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -190,69 +191,56 @@ export default function AdminRolesManagement() {
                     </div>
                     
                     <div className="overflow-x-auto w-full">
-                        <table className="w-full text-left border-collapse min-w-[950px]">
-                            <thead>
-                                <tr className="bg-slate-50/50 border-b border-slate-100">
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Admin Profile</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Assigned Role</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Access Type</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Geofence Scope</th>
-                                    <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
+                        <Table className="w-full text-left border-collapse min-w-[950px]">
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Admin Profile</TableHead>
+                                    <TableHead>Assigned Role</TableHead>
+                                    <TableHead>Access Type</TableHead>
+                                    <TableHead>Geofence Scope</TableHead>
+                                    <TableHead className="text-center">Status</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
                                 {admins.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={5} className="px-8 py-16 text-center text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/10">
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="px-8 py-16 text-center text-xs font-black text-slate-400 uppercase tracking-widest bg-slate-50/10">
                                             No Admins Configured
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ) : (
                                     admins.map((adm) => (
-                                        <tr key={adm.id} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-8 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-                                                        <span className="material-symbols-outlined text-base">person</span>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-black text-slate-900 tracking-tight">{adm.name}</span>
-                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{adm.email} · {adm.phone}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className="text-xs font-black text-slate-800 tracking-tight">{adm.role}</span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <span className={`inline-flex px-2 py-0.5 rounded-sm text-[8px] font-black uppercase tracking-widest ${adm.accessType === 'Read/Write' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' : 'bg-slate-50 text-slate-400 border border-slate-100'}`}>
-                                                    {adm.accessType}
-                                                </span>
-                                            </td>
-                                            <td className="px-8 py-5">
-                                                <div className="flex flex-wrap gap-1">
+                                        <TableRow key={adm.id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-200/70">
+                                            <TableCell>
+                                                <UserAvatarCell
+                                                    name={adm.name}
+                                                    subtitle={`${adm.email} · ${adm.phone}`}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="text-sm font-medium text-slate-900">{adm.role}</span>
+                                            </TableCell>
+                                            <TableCell>
+                                                <TagBadge
+                                                    label={adm.accessType}
+                                                    color={adm.accessType === 'Read/Write' ? 'indigo' : 'slate'}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-wrap gap-1.5">
                                                     {adm.geofences.map((gf, idx) => (
-                                                        <span key={idx} className="inline-flex px-2 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-100">
-                                                            {gf}
-                                                        </span>
+                                                        <TagBadge key={idx} label={gf} color="slate" />
                                                     ))}
                                                 </div>
-                                            </td>
-                                            <td className="px-8 py-5 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${
-                                                    adm.status.toLowerCase() === 'active'
-                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                        : 'bg-amber-50 text-amber-600 border-amber-100'
-                                                }`}>
-                                                    <span className={`w-1.5 h-1.5 rounded-full ${adm.status.toLowerCase() === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                                                    {adm.status}
-                                                </span>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <StatusBadge status={adm.status} />
+                                            </TableCell>
+                                        </TableRow>
                                     ))
                                 )}
-                            </tbody>
-                        </table>
+                            </TableBody>
+                        </Table>
                     </div>
                 </div>
             </div>

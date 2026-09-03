@@ -275,23 +275,36 @@ const OrderTrackingPage = () => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-transparent text-on-background min-h-[100dvh] flex flex-col -mb-32 pb-32"
+      className="bg-[#f8fafc] text-slate-900 min-h-[100dvh] flex flex-col pb-44 sm:pb-36 font-['Poppins',sans-serif]"
     >
-      {/* Header */}
-      <div className="fixed top-0 w-full z-50">
-          <UserHeader title={`Order ${order?.orderId || '#' + (id?.slice(-6) || '......')}`} showBack={true} onBack={() => navigate('/user/home')} />
-      </div>
-
       <motion.main 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-grow pt-16 pb-6 px-6 max-w-5xl mx-auto w-full space-y-8"
+        className="flex-grow py-4 sm:py-6 px-3.5 sm:px-6 max-w-5xl mx-auto w-full space-y-5 sm:space-y-6"
       >
+        {/* Page Subheader */}
+        <div className="flex items-center justify-between gap-2 pb-1 border-b border-slate-200/60">
+          <button 
+            onClick={() => navigate('/user/orders')}
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
+          >
+            <span className="material-symbols-outlined text-base">arrow_back</span>
+            <span className="hidden sm:inline">My Orders</span>
+            <span className="sm:hidden">Back</span>
+          </button>
+          <div className="text-right">
+            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider block">Tracking Order</span>
+            <h1 className="text-xs sm:text-sm font-bold text-slate-900 font-mono">
+              {order?.orderId || '#' + (id?.slice(-6) || '......')}
+            </h1>
+          </div>
+        </div>
+
         {/* Map Section */}
         <motion.section 
           variants={itemVariants}
-          className="relative w-full h-[380px] md:h-[450px] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 bg-surface-container-high group [&_.gm-style_iframe]:outline-none [&_.gm-style]:!outline-none [&>div]:!outline-none"
+          className="relative w-full h-[280px] sm:h-[380px] md:h-[450px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xs border border-slate-200/80 bg-slate-100 group [&_.gm-style_iframe]:outline-none [&_.gm-style]:!outline-none [&>div]:!outline-none"
         >
           <div className="w-full h-full bg-slate-200">
             {isLoaded ? (
@@ -415,104 +428,108 @@ const OrderTrackingPage = () => {
         </motion.section>
 
         {/* Combined Delivery Partner & Timeline Section */}
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-6 sm:gap-8">
           {/* Delivery Partner Info */}
           {['PICKUP_ASSIGNED', 'RIDER_ARRIVING', 'OUT_FOR_DELIVERY'].includes(order?.status) && (order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff || order?.rider) : order?.rider) && (
-              <motion.section variants={itemVariants} className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
-                          <span className="material-symbols-outlined text-slate-600">two_wheeler</span>
+              <motion.section variants={itemVariants} className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs flex items-center justify-between">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-700 shrink-0">
+                          <span className="material-symbols-outlined text-lg sm:text-xl">two_wheeler</span>
                       </div>
                       <div>
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Delivery Partner</p>
-                          <h3 className="text-sm font-black text-slate-900 uppercase">{order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.displayName || order?.rider?.displayName || 'Unknown') : (order?.rider?.displayName || 'Unknown')}</h3>
-                          <p className="text-xs font-bold text-slate-500 mt-0.5">{order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.phone || order?.rider?.phone || 'N/A') : (order?.rider?.phone || 'N/A')}</p>
+                          <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Delivery Partner</p>
+                          <h3 className="text-xs sm:text-sm font-bold text-slate-900">{order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.displayName || order?.rider?.displayName || 'Unknown') : (order?.rider?.displayName || 'Unknown')}</h3>
+                          <p className="text-xs text-slate-500 mt-0.5">{order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.phone || order?.rider?.phone || 'N/A') : (order?.rider?.phone || 'N/A')}</p>
                       </div>
                   </div>
-                  <a href={`tel:${order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.phone || order?.rider?.phone) : order?.rider?.phone}`} className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-black transition-colors shrink-0 shadow-lg shadow-slate-900/10">
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
+                  <a href={`tel:${order?.status === 'OUT_FOR_DELIVERY' ? (order?.riderDropOff?.phone || order?.rider?.phone) : order?.rider?.phone}`} className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 transition-colors shrink-0 shadow-xs">
+                      <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>call</span>
                   </a>
               </motion.section>
           )}
 
-          {/* Status Timeline - No Box Styling */}
-          <motion.section variants={itemVariants} className="relative">
+          {/* Status Timeline */}
+          <motion.section variants={itemVariants} className="relative bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs">
+            <div className="pb-3 mb-2 border-b border-slate-100 flex items-center justify-between">
+              <span className="text-xs sm:text-sm font-semibold text-slate-900">Order Progress</span>
+              <span className="text-[11px] text-slate-500 font-medium">{order?.status?.replace(/_/g, ' ') || 'In Progress'}</span>
+            </div>
             {/* Timeline Wrapper */}
-            <div className="overflow-x-auto no-scrollbar py-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <div className="relative flex items-start min-w-max gap-8">
+            <div className="overflow-x-auto no-scrollbar py-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="relative flex items-start min-w-max gap-3 sm:gap-6 px-1">
                 {/* Base Progress Line */}
-              <div className="absolute h-[3px] left-8 right-8 bg-slate-200/50 top-6 -translate-y-1/2 overflow-hidden">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ 
-                    width: `${(() => {
-                      const activeIndex = timelineSteps.findIndex(s => s.status === 'active');
-                      if (activeIndex === -1 && timelineSteps[7].status === 'completed') return 100;
-                      if (activeIndex === -1) return 0;
-                      return (activeIndex / 7) * 100;
-                    })()}%` 
-                  }}
-                  transition={{ duration: 1.5, ease: "easeOut", delay: 1.2 }}
-                  className="h-full bg-slate-900 relative"
-                />
-              </div>
-
-              {/* Steps */}
-              {timelineSteps.map((step, idx) => (
-                <div key={idx} className="relative flex flex-col items-center gap-3 z-10 w-16">
+                <div className="absolute h-[2.5px] left-8 right-8 bg-slate-200/70 top-5 -translate-y-1/2 overflow-hidden">
                   <motion.div 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2 * idx, type: "spring" }}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 border-2 ${
-                      step.status === 'completed' ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/10' : 
-                      step.status === 'active' ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-900/20 scale-110' : 
-                      'bg-white text-slate-300 border-slate-200/60'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      {step.status === 'completed' ? 'check' : step.icon}
-                    </span>
-                  </motion.div>
-                  <div className="text-center">
-                    <p className={`font-black text-[9px] uppercase tracking-widest leading-tight ${
-                        step.status === 'active' ? 'text-slate-900' : 
-                        step.status === 'completed' ? 'text-slate-900' : 
-                        'text-slate-400'
-                    }`}>
-                      {step.label}
-                    </p>
-                  </div>
+                    initial={{ width: 0 }}
+                    animate={{ 
+                      width: `${(() => {
+                        const activeIndex = timelineSteps.findIndex(s => s.status === 'active');
+                        if (activeIndex === -1 && timelineSteps[7].status === 'completed') return 100;
+                        if (activeIndex === -1) return 0;
+                        return (activeIndex / 7) * 100;
+                      })()}%` 
+                    }}
+                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.5 }}
+                    className="h-full bg-slate-900 relative"
+                  />
                 </div>
-              ))}
+
+                {/* Steps */}
+                {timelineSteps.map((step, idx) => (
+                  <div key={idx} className="relative flex flex-col items-center gap-2 z-10 w-20 sm:w-24 shrink-0">
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.1 * idx, type: "spring" }}
+                      className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2 ${
+                        step.status === 'completed' ? 'bg-slate-900 text-white border-slate-900 shadow-2xs' : 
+                        step.status === 'active' ? 'bg-slate-900 text-white border-slate-900 shadow-xs ring-4 ring-slate-900/10' : 
+                        'bg-white text-slate-300 border-slate-200'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm sm:text-base">
+                        {step.status === 'completed' ? 'check' : step.icon}
+                      </span>
+                    </motion.div>
+                    <div className="text-center w-full px-0.5">
+                      <p className={`text-[10px] sm:text-[11px] font-semibold leading-tight break-words ${
+                          step.status === 'active' ? 'text-slate-900 font-bold' : 
+                          step.status === 'completed' ? 'text-slate-800' : 
+                          'text-slate-400'
+                      }`}>
+                        {step.label}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </motion.section>
         </div>
 
         {/* ORDER SUMMARY */}
-        <motion.section variants={itemVariants} className="flex flex-col gap-6 -mt-4">
-            <h3 className="font-black text-slate-900 text-xl uppercase tracking-tighter ml-1">Order Summary</h3>
+        <motion.section variants={itemVariants} className="flex flex-col gap-3.5">
+            <h3 className="font-bold text-slate-900 text-base sm:text-lg tracking-tight ml-0.5">Order Summary</h3>
             
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
                 {order?.items?.map((item, idx) => (
-                    <div key={idx} className="bg-white rounded-[2.5rem] border border-slate-100 p-6 shadow-sm flex flex-col gap-5">
+                    <div key={idx} className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-2xs flex flex-col gap-3">
                         {/* Row 1: Item Name & Quantity */}
-                        <div className="flex justify-between items-center">
-                            <p className="font-black text-slate-900 text-base uppercase tracking-tight">{item.name}</p>
-                            <p className="font-black text-slate-900 text-sm uppercase bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100">
+                        <div className="flex justify-between items-start gap-2">
+                            <p className="font-semibold text-slate-900 text-sm sm:text-base break-words">{item.name}</p>
+                            <span className="font-semibold text-slate-800 text-xs bg-slate-100 px-3 py-1 rounded-full border border-slate-200 shrink-0">
                                 {item.quantity} {item.unit ? item.unit.replace('PER_', '') : 'ITEM'}
-                            </p>
+                            </span>
                         </div>
                         
                         {/* Row 2: Delivery Mode & Tier */}
-                        <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-black text-slate-500 uppercase tracking-[0.15em] sm:tracking-[0.2em] px-1">
+                        <div className="flex flex-wrap justify-between items-center gap-2 text-xs font-medium text-slate-500 pt-2 border-t border-slate-100">
                             <div className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-sm">local_shipping</span>
+                                <span className="material-symbols-outlined text-base text-slate-400">local_shipping</span>
                                 <p>{order?.deliveryMode || 'Normal'} Delivery</p>
                             </div>
                             <div className="flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-sm">diamond</span>
+                                <span className="material-symbols-outlined text-base text-slate-400">diamond</span>
                                 <p>{item.tier || order?.items?.[0]?.tier || 'Essential'} Care</p>
                             </div>
                         </div>

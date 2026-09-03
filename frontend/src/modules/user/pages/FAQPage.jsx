@@ -90,43 +90,40 @@ const FAQPage = () => {
     };
 
     return (
-        <div className="bg-slate-50/50 text-on-surface min-h-screen pb-32 font-body relative">
-            <header className="px-6 pt-4 flex items-center mb-8">
-                <div className="flex items-center gap-4">
-                    <motion.button 
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate(-1)}
-                        className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-on-surface border border-outline-variant/10"
-                    >
-                        <span className="material-symbols-outlined text-xl">arrow_back</span>
-                    </motion.button>
+        <div className="bg-[#f8fafc] text-slate-900 min-h-screen pb-36 font-['Poppins',sans-serif]">
+            <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+                {/* Hero Header */}
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
                     <div>
-                        <h1 className="text-2xl font-black tracking-tighter leading-none">FAQs & Support</h1>
-                        <p className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest opacity-40 mt-1">Instant Knowledge Base</p>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 mb-2">
+                            Knowledge Base
+                        </span>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                            Frequently Asked Questions
+                        </h1>
+                        <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+                            Everything you need to know about Spinzyt laundry, dry cleaning, and delivery.
+                        </p>
                     </div>
-                </div>
-            </header>
 
-            <main className="px-6 max-w-2xl mx-auto">
-                {/* Search */}
-                <div className="relative mb-10">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-outline-variant">
-                        <span className="material-symbols-outlined text-lg">help_outline</span>
+                    {/* Search */}
+                    <div className="relative pt-2">
+                        <span className="material-symbols-outlined text-lg absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 mt-1">search</span>
+                        <input 
+                            type="text"
+                            placeholder="Search questions or keywords..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-10 py-3 text-xs sm:text-sm text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all font-normal"
+                        />
                     </div>
-                    <input 
-                        type="text"
-                        placeholder="Search for answers..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white rounded-[2rem] pl-14 pr-6 py-5 text-sm font-semibold border border-slate-300 shadow-sm focus:ring-2 focus:ring-primary/10 outline-none transition-all"
-                    />
                 </div>
 
                 <motion.div 
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    className="space-y-4"
+                    className="space-y-3"
                 >
                     {loading ? (
                         <div className="py-20 text-center opacity-30 italic text-sm font-black uppercase tracking-widest">Loading solutions...</div>

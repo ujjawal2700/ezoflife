@@ -1,6 +1,8 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { HelpCircle, Search, MessageSquare, ChevronDown, CheckCircle2, X, AlertCircle, Headphones } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { faqApi, ticketApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -143,50 +145,85 @@ const HelpCenterPage = () => {
     };
 
     return (
-        <div className="bg-slate-50/50 text-slate-900 min-h-screen pb-32 font-body relative">
-            <header className="px-6 pt-6 flex items-center mb-8">
-                <div className="flex items-center gap-4">
-                    <motion.button 
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => navigate(-1)}
-                        className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-slate-900 border border-slate-100"
-                    >
-                        <span className="material-symbols-outlined text-xl">arrow_back</span>
-                    </motion.button>
-                    <div>
-                        <h1 className="text-2xl font-black tracking-tighter leading-none">Help Center</h1>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">FAQs & Support Hub</p>
+        <div className="bg-[#f8fafc] text-slate-900 min-h-screen pb-36 font-['Poppins',sans-serif] relative">
+            <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+                {/* Hero Header */}
+                <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 mb-2">
+                                <HelpCircle size={13} className="text-slate-700" />
+                                <span>Support & FAQs Hub</span>
+                            </div>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                                How can we help you?
+                            </h1>
+                            <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">
+                                Search common questions or contact our dedicated customer assistance desk.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setShowContactModal(true)}
+                            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-medium transition-colors shadow-2xs flex items-center gap-2 shrink-0 cursor-pointer self-start sm:self-auto"
+                        >
+                            <Headphones size={15} />
+                            <span>Contact Support</span>
+                        </button>
                     </div>
-                </div>
-            </header>
 
-            <main className="px-6 max-w-2xl mx-auto">
-                {/* Search */}
-                <div className="relative mb-10">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400">
-                        <span className="material-symbols-outlined text-lg">search</span>
+                    {/* Search Bar */}
+                    <div className="relative pt-2">
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 mt-1" />
+                        <input 
+                            type="text"
+                            placeholder="Search questions, pickup times, garment care..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-11 pr-10 py-3 text-xs sm:text-sm text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all font-normal"
+                        />
+                        {searchQuery && (
+                            <button 
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 mt-1 cursor-pointer"
+                            >
+                                <X size={15} />
+                            </button>
+                        )}
                     </div>
-                    <input 
-                        type="text"
-                        placeholder="Search for answers..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white rounded-[2rem] pl-14 pr-6 py-5 text-sm font-semibold border border-slate-200 shadow-sm focus:ring-2 focus:ring-slate-900/5 outline-none transition-all"
-                    />
                 </div>
 
                 <motion.div 
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    className="space-y-4"
+                    className="space-y-3"
                 >
                     {loading ? (
-                        <div className="py-20 text-center opacity-30 italic text-sm font-black uppercase tracking-widest">Loading solutions...</div>
-                    ) : filteredFaqs.map((faq) => {
-                        const isOpen = expandedId === faq._id;
-                        const vId = getYouTubeId(faq.youtubeUrl);
-                        const isThisPlaying = playingId === faq._id;
+                        <div className="py-20 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            Loading solutions...
+                        </div>
+                    ) : filteredFaqs.length === 0 ? (
+                        <div className="bg-white rounded-2xl border border-slate-200/80 p-8 sm:p-12 text-center space-y-3 shadow-2xs">
+                            <HelpCircle size={36} className="mx-auto text-slate-300" />
+                            <h3 className="text-base font-semibold text-slate-800">
+                                {searchQuery ? `No answers matching "${searchQuery}"` : 'No FAQs currently published'}
+                            </h3>
+                            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                                Our support team is ready to answer any questions regarding your pickups or order status.
+                            </p>
+                            <button
+                                onClick={() => setShowContactModal(true)}
+                                className="mt-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs sm:text-sm font-medium hover:bg-slate-800 transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-2"
+                            >
+                                <Headphones size={14} />
+                                <span>Create Support Ticket</span>
+                            </button>
+                        </div>
+                    ) : (
+                        filteredFaqs.map((faq) => {
+                            const isOpen = expandedId === faq._id;
+                            const vId = getYouTubeId(faq.youtubeUrl);
+                            const isThisPlaying = playingId === faq._id;
 
                         return (
                             <div 
@@ -324,24 +361,23 @@ const HelpCenterPage = () => {
                                 )}
                             </div>
                         );
-                    })}
+                    }))}
 
-                    {!loading && (
-                        <motion.div variants={itemVariants} className="pt-10 pb-20 text-center space-y-6">
-                            <div className="w-px h-12 bg-slate-200 mx-auto" />
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-black tracking-tighter uppercase">Still Need Help?</h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                                    If you couldn't find your answer above, <br/>reach out to our support team.
+                    {!loading && filteredFaqs.length > 0 && (
+                        <motion.div variants={itemVariants} className="pt-6 pb-12">
+                            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 text-center space-y-3 shadow-2xs">
+                                <h3 className="text-base sm:text-lg font-bold text-slate-900">Still have questions?</h3>
+                                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto font-normal">
+                                    Can't find the answer you're looking for? Reach out to our customer care team and we'll resolve it promptly.
                                 </p>
+                                <button 
+                                    onClick={() => setShowContactModal(true)}
+                                    className="mt-2 inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl font-medium text-xs sm:text-sm shadow-2xs transition-colors cursor-pointer"
+                                >
+                                    <Headphones size={15} />
+                                    <span>Contact Customer Support</span>
+                                </button>
                             </div>
-                            <button 
-                                onClick={() => setShowContactModal(true)}
-                                className="inline-flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all"
-                            >
-                                <span className="material-symbols-outlined text-sm">support_agent</span>
-                                Contact Us
-                            </button>
                         </motion.div>
                     )}
                 </motion.div>

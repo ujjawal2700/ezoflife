@@ -2541,11 +2541,13 @@ export const legalApi = {
 export const geofenceApi = {
     checkAvailability: async (lat, lng) => {
         try {
-            const response = await fetch(`${BASE_URL}/geofence/check-availability?lat=${lat}&lng=${lng}`);
+            const response = await fetch(`${BASE_URL}/geofence/check-availability?lat=${lat}&lng=${lng}`, {
+                signal: AbortSignal.timeout(3500)
+            });
             return await response.json();
         } catch (error) {
             console.error('Geofence API Error:', error);
-            throw error;
+            return { available: false };
         }
     }
 };

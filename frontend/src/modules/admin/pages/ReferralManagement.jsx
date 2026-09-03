@@ -3,6 +3,7 @@ import { adminApi, referralApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import { Share2, Save, MessageSquare, Link, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/shared/components/ui/table';
 
 const ReferralManagement = () => {
     const [config, setConfig] = useState({
@@ -167,36 +168,36 @@ const ReferralManagement = () => {
                 </div>
                 
                 <div className="overflow-x-auto border border-slate-100 rounded-3xl">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100">
-                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Referrer Name</th>
-                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Referrer Number</th>
-                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">Referred Number</th>
-                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">Is Downloaded</th>
-                                <th className="p-5 text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Referral Date</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
+                    <Table className="w-full text-left border-collapse">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Referrer Name</TableHead>
+                                <TableHead>Referrer Number</TableHead>
+                                <TableHead>Referred Number</TableHead>
+                                <TableHead className="text-center">Is Downloaded</TableHead>
+                                <TableHead className="text-right">Referral Date</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {referrals.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="p-10 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
+                                <TableRow>
+                                    <TableCell colSpan={5} className="p-10 text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">
                                         No referral logs recorded yet
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                </TableRow>
                             ) : (
                                 referrals.map((ref) => (
-                                    <tr key={ref._id} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="p-5 text-xs font-black text-slate-900 uppercase tracking-tight">
+                                    <TableRow key={ref._id} className="hover:bg-slate-50/50 transition-colors">
+                                        <TableCell>
                                             {ref.referrerName}
-                                        </td>
-                                        <td className="p-5 text-[10px] font-bold text-slate-500 tabular-nums">
+                                        </TableCell>
+                                        <TableCell>
                                             {ref.referrerPhone}
-                                        </td>
-                                        <td className="p-5 text-[10px] font-bold text-slate-500 tabular-nums">
+                                        </TableCell>
+                                        <TableCell>
                                             {ref.referredPhone}
-                                        </td>
-                                        <td className="p-5 text-center">
+                                        </TableCell>
+                                        <TableCell className="text-center">
                                             <span className={`inline-flex px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
                                                 ref.isDownloaded === 'Yes' 
                                                     ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
@@ -204,15 +205,15 @@ const ReferralManagement = () => {
                                             }`}>
                                                 {ref.isDownloaded}
                                             </span>
-                                        </td>
-                                        <td className="p-5 text-right text-[10px] font-bold text-slate-900 uppercase tracking-widest">
+                                        </TableCell>
+                                        <TableCell className="text-right">
                                             {new Date(ref.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        </td>
-                                    </tr>
+                                        </TableCell>
+                                    </TableRow>
                                 ))
                             )}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
         </div>

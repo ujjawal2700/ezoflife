@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/shared/components/ui/table';
 
 const SupplierServiceZoneManagement = () => {
     const [zones, setZones] = useState([]);
@@ -492,7 +493,7 @@ const SupplierServiceZoneManagement = () => {
                                     {editingZone && (
                                         <div className="space-y-1.5 md:col-span-2">
                                             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Zone ID (Auto-generated)</label>
-                                            <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
+                                            <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[13px] font-medium text-slate-400">
                                                 {formData.zoneId || 'Auto-generated'}
                                             </div>
                                         </div>
@@ -504,7 +505,7 @@ const SupplierServiceZoneManagement = () => {
                                             required
                                             value={formData.zoneName}
                                             onChange={e => setFormData({...formData, zoneName: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. North Zone"
                                         />
                                     </div>
@@ -515,7 +516,7 @@ const SupplierServiceZoneManagement = () => {
                                             required
                                             value={formData.supplierId}
                                             onChange={e => setFormData({...formData, supplierId: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. SUP-001"
                                         />
                                     </div>
@@ -526,7 +527,7 @@ const SupplierServiceZoneManagement = () => {
                                             required
                                             value={formData.pincodes}
                                             onChange={e => setFormData({...formData, pincodes: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. 452001, 452010"
                                         />
                                     </div>
@@ -539,7 +540,7 @@ const SupplierServiceZoneManagement = () => {
                                             min="0"
                                             value={formData.deliveryCharges}
                                             onChange={e => setFormData({...formData, deliveryCharges: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. 50"
                                         />
                                     </div>
@@ -552,7 +553,7 @@ const SupplierServiceZoneManagement = () => {
                                             min="0"
                                             value={formData.minOrderValue}
                                             onChange={e => setFormData({...formData, minOrderValue: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. 200"
                                         />
                                     </div>
@@ -566,7 +567,7 @@ const SupplierServiceZoneManagement = () => {
                                             step="0.01"
                                             value={formData.supplierPlatformMultiplier}
                                             onChange={e => setFormData({...formData, supplierPlatformMultiplier: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. 1.0 or 1.05"
                                         />
                                     </div>
@@ -578,7 +579,7 @@ const SupplierServiceZoneManagement = () => {
                                             min="0"
                                             value={formData.minSupplierPlatformFee}
                                             onChange={e => setFormData({...formData, minSupplierPlatformFee: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="e.g. 10"
                                         />
                                     </div>
@@ -590,7 +591,7 @@ const SupplierServiceZoneManagement = () => {
                                             min="0"
                                             value={formData.maxSupplierPlatformFee}
                                             onChange={e => setFormData({...formData, maxSupplierPlatformFee: e.target.value})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none"
                                             placeholder="Leave empty for No Limit"
                                         />
                                     </div>
@@ -600,7 +601,7 @@ const SupplierServiceZoneManagement = () => {
                                         <select
                                             value={formData.isActive}
                                             onChange={e => setFormData({...formData, isActive: e.target.value === 'true'})}
-                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                            className="w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
                                         >
                                             <option value="true">Active</option>
                                             <option value="false">Inactive</option>
@@ -714,53 +715,53 @@ const SupplierServiceZoneManagement = () => {
                                         </div>
                                         <div className="border border-slate-100 rounded-sm overflow-hidden">
                                             <div className="overflow-x-auto max-h-64 overflow-y-auto">
-                                                <table className="w-full text-left text-[10px] font-bold">
-                                                    <thead className="bg-slate-900 text-white sticky top-0">
-                                                        <tr>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Row</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Zone ID</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Zone Name</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Supplier ID</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Pincodes</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Delivery Charges</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Min Order Value</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Platform Agg.</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Min Fee</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Max Fee</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Active</th>
-                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-50">
+                                                <Table className="w-full text-left text-[10px] font-bold">
+                                                    <TableHeader className="sticky">
+                                                        <TableRow>
+                                                            <TableHead>Row</TableHead>
+                                                            <TableHead>Zone ID</TableHead>
+                                                            <TableHead>Zone Name</TableHead>
+                                                            <TableHead>Supplier ID</TableHead>
+                                                            <TableHead>Pincodes</TableHead>
+                                                            <TableHead>Delivery Charges</TableHead>
+                                                            <TableHead>Min Order Value</TableHead>
+                                                            <TableHead>Platform Agg.</TableHead>
+                                                            <TableHead>Min Fee</TableHead>
+                                                            <TableHead>Max Fee</TableHead>
+                                                            <TableHead>Active</TableHead>
+                                                            <TableHead>Status</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
                                                         {bulkPreview.map((row, idx) => (
-                                                            <tr key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
-                                                                <td className="px-4 py-2 text-slate-400 tabular-nums">{row._rowIndex}</td>
-                                                                <td className="px-4 py-2">
+                                                            <TableRow key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
+                                                                <TableCell>{row._rowIndex}</TableCell>
+                                                                <TableCell>
                                                                     <span className="text-slate-400 italic text-[9px]">auto</span>
-                                                                </td>
-                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.zoneName || <span className="text-rose-400">—</span>}</td>
-                                                                <td className="px-4 py-2 text-slate-500">{row.supplierId}</td>
-                                                                <td className="px-4 py-2 text-slate-500">{row.pincodes.join(', ') || <span className="text-rose-400">—</span>}</td>
-                                                                <td className="px-4 py-2 text-slate-500">₹{row.deliveryCharges}</td>
-                                                                <td className="px-4 py-2 text-slate-500">₹{row.minOrderValue}</td>
-                                                                <td className="px-4 py-2 text-slate-500">{row.supplierPlatformMultiplier}x</td>
-                                                                <td className="px-4 py-2 text-slate-500">₹{row.minSupplierPlatformFee}</td>
-                                                                <td className="px-4 py-2 text-slate-500">{row.maxSupplierPlatformFee !== null ? `₹${row.maxSupplierPlatformFee}` : 'No Limit'}</td>
-                                                                <td className="px-4 py-2">
+                                                                </TableCell>
+                                                                <TableCell>{row.zoneName || <span className="text-rose-400">—</span>}</TableCell>
+                                                                <TableCell>{row.supplierId}</TableCell>
+                                                                <TableCell>{row.pincodes.join(', ') || <span className="text-rose-400">—</span>}</TableCell>
+                                                                <TableCell>₹{row.deliveryCharges}</TableCell>
+                                                                <TableCell>₹{row.minOrderValue}</TableCell>
+                                                                <TableCell>{row.supplierPlatformMultiplier}x</TableCell>
+                                                                <TableCell>₹{row.minSupplierPlatformFee}</TableCell>
+                                                                <TableCell>{row.maxSupplierPlatformFee !== null ? `₹${row.maxSupplierPlatformFee}` : 'No Limit'}</TableCell>
+                                                                <TableCell>
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.isActive ? 'Yes' : 'No'}
                                                                     </span>
-                                                                </td>
-                                                                <td className="px-4 py-2">
+                                                                </TableCell>
+                                                                <TableCell>
                                                                     {row._valid
                                                                         ? <CheckCircle2 size={14} className="text-emerald-500" />
                                                                         : <AlertTriangle size={14} className="text-rose-400" />
                                                                     }
-                                                                </td>
-                                                            </tr>
+                                                                </TableCell>
+                                                            </TableRow>
                                                         ))}
-                                                    </tbody>
-                                                </table>
+                                                    </TableBody>
+                                                </Table>
                                             </div>
                                         </div>
                                     </div>

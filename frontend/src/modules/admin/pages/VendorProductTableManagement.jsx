@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/shared/components/ui/table';
 
 const VendorProductTableManagement = () => {
     const [supplies, setSupplies] = useState([]);
@@ -925,37 +926,37 @@ const VendorProductTableManagement = () => {
 
                                         <div className="border border-slate-100 rounded-sm overflow-hidden">
                                             <div className="overflow-x-auto max-h-60 custom-scrollbar">
-                                                <table className="w-full text-left border-collapse text-[10px]">
-                                                    <thead>
-                                                        <tr className="bg-slate-50 border-b border-slate-150">
-                                                            <th className="p-2.5 font-bold uppercase text-[8px] tracking-widest text-slate-400 w-10 text-center">Row</th>
-                                                            <th className="p-2.5 font-bold uppercase text-[8px] tracking-widest text-slate-400">Material Name</th>
-                                                            <th className="p-2.5 font-bold uppercase text-[8px] tracking-widest text-slate-400">Category (Main - Sub)</th>
-                                                            <th className="p-2.5 font-bold uppercase text-[8px] tracking-widest text-slate-400">Brand</th>
-                                                            <th className="p-2.5 font-bold uppercase text-[8px] tracking-widest text-slate-400">Wholesale Rate</th>
-                                                            <th className="p-2.5 font-bold uppercase text-[8px] tracking-widest text-slate-400">Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
+                                                <Table className="w-full text-left border-collapse text-[10px]">
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead className="w-10 text-center">Row</TableHead>
+                                                            <TableHead>Material Name</TableHead>
+                                                            <TableHead>Category (Main - Sub)</TableHead>
+                                                            <TableHead>Brand</TableHead>
+                                                            <TableHead>Wholesale Rate</TableHead>
+                                                            <TableHead>Status</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
                                                         {bulkPreview.map((row, idx) => (
-                                                            <tr key={idx} className={`border-b border-slate-50 ${row._valid ? 'hover:bg-slate-50/50' : 'bg-red-50/30'}`}>
-                                                                <td className="p-2.5 text-center text-slate-400 font-bold tabular-nums">{row._rowIndex}</td>
-                                                                <td className="p-2.5 font-bold text-slate-900">{row.materialName || <span className="text-red-500 italic">Missing Name</span>}</td>
-                                                                <td className="p-2.5 font-medium text-slate-700">
+                                                            <TableRow key={idx} className={`border-b border-slate-50 ${row._valid ? 'hover:bg-slate-50/50' : 'bg-red-50/30'}`}>
+                                                                <TableCell className="text-center">{row._rowIndex}</TableCell>
+                                                                <TableCell>{row.materialName || <span className="text-red-500 italic">Missing Name</span>}</TableCell>
+                                                                <TableCell>
                                                                     {row.mainCategory} — {row.subCategory}
                                                                     {row._missingCategory && <span className="block text-[8px] text-red-500 font-bold mt-0.5">Category not found</span>}
-                                                                </td>
-                                                                <td className="p-2.5 text-slate-500">{row.brand}</td>
-                                                                <td className="p-2.5 font-bold text-slate-800 tabular-nums">₹{row.wholesaleRate}</td>
-                                                                <td className="p-2.5">
+                                                                </TableCell>
+                                                                <TableCell>{row.brand}</TableCell>
+                                                                <TableCell>₹{row.wholesaleRate}</TableCell>
+                                                                <TableCell>
                                                                     <span className={`px-1.5 py-0.2 rounded text-[8px] font-black uppercase ${row._valid ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>
                                                                         {row._valid ? 'Valid' : 'Invalid'}
                                                                     </span>
-                                                                </td>
-                                                            </tr>
+                                                                </TableCell>
+                                                            </TableRow>
                                                         ))}
-                                                    </tbody>
-                                                </table>
+                                                    </TableBody>
+                                                </Table>
                                             </div>
                                         </div>
                                     </div>

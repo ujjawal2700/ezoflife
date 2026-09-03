@@ -13,6 +13,7 @@ export const useLocationStore = create(
       maxPlatformFee: null,
       expressMultiplier: 1, // Default express multiplier
       heritageMultiplier: 1, // Default heritage multiplier
+      freeDeliveryThreshold: 500, // Default free delivery threshold
       permissionStatus: 'prompt', // 'prompt', 'granted', 'denied'
       isPromptOpen: false,
       isPickerOpen: false,
@@ -26,13 +27,14 @@ export const useLocationStore = create(
         minPlatformFee: data.minPlatformFee !== undefined ? data.minPlatformFee : 0,
         maxPlatformFee: data.maxPlatformFee !== undefined ? data.maxPlatformFee : null,
         expressMultiplier: data.expressMultiplier !== undefined ? data.expressMultiplier : 1,
-        heritageMultiplier: data.heritageMultiplier !== undefined ? data.heritageMultiplier : 1
+        heritageMultiplier: data.heritageMultiplier !== undefined ? data.heritageMultiplier : 1,
+        freeDeliveryThreshold: data.freeDeliveryThreshold !== undefined ? data.freeDeliveryThreshold : 500
       }),
       setPermissionStatus: (status) => set({ permissionStatus: status }),
       setPromptOpen: (isOpen) => set({ isPromptOpen: isOpen }),
       setPickerOpen: (isOpen) => set({ isPickerOpen: isOpen }),
 
-      clearLocation: () => set({ location: null, zone: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1, permissionStatus: 'prompt' }),
+      clearLocation: () => set({ location: null, zone: null, pricingFactor: 1, allowDiscount: false, platformMultiplier: 0, minPlatformFee: 0, maxPlatformFee: null, expressMultiplier: 1, heritageMultiplier: 1, freeDeliveryThreshold: 500, permissionStatus: 'prompt' }),
     }),
     {
       name: 'ez-location-storage',

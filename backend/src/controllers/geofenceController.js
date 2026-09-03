@@ -264,7 +264,8 @@ export const checkLocationAvailability = async (req, res) => {
             expressMultiplier: area.dynamicSurgeMultiplier !== undefined ? area.dynamicSurgeMultiplier : 1.0,
             heritageMultiplier: area.heritageMultiplier !== undefined ? area.heritageMultiplier : 1.0,
             minPlatformFee: area.minPlatformFee || 0,
-            maxPlatformFee: area.maxPlatformFee || null
+            maxPlatformFee: area.maxPlatformFee || null,
+            freeDeliveryThreshold: area.freeDeliveryThreshold !== undefined ? area.freeDeliveryThreshold : 500
         });
     } catch (err) {
         res.status(500).json({ message: err.message });

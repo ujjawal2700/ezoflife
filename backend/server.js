@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import dns from 'node:dns';
+// Fix querySrv EBADRESP on local networks / ISPs by using reliable public DNS servers
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
+
 console.log('🔥 SERVER IS BOOTING WITH LATEST ADMIN CLEANUP CODE (APR 26)...');
 // Server updated at 2026-04-29T11:58:25
 import express from 'express';

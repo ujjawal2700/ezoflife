@@ -80,10 +80,22 @@ export const getPendingApprovals = async (req, res) => {
     try {
         const { vendorName, businessName, phone } = req.query;
 
+        // ONLY fetch vendors that actually require admin verification (INITIAL_REVIEW, FINAL_REVIEW, or pending/revision_required)
+        // Strictly exclude vendors who are already fully verified and approved
         const userQuery = {
-            $or: [
-                { role: 'Vendor' },
-                { onboardingStage: { $in: ['INITIAL_REVIEW', 'SERVICE_SELECTION', 'FINAL_REVIEW', 'COMPLETED'] } }
+            $and: [
+                {
+                    $or: [
+                        { onboardingStage: { $in: ['INITIAL_REVIEW', 'FINAL_REVIEW'] } },
+                        { status: { $in: ['pending', 'revision_required'] } }
+                    ]
+                },
+                {
+                    $nor: [
+                        { status: 'approved', onboardingStage: 'COMPLETED' },
+                        { status: 'approved', onboardingStage: { $in: [null, undefined, ''] } }
+                    ]
+                }
             ]
         };
 
@@ -97,7 +109,11 @@ export const getPendingApprovals = async (req, res) => {
             userQuery.phone = phone.trim();
         }
 
-        const supplierQuery = { status: 'Pending' };
+        // ONLY fetch supplier applications that are pending or revision required, NOT already approved/onboarded
+        const supplierQuery = { 
+            status: { $in: ['Pending', 'pending', 'Revision_Required'] },
+            onboardingStage: { $ne: 'Onboarded' }
+        };
 
         if (vendorName && vendorName.trim() !== '') {
             supplierQuery.contactPersonName = { $regex: vendorName.trim(), $options: 'i' };
@@ -1275,8 +1291,26 @@ export const getSidebarCounts = async (req, res) => {
             ticketCount,
             disputeCount
         ] = await Promise.all([
-            User.countDocuments({ role: 'Vendor', status: 'pending' }),
-            SupplierApplication.countDocuments({ status: 'Pending' }),
+            User.countDocuments({
+                $and: [
+                    {
+                        $or: [
+                            { onboardingStage: { $in: ['INITIAL_REVIEW', 'FINAL_REVIEW'] } },
+                            { status: { $in: ['pending', 'revision_required'] } }
+                        ]
+                    },
+                    {
+                        $nor: [
+                            { status: 'approved', onboardingStage: 'COMPLETED' },
+                            { status: 'approved', onboardingStage: { $in: [null, undefined, ''] } }
+                        ]
+                    }
+                ]
+            }),
+            SupplierApplication.countDocuments({
+                status: { $in: ['Pending', 'pending', 'Revision_Required'] },
+                onboardingStage: { $ne: 'Onboarded' }
+            }),
             Service.countDocuments({ isMaster: false, approvalStatus: 'Pending' }),
             VendorMasterSupply.countDocuments({ approvalStatus: 'Pending' }),
             HelpDeskTicket ? HelpDeskTicket.countDocuments({ status: { $in: ['Open', 'In Progress', 'Pending'] } }) : Promise.resolve(0),

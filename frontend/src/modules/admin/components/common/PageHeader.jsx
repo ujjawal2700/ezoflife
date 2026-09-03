@@ -17,11 +17,11 @@ export default function PageHeader({ title, showBack = false, actions = [] }) {
                         </button>
                     )}
                     <div className="flex flex-col">
-                        <h1 className="text-sm font-bold text-slate-900 tracking-tighter uppercase leading-none">{title}</h1>
+                        <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight uppercase leading-none">{title}</h1>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                     {actions.map((action, i) => {
                         if (action.customComponent) {
                             return <React.Fragment key={i}>{action.customComponent}</React.Fragment>;
@@ -30,15 +30,15 @@ export default function PageHeader({ title, showBack = false, actions = [] }) {
                             <button
                                 key={i}
                                 onClick={action.onClick}
-                                className={`px-3 py-1.5 rounded-sm font-bold text-[9px] uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${
+                                className={`px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-sm ${
                                     action.variant === 'primary' 
-                                    ? 'bg-slate-900 text-white hover:bg-black' 
+                                    ? 'bg-slate-900 text-white hover:bg-black shadow-slate-900/10' 
                                     : action.variant === 'rose'
                                     ? 'bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-600 hover:text-white'
-                                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                                 } ${action.className || ''}`}
                             >
-                                {action.icon && <action.icon size={13} />}
+                                {action.icon && <action.icon size={14} />}
                                 {action.label}
                             </button>
                         );

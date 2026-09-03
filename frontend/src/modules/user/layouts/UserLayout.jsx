@@ -193,28 +193,7 @@ const UserLayout = () => {
     '/user/auth', 
     '/user/otp', 
     '/user/splash', 
-    '/user/tracking', 
-    '/user/success', 
-    '/user/notifications', 
-    '/user/profile',
-    '/user/profile/edit', 
-    '/user/profile/addresses', 
-    '/user/services',
-    '/user/cart',
-    '/user/confirmation',
-    '/user/chat',
-    '/user/partnerships',
-    '/user/advertise',
-    '/user/faq',
-    '/user/terms',
-    '/user/careers',
-    '/user/review',
-    '/user/support',
-    '/user/payment',
-    '/user/success-feedback',
-    '/user/verification',
     '/user/land',
-    '/user/referral',
     '/land',
     '/vendor'
   ];
@@ -240,11 +219,11 @@ const UserLayout = () => {
   };
   
    return (
-    <div className="flex flex-col min-h-screen bg-slate-50/50">
+    <div className="flex flex-col min-h-screen bg-slate-50 font-['Poppins',sans-serif] text-slate-900 selection:bg-slate-900 selection:text-white">
       {showHeader && renderHeader()}
-      <div className={`flex-1 ${showNav ? 'pb-32' : ''}`}>
+      <main className={`flex-1 w-full ${showNav ? 'pb-28 sm:pb-32 md:pb-10' : 'pb-10'}`}>
         <Outlet />
-      </div>
+      </main>
       {showNav && <BottomNav />}
 
       {/* Global Incoming Request Modal (Vendor Only) */}

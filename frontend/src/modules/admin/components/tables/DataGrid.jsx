@@ -1,6 +1,27 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { MoreHorizontal, ArrowUpDown, ChevronRight, Search, Download, Filter } from 'lucide-react';
+import { 
+    MoreHorizontal, 
+    ArrowUpDown, 
+    Search, 
+    Download, 
+    Filter, 
+    Inbox,
+    Trash2,
+    Edit2,
+    Eye
+} from 'lucide-react';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableHead,
+    TableRow,
+    TableCell,
+    TablePagination,
+    StatusBadge,
+    UserAvatarCell,
+} from '@/shared/components/ui/table';
 
 export default function DataGrid({
     columns = [],
@@ -10,8 +31,8 @@ export default function DataGrid({
     title,
     actions,
     footer,
-    density = 'compact', // compact, standard
-    stickyHeader = true,
+    density = 'normal',
+    stickyHeader = false,
     loading = false,
     pagination,
     onPageChange,
@@ -22,11 +43,11 @@ export default function DataGrid({
     minWidth = '800px',
     maxHeight,
     showTotalEntities = true,
-    leftContent
+    leftContent,
 }) {
-    const [searchTerm, setSearchTerm] = React.useState('');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredData = React.useMemo(() => {
+    const filteredData = useMemo(() => {
         if (!searchTerm) return data;
         const lowerSearch = searchTerm.toLowerCase();
         return data.filter(row => {
@@ -45,189 +66,222 @@ export default function DataGrid({
         });
     }, [data, searchTerm]);
 
+    const totalCount = pagination?.total ?? (data?.length || 0);
+    const totalColumns = columns.length + (onAction ? 1 : 0);
+
     return (
-        <div className="w-full bg-white border border-slate-200 flex flex-col rounded-sm">
-            {/* Grid Header Strip */}
+        <div className="w-full bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden flex flex-col font-['Poppins',sans-serif]">
+            {/* Header Control Strip */}
             {showHeader && (
-                <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white z-20">
+                <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
                     <div className="flex items-center flex-wrap gap-3">
-                        {title && <div className="w-1.5 h-6 bg-slate-900 rounded-sm" />}
                         {title && (
-                            <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-1">
+                            <h3 className="text-base sm:text-lg font-semibold text-slate-900 leading-tight">
                                 {title}
                             </h3>
                         )}
                         {showTotalEntities && (
-                            <span className="px-2 py-0.5 bg-slate-50 border border-slate-100 text-slate-400 text-[10px] font-bold tabular-nums tracking-widest leading-none">
-                                {pagination ? pagination.total : data.length} TOTAL ENTITIES
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                                {totalCount} {totalCount === 1 ? 'record' : 'records'}
                             </span>
                         )}
                         {leftContent}
                     </div>
-                    <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto">
+
+                    <div className="flex items-center flex-wrap gap-2.5 w-full sm:w-auto">
                         {showSearch && (
-                            <div className="relative group lg:block hidden">
-                                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within/search:text-slate-900 transition-all" />
+                            <div className="relative flex-1 sm:w-64">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 <input 
-                                     type="text" 
-                                     value={searchTerm}
-                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                     placeholder="Filter records..." 
-                                     className="pl-8 pr-4 py-1.5 bg-slate-50 border border-slate-100 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-300 transition-all outline-none w-48"
+                                    type="text" 
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search..." 
+                                    className="w-full pl-9 pr-3.5 py-2 text-sm bg-white border border-slate-300 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 transition-all shadow-xs"
                                 />
                             </div>
                         )}
                         {actions}
                         {onDownload && (
-                            <>
-                                <div className="h-4 w-px bg-slate-100 mx-1" />
-                                <button onClick={onDownload} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm" title="Download Excel/CSV">
-                                    <Download size={14} />
-                                </button>
-                            </>
+                            <button 
+                                onClick={onDownload} 
+                                className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                                title="Export / Download"
+                            >
+                                <Download size={15} className="text-slate-500" />
+                                <span className="hidden sm:inline">Export</span>
+                            </button>
                         )}
                         {showFilter && (
-                            <button className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-900 rounded-sm">
-                                <Filter size={14} />
+                            <button 
+                                className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-xs hover:bg-slate-50 transition-colors cursor-pointer"
+                                title="Filter"
+                            >
+                                <Filter size={15} className="text-slate-500" />
+                                <span className="hidden sm:inline">Filters</span>
                             </button>
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Main Table Engine */}
+            {/* Main Table */}
             <div 
-                className="overflow-x-auto overflow-y-auto relative z-10"
+                className="overflow-x-auto relative"
                 style={maxHeight ? { maxHeight } : undefined}
             >
-                <table className="w-full border-collapse text-left" style={{ minWidth }}>
-                    <thead className={cn(
-                        "bg-slate-50/50 border-b border-slate-200",
-                        stickyHeader && "sticky top-0 z-20"
-                    )}>
-                        <tr>
+                <Table style={{ minWidth }}>
+                    <TableHeader className={cn(stickyHeader && "sticky top-0 z-20")}>
+                        <TableRow className="border-b border-slate-200">
                             {columns.map((col, idx) => (
-                                <th
+                                <TableHead
                                     key={idx}
                                     className={cn(
-                                        "text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] transition-all whitespace-nowrap",
-                                        density === 'compact' ? "px-5 py-3" : "px-5 py-4",
+                                        "px-6 py-3.5 font-semibold text-[13.5px] text-slate-700 normal-case tracking-normal",
                                         col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
-                                        col.sticky && "sticky left-0 bg-white z-10 shadow-[2px_0_5px_rgba(0,0,0,0.02)]"
+                                        col.sticky && "sticky left-0 bg-slate-50 z-10"
                                     )}
                                     style={{ width: col.width }}
                                 >
                                     <div className={cn(
-                                        "flex items-center gap-1.5 group cursor-pointer hover:text-slate-900",
+                                        "inline-flex items-center gap-2",
                                         col.align === 'center' && "justify-center",
-                                        col.align === 'right' && "justify-end"
+                                        col.align === 'right' && "justify-end",
+                                        col.sortable && "cursor-pointer hover:text-slate-900"
                                     )}>
-                                        {col.header}
-                                        {col.sortable && <ArrowUpDown size={10} className="text-slate-300 group-hover:text-slate-500" />}
+                                        <span>{col.header}</span>
+                                        {col.sortable && <ArrowUpDown size={13} className="text-slate-400" />}
                                     </div>
-                                </th>
+                                </TableHead>
                             ))}
-                            {onAction && <th className="px-5 py-3 w-10 border-b border-slate-200 bg-slate-50/50"></th>}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
+                            {onAction && <TableHead className="w-24 pr-6 text-right font-semibold text-[13.5px] text-slate-700">Actions</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+
+                    <TableBody>
                         {loading ? (
-                            Array.from({ length: 5 }).map((_, rowIndex) => (
-                                <tr key={rowIndex} className="animate-pulse border-b border-slate-100">
+                            Array.from({ length: 6 }).map((_, rowIndex) => (
+                                <TableRow key={rowIndex} className="border-b border-slate-200/70">
                                     {columns.map((col, colIndex) => (
-                                        <td 
-                                            key={colIndex} 
+                                        <TableCell
+                                            key={colIndex}
                                             className={cn(
-                                                "text-[12px] font-medium text-slate-700 tabular-nums tracking-tight",
-                                                col.wrap ? "whitespace-normal" : "whitespace-nowrap",
-                                                density === 'compact' ? "px-5 py-2.5" : "px-5 py-3.5",
-                                                col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
-                                                col.sticky && "sticky left-0 bg-white z-10"
+                                                "px-6 py-4.5",
+                                                col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left"
                                             )}
                                         >
                                             <div 
                                                 className={cn(
-                                                    "h-3 bg-slate-200 rounded-md",
-                                                    colIndex % 3 === 0 ? "w-24" : colIndex % 3 === 1 ? "w-32" : "w-16",
+                                                    "h-4 bg-slate-100 rounded-md animate-pulse",
+                                                    colIndex % 3 === 0 ? "w-32" : colIndex % 3 === 1 ? "w-40" : "w-24",
                                                     col.align === 'center' && "mx-auto",
                                                     col.align === 'right' && "ml-auto"
                                                 )}
                                             />
-                                        </td>
+                                        </TableCell>
                                     ))}
                                     {onAction && (
-                                        <td className="px-5 py-3 text-right">
-                                            <div className="h-6 w-6 bg-slate-200 rounded-sm ml-auto" />
-                                        </td>
+                                        <TableCell className="px-6 py-4.5 text-right">
+                                            <div className="h-5 w-12 bg-slate-100 rounded ml-auto animate-pulse" />
+                                        </TableCell>
                                     )}
-                                </tr>
+                                </TableRow>
                             ))
                         ) : filteredData.length > 0 ? (
-                            filteredData.map((row, rowIdx) => (
-                                <tr
-                                    key={rowIdx}
-                                    onClick={() => onRowClick?.(row)}
-                                    className={cn(
-                                        "group hover:bg-slate-50 transition-all border-b border-transparent hover:border-slate-200/50",
-                                        onRowClick && "cursor-pointer"
-                                    )}
-                                >
-                                    {columns.map((col, colIdx) => (
-                                        <td
-                                            key={colIdx}
-                                            className={cn(
-                                                "text-[12px] font-medium text-slate-700 tabular-nums tracking-tight",
-                                                col.wrap ? "whitespace-normal" : "whitespace-nowrap",
-                                                density === 'compact' ? "px-5 py-2.5" : "px-5 py-3.5",
-                                                col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
-                                                col.sticky && "sticky left-0 bg-white group-hover:bg-slate-50 z-10"
-                                            )}
-                                        >
-                                            {col.render ? col.render(row[col.key], row) : row[col.key]}
-                                        </td>
-                                    ))}
-                                    {onAction && (
-                                        <td className="px-5 py-3 text-right">
-                                            <button className="p-1.5 rounded-sm text-slate-300 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 transition-all" onClick={(e) => { e.stopPropagation(); onAction?.(row); }}>
-                                                <MoreHorizontal size={14} />
-                                            </button>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))
+                            filteredData.map((row, rowIdx) => {
+                                return (
+                                    <TableRow
+                                        key={rowIdx}
+                                        onClick={() => onRowClick?.(row)}
+                                        className={cn(
+                                            "border-b border-slate-200/70 transition-colors hover:bg-slate-50/80",
+                                            onRowClick && "cursor-pointer"
+                                        )}
+                                    >
+                                        {columns.map((col, colIdx) => {
+                                            const cellVal = row[col.key];
+
+                                            let content;
+                                            if (col.render) {
+                                                content = col.render(cellVal, row);
+                                            } else if (col.key === 'isActive' || col.key === 'status') {
+                                                const label = typeof cellVal === 'boolean' ? (cellVal ? 'Active' : 'Inactive') : cellVal;
+                                                content = <StatusBadge status={label} label={label} />;
+                                            } else {
+                                                content = cellVal ?? '—';
+                                            }
+
+                                            return (
+                                                <TableCell
+                                                    key={colIdx}
+                                                    className={cn(
+                                                        "px-6 py-4.5 text-[14.5px] text-slate-700 font-normal leading-normal",
+                                                        col.wrap ? "whitespace-normal" : "whitespace-nowrap",
+                                                        col.align === 'right' ? "text-right" : col.align === 'center' ? "text-center" : "text-left",
+                                                        col.sticky && "sticky left-0 bg-white group-hover:bg-slate-50 z-10"
+                                                    )}
+                                                >
+                                                    {content}
+                                                </TableCell>
+                                            );
+                                        })}
+                                        {onAction && (
+                                            <TableCell className="px-6 py-4.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                <div className="inline-flex items-center gap-1.5">
+                                                    <button 
+                                                        onClick={() => onAction(row, 'edit')}
+                                                        className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                                        title="Edit"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => onAction(row, 'delete')}
+                                                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => onAction(row, 'more')}
+                                                        className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                                        title="More"
+                                                    >
+                                                        <MoreHorizontal size={16} />
+                                                    </button>
+                                                </div>
+                                            </TableCell>
+                                        )}
+                                    </TableRow>
+                                );
+                            })
                         ) : (
-                            <tr>
-                                <td colSpan={columns.length + (onAction ? 1 : 0)} className="px-4 py-16 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest opacity-60">
-                                    No Data Available
-                                </td>
-                            </tr>
+                            <TableRow className="hover:bg-transparent border-none">
+                                <TableCell colSpan={totalColumns} className="h-44 text-center">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center">
+                                            <Inbox size={22} className="text-slate-400" />
+                                        </div>
+                                        <p className="text-[15px] font-medium text-slate-900">No data available</p>
+                                        <p className="text-sm text-slate-500">No records match your criteria.</p>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
                         )}
-                    </tbody>
-                </table>
+                    </TableBody>
+                </Table>
             </div>
 
-            {/* Pagination / Aggregation Intelligence */}
-            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
-                <div className="flex items-center gap-1">
-                    <button 
-                        disabled={!pagination || pagination.page <= 1 || loading}
-                        onClick={() => onPageChange?.(pagination.page - 1)}
-                        className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                        Prev
-                    </button>
-                    <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
-                        PG {String(pagination?.page || 1).padStart(2, '0')} / {String(pagination?.totalPages || 1).padStart(2, '0')}
-                    </span>
-                    <button 
-                        disabled={!pagination || pagination.page >= pagination?.totalPages || loading}
-                        onClick={() => onPageChange?.(pagination.page + 1)}
-                        className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                        Next
-                    </button>
-                </div>
-            </div>
+            {/* Footer / Pagination: Exact UntitledUI 3-piece layout */}
+            {pagination ? (
+                <TablePagination
+                    page={pagination.page}
+                    totalPages={pagination.totalPages}
+                    onPageChange={onPageChange}
+                />
+            ) : footer ? (
+                footer
+            ) : null}
         </div>
     );
 }
