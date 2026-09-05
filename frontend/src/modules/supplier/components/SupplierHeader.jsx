@@ -1,24 +1,24 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Sparkles, User, Grid } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Home, Boxes, User, Grid, RefreshCw } from 'lucide-react';
 
 const navItems = [
-  { label: 'Home', icon: Home, path: '/vendor/dashboard' },
-  { label: 'Services', icon: Sparkles, path: '/vendor/services' },
-  { label: 'Profile', icon: User, path: '/vendor/profile' },
-  { label: 'More', icon: Grid, path: '/vendor/more' },
+  { label: 'Home', icon: Home, path: '/supplier/dashboard' },
+  { label: 'Supplies', icon: Boxes, path: '/supplier/supplies' },
+  { label: 'Profile', icon: User, path: '/supplier/profile' },
+  { label: 'More', icon: Grid, path: '/supplier/more' },
 ];
 
-const VendorHeader = () => {
+const SupplierHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const userData = JSON.parse(
-    localStorage.getItem('vendorData') || 
-    localStorage.getItem('user') || 
+  const user = JSON.parse(
+    localStorage.getItem('supplierData') || 
     localStorage.getItem('userData') || 
+    localStorage.getItem('user') || 
     '{}'
   );
 
@@ -29,14 +29,14 @@ const VendorHeader = () => {
         {/* Brand Logo & Portal Tag */}
         <div className="flex items-center gap-3">
           <div 
-            onClick={() => navigate('/vendor/dashboard')} 
+            onClick={() => navigate('/supplier/dashboard')}
             className="flex items-center gap-2 cursor-pointer group"
           >
             <h1 className="font-headline font-black text-xl text-slate-900 tracking-tight leading-none uppercase group-hover:text-primary transition-colors">
               SPINZYT
             </h1>
             <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold tracking-wider uppercase border border-slate-200/80">
-              Vendor Portal
+              Supplier Hub
             </span>
           </div>
         </div>
@@ -60,7 +60,7 @@ const VendorHeader = () => {
                 <span>{item.label}</span>
                 {isActive && (
                   <motion.div 
-                    layoutId="vendorActiveTab"
+                    layoutId="supplierActiveTab"
                     className="absolute inset-0 border-2 border-slate-950/5 rounded-xl pointer-events-none"
                     transition={{ type: "spring", stiffness: 350, damping: 25 }}
                   />
@@ -70,23 +70,21 @@ const VendorHeader = () => {
           })}
         </nav>
 
-        {/* Right Side Actions */}
+        {/* Right Side: Profile Button */}
         <div className="flex items-center gap-3">
-          <div id="vendor-header-cart-portal"></div>
-
           <button 
-            onClick={() => navigate('/vendor/profile')}
+            onClick={() => navigate('/supplier/profile')}
             className="flex items-center gap-2.5 p-1 sm:px-3 sm:py-1.5 rounded-full hover:bg-slate-100 transition-all cursor-pointer border border-slate-200/70 group"
           >
             <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs overflow-hidden shadow-2xs">
-              {userData.avatar || userData.image ? (
-                <img src={userData.avatar || userData.image} alt="Profile" className="w-full h-full object-cover" />
+              {user.avatar || user.image ? (
+                <img src={user.avatar || user.image} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                (userData.displayName || userData.name || 'V').charAt(0).toUpperCase()
+                (user.displayName || user.name || 'S').charAt(0).toUpperCase()
               )}
             </div>
             <span className="hidden sm:inline text-xs font-semibold text-slate-800 group-hover:text-slate-950">
-              {userData.displayName || userData.name || 'Vendor Profile'}
+              {user.displayName || user.name || 'Supplier Profile'}
             </span>
           </button>
         </div>
@@ -96,4 +94,4 @@ const VendorHeader = () => {
   );
 };
 
-export default VendorHeader;
+export default SupplierHeader;

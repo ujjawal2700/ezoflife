@@ -4,7 +4,8 @@ const orderSchema = new mongoose.Schema({
     customer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
+        default: null
     },
     vendor: {
         type: mongoose.Schema.Types.ObjectId,
@@ -187,6 +188,25 @@ const orderSchema = new mongoose.Schema({
         name: String,
         phone: String,
         photo: String
+    },
+    customerSnapshot: {
+        displayName: { type: String, default: null },
+        phone: { type: String, default: null },
+        email: { type: String, default: null },
+        customerType: { type: String, default: null },
+        isExUser: { type: Boolean, default: false }
+    },
+    vendorSnapshot: {
+        displayName: { type: String, default: null },
+        shopName: { type: String, default: null },
+        phone: { type: String, default: null },
+        email: { type: String, default: null },
+        isExUser: { type: Boolean, default: false }
+    },
+    riderSnapshot: {
+        displayName: { type: String, default: null },
+        phone: { type: String, default: null },
+        isExUser: { type: Boolean, default: false }
     },
     priceBreakdown: {
         baseWithArea: { type: Number, default: 0 },

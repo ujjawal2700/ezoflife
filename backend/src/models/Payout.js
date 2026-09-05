@@ -4,7 +4,14 @@ const payoutSchema = new mongoose.Schema({
     vendor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
+        default: null
+    },
+    vendorSnapshot: {
+        displayName: { type: String, default: null },
+        shopName: { type: String, default: null },
+        phone: { type: String, default: null },
+        isExUser: { type: Boolean, default: false }
     },
     amount: {
         type: Number,

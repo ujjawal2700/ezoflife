@@ -680,6 +680,67 @@ export const getUserProfile = async (req, res) => {
             });
         }
 
+        // If Supplier (or user has a supplier application), sync & populate bank details and documents from SupplierApplication if missing
+        if (user.role === 'Supplier' || user.isVerifiedSupplier || !user.bankDetails?.accountNumber || !user.documents?.length) {
+            const SupplierApplication = (await import('../models/SupplierApplication.js')).default;
+            const supplierApp = await SupplierApplication.findOne({ user: id }).lean();
+            if (supplierApp) {
+                let needsDbUpdate = false;
+                const userUpdates = {};
+
+                // Bank details sync
+                if ((!user.bankDetails?.accountNumber || !user.bankDetails?.bankName) && supplierApp.accountNumber) {
+                    user.bankDetails = {
+                        accountHolderName: user.bankDetails?.accountHolderName || supplierApp.contactPersonName || supplierApp.registeredBusinessName || '',
+                        accountNumber: supplierApp.accountNumber || '',
+                        ifscCode: supplierApp.ifscCode || '',
+                        bankName: supplierApp.bankName || ''
+                    };
+                    userUpdates.bankDetails = user.bankDetails;
+                    needsDbUpdate = true;
+                }
+
+                // Documents sync
+                if (!user.documents || user.documents.length === 0) {
+                    const docs = [];
+                    if (supplierApp.gstDoc) docs.push({ type: 'GST Document', url: supplierApp.gstDoc });
+                    if (supplierApp.panDoc) docs.push({ type: 'PAN Card', url: supplierApp.panDoc });
+                    if (supplierApp.msmeDoc) docs.push({ type: 'MSME Document', url: supplierApp.msmeDoc });
+                    if (supplierApp.cancelledChequeDoc) docs.push({ type: 'Cancelled Cheque', url: supplierApp.cancelledChequeDoc });
+                    if (supplierApp.priceListDoc) docs.push({ type: 'Price List', url: supplierApp.priceListDoc });
+                    if (supplierApp.manufacturerAuthDoc) docs.push({ type: 'Manufacturer Auth', url: supplierApp.manufacturerAuthDoc });
+                    if (supplierApp.ownerAadhaar && typeof supplierApp.ownerAadhaar === 'string' && supplierApp.ownerAadhaar.startsWith('http')) {
+                        docs.push({ type: 'Aadhaar Document', url: supplierApp.ownerAadhaar });
+                    }
+                    if (docs.length > 0) {
+                        user.documents = docs;
+                        userUpdates.documents = docs;
+                        needsDbUpdate = true;
+                    }
+                }
+
+                // SupplierDetails sync if missing
+                if (!user.supplierDetails?.businessName && supplierApp.registeredBusinessName) {
+                    user.supplierDetails = {
+                        ...(user.supplierDetails || {}),
+                        businessName: supplierApp.registeredBusinessName,
+                        address: supplierApp.warehouseAddress || '',
+                        gst: supplierApp.gstNumber || '',
+                        city: supplierApp.city || '',
+                        pincode: supplierApp.pincode || ''
+                    };
+                    userUpdates.supplierDetails = user.supplierDetails;
+                    needsDbUpdate = true;
+                }
+
+                if (needsDbUpdate) {
+                    User.findByIdAndUpdate(id, userUpdates).exec().catch(err => {
+                        console.error('Background User sync error from SupplierApp:', err);
+                    });
+                }
+            }
+        }
+
         res.status(200).json(user);
     } catch (err) {
         console.error('Get Profile Error:', err);

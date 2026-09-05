@@ -1,7 +1,27 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ArrowLeft, Shield, FileText, ChevronRight, Mail } from 'lucide-react';
 import { legalApi, UPLOADS_URL } from '../../../lib/api';
+
+const DEFAULT_PRIVACY_SECTIONS = [
+  {
+    title: '1. Information We Collect',
+    desc: 'We collect personal, business, and operational information necessary to provide and continually improve our platform services, process transactions, maintain account security, and verify platform participants.'
+  },
+  {
+    title: '2. How We Use Your Information',
+    desc: 'Your data is utilized strictly to fulfill orders, facilitate communications between clients, vendors, and suppliers, process payouts, prevent fraud, and ensure platform safety and compliance.'
+  },
+  {
+    title: '3. Data Security & Storage',
+    desc: 'We adopt industry-standard administrative, technical, and physical security measures to safeguard your personal and financial information against unauthorized access, loss, or misuse.'
+  },
+  {
+    title: '4. Sharing & Disclosure',
+    desc: 'We never sell your personal information. Information is only shared with trusted service partners, payment gateways, and logistics providers strictly to the extent required to execute services.'
+  }
+];
 
 const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
@@ -20,17 +40,39 @@ const PrivacyPolicyPage = () => {
 
   useEffect(() => {
     const fetchDoc = async () => {
-        try {
-            const data = await legalApi.getByType(`privacy-policy-${role}`);
-            setDoc(data);
-        } catch (error) {
-            console.error('Fetch Privacy Policy Error:', error);
-        } finally {
-            setLoading(false);
-        }
+      try {
+        const data = await legalApi.getByType(`privacy-policy-${role}`);
+        setDoc(data);
+      } catch (error) {
+        console.error('Fetch Privacy Policy Error:', error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchDoc();
   }, [role]);
+
+  const handleBack = () => {
+    if (window.history.state && window.history.state.idx > 0) {
+      navigate(-1);
+    } else if (role === 'supplier') {
+      navigate('/supplier/profile');
+    } else if (role === 'vendor') {
+      navigate('/vendor/profile');
+    } else {
+      navigate('/user/home');
+    }
+  };
+
+  const handleSupport = () => {
+    if (role === 'supplier') {
+      navigate('/supplier/profile');
+    } else if (role === 'vendor') {
+      navigate('/vendor/support');
+    } else {
+      navigate('/user/support');
+    }
+  };
 
   const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
@@ -41,68 +83,103 @@ const PrivacyPolicyPage = () => {
   }), []);
 
   const itemVariants = useMemo(() => ({
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.5, ease: "easeOut" } }
+    hidden: { y: 15, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut" } }
   }), []);
+
+  const roleLabel = role === 'supplier' ? 'Supplier Portal' : role === 'vendor' ? 'Vendor Portal' : 'Customer Agreement';
 
   return (
     <motion.div 
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="bg-background text-on-background min-h-[100dvh] flex flex-col font-body"
+      className="bg-slate-50 min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-800"
     >
-      <header className="fixed top-0 z-50 bg-white/70 backdrop-blur-xl w-full flex items-center px-6 py-4 border-b border-outline-variant/10">
-        <button onClick={() => navigate(-1)} className="material-symbols-outlined text-on-surface-variant mr-4">arrow_back</button>
-        <h1 className="font-headline font-black text-xl text-primary tracking-tighter">Privacy Policy</h1>
+      {/* Standalone Header */}
+      <header className="fixed top-0 z-50 bg-white/90 backdrop-blur-xl w-full flex items-center px-4 sm:px-6 py-3.5 border-b border-slate-200/80 shadow-xs">
+        <button 
+          onClick={handleBack} 
+          className="w-9 h-9 rounded-full flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors mr-3 cursor-pointer active:scale-95"
+          aria-label="Go Back"
+        >
+          <ArrowLeft size={18} />
+        </button>
+        <div>
+          <h1 className="font-bold text-base sm:text-lg text-slate-900 leading-tight">Privacy Policy</h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            {roleLabel}
+          </p>
+        </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 pt-16 pb-36 w-full">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-20 pb-32 w-full">
         <motion.section 
           variants={itemVariants}
-          className="mb-12 ml-2"
+          className="mb-8 pt-4"
         >
-          <span className="text-[10px] uppercase tracking-[0.3em] text-primary font-black mb-1 block opacity-60">Legal & Care</span>
-          <h2 className="text-3xl font-black tracking-tighter leading-none mb-3">Your Privacy,<br/>Our Commitment.</h2>
-          {doc && (
-            <p className="text-[11px] font-bold text-on-surface-variant opacity-60 mt-4 uppercase tracking-widest leading-relaxed">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-bold uppercase tracking-wider mb-3">
+            <Shield size={12} />
+            <span>Legal & Privacy Protection</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight mb-2">
+            Your Privacy,<br />Our Commitment.
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-500 font-medium">
+            Understand how EZ OF LIFE protects and handles your confidential information.
+          </p>
+          {doc?.lastUpdated && (
+            <p className="text-[11px] font-bold text-slate-400 mt-3 uppercase tracking-widest">
               Last Updated: {new Date(doc.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
         </motion.section>
 
-        <section className="space-y-10 px-2 min-h-[300px]">
+        <section className="space-y-6 min-h-[260px]">
           {loading ? (
-            <div className="py-20 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Loading policy...</div>
+            <div className="py-20 text-center text-xs font-bold uppercase tracking-widest text-slate-400 animate-pulse">
+              Loading privacy policy...
+            </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {doc?.content ? (
                 <div 
-                  className="text-[14px] font-medium text-on-surface-variant leading-relaxed legal-content"
+                  className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs text-[14px] leading-relaxed text-slate-700 legal-content"
                   dangerouslySetInnerHTML={{ __html: doc.content }}
                 />
               ) : (
-                <p className="text-slate-400 italic text-sm">Policy content is currently being updated.</p>
+                <div className="space-y-4">
+                  {DEFAULT_PRIVACY_SECTIONS.map((sec, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      variants={itemVariants}
+                      className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs"
+                    >
+                      <h3 className="text-sm font-bold text-slate-900 mb-2">{sec.title}</h3>
+                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">{sec.desc}</p>
+                    </motion.div>
+                  ))}
+                </div>
               )}
 
               {doc?.pdfUrl && (
-                <motion.div variants={itemVariants} className="pt-8">
+                <motion.div variants={itemVariants} className="pt-4">
                   <a 
                     href={resolvePdfUrl(doc.pdfUrl)} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl shadow-slate-900/10 active:scale-95 transition-all"
+                    className="flex items-center justify-between p-5 bg-slate-900 text-white rounded-2xl shadow-lg shadow-slate-900/10 hover:bg-slate-800 active:scale-98 transition-all"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                        <span className="material-symbols-outlined text-white">picture_as_pdf</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-rose-400">
+                        <FileText size={20} />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/60 leading-none mb-1">Official Document</p>
-                        <p className="text-sm font-black tracking-tight">View Privacy Policy PDF</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">Official Document</p>
+                        <p className="text-sm font-bold tracking-tight text-white">Download Privacy Policy PDF</p>
                       </div>
                     </div>
-                    <span className="material-symbols-outlined">chevron_right</span>
+                    <ChevronRight size={18} className="text-slate-400" />
                   </a>
                 </motion.div>
               )}
@@ -110,15 +187,16 @@ const PrivacyPolicyPage = () => {
           )}
         </section>
 
-        <motion.section variants={itemVariants} className="mt-20 p-8 rounded-[2.5rem] bg-surface-container-low border border-outline-variant/5 text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant opacity-40 mb-4 px-10">
-            For further clarification on legal terms, please reach out via our support channel.
+        <motion.section variants={itemVariants} className="mt-12 p-6 rounded-2xl bg-white border border-slate-200/80 text-center shadow-xs">
+          <p className="text-xs text-slate-500 font-medium mb-3">
+            Have questions regarding our privacy practices or data policies?
           </p>
           <button 
-             onClick={() => navigate('/user/support')}
-             className="text-primary font-black text-[10px] uppercase tracking-[0.2em] hover:underline"
+            onClick={handleSupport}
+            className="inline-flex items-center gap-2 text-indigo-600 font-bold text-xs uppercase tracking-wider hover:underline cursor-pointer"
           >
-            Contact Legal Team
+            <Mail size={14} />
+            <span>Contact Support / Legal Team</span>
           </button>
         </motion.section>
       </main>

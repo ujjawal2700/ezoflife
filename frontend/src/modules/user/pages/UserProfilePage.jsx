@@ -314,8 +314,8 @@ const UserProfilePage = () => {
             {/* Legal & Policy Links */}
             <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-2xs divide-y divide-slate-100">
               {[
-                { label: 'Privacy Policy', icon: Shield, path: '/user/privacy?role=customer' },
-                { label: 'Terms & Conditions', icon: FileText, path: '/user/terms?role=customer' }
+                { label: 'Privacy Policy', icon: Shield, path: '/privacy?role=customer' },
+                { label: 'Terms & Conditions', icon: FileText, path: '/terms?role=customer' }
               ].map((link, i) => {
                 const IconComponent = link.icon;
                 return (

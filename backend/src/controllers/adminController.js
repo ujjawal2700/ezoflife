@@ -8,6 +8,14 @@ import Payout from '../models/Payout.js';
 import SupplierServiceZone from '../models/SupplierServiceZone.js';
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import VendorSupplyCategory from '../models/VendorSupplyCategory.js';
+import B2BOrder from '../models/B2BOrder.js';
+import Ticket from '../models/Ticket.js';
+import Feedback from '../models/Feedback.js';
+import JobApplication from '../models/JobApplication.js';
+import Referral from '../models/Referral.js';
+import Notification from '../models/Notification.js';
+import Service from '../models/Service.js';
+import VendorProductQuery from '../models/VendorProductQuery.js';
 import { v2 as cloudinary } from 'cloudinary';
 
 // Helper: Ray casting algorithm to check if point is in polygon
@@ -552,15 +560,257 @@ export const getAllUsers = async (req, res) => {
     }
 };
 
-// Delete a user
+// Delete a user with options (wipe all related data OR preserve history as Ex-Customer/Ex-Vendor)
 export const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findByIdAndDelete(id);
+        const deleteRelatedData = req.query.deleteRelatedData === 'true' || 
+                                  req.body?.deleteRelatedData === true || 
+                                  req.body?.deleteRelatedData === 'true';
+
+        const user = await User.findById(id);
         if (!user) return res.status(404).json({ message: 'User not found' });
-        res.status(200).json({ message: 'User deleted successfully' });
+        if (user.role === 'Admin') return res.status(403).json({ message: 'Admin accounts cannot be deleted' });
+
+        if (deleteRelatedData) {
+            // OPTION 1: Admin chose to delete user AND wipe out all related data
+            console.log(`🗑️ [DELETE_USER] Purging user ${user._id} (${user.role}: ${user.phone}) and ALL related data...`);
+
+            // 1. Delete all related orders (placed by, handled by, or delivered by this user)
+            await Order.deleteMany({
+                $or: [
+                    { customer: id },
+                    { vendor: id },
+                    { rider: id }
+                ]
+            });
+            // Pull user from any nearby riders array
+            await Order.updateMany({ 'nearbyRiders.id': id }, { $pull: { nearbyRiders: { id } } });
+
+            // 2. Delete payouts
+            await Payout.deleteMany({ vendor: id });
+
+            // 3. Delete B2B orders
+            await B2BOrder.deleteMany({
+                $or: [
+                    { vendor: id },
+                    { supplier: id }
+                ]
+            });
+
+            // 4. Delete vendor product queries
+            await VendorProductQuery.deleteMany({
+                $or: [
+                    { vendor: id },
+                    { supplier: id }
+                ]
+            });
+
+            // 5. Delete supplier applications
+            await SupplierApplication.deleteMany({ supplier: id });
+
+            // 6. Delete support tickets
+            await Ticket.deleteMany({
+                $or: [
+                    { customer: id },
+                    { assignedTo: id }
+                ]
+            });
+
+            // 7. Delete feedback
+            await Feedback.deleteMany({
+                $or: [
+                    { user: id },
+                    { vendor: id }
+                ]
+            });
+
+            // 8. Delete jobs & job applications
+            await Job.deleteMany({
+                $or: [
+                    { vendor: id },
+                    { createdBy: id }
+                ]
+            });
+            await JobApplication.deleteMany({
+                $or: [
+                    { applicant: id },
+                    { vendor: id }
+                ]
+            });
+
+            // 9. Delete services
+            await Service.deleteMany({ vendor: id });
+
+            // 10. Delete promotions created by vendor, or pull from exclusive promotions
+            await Promotion.deleteMany({ vendorId: id });
+            await Promotion.updateMany({ exclusiveVendors: id }, { $pull: { exclusiveVendors: id } });
+
+            // 11. Delete notifications
+            await Notification.deleteMany({ recipient: id });
+
+            // 12. Delete referrals
+            await Referral.deleteMany({
+                $or: [
+                    { referrer: id },
+                    { referredPhone: user.phone }
+                ]
+            });
+
+            // 13. Finally delete the user account
+            await User.findByIdAndDelete(id);
+
+            return res.status(200).json({ 
+                success: true,
+                message: 'User and all associated orders, payments, tickets, and records have been permanently deleted.' 
+            });
+        } else {
+            // OPTION 2: Admin chose to delete ONLY the user from database,
+            // preserving all historical data and updating related records to Ex-Customer / Ex-Vendor / Ex-Supplier / Ex-Rider
+            console.log(`📦 [DELETE_USER] Deleting user ${user._id} from database, archiving and labeling history as Ex-${user.role}...`);
+
+            const rawName = user.displayName || user.ownerName || user.shopDetails?.name || user.supplierDetails?.businessName || user.phone || 'User';
+            const phone = user.phone || '';
+            const email = user.email || '';
+            const shopOrBusinessName = user.shopDetails?.name || user.supplierDetails?.businessName || rawName;
+
+            let rolePrefix = 'Ex-User';
+            if (user.role === 'Customer') rolePrefix = 'Ex-Customer';
+            else if (user.role === 'Vendor') rolePrefix = 'Ex-Vendor';
+            else if (user.role === 'Supplier') rolePrefix = 'Ex-Supplier';
+            else if (user.role === 'Rider') rolePrefix = 'Ex-Rider';
+
+            const exDisplayName = `${rolePrefix}: ${rawName}`;
+            const exShopName = `${rolePrefix}: ${shopOrBusinessName}`;
+
+            // 1. Update Orders where user was customer
+            await Order.updateMany(
+                { customer: id },
+                {
+                    $set: {
+                        customerSnapshot: {
+                            displayName: exDisplayName,
+                            phone,
+                            email,
+                            customerType: user.customerType || 'individual',
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+
+            // 2. Update Orders where user was vendor
+            await Order.updateMany(
+                { vendor: id },
+                {
+                    $set: {
+                        vendorSnapshot: {
+                            displayName: exDisplayName,
+                            shopName: exShopName,
+                            phone,
+                            email,
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+
+            // 3. Update Orders where user was rider
+            await Order.updateMany(
+                { rider: id },
+                {
+                    $set: {
+                        riderSnapshot: {
+                            displayName: exDisplayName,
+                            phone,
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+
+            // 4. Update Payouts for vendor
+            await Payout.updateMany(
+                { vendor: id },
+                {
+                    $set: {
+                        vendorSnapshot: {
+                            displayName: exDisplayName,
+                            shopName: exShopName,
+                            phone,
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+
+            // 5. Update B2B Orders for vendor & supplier
+            await B2BOrder.updateMany(
+                { vendor: id },
+                {
+                    $set: {
+                        vendorSnapshot: {
+                            displayName: exDisplayName,
+                            businessName: exShopName,
+                            phone,
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+            await B2BOrder.updateMany(
+                { supplier: id },
+                {
+                    $set: {
+                        supplierSnapshot: {
+                            displayName: exDisplayName,
+                            businessName: exShopName,
+                            phone,
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+
+            // 6. Update Tickets
+            await Ticket.updateMany(
+                { customer: id },
+                {
+                    $set: {
+                        customerSnapshot: {
+                            displayName: exDisplayName,
+                            phone,
+                            isExUser: true
+                        }
+                    }
+                }
+            );
+
+            // 7. Update Feedback
+            await Feedback.updateMany(
+                { user: id },
+                {
+                    $set: {
+                        userName: exDisplayName
+                    }
+                }
+            );
+
+            // 8. Clean up active promotion references & nearby riders
+            await Promotion.updateMany({ exclusiveVendors: id }, { $pull: { exclusiveVendors: id } });
+            await Order.updateMany({ 'nearbyRiders.id': id }, { $pull: { nearbyRiders: { id } } });
+
+            // 9. Delete the User account from the database
+            await User.findByIdAndDelete(id);
+
+            return res.status(200).json({ 
+                success: true,
+                message: `User deleted from database. Past order and payment history preserved under "${exDisplayName}".`
+            });
+        }
     } catch (err) {
-        res.status(500).json({ message: 'Error deleting user' });
+        console.error('Delete user error:', err);
+        res.status(500).json({ message: 'Error deleting user', error: err.message });
     }
 };
 
@@ -1141,7 +1391,64 @@ export const getCustomerPaymentSummary = async (req, res) => {
             };
         }));
 
-        res.status(200).json(summary);
+        // Also include preserved Ex-Customers who have orders
+        const activeCustomerIds = new Set(customers.map(c => c._id.toString()));
+        const exCustomerOrders = await Order.find({
+            $or: [
+                { 'customerSnapshot.isExUser': true },
+                { customer: { $nin: Array.from(activeCustomerIds) } }
+            ]
+        }).select('customer customerSnapshot totalAmount advanceAmount dueAmount status paymentStatus priceBreakdown').lean();
+
+        const exGroups = {};
+        for (const order of exCustomerOrders) {
+            const key = order.customerSnapshot?.displayName || order.customerSnapshot?.phone || (order.customer ? order.customer.toString() : null);
+            if (!key) continue;
+            if (!exGroups[key]) {
+                exGroups[key] = {
+                    _id: order.customer ? order.customer.toString() : `ex_${key}`,
+                    displayName: order.customerSnapshot?.displayName || 'Ex-Customer',
+                    phone: order.customerSnapshot?.phone || 'N/A',
+                    email: order.customerSnapshot?.email || '',
+                    orders: []
+                };
+            }
+            exGroups[key].orders.push(order);
+        }
+
+        const exSummary = Object.values(exGroups).map(group => {
+            const orders = group.orders;
+            const totalOrders = orders.length;
+            const successOrderCount = orders.filter(o => o.paymentStatus === 'Paid').length;
+            const totalSpent = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+            const totalAdvancePaid = orders.reduce((acc, curr) => acc + (curr.advanceAmount || 0), 0);
+            const totalCodPaid = orders
+                .filter(o => o.status === 'DELIVERED')
+                .reduce((acc, curr) => acc + (curr.dueAmount || 0), 0);
+            const totalPaid = totalAdvancePaid + totalCodPaid;
+            const pendingBalance = totalSpent - totalPaid;
+            const totalGst = orders.reduce((acc, curr) => acc + ((curr.priceBreakdown || {}).gstAmount || 0), 0);
+            const totalPlatformFee = orders.reduce((acc, curr) => acc + ((curr.priceBreakdown || {}).platformFee || 0), 0);
+
+            return {
+                _id: group._id,
+                displayName: group.displayName,
+                phone: group.phone,
+                email: group.email,
+                totalOrders,
+                successOrderCount,
+                totalSpent,
+                totalAdvancePaid,
+                totalCodPaid,
+                totalPaid,
+                pendingBalance,
+                totalGst,
+                totalPlatformFee,
+                isExCustomer: true
+            };
+        });
+
+        res.status(200).json([...summary, ...exSummary]);
     } catch (err) {
         console.error('Get Customer Payment Summary Error:', err);
         res.status(500).json({ message: 'Error fetching payment summary', error: err.message });
@@ -1208,7 +1515,106 @@ export const getVendorPaymentSummary = async (req, res) => {
             };
         }));
 
-        res.status(200).json(summary);
+        // Include preserved Ex-Vendors who have orders or payouts
+        const activeVendorIds = new Set(vendors.map(v => v._id.toString()));
+        const exVendorOrders = await Order.find({
+            $or: [
+                { 'vendorSnapshot.isExUser': true },
+                { vendor: { $nin: Array.from(activeVendorIds) } }
+            ],
+            status: { $in: ['READY_FOR_DISPATCH', 'DELIVERED', 'OUT_FOR_DELIVERY'] }
+        }).select('vendor vendorSnapshot priceBreakdown status orderId totalAmount refundAmount').lean();
+
+        const exVendorPayouts = await Payout.find({
+            $or: [
+                { 'vendorSnapshot.isExUser': true },
+                { vendor: { $nin: Array.from(activeVendorIds) } }
+            ],
+            status: 'Completed'
+        }).select('vendor vendorSnapshot amount paidAt').lean();
+
+        const exVendorGroups = {};
+        for (const order of exVendorOrders) {
+            const key = order.vendorSnapshot?.displayName || order.vendorSnapshot?.shopName || (order.vendor ? order.vendor.toString() : null);
+            if (!key) continue;
+            if (!exVendorGroups[key]) {
+                exVendorGroups[key] = {
+                    _id: order.vendor ? order.vendor.toString() : `ex_${key}`,
+                    displayName: order.vendorSnapshot?.displayName || 'Ex-Vendor',
+                    shopName: order.vendorSnapshot?.shopName || 'N/A',
+                    phone: order.vendorSnapshot?.phone || 'N/A',
+                    email: order.vendorSnapshot?.email || '',
+                    orders: [],
+                    payouts: []
+                };
+            }
+            exVendorGroups[key].orders.push(order);
+        }
+
+        for (const payout of exVendorPayouts) {
+            const key = payout.vendorSnapshot?.displayName || payout.vendorSnapshot?.shopName || (payout.vendor ? payout.vendor.toString() : null);
+            if (!key) continue;
+            if (!exVendorGroups[key]) {
+                exVendorGroups[key] = {
+                    _id: payout.vendor ? payout.vendor.toString() : `ex_${key}`,
+                    displayName: payout.vendorSnapshot?.displayName || 'Ex-Vendor',
+                    shopName: payout.vendorSnapshot?.shopName || 'N/A',
+                    phone: payout.vendorSnapshot?.phone || 'N/A',
+                    email: '',
+                    orders: [],
+                    payouts: []
+                };
+            }
+            exVendorGroups[key].payouts.push(payout);
+        }
+
+        const exVendorSummary = Object.values(exVendorGroups).map(group => {
+            const orders = group.orders;
+            const payouts = group.payouts;
+
+            const totalEarnings = orders.reduce((acc, curr) => {
+                const breakdown = curr.priceBreakdown || {};
+                return acc + (breakdown.baseWithArea || 0) + (breakdown.expressSurcharge || 0);
+            }, 0);
+
+            const grossCollection = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
+            const totalPlatformFee = orders.reduce((acc, curr) => {
+                const breakdown = curr.priceBreakdown || {};
+                return acc + (breakdown.platformFee || 0);
+            }, 0);
+            const gstOnFee = Math.round(totalPlatformFee * 0.18 * 100) / 100;
+            const totalRefund = orders.reduce((acc, curr) => acc + (curr.refundAmount || 0), 0);
+            const totalPaid = payouts.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+            const pendingBalance = totalEarnings - totalPaid;
+
+            return {
+                _id: group._id,
+                displayName: group.displayName,
+                shopName: group.shopName,
+                phone: group.phone,
+                email: group.email,
+                totalOrders: orders.length,
+                grossCollection,
+                totalPlatformFee,
+                gstOnFee,
+                totalRefund,
+                netPayable: totalEarnings,
+                settlementCycle: 'Archived',
+                settlementDate: 'N/A',
+                razorpayPayoutId: 'N/A',
+                bankAccount: 'Archived Account',
+                totalEarnings,
+                totalPaid,
+                pendingBalance,
+                status: pendingBalance > 0 ? 'Pending' : 'Settled',
+                paidBy: 'ADMIN',
+                paidOn: payouts.length > 0 ? new Date(payouts[payouts.length - 1].paidAt).toLocaleDateString() : 'N/A',
+                lastPayout: payouts.length > 0 ? payouts[payouts.length - 1].paidAt : null,
+                isExVendor: true
+            };
+        });
+
+        res.status(200).json([...summary, ...exVendorSummary]);
     } catch (err) {
         console.error('Get Vendor Payment Summary Error:', err);
         res.status(500).json({ message: 'Error fetching vendor payment summary', error: err.message });

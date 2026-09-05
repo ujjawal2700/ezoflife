@@ -493,11 +493,40 @@ export const getDashboardAnalytics = async (req, res) => {
             avgRating = Number((totalRating / feedbacks.length).toFixed(1));
         }
 
+        // ----------------------------------------------------
+        // MODULE 2.10: PENDING PARTNER VERIFICATIONS
+        // ----------------------------------------------------
+        const [
+            pendingVendorCount,
+            pendingSupplierCount
+        ] = await Promise.all([
+            User.countDocuments({
+                role: 'Vendor',
+                $or: [
+                    { onboardingStage: { $in: ['INITIAL_REVIEW', 'FINAL_REVIEW', 'DOCUMENTS_SUBMITTED', 'PENDING'] } },
+                    { status: { $in: ['pending', 'revision_required'] } }
+                ],
+                $nor: [
+                    { status: 'approved', onboardingStage: 'COMPLETED' },
+                    { status: 'approved', onboardingStage: { $in: [null, undefined, ''] } }
+                ]
+            }),
+            SupplierApplication.countDocuments({
+                status: { $in: ['Pending', 'pending', 'Revision_Required'] },
+                onboardingStage: { $ne: 'Onboarded' }
+            })
+        ]);
+
         // Compile all analytics response (pure database numbers)
         res.status(200).json({
             success: true,
             data: {
                 channel: channel || 'All',
+                pendingVerifications: {
+                    total: pendingVendorCount + pendingSupplierCount,
+                    vendors: pendingVendorCount,
+                    suppliers: pendingSupplierCount
+                },
                 monthlyTrend: dynamicMonthlyTrend,
                 customerAnalytics: {
                     totalCustomers: totalCustomers,

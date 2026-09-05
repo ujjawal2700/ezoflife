@@ -123,8 +123,38 @@ export const submitApplication = async (req, res) => {
             onboardingStage: 'Initial_Approval_Pending'
         };
 
-        const newApplication = new SupplierApplication(applicationData);
-        await newApplication.save();
+        // Build documents array from submitted application
+        const docs = [];
+        if (req.body.gstDoc) docs.push({ type: 'GST Document', url: req.body.gstDoc });
+        if (req.body.panDoc) docs.push({ type: 'PAN Card', url: req.body.panDoc });
+        if (req.body.msmeDoc) docs.push({ type: 'MSME Document', url: req.body.msmeDoc });
+        if (req.body.cancelledChequeDoc) docs.push({ type: 'Cancelled Cheque', url: req.body.cancelledChequeDoc });
+        if (req.body.priceListDoc) docs.push({ type: 'Price List', url: req.body.priceListDoc });
+        if (req.body.manufacturerAuthDoc) docs.push({ type: 'Manufacturer Auth', url: req.body.manufacturerAuthDoc });
+        if (req.body.ownerAadhaar && typeof req.body.ownerAadhaar === 'string' && req.body.ownerAadhaar.startsWith('http')) {
+            docs.push({ type: 'Aadhaar Document', url: req.body.ownerAadhaar });
+        }
+
+        // Sync bank details and business info to User model immediately
+        await User.findByIdAndUpdate(userId, {
+            'supplierDetails.businessName': req.body.registeredBusinessName,
+            'supplierDetails.address': req.body.warehouseAddress,
+            'supplierDetails.gst': req.body.gstNumber,
+            'supplierDetails.city': req.body.city || '',
+            'supplierDetails.pincode': req.body.pincode || '',
+            'supplierDetails.supplyCategories': req.body.supplyCategories || [],
+            'supplierDetails.entityType': req.body.entityType || 'Supplier',
+            'supplierDetails.designation': req.body.designation || '',
+            'supplierDetails.panNumber': req.body.panNumber || '',
+            'supplierDetails.aadhaarNumber': req.body.ownerAadhaar || '',
+            bankDetails: {
+                accountHolderName: req.body.contactPersonName || req.body.registeredBusinessName || '',
+                accountNumber: req.body.accountNumber || '',
+                ifscCode: req.body.ifscCode || '',
+                bankName: req.body.bankName || ''
+            },
+            ...(docs.length > 0 ? { documents: docs } : {})
+        });
 
         res.status(201).json({ message: 'Application submitted successfully', application: newApplication });
     } catch (error) {
@@ -258,18 +288,43 @@ export const finalApproveApplication = async (req, res) => {
         const userPhone = userObj?.phone || '';
         const supplierId = `SUP-${userPhone ? userPhone.slice(-4) : '001'}`;
 
-        // Officially promote user to Supplier
+        // Build documents array from application
+        const docs = [];
+        if (application.gstDoc) docs.push({ type: 'GST Document', url: application.gstDoc });
+        if (application.panDoc) docs.push({ type: 'PAN Card', url: application.panDoc });
+        if (application.msmeDoc) docs.push({ type: 'MSME Document', url: application.msmeDoc });
+        if (application.cancelledChequeDoc) docs.push({ type: 'Cancelled Cheque', url: application.cancelledChequeDoc });
+        if (application.priceListDoc) docs.push({ type: 'Price List', url: application.priceListDoc });
+        if (application.manufacturerAuthDoc) docs.push({ type: 'Manufacturer Auth', url: application.manufacturerAuthDoc });
+        if (application.ownerAadhaar && typeof application.ownerAadhaar === 'string' && application.ownerAadhaar.startsWith('http')) {
+            docs.push({ type: 'Aadhaar Document', url: application.ownerAadhaar });
+        }
+
+        // Officially promote user to Supplier and sync full business, bank details & documents
         await User.findByIdAndUpdate(application.user, { 
             role: 'Supplier',
             status: 'approved',
             isProfileComplete: true,
+            isVerifiedSupplier: true,
             supplierDetails: {
                 businessName: application.registeredBusinessName,
                 address: application.warehouseAddress,
                 gst: application.gstNumber,
                 city: application.city || '',
-                pincode: application.pincode || ''
-            }
+                pincode: application.pincode || '',
+                supplyCategories: application.supplyCategories || [],
+                entityType: application.entityType || 'Supplier',
+                designation: application.designation || '',
+                panNumber: application.panNumber || '',
+                aadhaarNumber: application.ownerAadhaar || ''
+            },
+            bankDetails: {
+                accountHolderName: application.contactPersonName || application.registeredBusinessName || '',
+                accountNumber: application.accountNumber || '',
+                ifscCode: application.ifscCode || '',
+                bankName: application.bankName || ''
+            },
+            ...(docs.length > 0 ? { documents: docs } : {})
         });
 
         // Automatically create SupplierServiceZone record if zone and pincode exist

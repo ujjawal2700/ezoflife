@@ -74,7 +74,6 @@ const UserRoutes = () => {
         <Route path="/profile/payment" element={<PaymentMethodsPage />} />
         <Route path="/profile/wallet" element={<WalletPage />} />
         <Route path="/support" element={<HelpCenterPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
         <Route path="/review" element={<RateAndReviewPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/services" element={<AllServicesPage />} />
@@ -82,7 +81,6 @@ const UserRoutes = () => {
         <Route path="/service-info" element={<ServiceInfoPage />} />
         <Route path="/careers" element={<CareersPage />} />
         <Route path="/faq" element={<FAQPage />} />
-        <Route path="/terms" element={<TermsConditionsPage />} />
         <Route path="/become-vendor" element={<RegisterAsVendorPage />} />
         <Route path="/become-supplier" element={<RegisterAsSupplierPage />} />
         <Route path="/become-supplier/select-products" element={<SupplierProductSelectionPage />} />
@@ -92,6 +90,10 @@ const UserRoutes = () => {
         <Route path="/upload-photos" element={<ServiceImageUploadPage />} />
         <Route path="/referral" element={<ReferralPage />} />
       </Route>
+
+      {/* Standalone independent legal routes under /user/ */}
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsConditionsPage />} />
 
       {/* Fallback to landing */}
       <Route path="*" element={<Navigate to="/user/land" replace />} />

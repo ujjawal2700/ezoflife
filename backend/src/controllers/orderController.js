@@ -1017,8 +1017,26 @@ export const getAllOrders = async (req, res) => {
                 }
             }
             
+            const orderObj = order.toObject();
+            if (!orderObj.customer && orderObj.customerSnapshot?.displayName) {
+                orderObj.customer = {
+                    displayName: orderObj.customerSnapshot.displayName,
+                    phone: orderObj.customerSnapshot.phone,
+                    customerType: orderObj.customerSnapshot.customerType || 'individual',
+                    isExUser: true
+                };
+            }
+            if (!orderObj.vendor && orderObj.vendorSnapshot?.displayName) {
+                orderObj.vendor = {
+                    displayName: orderObj.vendorSnapshot.displayName,
+                    shopDetails: { name: orderObj.vendorSnapshot.shopName || orderObj.vendorSnapshot.displayName },
+                    phone: orderObj.vendorSnapshot.phone,
+                    isExUser: true
+                };
+            }
+
             return {
-                ...order.toObject(),
+                ...orderObj,
                 serviceZone: zoneName
             };
         });
@@ -1492,7 +1510,27 @@ export const getOrderById = async (req, res) => {
             return res.status(403).json({ message: 'You cannot view this order' });
         }
 
-        res.status(200).json(order);
+        const orderObj = order.toObject();
+        if (!orderObj.customer && orderObj.customerSnapshot?.displayName) {
+            orderObj.customer = {
+                displayName: orderObj.customerSnapshot.displayName,
+                phone: orderObj.customerSnapshot.phone,
+                address: orderObj.dropAddress,
+                email: orderObj.customerSnapshot.email,
+                customerType: orderObj.customerSnapshot.customerType || 'individual',
+                isExUser: true
+            };
+        }
+        if (!orderObj.vendor && orderObj.vendorSnapshot?.displayName) {
+            orderObj.vendor = {
+                displayName: orderObj.vendorSnapshot.displayName,
+                shopDetails: { name: orderObj.vendorSnapshot.shopName || orderObj.vendorSnapshot.displayName },
+                phone: orderObj.vendorSnapshot.phone,
+                isExUser: true
+            };
+        }
+
+        res.status(200).json(orderObj);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching order details', error: err.message });
     }

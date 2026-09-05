@@ -944,11 +944,15 @@ export const adminApi = {
             throw error;
         }
     },
-    deleteUser: async (id) => {
+    deleteUser: async (id, deleteRelatedData = false) => {
         try {
-            const response = await fetch(`${BASE_URL}/admin/users/${id}`, {
+            const response = await fetch(`${BASE_URL}/admin/users/${id}?deleteRelatedData=${deleteRelatedData}`, {
                 method: 'DELETE',
-                headers: adminAuthHeaders()
+                headers: {
+                    ...adminAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ deleteRelatedData })
             });
             return await response.json();
         } catch (error) {

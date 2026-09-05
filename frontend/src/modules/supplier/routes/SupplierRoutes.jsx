@@ -18,6 +18,8 @@ import PromotionManagerPage from '../../vendor/pages/PromotionManagerPage';
 
 import SupplierAuth from '../pages/SupplierAuth';
 import SupplierOtp from '../pages/SupplierOtp';
+import PrivacyPolicyPage from '../../user/pages/PrivacyPolicyPage';
+import TermsConditionsPage from '../../user/pages/TermsConditionsPage';
 
 const SupplierRoutes = () => {
   return (
@@ -46,6 +48,13 @@ const SupplierRoutes = () => {
         {/* Default redirect to dashboard */}
         <Route path="*" element={<Navigate to="/supplier/dashboard" replace />} />
       </Route>
+
+      {/* Independent Standalone Legal Routes under /supplier/ */}
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsConditionsPage />} />
+      <Route path="/terms-conditions" element={<TermsConditionsPage />} />
+      <Route path="/terms-and-conditions" element={<TermsConditionsPage />} />
     </Routes>
   );
 };

@@ -4,11 +4,12 @@ import UserRoutes from './modules/user/routes/userRoutes'
 import VendorRoutes from './modules/vendor/routes/VendorRoutes'
 import SupplierRoutes from './modules/supplier/routes/SupplierRoutes'
 import AdminRoutes from './modules/admin/routes/AdminRoutes'
+import PrivacyPolicyPage from './modules/user/pages/PrivacyPolicyPage'
+import TermsConditionsPage from './modules/user/pages/TermsConditionsPage'
 import ScrollToTop from './shared/components/ScrollToTop'
 import GlobalToast from './shared/components/GlobalToast'
 import LocationPrompt from './shared/components/LocationPrompt'
 import LocationPicker from './shared/components/LocationPicker'
-import GlobalCartButton from './modules/user/components/GlobalCartButton'
 import { useJsApiLoader } from '@react-google-maps/api'
 import { GOOGLE_MAPS_LOADER_OPTIONS } from './lib/googleMaps'
 import { onMessageListener } from './lib/firebase'
@@ -40,7 +41,12 @@ function App() {
       <LocationPrompt />
       <LocationPicker isLoaded={isLoaded} />
       <Routes>
-
+        {/* Independent Public Legal Routes - No Login or Module Layout Required */}
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsConditionsPage />} />
+        <Route path="/terms-conditions" element={<TermsConditionsPage />} />
+        <Route path="/terms-and-conditions" element={<TermsConditionsPage />} />
 
         {/* User Module Routes */}
         <Route path="/user/*" element={<UserRoutes />} />

@@ -46,6 +46,8 @@ import PrivacyPolicy from '../pages/PrivacyPolicy';
 import TermsConditions from '../pages/TermsConditions';
 import RejectedServices from '../pages/RejectedServices';
 import VendorAddressesPage from '../pages/VendorAddressesPage';
+import PrivacyPolicyPage from '../../user/pages/PrivacyPolicyPage';
+import TermsConditionsPage from '../../user/pages/TermsConditionsPage';
 
 import VendorLayout from '../layouts/VendorLayout';
 
@@ -104,6 +106,10 @@ const VendorRoutes = () => {
         {/* Default */}
         <Route path="*" element={<Navigate to="/vendor/splash" replace />} />
       </Route>
+
+      {/* Independent Standalone Legal Routes under /vendor/ */}
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsConditionsPage />} />
     </Routes>
   );
 };

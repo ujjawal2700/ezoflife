@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import PageHeader from '../components/common/PageHeader';
 import DashboardSkeleton from '../components/skeletons/DashboardSkeleton';
-import { dashboardApi } from '../../../lib/api';
+import { dashboardApi, adminApi } from '../../../lib/api';
 import { 
     TrendingUp, TrendingDown, ShoppingBag, IndianRupee, Users, 
     AlertTriangle, ShieldCheck, Truck, RefreshCw, Layers, 
     Activity, Calendar, MapPin, Store, Building, ChevronRight, 
     CheckCircle2, Clock, ArrowUpRight, Sparkles, Filter, PieChart as PieIcon,
-    BarChart3, Package, Headphones
+    BarChart3, Package, Headphones, ShieldAlert, ArrowRight, UserCheck
 } from 'lucide-react';
 import { 
     LineChart, Line, 
@@ -20,9 +21,11 @@ import {
 } from 'recharts';
 
 export default function Dashboard() {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
     const [analytics, setAnalytics] = useState(null);
+    const [sidebarCounts, setSidebarCounts] = useState(null);
     const [activeTab, setActiveTab] = useState('overview');
     const [lastSyncTime, setLastSyncTime] = useState('Just now');
 
@@ -123,13 +126,29 @@ export default function Dashboard() {
         }
     };
 
+    const fetchSidebarCounts = async () => {
+        try {
+            const counts = await adminApi.getSidebarCounts();
+            if (counts) setSidebarCounts(counts);
+        } catch (e) {
+            console.error('Failed to fetch sidebar counts:', e);
+        }
+    };
+
     useEffect(() => {
         fetchFilters();
+        fetchSidebarCounts();
     }, []);
 
     useEffect(() => {
         fetchAnalytics();
+        fetchSidebarCounts();
     }, [channel, selectedState, selectedCity, selectedPincode, selectedGeofence, timeRange, startDate, endDate]);
+
+    // Computed Pending Partner Verification numbers
+    const pendingVendors = analytics?.pendingVerifications?.vendors ?? sidebarCounts?.vendorRegistrations ?? 0;
+    const pendingSuppliers = analytics?.pendingVerifications?.suppliers ?? sidebarCounts?.supplierRegistrations ?? 0;
+    const totalPendingVerifications = analytics?.pendingVerifications?.total ?? (sidebarCounts?.registrations ?? (pendingVendors + pendingSuppliers));
 
     // Financial trend data (uses real backend monthly trend or formatted fallback)
     const financialTrendData = useMemo(() => {
@@ -438,6 +457,71 @@ export default function Dashboard() {
             <div className="max-w-[1600px] mx-auto w-full px-6 pt-6">
                 {activeTab === 'overview' && (
                     <div className="space-y-6">
+                        {/* Pending Verification Requests Flag / Alert Banner */}
+                        {totalPendingVerifications > 0 && (
+                            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 border-2 border-amber-300/80 p-5 sm:p-6 shadow-lg shadow-amber-500/5 transition-all">
+                                <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                                    <div className="flex items-start gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/25">
+                                            <ShieldAlert size={26} className="animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2.5 flex-wrap">
+                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500 text-white shadow-xs">
+                                                    Action Required
+                                                </span>
+                                                <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                                                    {totalPendingVerifications} Pending Partner Verification Request{totalPendingVerifications > 1 ? 's' : ''}
+                                                </h3>
+                                            </div>
+                                            <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-1">
+                                                New supplier and vendor onboarding submissions are awaiting administrative review and KYC verification.
+                                            </p>
+                                            <div className="flex items-center gap-3 sm:gap-4 mt-2.5 text-xs font-bold text-slate-700 flex-wrap">
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/80 rounded-lg border border-amber-200">
+                                                    <Store size={14} className="text-amber-600" />
+                                                    Vendors Pending: <span className="font-black text-amber-700">{pendingVendors}</span>
+                                                </span>
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/80 rounded-lg border border-amber-200">
+                                                    <Building size={14} className="text-orange-600" />
+                                                    Suppliers Pending: <span className="font-black text-orange-700">{pendingSuppliers}</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap">
+                                        {pendingVendors > 0 && (
+                                            <button
+                                                onClick={() => navigate('/admin/vendors/approvals')}
+                                                className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 text-xs font-black uppercase tracking-wider rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <Store size={14} className="text-amber-600" />
+                                                Vendors ({pendingVendors})
+                                            </button>
+                                        )}
+                                        {pendingSuppliers > 0 && (
+                                            <button
+                                                onClick={() => navigate('/admin/supplier-requests')}
+                                                className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-900 text-xs font-black uppercase tracking-wider rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow hover:-translate-y-0.5 flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <Building size={14} className="text-orange-600" />
+                                                Suppliers ({pendingSuppliers})
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => navigate(pendingVendors > 0 ? '/admin/vendors/approvals' : '/admin/supplier-requests')}
+                                            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 flex items-center gap-2 cursor-pointer"
+                                        >
+                                            Review Approvals
+                                            <ArrowRight size={14} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Macro Metrics 4 Cards Row */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {/* 1. Revenue Card */}
@@ -667,6 +751,31 @@ export default function Dashboard() {
                                         </div>
                                     ) : (
                                         <div className="space-y-3.5">
+                                            {totalPendingVerifications > 0 && (
+                                                <div 
+                                                    onClick={() => navigate(pendingVendors > 0 ? '/admin/vendors/approvals' : '/admin/supplier-requests')}
+                                                    className="flex gap-3.5 items-start p-4 bg-amber-50/90 hover:bg-amber-100/80 border-2 border-amber-300 rounded-2xl cursor-pointer transition-all group shadow-xs"
+                                                >
+                                                    <span className="p-2 bg-amber-500 text-white rounded-xl shrink-0 shadow-sm">
+                                                        <ShieldAlert size={16} className="animate-pulse" />
+                                                    </span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <h4 className="text-xs sm:text-sm font-black uppercase text-amber-950 tracking-wide">
+                                                                Pending Verifications
+                                                            </h4>
+                                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-500 text-white rounded-md tracking-wider shrink-0">
+                                                                {totalPendingVerifications} Pending
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs font-semibold text-amber-900 mt-1">
+                                                            {pendingVendors} vendor{pendingVendors !== 1 ? 's' : ''} & {pendingSuppliers} supplier{pendingSuppliers !== 1 ? 's' : ''} awaiting approval
+                                                        </p>
+                                                    </div>
+                                                    <ChevronRight size={16} className="text-amber-700 group-hover:translate-x-1 transition-transform self-center shrink-0" />
+                                                </div>
+                                            )}
+
                                             <div className="flex gap-3.5 items-start p-4 bg-rose-50/80 border border-rose-100 rounded-2xl">
                                                 <span className="p-2 bg-rose-100 text-rose-600 rounded-xl shrink-0">
                                                     <AlertTriangle size={16} />
@@ -774,113 +883,153 @@ export default function Dashboard() {
                 )}
 
                 {activeTab === 'users' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Customer analytics card */}
-                        <div className="bg-white border border-slate-200/80 p-6 sm:p-7 rounded-[2rem] shadow-sm flex flex-col justify-between">
-                            <div>
-                                <h3 className="text-base sm:text-lg font-black uppercase tracking-wide text-slate-800 mb-6">Customer Composition (B2C vs B2B)</h3>
-                                <div className="h-[250px] w-full flex items-center justify-center">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={[
-                                                    { name: 'Individual B2C', value: analytics?.customerAnalytics.individualCount || 0 },
-                                                    { name: 'Commercial B2B', value: analytics?.customerAnalytics.businessCount || 0 }
-                                                ]}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={80}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                            >
-                                                <Cell fill="#3b82f6" />
-                                                <Cell fill="#10b981" />
-                                            </Pie>
-                                            <Tooltip />
-                                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 mt-4">
-                                <div className="text-center">
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Churn Risk (30d Inactive)</p>
-                                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.customerAnalytics.churnRisk || 0}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Onboarding Friction</p>
-                                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.customerAnalytics.onboardingFriction || 0}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Vendor Cohorts analytics */}
-                        <div className="bg-white border border-slate-200/80 p-6 sm:p-7 rounded-[2rem] shadow-sm">
-                            <h3 className="text-base sm:text-lg font-black uppercase tracking-wide text-slate-800 mb-6">Vendor Onboarding Cohorts</h3>
-                            <div className="h-[250px] w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart
-                                        data={[
-                                            { name: 'Local', count: analytics?.vendorPerformance.cohorts.local || 0 },
-                                            { name: 'Proprietorship', count: analytics?.vendorPerformance.cohorts.proprietorship || 0 },
-                                            { name: 'Partnership', count: analytics?.vendorPerformance.cohorts.partnership || 0 },
-                                            { name: 'Pvt Ltd', count: analytics?.vendorPerformance.cohorts.pvtLtd || 0 },
-                                            { name: 'Franchise', count: analytics?.vendorPerformance.cohorts.franchise || 0 }
-                                        ]}
-                                        layout="vertical"
-                                        margin={{ left: 20, right: 10, top: 5, bottom: 5 }}
-                                    >
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                        <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
-                                        <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 800 }} />
-                                        <Tooltip />
-                                        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 mt-4">
-                                <div className="text-center">
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Never Ordered B2B</p>
-                                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.vendorPerformance.neverOrderedB2B || 0}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-xs font-black text-slate-500 uppercase tracking-wider">30d B2B Inactive</p>
-                                    <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.vendorPerformance.dormancy30DaysB2B || 0}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Top/Bottom rating Leaderboards */}
-                        <div className="bg-white border border-slate-200/80 p-6 sm:p-7 rounded-[2rem] shadow-sm lg:col-span-2">
-                            <h3 className="text-base sm:text-lg font-black uppercase tracking-wide text-slate-800 mb-6">Vendor Performance Outliers (Ratings)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-black uppercase text-emerald-700 tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg w-fit">Top 5 Highest Rated</h4>
-                                    <div className="divide-y divide-slate-100">
-                                        {analytics?.vendorPerformance?.topVendors?.length ? analytics.vendorPerformance.topVendors.map((vendor, idx) => (
-                                            <div key={idx} className="flex justify-between items-center py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500">#{idx+1}</span>
-                                                    <span className="text-xs sm:text-sm font-bold text-slate-800">{vendor.name}</span>
-                                                </div>
-                                                <span className="px-2.5 py-1 bg-emerald-500 text-white rounded-md text-xs font-black">{vendor.rating} ★</span>
-                                            </div>
-                                        )) : <p className="text-xs text-slate-400 py-3">No rating data yet</p>}
+                    <div className="space-y-6">
+                        {totalPendingVerifications > 0 && (
+                            <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/5 border-2 border-amber-300/80 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/25">
+                                        <ShieldAlert size={24} className="animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-black text-slate-900">
+                                            {totalPendingVerifications} Partner Onboarding Request{totalPendingVerifications > 1 ? 's' : ''} Pending Review
+                                        </h3>
+                                        <p className="text-xs sm:text-sm font-semibold text-slate-600 mt-0.5">
+                                            {pendingVendors} vendor{pendingVendors !== 1 ? 's' : ''} and {pendingSuppliers} supplier{pendingSuppliers !== 1 ? 's' : ''} require KYC document and profile verification.
+                                        </p>
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <h4 className="text-xs font-black uppercase text-red-700 tracking-wider bg-red-50 px-3 py-1.5 rounded-lg w-fit">Bottom 5 Lowest Rated</h4>
-                                    <div className="divide-y divide-slate-100">
-                                        {analytics?.vendorPerformance?.bottomVendors?.length ? analytics.vendorPerformance.bottomVendors.map((vendor, idx) => (
-                                            <div key={idx} className="flex justify-between items-center py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500">#{idx+1}</span>
-                                                    <span className="text-xs sm:text-sm font-bold text-slate-800">{vendor.name}</span>
+                                <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                                    {pendingVendors > 0 && (
+                                        <button
+                                            onClick={() => navigate('/admin/vendors/approvals')}
+                                            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-900 text-xs font-black uppercase tracking-wider rounded-xl border border-slate-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                                        >
+                                            <Store size={13} className="text-amber-600" />
+                                            Vendors ({pendingVendors})
+                                        </button>
+                                    )}
+                                    {pendingSuppliers > 0 && (
+                                        <button
+                                            onClick={() => navigate('/admin/supplier-requests')}
+                                            className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-900 text-xs font-black uppercase tracking-wider rounded-xl border border-slate-200 shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
+                                        >
+                                            <Building size={13} className="text-orange-600" />
+                                            Suppliers ({pendingSuppliers})
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Customer analytics card */}
+                            <div className="bg-white border border-slate-200/80 p-6 sm:p-7 rounded-[2rem] shadow-sm flex flex-col justify-between">
+                                <div>
+                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-wide text-slate-800 mb-6">Customer Composition (B2C vs B2B)</h3>
+                                    <div className="h-[250px] w-full flex items-center justify-center">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={[
+                                                        { name: 'Individual B2C', value: analytics?.customerAnalytics.individualCount || 0 },
+                                                        { name: 'Commercial B2B', value: analytics?.customerAnalytics.businessCount || 0 }
+                                                    ]}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    <Cell fill="#3b82f6" />
+                                                    <Cell fill="#10b981" />
+                                                </Pie>
+                                                <Tooltip />
+                                                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 mt-4">
+                                    <div className="text-center">
+                                        <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Churn Risk (30d Inactive)</p>
+                                        <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.customerAnalytics.churnRisk || 0}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Onboarding Friction</p>
+                                        <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.customerAnalytics.onboardingFriction || 0}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Vendor Cohorts analytics */}
+                            <div className="bg-white border border-slate-200/80 p-6 sm:p-7 rounded-[2rem] shadow-sm">
+                                <h3 className="text-base sm:text-lg font-black uppercase tracking-wide text-slate-800 mb-6">Vendor Onboarding Cohorts</h3>
+                                <div className="h-[250px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart
+                                            data={[
+                                                { name: 'Local', count: analytics?.vendorPerformance.cohorts.local || 0 },
+                                                { name: 'Proprietorship', count: analytics?.vendorPerformance.cohorts.proprietorship || 0 },
+                                                { name: 'Partnership', count: analytics?.vendorPerformance.cohorts.partnership || 0 },
+                                                { name: 'Pvt Ltd', count: analytics?.vendorPerformance.cohorts.pvtLtd || 0 },
+                                                { name: 'Franchise', count: analytics?.vendorPerformance.cohorts.franchise || 0 }
+                                            ]}
+                                            layout="vertical"
+                                            margin={{ left: 20, right: 10, top: 5, bottom: 5 }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                            <XAxis type="number" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
+                                            <YAxis dataKey="name" type="category" width={100} tick={{ fill: '#1e293b', fontSize: 12, fontWeight: 800 }} />
+                                            <Tooltip />
+                                            <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 mt-4">
+                                    <div className="text-center">
+                                        <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Never Ordered B2B</p>
+                                        <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.vendorPerformance.neverOrderedB2B || 0}</p>
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-xs font-black text-slate-500 uppercase tracking-wider">30d B2B Inactive</p>
+                                        <p className="text-2xl sm:text-3xl font-black text-slate-900">{analytics?.vendorPerformance.dormancy30DaysB2B || 0}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Top/Bottom rating Leaderboards */}
+                            <div className="bg-white border border-slate-200/80 p-6 sm:p-7 rounded-[2rem] shadow-sm lg:col-span-2">
+                                <h3 className="text-base sm:text-lg font-black uppercase tracking-wide text-slate-800 mb-6">Vendor Performance Outliers (Ratings)</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-black uppercase text-emerald-700 tracking-wider bg-emerald-50 px-3 py-1.5 rounded-lg w-fit">Top 5 Highest Rated</h4>
+                                        <div className="divide-y divide-slate-100">
+                                            {analytics?.vendorPerformance?.topVendors?.length ? analytics.vendorPerformance.topVendors.map((vendor, idx) => (
+                                                <div key={idx} className="flex justify-between items-center py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500">#{idx+1}</span>
+                                                        <span className="text-xs sm:text-sm font-bold text-slate-800">{vendor.name}</span>
+                                                    </div>
+                                                    <span className="px-2.5 py-1 bg-emerald-500 text-white rounded-md text-xs font-black">{vendor.rating} ★</span>
                                                 </div>
-                                                <span className="px-2.5 py-1 bg-red-500 text-white rounded-md text-xs font-black">{vendor.rating} ★</span>
-                                            </div>
-                                        )) : <p className="text-xs text-slate-400 py-3">No outlier data yet</p>}
+                                            )) : <p className="text-xs text-slate-400 py-3">No rating data yet</p>}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-4">
+                                        <h4 className="text-xs font-black uppercase text-red-700 tracking-wider bg-red-50 px-3 py-1.5 rounded-lg w-fit">Bottom 5 Lowest Rated</h4>
+                                        <div className="divide-y divide-slate-100">
+                                            {analytics?.vendorPerformance?.bottomVendors?.length ? analytics.vendorPerformance.bottomVendors.map((vendor, idx) => (
+                                                <div key={idx} className="flex justify-between items-center py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="w-7 h-7 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-xs font-black text-slate-500">#{idx+1}</span>
+                                                        <span className="text-xs sm:text-sm font-bold text-slate-800">{vendor.name}</span>
+                                                    </div>
+                                                    <span className="px-2.5 py-1 bg-red-500 text-white rounded-md text-xs font-black">{vendor.rating} ★</span>
+                                                </div>
+                                            )) : <p className="text-xs text-slate-400 py-3">No outlier data yet</p>}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

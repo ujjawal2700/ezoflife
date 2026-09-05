@@ -31,7 +31,13 @@ const ticketSchema = new mongoose.Schema({
     customer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false,
+        default: null
+    },
+    customerSnapshot: {
+        displayName: { type: String, default: null },
+        phone: { type: String, default: null },
+        isExUser: { type: Boolean, default: false }
     },
     order: {
         type: mongoose.Schema.Types.ObjectId,

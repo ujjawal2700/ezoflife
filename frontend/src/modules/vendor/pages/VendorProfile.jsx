@@ -1,486 +1,627 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { 
+  Store, 
+  MapPin, 
+  CreditCard, 
+  FileText, 
+  ShieldCheck, 
+  Camera, 
+  Edit3, 
+  CheckCircle2, 
+  Clock, 
+  Phone, 
+  Mail, 
+  UploadCloud, 
+  ExternalLink, 
+  LogOut, 
+  ChevronRight,
+  Shield,
+  FileCheck2,
+  AlertCircle,
+  Building2
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authApi } from '../../../lib/api';
 
+const formatAddress = (address) => {
+  if (!address) return 'N/A';
+  const pincodeRegex = /^(\d{6})(?:\s*\(Pincode\))?\s*,\s*(.*)$/i;
+  const match = address.match(pincodeRegex);
+  if (match) {
+    const pincode = match[1];
+    const restOfAddress = match[2];
+    return `${restOfAddress} - ${pincode}`;
+  }
+  return address;
+};
+
 const VendorProfile = () => {
-    const navigate = useNavigate();
-    const fileInputRef = useRef(null);
-    const [user, setUser] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const fileInputRef = useRef(null);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    shopName: '',
+    phone: '',
+    accountHolderName: '',
+    accountNumber: '',
+    ifscCode: '',
+    bankName: ''
+  });
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-                const userId = storedUser.id || storedUser._id;
-
-                if (!userId) {
-                    navigate('/auth');
-                    return;
-                }
-
-                const data = await authApi.getProfile(userId);
-                setUser(data);
-                setFormData({
-                    shopName: data.shopDetails?.name || '',
-                    phone: data.phone || '',
-                    accountHolderName: data.bankDetails?.accountHolderName || '',
-                    accountNumber: data.bankDetails?.accountNumber || '',
-                    ifscCode: data.bankDetails?.ifscCode || '',
-                    bankName: data.bankDetails?.bankName || ''
-                });
-            } catch (err) {
-                console.error('Profile fetch error:', err);
-                toast.error('Failed to load profile');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchProfile();
-    }, [navigate]);
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [formData, setFormData] = useState({
-        shopName: '',
-        phone: '',
-        accountHolderName: '',
-        accountNumber: '',
-        ifscCode: '',
-        bankName: ''
-    });
-
-    const handleSave = async () => {
-        const loadingToast = toast.loading('Saving changes...');
-        try {
-            const userId = user.id || user._id;
-            const payload = {
-                phone: formData.phone,
-                shopDetails: {
-                    ...(user.shopDetails || {}),
-                    name: formData.shopName
-                },
-                bankDetails: {
-                    accountHolderName: formData.accountHolderName,
-                    accountNumber: formData.accountNumber,
-                    ifscCode: formData.ifscCode,
-                    bankName: formData.bankName
-                }
-            };
-
-            const updatedUser = await authApi.updateProfile(userId, payload);
-            setUser(updatedUser);
-
-            // Sync updatedUser back to local storage cache to keep it fresh across pages
-            const rawStored = localStorage.getItem('user') || localStorage.getItem('vendorData') || localStorage.getItem('userData');
-            if (rawStored) {
-                try {
-                    const parsed = JSON.parse(rawStored);
-                    let merged;
-                    if (parsed.user) {
-                        merged = { ...parsed, user: { ...parsed.user, ...updatedUser } };
-                    } else {
-                        merged = { ...parsed, ...updatedUser };
-                    }
-                    localStorage.setItem('user', JSON.stringify(merged));
-                    localStorage.setItem('vendorData', JSON.stringify(merged));
-                    localStorage.setItem('userData', JSON.stringify(merged));
-                } catch (e) {
-                    console.error('LocalStorage sync error:', e);
-                }
-            }
-
-            setIsEditing(false);
-            toast.success('Profile updated successfully', { id: loadingToast });
-        } catch (err) {
-            console.error('Save error:', err);
-            toast.error('Failed to save changes', { id: loadingToast });
-        }
-    };
-
-    const handleSignOut = () => {
-        localStorage.clear();
-        navigate('/auth');
-        toast.success('Signed out successfully');
-    };
-
-    const handleDocumentUpdate = async (type, file) => {
-        if (!file) return;
-
-        const loadingToast = toast.loading(`Updating ${type}...`);
-        try {
-            const formData = new FormData();
-            formData.append('document', file);
-            formData.append('type', type);
-
-            const userId = user.id || user._id;
-            const updatedUser = await authApi.updateDocuments(userId, formData);
-
-            setUser(updatedUser);
-            toast.success(`${type} updated successfully`, { id: loadingToast });
-        } catch (err) {
-            console.error('Document update error:', err);
-            toast.error(`Failed to update ${type}`, { id: loadingToast });
-        }
-    };
-
-    const handleImageChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const loadingToast = toast.loading('Updating profile image...');
-        try {
-            const formData = new FormData();
-            formData.append('image', file);
-
-            const userId = user.id || user._id;
-            const updatedUser = await authApi.updateProfileImage(userId, formData);
-
-            setUser(updatedUser);
-            toast.success('Profile image updated', { id: loadingToast });
-        } catch (err) {
-            console.error('Image upload error:', err);
-            toast.error('Failed to update image', { id: loadingToast });
-        }
-    };
-
-
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
-            </div>
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const storedUser = JSON.parse(
+          localStorage.getItem('user') || 
+          localStorage.getItem('vendorData') || 
+          localStorage.getItem('userData') || 
+          '{}'
         );
+        const userId = storedUser.id || storedUser._id;
+
+        if (!userId) {
+          navigate('/vendor/auth');
+          return;
+        }
+
+        const data = await authApi.getProfile(userId);
+        setUser(data);
+        setFormData({
+          shopName: data.shopDetails?.name || '',
+          phone: data.phone || '',
+          accountHolderName: data.bankDetails?.accountHolderName || '',
+          accountNumber: data.bankDetails?.accountNumber || '',
+          ifscCode: data.bankDetails?.ifscCode || '',
+          bankName: data.bankDetails?.bankName || ''
+        });
+      } catch (err) {
+        console.error('Profile fetch error:', err);
+        toast.error('Failed to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
+
+  const handleSave = async () => {
+    const loadingToast = toast.loading('Saving changes...');
+    try {
+      const userId = user.id || user._id;
+      const payload = {
+        phone: formData.phone,
+        shopDetails: {
+          ...(user.shopDetails || {}),
+          name: formData.shopName
+        },
+        bankDetails: {
+          accountHolderName: formData.accountHolderName,
+          accountNumber: formData.accountNumber,
+          ifscCode: formData.ifscCode,
+          bankName: formData.bankName
+        }
+      };
+
+      const updatedUser = await authApi.updateProfile(userId, payload);
+      setUser(updatedUser);
+
+      // Sync updatedUser back to local storage cache
+      const rawStored = localStorage.getItem('user') || localStorage.getItem('vendorData') || localStorage.getItem('userData');
+      if (rawStored) {
+        try {
+          const parsed = JSON.parse(rawStored);
+          let merged;
+          if (parsed.user) {
+            merged = { ...parsed, user: { ...parsed.user, ...updatedUser } };
+          } else {
+            merged = { ...parsed, ...updatedUser };
+          }
+          localStorage.setItem('user', JSON.stringify(merged));
+          localStorage.setItem('vendorData', JSON.stringify(merged));
+          localStorage.setItem('userData', JSON.stringify(merged));
+        } catch (e) {
+          console.error('LocalStorage sync error:', e);
+        }
+      }
+
+      setIsEditing(false);
+      toast.success('Profile updated successfully', { id: loadingToast });
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save changes', { id: loadingToast });
     }
+  };
 
-    if (!user) return null;
+  const handleSignOut = () => {
+    localStorage.clear();
+    navigate('/vendor/auth');
+    toast.success('Signed out successfully');
+  };
 
+  const handleDocumentUpdate = async (type, file) => {
+    if (!file) return;
+
+    const loadingToast = toast.loading(`Updating ${type}...`);
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('document', file);
+      formDataObj.append('type', type);
+
+      const userId = user.id || user._id;
+      const updatedUser = await authApi.updateDocuments(userId, formDataObj);
+
+      setUser(updatedUser);
+      toast.success(`${type} updated successfully`, { id: loadingToast });
+    } catch (err) {
+      console.error('Document update error:', err);
+      toast.error(`Failed to update ${type}`, { id: loadingToast });
+    }
+  };
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const loadingToast = toast.loading('Updating profile image...');
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('image', file);
+
+      const userId = user.id || user._id;
+      const updatedUser = await authApi.updateProfileImage(userId, formDataObj);
+
+      setUser(updatedUser);
+      toast.success('Profile image updated', { id: loadingToast });
+    } catch (err) {
+      console.error('Image upload error:', err);
+      toast.error('Failed to update image', { id: loadingToast });
+    }
+  };
+
+  if (isLoading) {
     return (
-        <div className="text-slate-900 min-h-screen pb-40 font-sans">
-            <main className="max-w-md mx-auto px-6 pt-2 space-y-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 space-y-3">
+        <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-black uppercase tracking-widest text-slate-400">Loading Vendor Profile...</p>
+      </div>
+    );
+  }
 
-                {/* UNIFIED PROFILE BOX - everything in one card */}
-                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden relative">
+  if (!user) return null;
 
-                    {!isEditing ? (
-                        <div className="absolute top-5 right-5 z-10">
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="bg-slate-950 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest shadow-lg hover:bg-slate-900 transition-all"
-                            >
-                                MANAGE PROFILE
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
-                            <button 
-                                onClick={() => {
-                                    setIsEditing(false);
-                                    setFormData({
-                                        shopName: user.shopDetails?.name || '',
-                                        phone: user.phone || '',
-                                        accountHolderName: user.bankDetails?.accountHolderName || '',
-                                        accountNumber: user.bankDetails?.accountNumber || '',
-                                        ifscCode: user.bankDetails?.ifscCode || '',
-                                        bankName: user.bankDetails?.bankName || ''
-                                    });
-                                }} 
-                                className="text-[8px] font-black text-slate-400 uppercase"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                onClick={handleSave} 
-                                className="text-[8px] font-black text-white bg-slate-950 border border-slate-950 px-2 py-1 rounded-lg"
-                            >
-                                SAVE
-                            </button>
-                        </div>
+  const isApproved = user.status === 'approved';
+
+  return (
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 pb-36 font-['Poppins',sans-serif]">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8">
+
+        {/* Top Header & Overview Banner */}
+        <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-xs">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            
+            {/* Avatar & Identity Info */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+              <div className="relative group w-fit">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-slate-100 border-4 border-white shadow-md overflow-hidden relative cursor-pointer group"
+                  title="Click to update workshop photo"
+                >
+                  <img
+                    src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=300"}
+                    alt="Workshop Profile"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-slate-950/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white">
+                    <Camera size={22} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider mt-1">Change</span>
+                  </div>
+                </div>
+
+                <div 
+                  className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-xl flex items-center justify-center border-2 border-white shadow-md ${
+                    isApproved ? 'bg-emerald-600 text-white' : 'bg-amber-500 text-white'
+                  }`}
+                  title={isApproved ? "Verified Partner" : "Pending Verification"}
+                >
+                  {isApproved ? <CheckCircle2 size={16} strokeWidth={2.5} /> : <Clock size={16} strokeWidth={2.5} />}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-slate-900 text-white border border-slate-900">
+                    Vendor Partner
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                    isApproved 
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
+                    {user.status || 'Pending'}
+                  </span>
+                </div>
+
+                {isEditing ? (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Shop / Partner Name</label>
+                    <input 
+                      type="text"
+                      value={formData.shopName}
+                      onChange={(e) => setFormData({ ...formData, shopName: e.target.value })}
+                      placeholder="Shop / Workshop Name"
+                      className="w-full text-lg sm:text-2xl font-black text-slate-900 border border-slate-200 rounded-xl px-4 py-2 bg-slate-50 focus:bg-white focus:border-slate-900 outline-none"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      {user.shopDetails?.name || user.displayName || 'Vendor Workshop'}
+                    </h1>
+                    <p className="text-sm font-semibold text-slate-500 mt-0.5">
+                      Fulfillment Partner • Laundry & Dry Cleaning Operations
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm font-semibold text-slate-600 pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Mail size={15} className="text-slate-400" />
+                    <span>{user.email || 'partner@ezoflife.in'}</span>
+                  </div>
+                  <span className="text-slate-300">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <Phone size={15} className="text-slate-400" />
+                    <span>{user.phone || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile Action Buttons */}
+            <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-bold uppercase tracking-wider shadow-sm transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Edit3 size={16} />
+                  <span>Edit Profile</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setFormData({
+                        shopName: user.shopDetails?.name || '',
+                        phone: user.phone || '',
+                        accountHolderName: user.bankDetails?.accountHolderName || '',
+                        accountNumber: user.bankDetails?.accountNumber || '',
+                        ifscCode: user.bankDetails?.ifscCode || '',
+                        bankName: user.bankDetails?.bankName || ''
+                      });
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs sm:text-sm font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider shadow-md shadow-slate-900/20 transition-all cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 2-Column Responsive Details Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* Main Info Column (2/3 width on desktop) */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Shop & Workshop Information Card */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-900 flex items-center justify-center">
+                    <Store size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900">Store & Workshop Details</h3>
+                    <p className="text-xs text-slate-400 font-medium">Physical workshop location and commercial service territory</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/vendor/addresses')}
+                  className="text-xs font-bold text-slate-900 hover:text-indigo-600 transition-colors uppercase tracking-wider cursor-pointer"
+                >
+                  Manage Address
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                <div className="space-y-1 sm:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Shop / Workshop Name</span>
+                  <p className="text-sm sm:text-base font-black text-slate-900">
+                    {user.shopDetails?.name || 'N/A'}
+                  </p>
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Operating Address</span>
+                  <p className="text-sm font-semibold text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
+                    {formatAddress(user.shopDetails?.address)}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">GSTIN / Business Registration</span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-mono font-black text-slate-900">
+                      {user.shopDetails?.gst || 'Individual / Non-GST'}
+                    </p>
+                    {user.shopDetails?.gst && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Verified
+                      </span>
                     )}
-
-                    {/* TOP SECTION: Image + Name + Email + Phone */}
-                    <section className="p-7 border-b border-slate-50">
-                        {/* Profile Image */}
-                        <div className="relative group w-fit mb-5">
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImageChange}
-                                accept="image/*"
-                                className="hidden"
-                            />
-                            <div
-                                onClick={() => isEditing && fileInputRef.current?.click()}
-                                className={`w-20 h-20 rounded-[1.8rem] bg-slate-100 border-2 border-white shadow-lg overflow-hidden relative ${isEditing ? 'cursor-pointer' : ''}`}
-                            >
-                                <img
-                                    src={user.image || "https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=200"}
-                                    alt="Profile"
-                                    className="w-full h-full object-cover"
-                                />
-                                {isEditing && (
-                                    <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span className="material-symbols-outlined text-white text-xl">photo_camera</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-slate-900 text-white rounded-xl flex items-center justify-center border-2 border-white shadow-lg z-20">
-                                <span className="material-symbols-outlined text-[12px]">{user.status === 'approved' ? 'verified' : 'pending'}</span>
-                            </div>
-                        </div>
-
-                        {/* Name */}
-                        <div className="space-y-1 mb-4">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop / Partner Name</p>
-                            {isEditing ? (
-                                <input 
-                                    type="text" 
-                                    value={formData.shopName} 
-                                    onChange={(e) => setFormData({...formData, shopName: e.target.value})} 
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all mt-1" 
-                                />
-                            ) : (
-                                <>
-                                    <h2 className="text-xl font-black tracking-tight text-slate-950 leading-tight">
-                                        {user.shopDetails?.name || user.displayName || 'Partner'}
-                                    </h2>
-                                    <span className={`inline-block mt-1 px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${user.status === 'approved' ? 'bg-slate-950 text-white border-slate-950' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                                        {user.status}
-                                    </span>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Email */}
-                        <div className="space-y-1 mb-4">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
-                            <p className="text-[11px] font-black text-slate-950 lowercase">{user.email || 'partner@ezoflife.in'}</p>
-                        </div>
-
-                        {/* Phone */}
-                        <div className="space-y-1">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Mobile Number</p>
-                            {isEditing ? (
-                                <input 
-                                    type="tel" 
-                                    value={formData.phone} 
-                                    onChange={(e) => setFormData({...formData, phone: e.target.value})} 
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:bg-white focus:border-slate-950 transition-all mt-1" 
-                                />
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[14px] text-slate-950" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                                    <p className="text-[11px] font-black text-slate-950">{user.phone}</p>
-                                </div>
-                            )}
-                        </div>
-                    </section>
-
-                    <section className="p-7 border-b border-slate-50 space-y-5">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[14px]">store</span>
-                                Saved Address
-                            </p>
-                            <button
-                                onClick={() => navigate('/vendor/addresses')}
-                                className="text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-1"
-                            >
-                                Manage Address
-                            </button>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 pl-1">
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Name</p>
-                                <p className="text-sm font-black text-slate-900 tracking-tight">{user.shopDetails?.name || 'N/A'}</p>
-                            </div>
-                            <div className="space-y-1">
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Shop Address</p>
-                                <p className="text-xs font-bold text-slate-600 leading-relaxed">{user.shopDetails?.address || 'N/A'}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">GST Number</p>
-                                    <p className="text-xs font-black text-slate-900 tracking-tight">{user.shopDetails?.gst || 'Individual'}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MSME Status</p>
-                                    <p className="text-xs font-black text-slate-950 tracking-tight flex items-center gap-1 uppercase">
-                                        <span className="material-symbols-outlined text-[14px]">check_circle</span> {user.shopDetails?.msmeStatus || 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* BANK DETAILS */}
-                    <section className="p-7 bg-slate-50/40 space-y-5">
-                        <div className="flex items-center justify-between">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[14px]">account_balance</span>
-                                Bank Details
-                            </p>
-                        </div>
-                        {isEditing ? (
-                            <div className="space-y-4 pl-1">
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
-                                    <input 
-                                        type="text" 
-                                        value={formData.accountHolderName} 
-                                        onChange={(e) => setFormData({...formData, accountHolderName: e.target.value})} 
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
-                                    <input 
-                                        type="text" 
-                                        value={formData.bankName} 
-                                        onChange={(e) => setFormData({...formData, bankName: e.target.value})} 
-                                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
-                                        <input 
-                                            type="text" 
-                                            value={formData.ifscCode} 
-                                            onChange={(e) => setFormData({...formData, ifscCode: e.target.value})} 
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
-                                        <input 
-                                            type="text" 
-                                            value={formData.accountNumber} 
-                                            onChange={(e) => setFormData({...formData, accountNumber: e.target.value})} 
-                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none focus:border-slate-950 transition-all mt-1" 
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-4 pl-1">
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Holder</p>
-                                    <p className="text-sm font-black text-slate-900 tracking-tight">{user.bankDetails?.accountHolderName || 'N/A'}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Bank Name</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight">{user.bankDetails?.bankName || 'N/A'}</p>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">IFSC Code</p>
-                                        <p className="text-xs font-black text-slate-900 tracking-tight uppercase">{user.bankDetails?.ifscCode || 'N/A'}</p>
-                                    </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Account Number</p>
-                                    <p className="text-xs font-black text-slate-900 tracking-[0.15em]">
-                                        {user.bankDetails?.accountNumber ? `**** **** ${user.bankDetails.accountNumber.slice(-4)}` : 'N/A'}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </section>
-
-                    {/* APP SETTINGS SECTION */}
-                    <section className="divide-y divide-slate-50 bg-slate-50/20">
-                        {[
-                            { label: 'Privacy Policy', icon: 'security', path: '/user/privacy?role=vendor' },
-                            { label: 'Terms & Conditions', icon: 'description', path: '/user/terms?role=vendor' }
-                        ].map((link, i) => (
-                            <div key={i} onClick={() => navigate(link.path)} className="px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-all group">
-                                <div className="flex items-center gap-3">
-                                    <span className="material-symbols-outlined text-slate-400 text-lg group-hover:text-slate-950 transition-colors">{link.icon}</span>
-                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">{link.label}</span>
-                                </div>
-                                <span className="material-symbols-outlined text-slate-300 text-sm">arrow_forward_ios</span>
-                            </div>
-                        ))}
-                    </section>
+                  </div>
                 </div>
 
-                {/* DOCUMENTS SECTION */}
-                <section className="space-y-3">
-                    <div className="flex items-center justify-between px-1">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Verification Documents</h3>
-                        <span className="material-symbols-outlined text-slate-200 text-lg">folder_shared</span>
+                <div className="space-y-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Operating City / Zone</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {user.shopDetails?.city || 'Indore'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank & Settlement Details Card */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-7 shadow-xs space-y-5">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <CreditCard size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-slate-900">Settlement & Bank Details</h3>
+                    <p className="text-xs text-slate-400 font-medium">Customer order earnings are credited directly to this account</p>
+                  </div>
+                </div>
+                {isEditing && (
+                  <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Editing Bank Info</span>
+                )}
+              </div>
+
+              {isEditing ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">Account Holder Name</label>
+                    <input 
+                      type="text"
+                      value={formData.accountHolderName}
+                      onChange={(e) => setFormData({ ...formData, accountHolderName: e.target.value })}
+                      placeholder="e.g. Acme Laundry"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 bg-slate-50 focus:bg-white focus:border-slate-900 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">Bank Name</label>
+                    <input 
+                      type="text"
+                      value={formData.bankName}
+                      onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
+                      placeholder="e.g. State Bank of India"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 bg-slate-50 focus:bg-white focus:border-slate-900 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">IFSC Code</label>
+                    <input 
+                      type="text"
+                      value={formData.ifscCode}
+                      onChange={(e) => setFormData({ ...formData, ifscCode: e.target.value })}
+                      placeholder="e.g. SBIN0001234"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold text-slate-900 bg-slate-50 focus:bg-white focus:border-slate-900 outline-none uppercase"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600">Account Number</label>
+                    <input 
+                      type="text"
+                      value={formData.accountNumber}
+                      onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
+                      placeholder="e.g. 123456789012"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-mono font-bold text-slate-900 bg-slate-50 focus:bg-white focus:border-slate-900 outline-none"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1">
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Account Holder</span>
+                    <p className="text-sm sm:text-base font-black text-slate-900">
+                      {user.bankDetails?.accountHolderName || 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Bank Name</span>
+                    <p className="text-sm sm:text-base font-black text-slate-900">
+                      {user.bankDetails?.bankName || 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">IFSC Code</span>
+                    <p className="text-sm font-mono font-black text-slate-900 uppercase">
+                      {user.bankDetails?.ifscCode || 'N/A'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Account Number</span>
+                    <p className="text-sm font-mono font-black text-slate-900 tracking-wider">
+                      {user.bankDetails?.accountNumber 
+                        ? `•••• •••• ${user.bankDetails.accountNumber.slice(-4)}` 
+                        : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Sidebar Column (1/3 width on desktop) */}
+          <div className="space-y-6">
+
+            {/* Verification Documents Card */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck size={18} className="text-slate-900" />
+                  <h3 className="text-base font-black text-slate-900">Documents</h3>
+                </div>
+                <span className="text-xs font-bold text-slate-400">
+                  {user.documents?.length || 0} Attached
+                </span>
+              </div>
+
+              {user.documents && user.documents.length > 0 ? (
+                <div className="space-y-2.5">
+                  {user.documents.map((doc, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-3.5 bg-slate-50 hover:bg-slate-100/70 rounded-2xl border border-slate-100 transition-colors">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl bg-white border border-slate-200/70 flex items-center justify-center text-slate-700 shrink-0 shadow-2xs">
+                          <FileText size={18} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-slate-900 uppercase tracking-tight truncate">{doc.type}</p>
+                          <a 
+                            href={doc.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors inline-flex items-center gap-1 mt-0.5"
+                          >
+                            <span>Preview File</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        </div>
+                      </div>
+
+                      <label className="p-2 rounded-xl hover:bg-white text-slate-400 hover:text-slate-900 transition-all cursor-pointer" title="Replace Document">
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => handleDocumentUpdate(doc.type, e.target.files[0])}
+                        />
+                        <UploadCloud size={16} />
+                      </label>
                     </div>
-
-                    <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm space-y-3">
-                        {(user.documents && user.documents.length > 0) ? (
-                            user.documents.map((doc, idx) => (
-                                <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-slate-400">
-                                            <span className="material-symbols-outlined text-lg">description</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-[9px] font-black text-slate-900 uppercase tracking-tight leading-none mb-1">{doc.type}</p>
-                                            <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-[7px] font-black text-primary uppercase tracking-widest">View File</a>
-                                        </div>
-                                    </div>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            onChange={(e) => handleDocumentUpdate(doc.type, e.target.files[0])}
-                                        />
-                                        <span className="material-symbols-outlined text-slate-300 hover:text-primary transition-colors text-lg">upload_file</span>
-                                    </label>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-4">
-                                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">No documents uploaded</p>
-                            </div>
-                        )}
-
-                        {(!user.documents || user.documents.length < 2) && (
-                            <div className="pt-2 border-t border-slate-50 mt-2">
-                                <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-3 text-center">Add Missing Documents</p>
-                                <div className="flex gap-2">
-                                    {['GST Document', 'MSME Document'].filter(t => !user.documents?.some(d => d.type === t)).map(type => (
-                                        <label key={type} className="flex-1 cursor-pointer">
-                                            <input type="file" className="hidden" onChange={(e) => handleDocumentUpdate(type, e.target.files[0])} />
-                                            <div className="py-3 px-2 border-2 border-dashed border-slate-100 rounded-2xl text-center hover:border-primary/30 transition-colors">
-                                                <p className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">{type}</p>
-                                            </div>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                {/* Action Footer */}
-                <div className="flex flex-col gap-4 pt-4">
-                    <button
-                        onClick={handleSignOut}
-                        className="w-full py-5 bg-rose-50 border border-rose-100 rounded-[2rem] text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all"
-                    >
-                        <span className="material-symbols-outlined text-lg">logout</span>
-                        Logout
-                    </button>
+                  ))}
                 </div>
-
-                <div className="text-center pb-12">
-                    <p className="text-[8px] font-black text-slate-200 uppercase tracking-[0.6em]">EZ OF LIFE PARTNER • v3.0.0</p>
+              ) : (
+                <div className="text-center py-6 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <AlertCircle size={24} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-xs font-bold text-slate-600">No documents uploaded yet</p>
+                  <p className="text-[11px] text-slate-400 mt-1">Upload Shop License, Aadhaar, or GST Certificate</p>
                 </div>
-            </main>
+              )}
+
+              {/* Add Missing Document Option */}
+              {(!user.documents || user.documents.length < 2) && (
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Add Supporting Documents</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {['Shop License', 'GST Certificate']
+                      .filter(type => !user.documents?.some(d => d.type === type))
+                      .map(type => (
+                        <label key={type} className="cursor-pointer">
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            onChange={(e) => handleDocumentUpdate(type, e.target.files[0])} 
+                          />
+                          <div className="p-3 border border-dashed border-slate-300 hover:border-slate-500 hover:bg-slate-50 rounded-xl text-center transition-all">
+                            <UploadCloud size={16} className="mx-auto text-slate-700 mb-1" />
+                            <p className="text-[11px] font-bold text-slate-800 leading-tight">{type}</p>
+                          </div>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Legal & App Links */}
+            <div className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs divide-y divide-slate-100">
+              <button
+                onClick={() => navigate('/privacy?role=vendor')}
+                className="w-full py-3 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl transition-colors text-left group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield size={16} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+                  <span className="text-xs font-bold text-slate-800">Privacy Policy</span>
+                </div>
+                <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              <button
+                onClick={() => navigate('/terms?role=vendor')}
+                className="w-full py-3 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl transition-colors text-left group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <FileText size={16} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+                  <span className="text-xs font-bold text-slate-800">Terms & Conditions</span>
+                </div>
+                <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            </div>
+
+            {/* Sign Out Button */}
+            <button
+              onClick={handleSignOut}
+              className="w-full py-4 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl text-xs font-black text-rose-600 uppercase tracking-widest flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs active:scale-98"
+            >
+              <LogOut size={16} />
+              <span>Log Out Vendor Account</span>
+            </button>
+
+            <div className="text-center pt-2">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                EZ OF LIFE VENDOR PORTAL • v3.2.0
+              </p>
+            </div>
+
+          </div>
 
         </div>
-    );
+
+      </main>
+    </div>
+  );
 };
 
 export default VendorProfile;
-;
