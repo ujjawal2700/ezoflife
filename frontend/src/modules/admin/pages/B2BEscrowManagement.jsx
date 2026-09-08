@@ -166,11 +166,10 @@ export default function B2BEscrowManagement() {
         {/* Data Grid */}
         <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
           {loading ? (
-            <DataGrid 
-              columns={columns}
-              data={[]}
-              loading={true}
-            />
+             <div className="py-20 flex flex-col items-center justify-center space-y-4 opacity-40">
+                <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em]">Auditing Ledgers...</p>
+             </div>
           ) : orders.length > 0 ? (
             <DataGrid 
               columns={columns}

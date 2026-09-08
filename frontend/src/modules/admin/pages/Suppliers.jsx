@@ -4,7 +4,6 @@ import { ShieldCheck, XCircle, MapPin, FileText, CheckCircle2, RotateCw, Factory
 import { adminApi, UPLOADS_URL } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import toast from 'react-hot-toast';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/shared/components/ui/table';
 
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
@@ -148,8 +147,8 @@ export default function Suppliers() {
                             <input className="w-full bg-white border p-3 text-xs font-bold" placeholder="Account Number" value={editForm.accountNumber} onChange={e => setEditForm({...editForm, accountNumber: e.target.value})} />
                         </div>
                         <div className="flex gap-3 pt-4">
-                            <button type="button" onClick={() => setEditingSupplier(null)} className="flex-1 px-4 py-3 text-[10px] font-semibold uppercase tracking-wide border border-slate-200">Cancel</button>
-                            <button type="submit" disabled={isProcessing} className="flex-1 px-4 py-3 text-[10px] font-semibold uppercase tracking-wide bg-slate-900 text-white">
+                            <button type="button" onClick={() => setEditingSupplier(null)} className="flex-1 px-4 py-3 text-[9px] font-black uppercase tracking-widest border border-slate-200">Cancel</button>
+                            <button type="submit" disabled={isProcessing} className="flex-1 px-4 py-3 text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white">
                                 {isProcessing ? 'Updating...' : 'Save Changes'}
                             </button>
                         </div>
@@ -229,7 +228,7 @@ export default function Suppliers() {
                                 >
                                 <div className="flex items-center gap-3">
                                     <FileText size={14} className="text-slate-300 group-hover:text-white" />
-                                    <span className="text-[10px] font-semibold uppercase tracking-wide">{doc.type}</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{doc.type}</span>
                                 </div>
                                 <ExternalLink size={12} className="opacity-40 group-hover:opacity-100" />
                             </a>
@@ -242,7 +241,7 @@ export default function Suppliers() {
               </div>
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button onClick={() => setViewingSupplier(null)} className="px-6 py-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-900 transition-colors">Close Profile</button>
+                <button onClick={() => setViewingSupplier(null)} className="px-6 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">Close Profile</button>
                 {viewingSupplier.status === 'pending' && (
                     <div className="flex items-center gap-2">
                         <button onClick={() => handleAction(viewingSupplier._id, 'rejected')} className="px-6 py-3 text-[9px] font-black uppercase bg-white border border-slate-200">Reject</button>
@@ -289,20 +288,20 @@ export default function Suppliers() {
             </div>
 
             <div className="overflow-x-auto">
-                <Table className="w-full text-left border-collapse">
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Business Identity</TableHead>
-                            <TableHead>Owner</TableHead>
-                            <TableHead>Location</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50/50 border-b border-slate-100">
+                        <tr>
+                            <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Business Identity</th>
+                            <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Owner</th>
+                            <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
+                            <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                            <th className="p-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                         {suppliers.map((s) => (
-                            <TableRow key={s._id} className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors group">
-                                <TableCell>
+                            <tr key={s._id} className="border-b border-slate-50 hover:bg-slate-50/30 transition-colors group">
+                                <td className="p-5">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-sm bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400">
                                             <Factory size={16} />
@@ -312,20 +311,20 @@ export default function Suppliers() {
                                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{s.supplierDetails?.gst || 'UNREGISTERED'}</span>
                                         </div>
                                     </div>
-                                </TableCell>
-                                <TableCell>
+                                </td>
+                                <td className="p-5">
                                     <div className="flex flex-col">
                                         <p className="text-xs font-bold text-slate-900">{s.displayName}</p>
                                         <p className="text-[10px] text-slate-400 font-bold">{s.phone}</p>
                                     </div>
-                                </TableCell>
-                                <TableCell>
+                                </td>
+                                <td className="p-5">
                                     <div className="flex items-center gap-2 text-slate-500">
                                         <MapPin size={12} />
                                         <span className="text-xs font-bold capitalize">{s.supplierDetails?.city}</span>
                                     </div>
-                                </TableCell>
-                                <TableCell>
+                                </td>
+                                <td className="p-5">
                                     <span className={`px-3 py-1 rounded-sm text-[8px] font-black uppercase tracking-widest inline-flex items-center gap-1.5 ${
                                         s.status === 'approved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
                                         s.status === 'pending' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
@@ -338,8 +337,8 @@ export default function Suppliers() {
                                         }`} />
                                         {s.status}
                                     </span>
-                                </TableCell>
-                                <TableCell className="text-right">
+                                </td>
+                                <td className="p-5 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                         <button 
                                             onClick={() => setViewingSupplier(s)}
@@ -363,22 +362,22 @@ export default function Suppliers() {
                                             <Trash2 size={14} />
                                         </button>
                                     </div>
-                                </TableCell>
-                            </TableRow>
+                                </td>
+                            </tr>
                         ))}
                         {suppliers.length === 0 && !loading && (
-                            <TableRow>
-                                <TableCell colSpan="5" className="p-20 text-center">
+                            <tr>
+                                <td colSpan="5" className="p-20 text-center">
                                     <div className="max-w-xs mx-auto">
                                         <Factory size={40} className="mx-auto mb-4 text-slate-200" />
                                         <h4 className="text-xs font-black uppercase tracking-widest text-slate-400">No Suppliers Onboarded</h4>
                                         <p className="text-[10px] font-bold text-slate-300 uppercase mt-2">Active supplier registrations will appear here for verification.</p>
                                     </div>
-                                </TableCell>
-                            </TableRow>
+                                </td>
+                            </tr>
                         )}
-                    </TableBody>
-                </Table>
+                    </tbody>
+                </table>
             </div>
         </div>
       </div>

@@ -894,7 +894,7 @@ const CartPage = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
+    <div className="min-h-[100dvh] flex flex-col text-slate-900 bg-background">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full flex-1 pb-36">
         {/* Page Subheader */}
         <div className="flex items-center justify-between gap-2 pb-4 sm:pb-6 mb-2 border-b border-slate-200/60">
@@ -1093,7 +1093,7 @@ const CartPage = () => {
 
               {/* 3. Uploaded Articles Photos */}
               {Object.values(itemPhotos).some(photos => photos.length > 0) && (
-                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs space-y-4 font-['Poppins',sans-serif]">
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-2xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
@@ -1377,7 +1377,7 @@ const CartPage = () => {
                   initial={{ scale: 0.95, opacity: 0, y: 10 }} 
                   animate={{ scale: 1, opacity: 1, y: 0 }} 
                   exit={{ scale: 0.95, opacity: 0, y: 10 }} 
-                  className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-slate-900 space-y-5 max-h-[90vh] overflow-y-auto hide-scrollbar font-['Poppins',sans-serif]"
+                  className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-slate-900 space-y-5 max-h-[90vh] overflow-y-auto hide-scrollbar"
                 >
                   {/* Modal Header */}
                   <div className="flex items-start justify-between pb-3 border-b border-slate-100">

@@ -17,8 +17,6 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
-import { TableRowSkeleton } from '../components/skeletons/TableSkeleton';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TablePagination, UserAvatarCell } from '@/shared/components/ui/table';
 
 export default function VendorServiceRequests() {
   const navigate = useNavigate();
@@ -245,9 +243,9 @@ export default function VendorServiceRequests() {
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         {/* Table Container */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
           
-          <div className="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+          <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
             {/* Date Filters on the Left */}
             <div className="flex items-center gap-2">
               <input 
@@ -340,77 +338,84 @@ export default function VendorServiceRequests() {
 
           {/* Table Element */}
           <div className="overflow-x-auto w-full">
-            <Table className="w-full text-left border-collapse min-w-[950px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[18%]">Vendor Name</TableHead>
-                  <TableHead className="w-[18%]">Item Name</TableHead>
-                  <TableHead className="w-[12%]">Category</TableHead>
-                  <TableHead className="w-[12%]">Sub Category</TableHead>
-                  <TableHead className="w-[10%]">Price</TableHead>
-                  <TableHead className="w-[18%]">Description</TableHead>
-                  <TableHead className="w-[12%] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full text-left border-collapse min-w-[950px]">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="w-[18%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Vendor Name</th>
+                  <th className="w-[18%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Item Name</th>
+                  <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Category</th>
+                  <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Sub Category</th>
+                  <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Price</th>
+                  <th className="w-[18%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Description</th>
+                  <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <TableRowSkeleton key={i} cols={7} />
-                  ))
+                  <tr>
+                    <td colSpan={7} className="py-20 text-center">
+                      <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Service Requests...</p>
+                    </td>
+                  </tr>
                 ) : filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="py-32 text-center">
+                  <tr>
+                    <td colSpan={7} className="py-32 text-center">
                       <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-4">
                         <ClipboardList size={32} />
                       </div>
                       <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Queue Clear</h3>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">No pending vendor service requests found.</p>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : paginatedData.map((req) => {
                   const shopName = req.vendorId?.shopDetails?.name || req.vendorId?.displayName || 'Unknown Vendor';
-                  const phone = req.vendorId?.phone ? req.vendorId.phone : '';
+                  const phone = req.vendorId?.phone ? ` (${req.vendorId.phone})` : '';
                   return (
-                    <TableRow key={req._id || req.id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-200/70">
+                    <tr key={req._id || req.id} className="hover:bg-slate-50/50 transition-colors group">
                       {/* Vendor Name */}
-                      <TableCell>
-                        <UserAvatarCell
-                          name={shopName}
-                          subtitle={phone}
-                        />
-                      </TableCell>
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black text-slate-900 tracking-tight whitespace-nowrap">
+                            {shopName}
+                          </span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                            {phone}
+                          </span>
+                        </div>
+                      </td>
                       {/* Item Name */}
-                      <TableCell>
-                        <span className="text-sm font-medium text-slate-900 whitespace-nowrap">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-slate-700 tracking-tight whitespace-nowrap">
                           {req.name}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Category */}
-                      <TableCell>
-                        <span className="text-sm text-slate-600 whitespace-nowrap">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-slate-600 whitespace-nowrap">
                           {req.category}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Sub Category */}
-                      <TableCell>
-                        <span className="text-sm text-slate-600 whitespace-nowrap">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-slate-600 whitespace-nowrap">
                           {req.subCategory || 'N/A'}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Price */}
-                      <TableCell>
-                        <span className="text-sm text-slate-900 font-medium tabular-nums whitespace-nowrap">
-                          ₹{req.basePrice} <span className="text-xs text-slate-400 font-normal">/ {req.unit || 'kg'}</span>
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-slate-700 tabular-nums whitespace-nowrap">
+                          ₹{req.basePrice} <span className="text-[8px] font-bold text-slate-400">/ {req.unit || 'kg'}</span>
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Description */}
-                      <TableCell>
-                        <p className="text-sm text-slate-500 max-w-xs break-words line-clamp-2" title={req.description}>
+                      <td className="px-6 py-5">
+                        <p className="text-xs text-slate-500 font-bold max-w-xs break-words line-clamp-2" title={req.description}>
                           {req.description || 'No description provided.'}
                         </p>
-                      </TableCell>
+                      </td>
                       {/* Actions */}
-                      <TableCell>
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                           {req.hasMasterService ? (
                             <>
@@ -424,7 +429,7 @@ export default function VendorServiceRequests() {
                                   basePrice: req.basePrice,
                                   message: ''
                                 })}
-                                className="px-3.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-medium border border-rose-200/70 hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50"
+                                className="px-3.5 py-2 rounded-xl bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-sm cursor-pointer disabled:opacity-50"
                               >
                                 Reject
                               </button>
@@ -438,7 +443,7 @@ export default function VendorServiceRequests() {
                                   basePrice: req.basePrice,
                                   message: ''
                                 })}
-                                className="px-3.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-medium hover:bg-emerald-600 transition-colors cursor-pointer shadow-xs disabled:opacity-50"
+                                className="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg active:scale-95 cursor-pointer disabled:opacity-50"
                               >
                                 Approve
                               </button>
@@ -453,29 +458,45 @@ export default function VendorServiceRequests() {
                                   description: req.description 
                                 } 
                               })}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs font-medium border border-amber-200/70 transition-colors cursor-pointer shadow-xs"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white text-[9px] font-black uppercase tracking-wider border border-amber-200/80 transition-all shadow-sm active:scale-95 cursor-pointer group"
                               title="Click to create Master Service & Category for this request"
                             >
-                              <Plus className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Setup Service First</span>
+                              <Plus className="w-3.5 h-3.5 text-amber-500 group-hover:text-white group-hover:rotate-90 transition-transform" />
+                              <span>Setup Category/Service First</span>
                             </button>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
 
           {/* Pagination Controls */}
           {filteredData.length > 0 && (
-            <TablePagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={page <= 1 || loading}
+                  onClick={() => setPage(p => p - 1)}
+                  className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Prev
+                </button>
+                <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                  PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+                </span>
+                <button
+                  disabled={page >= totalPages || loading}
+                  onClick={() => setPage(p => p + 1)}
+                  className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

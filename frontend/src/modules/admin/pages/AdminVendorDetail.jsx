@@ -7,7 +7,6 @@ import {
     Check, X, MessageSquare, Clock, Plus, FilePlus
 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
-import DetailViewSkeleton from '../components/skeletons/DetailViewSkeleton';
 import toast from 'react-hot-toast';
 
 export default function AdminVendorDetail() {
@@ -93,7 +92,11 @@ export default function AdminVendorDetail() {
   ], [vendor]);
 
   if (isLoading) {
-    return <DetailViewSkeleton />;
+    return (
+        <div className="h-full w-full flex items-center justify-center p-20">
+            <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
   }
 
   if (!vendor) return <div className="p-20 text-center">Vendor not found</div>;

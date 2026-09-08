@@ -23,7 +23,7 @@ const VendorHeader = () => {
   );
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs min-h-[64px] flex items-center font-['Poppins',sans-serif]">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-2xs min-h-[64px] flex items-center">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
         
         {/* Brand Logo & Portal Tag */}

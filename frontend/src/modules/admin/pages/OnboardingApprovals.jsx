@@ -27,9 +27,6 @@ import {
 import { adminApi } from '../../../lib/api';
 import * as XLSX from 'xlsx';
 import PageHeader from '../components/common/PageHeader';
-import { TableRowSkeleton } from '../components/skeletons/TableSkeleton';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TablePagination, StatusBadge, UserAvatarCell } from '@/shared/components/ui/table';
-import toast from 'react-hot-toast';
 
 export default function OnboardingApprovals() {
   const location = useLocation();
@@ -147,13 +144,6 @@ export default function OnboardingApprovals() {
   const allTabItems = useMemo(() => {
     return rawUsers
       .filter(u => u.role === activeTab)
-      .filter(u => {
-        // Strictly exclude already verified/approved vendors & suppliers from Registration Approval
-        if (u.status?.toLowerCase() === 'approved' && (u.onboardingStage === 'COMPLETED' || !u.onboardingStage || u.onboardingStage === 'Onboarded')) {
-          return false;
-        }
-        return true;
-      })
       .map(v => ({
         id: v._id,
         role: v.role,
@@ -174,12 +164,6 @@ export default function OnboardingApprovals() {
   const allUnfilteredTabItems = useMemo(() => {
     return unfilteredUsers
       .filter(u => u.role === activeTab)
-      .filter(u => {
-        if (u.status?.toLowerCase() === 'approved' && (u.onboardingStage === 'COMPLETED' || !u.onboardingStage || u.onboardingStage === 'Onboarded')) {
-          return false;
-        }
-        return true;
-      })
       .map(v => ({
         vendorName: v.displayName || 'Unnamed User',
         shopName: v.role === 'Supplier' ? (v.supplierDetails?.businessName || 'N/A') : (v.shopDetails?.name || 'N/A'),
@@ -351,9 +335,9 @@ export default function OnboardingApprovals() {
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
 
         {/* Table Container */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs font-['Poppins',sans-serif]">
+        <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
             {/* Grid Header Strip with Filters on the Right */}
-            <div className="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+            <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
                 {/* Date & Text Search Filters on the Left */}
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="relative">
@@ -435,54 +419,50 @@ export default function OnboardingApprovals() {
                 </div>
             </div>
             <div className="overflow-x-auto w-full">
-                <Table style={{ minWidth: '950px' }}>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="min-w-[130px]">Vendor Info</TableHead>
-                            <TableHead className="min-w-[140px]">Business / Shop</TableHead>
-                            <TableHead className="min-w-[110px]">Contact Number</TableHead>
-                            <TableHead className="min-w-[90px]">Location</TableHead>
-                            <TableHead className="min-w-[120px]">Application Date</TableHead>
-                            <TableHead className="min-w-[100px] text-center">Verification</TableHead>
-                            <TableHead className="min-w-[200px] text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                <table className="w-full text-left border-collapse min-w-[950px]">
+                    <thead>
+                        <tr className="bg-slate-50/50 border-b border-slate-100">
+                            <th className="w-[15%] min-w-[130px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Vendor Info</th>
+                            <th className="w-[15%] min-w-[140px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Business/Shop</th>
+                            <th className="w-[13%] min-w-[110px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Contact Number</th>
+                            <th className="w-[11%] min-w-[90px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Location</th>
+                            <th className="w-[15%] min-w-[120px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Application Date</th>
+                            <th className="w-[12%] min-w-[100px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-center">Verification</th>
+                            <th className="w-[19%] min-w-[200px] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
                         {loading ? (
-                            Array.from({ length: 6 }).map((_, i) => (
-                                <TableRowSkeleton key={i} cols={7} />
-                            ))
+                            <tr>
+                                <td colSpan={7} className="py-20 text-center">
+                                    <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synchronizing Application Data...</p>
+                                </td>
+                            </tr>
                         ) : filteredData.length === 0 ? (
-                            <TableRow className="hover:bg-transparent">
-                                <TableCell colSpan={7} className="h-48 text-center">
-                                    <div className="flex flex-col items-center gap-3">
-                                        <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center text-slate-300">
-                                            <ShieldCheck size={28} />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-sm font-bold text-slate-800">Queue Clear</h3>
-                                            <p className="text-xs text-slate-400 font-medium mt-1">No pending {activeTab} requests at this time.</p>
-                                        </div>
+                            <tr>
+                                <td colSpan={7} className="py-32 text-center">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-4">
+                                        <ShieldCheck size={32} />
                                     </div>
-                                </TableCell>
-                            </TableRow>
+                                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Queue Clear</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">No pending {activeTab} requests at this time.</p>
+                                </td>
+                            </tr>
                         ) : paginatedData.map((req) => (
-                            <TableRow key={req.id} className="group hover:bg-slate-50/70 transition-colors border-b border-slate-200/70">
-                                <TableCell>
-                                    <UserAvatarCell
-                                        name={req.vendorName}
-                                        subtitle={req.phone || req.email}
-                                    />
-                                </TableCell>
-                                <TableCell className="whitespace-normal">
-                                    <span className="text-[14.5px] font-medium text-slate-800">{req.shopName}</span>
-                                </TableCell>
-                                <TableCell>
-                                    <span className="text-[14.5px] text-slate-700 tabular-nums whitespace-nowrap">{req.phone || 'No Phone'}</span>
-                                </TableCell>
-                                <TableCell className="whitespace-normal">
+                            <tr key={req.id} className="hover:bg-slate-50/50 transition-colors group">
+                                <td className="px-6 py-5">
+                                    <span className="text-sm font-black text-slate-900 tracking-tight whitespace-nowrap">{req.vendorName}</span>
+                                </td>
+                                <td className="px-6 py-5 whitespace-normal break-words">
+                                    <span className="text-xs font-black text-slate-700 tracking-tight">{req.shopName}</span>
+                                </td>
+                                <td className="px-6 py-5">
+                                    <span className="text-xs font-bold text-slate-600 tabular-nums whitespace-nowrap">{req.phone || 'No Phone'}</span>
+                                </td>
+                                <td className="px-6 py-5 whitespace-normal break-words">
                                     {(!req.address || req.address === 'No Address Provided') ? (
-                                        <span className="text-sm text-slate-400 font-normal">No Address</span>
+                                        <span className="text-[10px] text-slate-400 font-bold uppercase">No Address Set</span>
                                     ) : (
                                         <button
                                             onClick={() => setSelectedAddressForModal({
@@ -493,27 +473,36 @@ export default function OnboardingApprovals() {
                                                 pincode: req.pincode,
                                                 location: req.location
                                             })}
-                                            className="px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200/70 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                                            className="px-2.5 py-1 rounded-md text-[8px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-900 hover:text-white hover:border-blue-900 transition-all cursor-pointer shadow-sm"
                                         >
                                             Default
                                         </button>
                                     )}
-                                </TableCell>
-                                <TableCell>
+                                </td>
+                                <td className="px-6 py-5">
                                     <div className="flex items-center gap-2 whitespace-nowrap">
-                                        <Calendar size={15} className="text-slate-400" />
-                                        <span className="text-[14.5px] text-slate-700 tabular-nums">{req.date}</span>
+                                        <Calendar size={14} className="text-slate-300" />
+                                        <span className="text-[11px] font-bold text-slate-600 tabular-nums">{req.date}</span>
                                     </div>
-                                </TableCell>
-                                <TableCell className="text-center">
-                                    <StatusBadge status={req.status} />
-                                </TableCell>
-                                <TableCell>
+                                </td>
+                                <td className="px-6 py-5 text-center">
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border whitespace-nowrap ${
+                                        req.status.toLowerCase() === 'approved'
+                                            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                            : req.status.toLowerCase() === 'rejected'
+                                                ? 'bg-rose-50 text-rose-600 border-rose-100'
+                                                : 'bg-amber-50 text-amber-600 border-amber-100'
+                                    }`}>
+                                        {req.status.toLowerCase() === 'approved' ? <CheckCircle2 size={10} /> : (req.status.toLowerCase() === 'rejected' ? <XCircle size={10} /> : <Clock size={10} />)}
+                                        {req.status}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-5">
                                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                                         {activeTab === 'Vendor' ? (
                                             <button 
                                                 onClick={() => navigate(`/admin/vendors/requests/${req.id}`)}
-                                                className="h-9 px-4 rounded-lg bg-slate-900 text-white text-xs font-medium flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors whitespace-nowrap cursor-pointer shadow-xs"
+                                                className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-primary transition-all shadow-lg active:scale-95 whitespace-nowrap cursor-pointer"
                                             >
                                                 <Eye size={14} />
                                                 Review Application
@@ -524,22 +513,22 @@ export default function OnboardingApprovals() {
                                                 <div className="relative">
                                                     <button 
                                                         onClick={() => setShowDocSelector(showDocSelector === req.id ? null : req.id)}
-                                                        className="w-9 h-9 rounded-lg bg-white text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors border border-slate-300 shadow-xs cursor-pointer"
+                                                        className="w-10 h-10 rounded-xl bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-900 hover:text-white transition-all border border-slate-100 shadow-sm cursor-pointer"
                                                         title="View Documents"
                                                     >
-                                                        <FileText size={16} />
+                                                        <FileText size={18} />
                                                     </button>
                                                     
                                                     <AnimatePresence>
                                                         {showDocSelector === req.id && (
                                                             <motion.div 
-                                                                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                                                                initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                                                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                                exit={{ opacity: 0, scale: 0.95, y: 8 }}
-                                                                className="absolute bottom-full right-0 mb-3 w-56 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-50 overflow-hidden"
+                                                                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                                                                className="absolute bottom-full right-0 mb-4 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 z-50 overflow-hidden"
                                                             >
-                                                                 <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                                                                     <p className="text-xs font-medium text-slate-500">Compliance Dossier</p>
+                                                                 <div className="px-3 py-2 border-b border-slate-50 mb-2">
+                                                                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Compliance Dossier</p>
                                                                  </div>
                                                                  {req.docs.length > 0 ? req.docs.map((doc, idx) => (
                                                                      <button 
@@ -548,12 +537,12 @@ export default function OnboardingApprovals() {
                                                                              setSelectedDoc(doc);
                                                                              setShowDocSelector(null);
                                                                          }}
-                                                                         className="w-full flex items-center justify-between p-2.5 hover:bg-slate-50 rounded-lg transition-colors group/doc cursor-pointer"
+                                                                         className="w-full flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-all group/doc cursor-pointer"
                                                                      >
-                                                                         <span className="text-xs font-medium text-slate-700 group-hover/doc:text-slate-900">{doc.type || 'Document'}</span>
-                                                                         <ExternalLink size={13} className="text-slate-400 group-hover/doc:text-slate-700" />
+                                                                         <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight group-hover/doc:text-slate-900">{doc.type || 'Document'}</span>
+                                                                         <ExternalLink size={12} className="text-slate-300 group-hover/doc:text-primary" />
                                                                      </button>
-                                                                 )) : <p className="p-3 text-xs text-slate-400 italic text-center">No documents found</p>}
+                                                                 )) : <p className="p-4 text-[9px] text-slate-300 italic text-center">No documents found</p>}
                                                             </motion.div>
                                                         )}
                                                     </AnimatePresence>
@@ -562,15 +551,15 @@ export default function OnboardingApprovals() {
                                                  <button 
                                                      onClick={() => handleAction(req.id, 'rejected', req.role)}
                                                      disabled={isProcessing === req.id}
-                                                     className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors border border-rose-200 cursor-pointer"
+                                                     className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm cursor-pointer"
                                                      title="Reject Application"
                                                  >
-                                                     <X size={16} />
+                                                     <X size={18} />
                                                  </button>
                                                  <button 
                                                      onClick={() => handleAction(req.id, 'approved', req.role)}
                                                      disabled={isProcessing === req.id}
-                                                     className="h-9 px-4 rounded-lg bg-slate-900 text-white text-xs font-medium flex items-center justify-center gap-2 hover:bg-emerald-600 transition-colors whitespace-nowrap cursor-pointer shadow-xs"
+                                                     className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all shadow-lg active:scale-95 whitespace-nowrap cursor-pointer"
                                                  >
                                                      {isProcessing === req.id ? <RotateCw size={14} className="animate-spin" /> : <Check size={14} />}
                                                      {isProcessing === req.id ? 'Wait...' : 'Approve'}
@@ -578,20 +567,36 @@ export default function OnboardingApprovals() {
                                              </>
                                          )}
                                      </div>
-                                 </TableCell>
-                             </TableRow>
+                                 </td>
+                             </tr>
                          ))}
-                    </TableBody>
-                </Table>
+                    </tbody>
+                </table>
             </div>
             
             {/* Pagination Controls */}
             {filteredData.length > 0 && (
-                <TablePagination
-                    page={page}
-                    totalPages={totalPages}
-                    onPageChange={setPage}
-                />
+                <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
+                    <div className="flex items-center gap-1">
+                        <button 
+                            disabled={page <= 1 || loading}
+                            onClick={() => setPage(p => p - 1)}
+                            className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            Prev
+                        </button>
+                        <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                            PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+                        </span>
+                        <button 
+                            disabled={page >= totalPages || loading}
+                            onClick={() => setPage(p => p + 1)}
+                            className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
             )}
         </div>
 

@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/shared/components/ui/table';
 
 const AdminPromotionTable = () => {
     const [promotions, setPromotions] = useState([]);
@@ -693,34 +692,34 @@ const AdminPromotionTable = () => {
                                         </div>
                                         <div className="border border-slate-100 rounded-sm overflow-hidden">
                                             <div className="overflow-x-auto max-h-64 overflow-y-auto">
-                                                <Table className="w-full text-left text-[10px] font-bold">
-                                                    <TableHeader className="sticky">
-                                                        <TableRow>
-                                                            <TableHead>Row</TableHead>
-                                                            <TableHead>Code</TableHead>
-                                                            <TableHead>Type</TableHead>
-                                                            <TableHead>Value</TableHead>
-                                                            <TableHead>Expiry</TableHead>
-                                                            <TableHead>Status</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
+                                                <table className="w-full text-left text-[10px] font-bold">
+                                                    <thead className="bg-slate-900 text-white sticky top-0">
+                                                        <tr>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Row</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Code</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Type</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Value</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Expiry</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-50">
                                                         {bulkPreview.map((row, idx) => (
-                                                            <TableRow key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
-                                                                <TableCell>{row._rowIndex}</TableCell>
-                                                                <TableCell>{row.code || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>{row.discountType}</TableCell>
-                                                                <TableCell>{row.discountValue}</TableCell>
-                                                                <TableCell>{row.expiryDate || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>
+                                                            <tr key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
+                                                                <td className="px-4 py-2 text-slate-400 tabular-nums">{row._rowIndex}</td>
+                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.code || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.discountType}</td>
+                                                                <td className="px-4 py-2 text-slate-900">{row.discountValue}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.expiryDate || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.status}
                                                                     </span>
-                                                                </TableCell>
-                                                            </TableRow>
+                                                                </td>
+                                                            </tr>
                                                         ))}
-                                                    </TableBody>
-                                                </Table>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>

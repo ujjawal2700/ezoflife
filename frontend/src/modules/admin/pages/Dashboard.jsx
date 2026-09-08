@@ -205,7 +205,7 @@ export default function Dashboard() {
         : `Churn risk: ${analytics?.customerAnalytics?.churnRisk || 0}`;
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#f8fafc] pb-24 text-slate-900 selection:bg-indigo-500 selection:text-white relative font-sans">
+        <div className="flex flex-col min-h-screen bg-slate-50/50 pb-24 text-slate-900 selection:bg-indigo-500 selection:text-white relative font-sans">
             {/* Top Loading Progress Bar */}
             {isUpdating && (
                 <div className="fixed top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-500 animate-pulse z-50 shadow-md shadow-blue-500/20" />

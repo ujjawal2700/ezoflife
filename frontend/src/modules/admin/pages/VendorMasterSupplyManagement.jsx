@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '@/shared/components/ui/table';
 
 const VendorMasterSupplyManagement = () => {
     const [supplies, setSupplies] = useState([]);
@@ -790,7 +789,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.categoryId}
                                         onChange={e => setFormData({...formData, categoryId: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
                                     >
                                         <option value="" disabled>Select Category</option>
                                         {categories.map(cat => (
@@ -807,7 +806,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.materialName}
                                         onChange={e => setFormData({...formData, materialName: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. Ultra Clean Soap"
                                     />
                                 </div>
@@ -818,7 +817,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.hsnCode}
                                         onChange={e => setFormData({...formData, hsnCode: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. 2800"
                                     />
                                 </div>
@@ -829,7 +828,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.gst}
                                         onChange={e => setFormData({...formData, gst: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
                                     >
                                         <option value="0">0%</option>
                                         <option value="5">5%</option>
@@ -845,7 +844,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.brand}
                                         onChange={e => setFormData({...formData, brand: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. Generic"
                                     />
                                 </div>
@@ -856,7 +855,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.quantity}
                                         onChange={e => setFormData({...formData, quantity: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. 10 Litres, 5 Kg"
                                     />
                                 </div>
@@ -869,7 +868,7 @@ const VendorMasterSupplyManagement = () => {
                                         min="0"
                                         value={formData.wholesaleRate}
                                         onChange={e => setFormData({...formData, wholesaleRate: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. 450"
                                     />
                                 </div>
@@ -883,7 +882,7 @@ const VendorMasterSupplyManagement = () => {
                                         max="100"
                                         value={formData.bulkDiscount}
                                         onChange={e => setFormData({...formData, bulkDiscount: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                     />
                                 </div>
 
@@ -895,7 +894,7 @@ const VendorMasterSupplyManagement = () => {
                                         min="0"
                                         value={formData.bulkThreshold}
                                         onChange={e => setFormData({...formData, bulkThreshold: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                     />
                                 </div>
 
@@ -904,7 +903,7 @@ const VendorMasterSupplyManagement = () => {
                                     <select
                                         value={formData.isActive}
                                         onChange={e => setFormData({...formData, isActive: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
                                     >
                                         <option value="y">y (Active)</option>
                                         <option value="n">n (Inactive)</option>
@@ -917,7 +916,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.deliveryFrequency}
                                         onChange={e => setFormData({...formData, deliveryFrequency: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. Weekly, Daily"
                                     />
                                 </div>
@@ -930,7 +929,7 @@ const VendorMasterSupplyManagement = () => {
                                         min="0"
                                         value={formData.movFreeDelivery}
                                         onChange={e => setFormData({...formData, movFreeDelivery: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                     />
                                 </div>
 
@@ -940,7 +939,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.supplierId}
                                         onChange={e => setFormData({...formData, supplierId: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. SUP-001"
                                     />
                                 </div>
@@ -951,7 +950,7 @@ const VendorMasterSupplyManagement = () => {
                                         required
                                         value={formData.supplierFacilityName}
                                         onChange={e => setFormData({...formData, supplierFacilityName: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. North Facility"
                                     />
                                 </div>
@@ -963,7 +962,7 @@ const VendorMasterSupplyManagement = () => {
                                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                         placeholder="Enter detailed description of the supply product..."
                                         rows={3}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                     />
                                 </div>
 
@@ -1107,41 +1106,41 @@ const VendorMasterSupplyManagement = () => {
                                         </div>
                                         <div className="border border-slate-100 rounded-sm overflow-hidden">
                                             <div className="overflow-x-auto max-h-64 overflow-y-auto">
-                                                <Table className="w-full text-left text-[10px] font-bold">
-                                                    <TableHeader className="sticky">
-                                                        <TableRow>
-                                                            <TableHead>Row</TableHead>
-                                                            <TableHead>Material Name</TableHead>
-                                                            <TableHead>Main Category</TableHead>
-                                                            <TableHead>Sub Category</TableHead>
-                                                            <TableHead>Wholesale Rate</TableHead>
-                                                            <TableHead>Active</TableHead>
-                                                            <TableHead>Status</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
+                                                <table className="w-full text-left text-[10px] font-bold">
+                                                    <thead className="bg-slate-900 text-white sticky top-0">
+                                                        <tr>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Row</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Material Name</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Main Category</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Sub Category</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Wholesale Rate</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Active</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-50">
                                                         {bulkPreview.map((row, idx) => (
-                                                            <TableRow key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
-                                                                <TableCell>{row._rowIndex}</TableCell>
-                                                                <TableCell>{row.materialName || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>{row.mainCategory || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>{row.subCategory || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>₹{row.wholesaleRate}</TableCell>
-                                                                <TableCell>
+                                                            <tr key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
+                                                                <td className="px-4 py-2 text-slate-400 tabular-nums">{row._rowIndex}</td>
+                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.materialName || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.mainCategory || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.subCategory || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-500">₹{row.wholesaleRate}</td>
+                                                                <td className="px-4 py-2">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.isActive === 'y' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.isActive}
                                                                     </span>
-                                                                </TableCell>
-                                                                <TableCell>
+                                                                </td>
+                                                                <td className="px-4 py-2">
                                                                     {row._valid
                                                                         ? <CheckCircle2 size={14} className="text-emerald-500" />
                                                                         : <AlertTriangle size={14} className="text-rose-400" />
                                                                     }
-                                                                </TableCell>
-                                                            </TableRow>
+                                                                </td>
+                                                            </tr>
                                                         ))}
-                                                    </TableBody>
-                                                </Table>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>

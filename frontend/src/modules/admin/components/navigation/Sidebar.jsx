@@ -370,7 +370,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 placeholder="Search menu section..."
-                                className="w-full pl-8 pr-7 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 focus:border-slate-900 transition-all outline-none"
+                                className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-800 focus:border-slate-900 transition-all outline-none"
                             />
                             {searchTerm && (
                                 <button 
@@ -391,7 +391,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                         <div key={group.group} className="space-y-1.5">
                             {(!isCollapsed || isMobileOpen) && (
                                 <div className="px-3 mb-1">
-                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider leading-none">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] leading-none">
                                         {group.group}
                                     </span>
                                 </div>
@@ -413,44 +413,38 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                     setIsMobileOpen(false);
                                                 }
                                             }}
-                                            className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm transition-all duration-200 group relative ${
                                                 isActive 
                                                   ? "bg-slate-900 text-white shadow-slate-200" 
-                                                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                                                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                             }`}
                                         >
                                             <div className="relative shrink-0 flex items-center">
-                                                <item.icon size={17} className={`${isActive ? "text-white" : "group-hover:text-slate-900 transition-colors"}`} />
+                                                <item.icon size={16} className={`${isActive ? "text-white" : "group-hover:text-slate-900 transition-colors"}`} />
                                                 {(isCollapsed && !isMobileOpen) && badgeCount > 0 && (
                                                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white animate-pulse" />
                                                 )}
                                             </div>
                                             {(!isCollapsed || isMobileOpen) && (
                                                 <>
-                                                    <span className={`font-bold text-[13px] tracking-normal flex-1 text-left whitespace-nowrap overflow-hidden transition-all ${
-                                                        isActive ? "opacity-100" : "opacity-90 group-hover:opacity-100"
+                                                    <span className={`font-bold text-[10px] uppercase tracking-[0.05em] flex-1 text-left whitespace-nowrap overflow-hidden transition-all ${
+                                                        isActive ? "opacity-100" : "opacity-80 group-hover:opacity-100"
                                                     }`}>
                                                         {item.label}
                                                     </span>
                                                     
                                                     {/* Numerical Badge for Attention */}
                                                     {badgeCount > 0 && (
-                                                        <span className="flex items-center gap-1.5 shrink-0">
-                                                            <span className="relative flex h-2 w-2">
-                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                                                            </span>
-                                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
-                                                                isActive ? "bg-rose-500 text-white" : "bg-rose-500 text-white shadow-sm"
-                                                            }`}>
-                                                                {badgeCount}
-                                                            </span>
+                                                        <span className={`px-1.5 py-0.5 rounded-full text-[8.5px] font-black leading-none shrink-0 ${
+                                                            isActive ? "bg-rose-500 text-white" : "bg-rose-500 text-white shadow-sm"
+                                                        }`}>
+                                                            {badgeCount}
                                                         </span>
                                                     )}
 
                                                     {hasSubItems && (
                                                         <ChevronDown 
-                                                            size={13} 
+                                                            size={12} 
                                                             className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`} 
                                                         />
                                                     )}
@@ -465,7 +459,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: "auto", opacity: 1 }}
                                                     exit={{ height: 0, opacity: 0 }}
-                                                    className="overflow-hidden bg-slate-50/50 rounded-lg mt-1 ml-4 border-l-2 border-slate-200"
+                                                    className="overflow-hidden bg-slate-50/50 rounded-sm mt-1 ml-4 border-l border-slate-200"
                                                 >
                                                     {item.subItems.map((sub) => {
                                                         const hasNestedItems = sub.subItems && sub.subItems.length > 0;
@@ -483,13 +477,13 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                                                 [sub.label]: !prev[sub.label]
                                                                             }));
                                                                         }}
-                                                                        className={`w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold transition-all ${
-                                                                            isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/30"
+                                                                        className={`w-full flex items-center justify-between px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
+                                                                            isSubActive ? "text-slate-900 bg-slate-100/30" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/10"
                                                                         }`}
                                                                     >
                                                                         <span>{sub.label}</span>
                                                                         <ChevronDown 
-                                                                            size={12} 
+                                                                            size={10} 
                                                                             className={`transition-transform duration-300 ${isSubMenuExpanded ? "rotate-180" : ""}`} 
                                                                         />
                                                                     </button>
@@ -499,7 +493,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                                                 initial={{ height: 0, opacity: 0 }}
                                                                                 animate={{ height: "auto", opacity: 1 }}
                                                                                 exit={{ height: 0, opacity: 0 }}
-                                                                                className="overflow-hidden bg-slate-100/30 rounded-lg mt-0.5 ml-3 border-l-2 border-slate-300"
+                                                                                className="overflow-hidden bg-slate-100/30 rounded-sm mt-0.5 ml-3 border-l border-slate-300"
                                                                             >
                                                                                 {sub.subItems.map((nested) => {
                                                                                     const isNestedActive = location.pathname + location.search === nested.path;
@@ -510,8 +504,8 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                                                                 navigate(nested.path);
                                                                                                 setIsMobileOpen(false);
                                                                                             }}
-                                                                                            className={`w-full text-left px-4 py-2 text-[11.5px] font-medium transition-all ${
-                                                                                                isNestedActive ? "text-slate-900 bg-slate-200/60 font-bold" : "text-slate-500 hover:text-slate-900 hover:bg-slate-200/30"
+                                                                                            className={`w-full text-left px-4 py-1.5 text-[8.5px] font-bold uppercase tracking-wider transition-all ${
+                                                                                                isNestedActive ? "text-slate-900 bg-slate-200/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-200/20"
                                                                                             }`}
                                                                                         >
                                                                                             {nested.label}
@@ -532,20 +526,14 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, isMobileOpen, set
                                                                     navigate(sub.path);
                                                                     setIsMobileOpen(false);
                                                                 }}
-                                                                className={`w-full flex items-center justify-between text-left px-4 py-2.5 text-xs font-bold transition-all ${
-                                                                    isSubActive ? "text-slate-900 bg-slate-100/60" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/30"
+                                                                className={`w-full flex items-center justify-between text-left px-4 py-2 text-[9px] font-bold uppercase tracking-wider transition-all ${
+                                                                    isSubActive ? "text-slate-900 bg-slate-100/50" : "text-slate-400 hover:text-slate-900 hover:bg-slate-100/30"
                                                                 }`}
                                                             >
                                                                 <span>{sub.label}</span>
                                                                 {subBadgeCount > 0 && (
-                                                                    <span className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                        <span className="relative flex h-1.5 w-1.5">
-                                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-rose-500"></span>
-                                                                        </span>
-                                                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black leading-none bg-rose-500 text-white">
-                                                                            {subBadgeCount}
-                                                                        </span>
+                                                                    <span className="px-1.5 py-0.5 rounded-full text-[8px] font-black leading-none bg-rose-500 text-white shrink-0 ml-2">
+                                                                        {subBadgeCount}
                                                                     </span>
                                                                 )}
                                                             </button>

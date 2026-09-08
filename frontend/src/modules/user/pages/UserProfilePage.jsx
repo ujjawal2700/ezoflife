@@ -195,7 +195,7 @@ const UserProfilePage = () => {
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
+    <div className="min-h-[100dvh] flex flex-col text-slate-900 bg-slate-50/50">
       <main className="flex-1 pb-44 sm:pb-36 max-w-4xl mx-auto w-full px-3.5 sm:px-6 py-4 sm:py-8 space-y-5 sm:space-y-6">
         
         {/* Header Title */}

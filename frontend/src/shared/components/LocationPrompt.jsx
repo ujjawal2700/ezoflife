@@ -15,39 +15,22 @@ const LocationPrompt = () => {
     try {
       const coords = await locationService.getCurrentCoordinates();
       setPermissionStatus('granted');
-
-      // 1. Immediately set location and dismiss modal (zero waiting for the user!)
-      const initialLocation = coords.fullAddress && coords.city
-        ? coords
-        : {
-            lat: coords.lat,
-            lng: coords.lng,
-            city: coords.city || 'Current Location',
-            area: coords.area || '',
-            fullAddress: coords.fullAddress || 'Current Location'
-          };
       
-      setLocation(initialLocation);
+      const addressData = await locationService.reverseGeocode(coords.lat, coords.lng);
+      setLocation(addressData);
+      
+      // Check for Geofence/Zone
+      try {
+        const zoneInfo = await geofenceApi.checkAvailability(coords.lat, coords.lng);
+        if (zoneInfo.available) {
+          setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
+        }
+      } catch (zoneErr) {
+        console.error('Zone check error:', zoneErr);
+      }
+
+      toast.success('Location detected successfully!');
       setPromptOpen(false);
-      setLoading(false);
-      toast.success(coords.isGPS ? 'GPS Location detected!' : 'Location detected!');
-
-      // 2. Background refinements (silent, non-blocking)
-      locationService.reverseGeocode(coords.lat, coords.lng, coords)
-        .then((refinedAddress) => {
-          if (refinedAddress && refinedAddress.fullAddress) {
-            setLocation(refinedAddress);
-          }
-        })
-        .catch(() => {});
-
-      geofenceApi.checkAvailability(coords.lat, coords.lng)
-        .then((zoneInfo) => {
-          if (zoneInfo?.available) {
-            setZoneData({ name: zoneInfo.name, pricingFactor: zoneInfo.pricingFactor });
-          }
-        })
-        .catch((zoneErr) => console.warn('Zone check skipped:', zoneErr));
     } catch (error) {
       console.error('Location Error:', error);
       if (error.code === 1) { // PERMISSION_DENIED
@@ -56,6 +39,7 @@ const LocationPrompt = () => {
       } else {
         toast.error('Failed to get location. Please try manual entry.');
       }
+    } finally {
       setLoading(false);
     }
   };
@@ -84,14 +68,6 @@ const LocationPrompt = () => {
             className="relative w-full max-w-sm bg-white rounded-[2.5rem] p-8 shadow-2xl overflow-hidden border border-slate-100"
           >
             <div className="absolute top-0 left-0 w-full h-2 bg-primary-gradient" />
-
-            <button 
-              onClick={() => setPromptOpen(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors"
-              aria-label="Close"
-            >
-              <span className="material-symbols-outlined text-sm">close</span>
-            </button>
             
             <div className="text-center space-y-6">
               <div className="w-20 h-20 bg-primary/5 rounded-[2rem] flex items-center justify-center text-primary mx-auto mb-2 shadow-inner">

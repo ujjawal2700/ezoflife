@@ -94,7 +94,7 @@ const TermsConditionsPage = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="bg-slate-50 min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-800"
+      className="bg-background min-h-[100dvh] flex flex-col text-slate-800"
     >
       {/* Standalone Header */}
       <header className="fixed top-0 z-50 bg-white/90 backdrop-blur-xl w-full flex items-center px-4 sm:px-6 py-3.5 border-b border-slate-200/80 shadow-xs">

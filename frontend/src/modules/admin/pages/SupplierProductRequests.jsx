@@ -16,8 +16,6 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { vendorMasterSupplyApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
-import { TableRowSkeleton } from '../components/skeletons/TableSkeleton';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, TablePagination, UserAvatarCell } from '@/shared/components/ui/table';
 
 export default function SupplierProductRequests() {
   const [requests, setRequests] = useState([]);
@@ -257,10 +255,10 @@ export default function SupplierProductRequests() {
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         {/* Table Container */}
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
           
           {/* Header Bar with Filters */}
-          <div className="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+          <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
             {/* Date Filters on the Left */}
             <div className="flex items-center gap-2">
               <input 
@@ -353,37 +351,40 @@ export default function SupplierProductRequests() {
 
           {/* Table Element */}
           <div className="overflow-x-auto w-full">
-            <Table className="w-full text-left border-collapse min-w-[1250px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[12%]">Supplier Name</TableHead>
-                  <TableHead className="w-[12%]">Product Name</TableHead>
-                  <TableHead className="w-[10%]">Brand</TableHead>
-                  <TableHead className="w-[6%]">Image</TableHead>
-                  <TableHead className="w-[10%]">Category Name</TableHead>
-                  <TableHead className="w-[10%]">Sub Category Name</TableHead>
-                  <TableHead className="w-[8%]">Wholesale Price</TableHead>
-                  <TableHead className="w-[8%]">Bulk Rate</TableHead>
-                  <TableHead className="w-[8%]">Min Quantity</TableHead>
-                  <TableHead className="w-[6%]">GST</TableHead>
-                  <TableHead className="w-[10%] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full text-left border-collapse min-w-[1250px]">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Supplier Name</th>
+                  <th className="w-[12%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Product Name</th>
+                  <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Brand</th>
+                  <th className="w-[6%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Image</th>
+                  <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Category Name</th>
+                  <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Sub Category Name</th>
+                  <th className="w-[8%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Wholesale Price</th>
+                  <th className="w-[8%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Bulk Rate</th>
+                  <th className="w-[8%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Min Quantity</th>
+                  <th className="w-[6%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">GST</th>
+                  <th className="w-[10%] px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <TableRowSkeleton key={i} cols={11} />
-                  ))
+                  <tr>
+                    <td colSpan={11} className="py-20 text-center">
+                      <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading Product Requests...</p>
+                    </td>
+                  </tr>
                 ) : filteredData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={11} className="py-32 text-center">
+                  <tr>
+                    <td colSpan={11} className="py-32 text-center">
                       <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mx-auto mb-4">
                         <ClipboardList size={32} />
                       </div>
                       <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Queue Clear</h3>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">No pending supplier product requests found.</p>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : paginatedData.map((req) => {
                   const supplierName = req.supplierFacilityName || req.supplierId || 'Unknown Supplier';
                   const mainCategory = req.categoryId?.mainCategory || 'Other';
@@ -392,31 +393,30 @@ export default function SupplierProductRequests() {
                   const firstImage = hasImage ? req.images[0] : null;
 
                   return (
-                    <TableRow key={req._id || req.id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-200/70">
+                    <tr key={req._id || req.id} className="hover:bg-slate-50/50 transition-colors group">
                       {/* Supplier Name */}
-                      <TableCell>
-                        <UserAvatarCell
-                          name={supplierName}
-                          subtitle={req.supplierId?.phone}
-                        />
-                      </TableCell>
+                      <td className="px-6 py-5">
+                        <span className="text-sm font-black text-slate-900 tracking-tight whitespace-nowrap">
+                          {supplierName}
+                        </span>
+                      </td>
                       {/* Product Name */}
-                      <TableCell>
+                      <td className="px-6 py-5">
                         <span 
-                          className="text-sm text-slate-700 tracking-tight cursor-pointer hover:text-primary transition-all uppercase"
+                          className="text-xs font-black text-slate-700 tracking-tight cursor-pointer hover:text-primary transition-all uppercase"
                           onClick={() => setDetailProduct(req)}
                         >
                           {req.materialName}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Brand */}
-                      <TableCell>
-                        <span className="text-sm text-slate-600 uppercase">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-slate-600 uppercase">
                           {req.brand || 'Generic'}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Product Image */}
-                      <TableCell>
+                      <td className="px-6 py-5">
                         {hasImage ? (
                           <img 
                             src={firstImage} 
@@ -432,45 +432,45 @@ export default function SupplierProductRequests() {
                             <ImageIcon size={16} />
                           </div>
                         )}
-                      </TableCell>
+                      </td>
                       {/* Category Name */}
-                      <TableCell>
-                        <span className="text-sm text-slate-600">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-slate-600">
                           {mainCategory}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Sub Category Name */}
-                      <TableCell>
-                        <span className="text-sm text-slate-600">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-bold text-slate-600">
                           {subCategory}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Wholesale Price */}
-                      <TableCell>
-                        <span className="text-sm text-slate-700 tabular-nums whitespace-nowrap">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-slate-700 tabular-nums whitespace-nowrap">
                           ₹{req.wholesaleRate}
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Bulk Rate */}
-                      <TableCell>
+                      <td className="px-6 py-5">
                         <span className="text-xs font-black text-indigo-600">
                           {req.bulkDiscount || 0}% Off
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Min Quantity */}
-                      <TableCell>
-                        <span className="text-sm text-slate-700 tabular-nums">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-slate-700 tabular-nums">
                           {req.bulkThreshold || 0} units
                         </span>
-                      </TableCell>
+                      </td>
                       {/* GST */}
-                      <TableCell>
-                        <span className="text-sm text-slate-700 tabular-nums">
+                      <td className="px-6 py-5">
+                        <span className="text-xs font-black text-slate-700 tabular-nums">
                           {req.gst || 18}%
                         </span>
-                      </TableCell>
+                      </td>
                       {/* Actions */}
-                      <TableCell>
+                      <td className="px-6 py-5">
                         <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                           <button
                             onClick={() => setDetailProduct(req)}
@@ -517,21 +517,37 @@ export default function SupplierProductRequests() {
                             </span>
                           )}
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
 
           {/* Pagination Controls */}
           {filteredData.length > 0 && (
-            <TablePagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-            />
+            <div className="px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30">
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={page <= 1 || loading}
+                  onClick={() => setPage(p => p - 1)}
+                  className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Prev
+                </button>
+                <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+                  PG {String(page).padStart(2, '0')} / {String(totalPages).padStart(2, '0')}
+                </span>
+                <button
+                  disabled={page >= totalPages || loading}
+                  onClick={() => setPage(p => p + 1)}
+                  className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -647,7 +663,7 @@ export default function SupplierProductRequests() {
                 </button>
               </div>
 
-              <div className="overflow-y-auto space-y-6 flex-1 py-6 pr-1 custom-scrollbar text-sm text-slate-600">
+              <div className="overflow-y-auto space-y-6 flex-1 py-6 pr-1 custom-scrollbar text-xs font-bold text-slate-600">
                 {/* Images Carousel/Gallery */}
                 {detailProduct.images && detailProduct.images.length > 0 && (
                   <div className="space-y-1">

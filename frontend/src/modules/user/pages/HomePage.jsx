@@ -908,7 +908,7 @@ const HomePage = () => {
   );
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
+    <div className="min-h-[100dvh] flex flex-col text-slate-900">
       <main className="flex-1 pb-44 sm:pb-36 max-w-7xl mx-auto w-full px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6">
 
         {/* 1. HERO PROMO BANNER */}
@@ -1900,7 +1900,7 @@ const HomePage = () => {
                 initial={{ scale: 0.95, opacity: 0, y: 10 }} 
                 animate={{ scale: 1, opacity: 1, y: 0 }} 
                 exit={{ scale: 0.95, opacity: 0, y: 10 }} 
-                className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-slate-900 space-y-5 max-h-[90vh] overflow-y-auto hide-scrollbar font-['Poppins',sans-serif]"
+                className="relative w-full max-w-md bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200 text-slate-900 space-y-5 max-h-[90vh] overflow-y-auto hide-scrollbar"
               >
                 {/* Modal Header */}
                 <div className="flex items-start justify-between pb-3 border-b border-slate-100">

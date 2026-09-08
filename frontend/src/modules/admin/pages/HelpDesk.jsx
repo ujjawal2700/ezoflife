@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MessageSquare, Search, User, Send, Loader2, ArrowLeft } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
-import Skeleton from '../components/skeletons/Skeleton';
 import { ticketApi, adminApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -242,17 +241,9 @@ export default function HelpDesk() {
 
           <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
             {loading ? (
-              <div className="p-4 space-y-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="p-4 border border-slate-100 rounded-xl space-y-2.5">
-                    <div className="flex justify-between items-center">
-                      <Skeleton className="h-3 w-16 rounded" />
-                      <Skeleton className="h-4 w-12 rounded-full" />
-                    </div>
-                    <Skeleton className="h-3.5 w-3/4 rounded" />
-                    <Skeleton className="h-2.5 w-1/2 rounded" />
-                  </div>
-                ))}
+              <div className="p-20 text-center opacity-40">
+                <Loader2 size={32} className="animate-spin mx-auto mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest">Polling Database...</p>
               </div>
             ) : filteredTickets.length > 0 ? (
               filteredTickets.map(ticket => (

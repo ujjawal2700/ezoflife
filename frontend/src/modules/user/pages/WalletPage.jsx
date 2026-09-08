@@ -68,7 +68,7 @@ const WalletPage = () => {
     }), []);
 
     return (
-        <div className="bg-[#f8fafc] text-slate-900 min-h-[100dvh] pb-44 sm:pb-36 font-['Poppins',sans-serif]">
+        <div className="bg-[#FAFBFD] text-slate-900 min-h-[100dvh] pb-44 sm:pb-36">
             <motion.main 
                 variants={containerVariants}
                 initial="hidden"

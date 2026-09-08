@@ -1210,7 +1210,7 @@ export default function Orders() {
   ].filter(col => col.key !== 'actions' || activeTab === 'Completed'), [handleDownloadCustomerInvoice, handleDownloadVendorInvoice, activeTab]);
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20 font-['Poppins',sans-serif]">
+    <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
       <PageHeader 
         title={activeTab === 'Active' ? 'Active Orders' : 'Completed Orders'}
         subtitle={activeTab === 'Active' ? 'Real-time tracking and lifecycle management for active customer orders.' : 'Comprehensive history of completed and fulfilled customer orders.'}

@@ -2,7 +2,6 @@ import React, { useState, Suspense } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from '@/modules/admin/components/navigation/Sidebar';
 import TopBar from '@/modules/admin/components/navigation/TopBar';
-import AdminPageSkeleton from '@/modules/admin/components/skeletons/AdminPageSkeleton';
 
 export default function AdminLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -25,7 +24,11 @@ export default function AdminLayout() {
 
         {/* Dynamic Context Delivery (Page Content) */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50/50">
-            <Suspense fallback={<AdminPageSkeleton />}>
+            <Suspense fallback={
+                <div className="h-full w-full flex items-center justify-center p-20 animate-pulse bg-white transition-all">
+                    <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin shadow-black/5" />
+                </div>
+            }>
                 <div className="h-full w-full p-0">
                     <Outlet />
                 </div>

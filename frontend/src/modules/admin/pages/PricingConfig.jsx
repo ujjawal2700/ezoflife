@@ -18,7 +18,6 @@ import {
   CreditCard
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
-import FormConfigSkeleton from '../components/skeletons/FormConfigSkeleton';
 import MetricRow from '../components/cards/MetricRow';
 import { shippingConfigApi } from '@/lib/shippingApi';
 import toast from 'react-hot-toast';
@@ -154,7 +153,11 @@ export default function PricingConfig() {
   ], [expressSurcharge, normalLogisticsFee, essentialFee, heritageFee, freeDeliveryThreshold]);
 
   if (isLoading) {
-    return <FormConfigSkeleton />;
+    return (
+        <div className="h-full w-full flex items-center justify-center p-20">
+            <div className="w-10 h-10 border-4 border-slate-900 border-t-transparent rounded-full animate-spin" />
+        </div>
+    );
   }
 
   return (

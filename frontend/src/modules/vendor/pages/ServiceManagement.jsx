@@ -75,7 +75,7 @@ const ServiceManagement = () => {
     ];
 
     return (
-        <div className="font-['Poppins',sans-serif] text-slate-900">
+        <div className="text-slate-900">
             {/* Main Content */}
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-6">
                 

@@ -197,7 +197,7 @@ const VendorProfile = () => {
   const isApproved = user.status === 'approved';
 
   return (
-    <div className="min-h-screen bg-slate-50/70 text-slate-900 pb-36 font-['Poppins',sans-serif]">
+    <div className="min-h-screen bg-slate-50/70 text-slate-900 pb-36">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 space-y-8">
 
         {/* Top Header & Overview Banner */}

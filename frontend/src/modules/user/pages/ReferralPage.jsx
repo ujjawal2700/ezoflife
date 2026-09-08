@@ -125,7 +125,7 @@ const ReferralPage = () => {
   const isValid = validatePhone(phoneNumber);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
+    <div className="min-h-[100dvh] flex flex-col text-slate-900 bg-slate-50/50">
       <main className="flex-1 pb-36 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
         
         {/* Main 2-Column Dashboard */}

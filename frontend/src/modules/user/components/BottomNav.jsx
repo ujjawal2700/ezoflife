@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 
 const BottomNav = () => {
   const navigate = useNavigate();
@@ -71,39 +70,38 @@ const BottomNav = () => {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-xl border-t border-slate-200/80 pb-safe shadow-lg h-16 flex justify-center md:hidden font-['Poppins',sans-serif]">
-      <div className="flex justify-around items-center w-full h-full max-w-md mx-auto px-3">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-2xl border-t border-slate-100 pb-safe shadow-[0_-1px_10px_rgba(0,0,0,0.02)] h-16 flex justify-center">
+      <motion.div className="flex justify-around items-center w-full h-full max-w-lg mx-auto">
         {navItems.map((item) => {
           const isActive = currentPath === item.path;
           return (
-            <button 
+            <motion.button 
               key={item.path}
               id={`nav-${item.label.toLowerCase()}`}
+              whileTap={{ scale: 0.9 }}
               onClick={() => handleNavClick(item.path)}
-              className={cn(
-                "relative flex flex-col items-center justify-center flex-1 h-full transition-colors cursor-pointer group",
-                isActive ? "text-slate-900 font-semibold" : "text-slate-400 hover:text-slate-700 font-medium"
-              )}
+              className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 focus:outline-none touch-none no-underline ${
+                isActive ? 'text-white' : 'text-slate-400 hover:text-slate-600'
+              }`}
+              style={{ WebkitTapHighlightColor: 'transparent' }}
             >
               {isActive && (
-                <span className="absolute top-1 w-8 h-1 rounded-full bg-slate-900" />
+                <motion.div 
+                  layoutId="activeNavBubble"
+                  className="absolute w-14 h-14 bg-black rounded-full shadow-xl shadow-black/30 z-0"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
               )}
-              <div className="flex flex-col items-center justify-center gap-1">
-                <span 
-                  className={cn(
-                    "material-symbols-outlined text-[22px] transition-transform", 
-                    isActive ? "scale-110 text-slate-900" : "text-slate-400 group-hover:text-slate-600"
-                  )} 
-                  style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-                >
+              <div className={`relative z-10 flex flex-col items-center justify-center gap-0.5 pointer-events-none transition-transform duration-300`}>
+                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
                   {item.icon}
                 </span>
-                <span className="text-[10px] leading-none tracking-tight">{item.label}</span>
+                <span className="font-headline font-black text-[7px] uppercase tracking-[0.1em]">{item.label}</span>
               </div>
-            </button>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </nav>
   );
 };

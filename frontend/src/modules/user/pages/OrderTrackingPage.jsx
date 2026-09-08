@@ -275,7 +275,7 @@ const OrderTrackingPage = () => {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="bg-[#f8fafc] text-slate-900 min-h-[100dvh] flex flex-col pb-44 sm:pb-36 font-['Poppins',sans-serif]"
+      className="bg-transparent text-slate-900 min-h-[100dvh] flex flex-col pb-44 sm:pb-36"
     >
       <motion.main 
         variants={containerVariants}

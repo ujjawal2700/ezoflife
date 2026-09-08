@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, StatusBadge } from '@/shared/components/ui/table';
 
 const CategoryManagement = () => {
     const [categories, setCategories] = useState([]);
@@ -271,38 +270,45 @@ const CategoryManagement = () => {
             header: 'Category ID',
             key: 'excelCategoryId',
             render: (val) => (
-                <span className="text-sm text-slate-600 tabular-nums">
-                    {val ? `#${val}` : '—'}
+                <span className="font-black text-slate-900 tabular-nums bg-slate-50 px-2 py-1 rounded-sm border border-slate-100">
+                    {val || '—'}
                 </span>
             )
         },
         {
-            header: 'Category name',
+            header: 'Category Name',
             key: 'mainCategory',
             render: (val) => (
-                <span className="text-sm font-medium text-slate-900">{val}</span>
+                <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    <span className="font-bold uppercase tracking-tight text-slate-800">{val}</span>
+                </div>
             )
         },
         {
-            header: 'Sub category',
+            header: 'Sub Category Name',
             key: 'subCategory',
             render: (val) => (
-                <span className="text-sm text-slate-600 font-normal">{val || '—'}</span>
+                <span className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">{val}</span>
             )
         },
         {
             header: 'Status',
             key: 'isActive',
-            render: (val) => <StatusBadge status={val ? 'Active' : 'Inactive'} />
+            render: (val) => (
+                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${val ? 'bg-slate-900 text-white border border-slate-900' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                    {val ? 'Active' : 'Inactive'}
+                </span>
+            )
         },
         {
             header: 'Actions',
             key: 'actions',
             align: 'right',
             render: (val, row) => (
-                <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => handleOpenModal(row)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer" title="Edit">
-                        <Edit2 size={16} />
+                <div className="flex items-center justify-end gap-2">
+                    <button onClick={() => handleOpenModal(row)} className="p-2 hover:bg-slate-100 rounded-sm text-slate-400 hover:text-slate-900 transition-all">
+                        <Edit2 size={14} />
                     </button>
                 </div>
             )
@@ -436,7 +442,7 @@ const CategoryManagement = () => {
                                 {editingCategory && (
                                     <div className="space-y-1.5">
                                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block ml-1">Category ID (Auto-generated)</label>
-                                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[13px] font-medium text-slate-400">
+                                        <div className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-sm text-[11px] font-bold text-slate-400">
                                             {formData.excelCategoryId || 'Auto-generated'}
                                         </div>
                                     </div>
@@ -448,7 +454,7 @@ const CategoryManagement = () => {
                                         required
                                         value={formData.mainCategory}
                                         onChange={e => setFormData({...formData, mainCategory: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. Dry Cleaning"
                                     />
                                 </div>
@@ -459,7 +465,7 @@ const CategoryManagement = () => {
                                         required
                                         value={formData.subCategory}
                                         onChange={e => setFormData({...formData, subCategory: e.target.value})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none"
                                         placeholder="e.g. Household"
                                     />
                                 </div>
@@ -469,7 +475,7 @@ const CategoryManagement = () => {
                                     <select
                                         value={formData.isActive}
                                         onChange={e => setFormData({...formData, isActive: e.target.value === 'true'})}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[13px] font-medium text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-sm text-[11px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none uppercase tracking-wider cursor-pointer"
                                     >
                                         <option value="true">Active</option>
                                         <option value="false">Inactive</option>
@@ -580,41 +586,41 @@ const CategoryManagement = () => {
                                         </div>
                                         <div className="border border-slate-100 rounded-sm overflow-hidden">
                                             <div className="overflow-x-auto max-h-64 overflow-y-auto">
-                                                <Table className="w-full text-left text-[10px] font-bold">
-                                                    <TableHeader className="sticky">
-                                                        <TableRow>
-                                                            <TableHead>Row</TableHead>
-                                                            <TableHead>Category ID</TableHead>
-                                                            <TableHead>Main Category</TableHead>
-                                                            <TableHead>Sub Category</TableHead>
-                                                            <TableHead>Active</TableHead>
-                                                            <TableHead>Status</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
+                                                <table className="w-full text-left text-[10px] font-bold">
+                                                    <thead className="bg-slate-900 text-white sticky top-0">
+                                                        <tr>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Row</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Category ID</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Main Category</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Sub Category</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Active</th>
+                                                            <th className="px-4 py-2.5 uppercase tracking-widest font-black text-[8px]">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-50">
                                                         {bulkPreview.map((row, idx) => (
-                                                            <TableRow key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
-                                                                <TableCell>{row._rowIndex}</TableCell>
-                                                                <TableCell>
+                                                            <tr key={idx} className={row._valid ? 'bg-white hover:bg-slate-50' : 'bg-rose-50'}>
+                                                                <td className="px-4 py-2 text-slate-400 tabular-nums">{row._rowIndex}</td>
+                                                                <td className="px-4 py-2">
                                                                     <span className="text-slate-400 italic text-[9px]">auto</span>
-                                                                </TableCell>
-                                                                <TableCell>{row.mainCategory || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>{row.subCategory || <span className="text-rose-400">—</span>}</TableCell>
-                                                                <TableCell>
+                                                                </td>
+                                                                <td className="px-4 py-2 text-slate-900 uppercase">{row.mainCategory || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2 text-slate-500">{row.subCategory || <span className="text-rose-400">—</span>}</td>
+                                                                <td className="px-4 py-2">
                                                                     <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${row.isActive ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                                                                         {row.isActive ? 'Yes' : 'No'}
                                                                     </span>
-                                                                </TableCell>
-                                                                <TableCell>
+                                                                </td>
+                                                                <td className="px-4 py-2">
                                                                     {row._valid
                                                                         ? <CheckCircle2 size={14} className="text-emerald-500" />
                                                                         : <AlertTriangle size={14} className="text-rose-400" />
                                                                     }
-                                                                </TableCell>
-                                                            </TableRow>
+                                                                </td>
+                                                            </tr>
                                                         ))}
-                                                    </TableBody>
-                                                </Table>
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
                                     </div>

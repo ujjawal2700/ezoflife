@@ -888,49 +888,43 @@ const RegisterAsSupplierPage = () => {
                         <FieldHighlight name="panDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
                         <div className="relative group">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'panDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                            <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.panDoc ? 'border-emerald-500 bg-emerald-50/80' : 'border-slate-300 bg-slate-50/80 hover:border-primary/60 hover:bg-primary/5'}`}>
-                                <span className={`material-symbols-outlined text-2xl mb-1 ${formData.panDoc ? 'text-emerald-600' : 'text-slate-500 group-hover:text-primary'}`}>{formData.panDoc ? 'check_circle' : 'upload_file'}</span>
-                                <p className={`text-[9px] font-black uppercase tracking-widest ${formData.panDoc ? 'text-emerald-700' : 'text-slate-700 group-hover:text-slate-900'}`}>{formData.panDoc ? 'PAN Document Uploaded' : 'Upload PAN Copy'}</p>
+                            <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.panDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.panDoc ? 'check_circle' : 'upload_file'}</span>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload PAN Copy</p>
                             </div>
                         </div>
                         </FieldHighlight>
                     </div>
 
                     {/* GST Certificate */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200/90 shadow-sm space-y-4">
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
                         <FieldHighlight name="gstDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-black uppercase tracking-wider text-slate-800 ml-1">GST Certificate</label>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">Mandatory</span>
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 italic">Mandatory for all suppliers</p>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">GST Certificate</label>
+                            <p className="text-[10px] font-bold text-slate-500 mb-2 italic">Mandatory for all suppliers</p>
                         </div>
                         <div className="relative group">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'gstDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                            <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.gstDoc ? 'border-emerald-500 bg-emerald-50/80' : 'border-slate-300 bg-slate-50/80 hover:border-primary/60 hover:bg-primary/5'}`}>
-                                <span className={`material-symbols-outlined text-2xl mb-1 ${formData.gstDoc ? 'text-emerald-600' : 'text-slate-500 group-hover:text-primary'}`}>{formData.gstDoc ? 'check_circle' : 'upload_file'}</span>
-                                <p className={`text-[9px] font-black uppercase tracking-widest ${formData.gstDoc ? 'text-emerald-700' : 'text-slate-700 group-hover:text-slate-900'}`}>{formData.gstDoc ? 'GST Document Uploaded' : 'Upload GST Form'}</p>
+                            <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.gstDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.gstDoc ? 'check_circle' : 'upload_file'}</span>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload GST Form</p>
                             </div>
                         </div>
                         </FieldHighlight>
                     </div>
 
                     {/* Trade License / MSME */}
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200/90 shadow-sm space-y-4">
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
                         <FieldHighlight name="msmeDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-black uppercase tracking-wider text-slate-800 ml-1">MSME / Trade License</label>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Optional</span>
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 italic">Optional but recommended for faster verification</p>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">MSME / Trade License</label>
+                            <p className="text-[10px] font-bold text-slate-500 mb-2 italic">Optional but recommended</p>
                         </div>
                         <div className="relative group">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'msmeDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                            <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.msmeDoc ? 'border-emerald-500 bg-emerald-50/80' : 'border-slate-300 bg-slate-50/80 hover:border-primary/60 hover:bg-primary/5'}`}>
-                                <span className={`material-symbols-outlined text-2xl mb-1 ${formData.msmeDoc ? 'text-emerald-600' : 'text-slate-500 group-hover:text-primary'}`}>{formData.msmeDoc ? 'check_circle' : 'upload_file'}</span>
-                                <p className={`text-[9px] font-black uppercase tracking-widest ${formData.msmeDoc ? 'text-emerald-700' : 'text-slate-700 group-hover:text-slate-900'}`}>{formData.msmeDoc ? 'MSME Document Uploaded' : 'Upload MSME Copy'}</p>
+                            <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.msmeDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.msmeDoc ? 'check_circle' : 'upload_file'}</span>
+                                <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload MSME Copy</p>
                             </div>
                         </div>
                         </FieldHighlight>
@@ -938,20 +932,17 @@ const RegisterAsSupplierPage = () => {
 
                     {/* Conditional: Manufacturer Authorization */}
                     {formData.entityType === 'Distributor/Wholesaler' && (
-                        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200/90 shadow-sm space-y-4 ring-2 ring-primary/10">
+                        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4 ring-2 ring-primary/5">
                             <FieldHighlight name="manufacturerAuthDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                            <div className="space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-xs font-black uppercase tracking-wider text-primary ml-1">Manufacturer Authorization</label>
-                                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">Mandatory</span>
-                                </div>
-                                <p className="text-[11px] font-medium text-slate-500 italic">Mandatory for Wholesalers & Distributors</p>
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-primary ml-1">Manufacturer Authorization</label>
+                                <p className="text-[10px] font-bold text-slate-500 mb-2 italic">Mandatory for Wholesalers</p>
                             </div>
                             <div className="relative group">
                                 <input type="file" onChange={(e) => handleFileUpload(e, 'manufacturerAuthDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                                <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.manufacturerAuthDoc ? 'border-emerald-500 bg-emerald-50/80' : 'border-slate-300 bg-slate-50/80 hover:border-primary/60 hover:bg-primary/5'}`}>
-                                    <span className={`material-symbols-outlined text-2xl mb-1 ${formData.manufacturerAuthDoc ? 'text-emerald-600' : 'text-slate-500 group-hover:text-primary'}`}>{formData.manufacturerAuthDoc ? 'check_circle' : 'upload_file'}</span>
-                                    <p className={`text-[9px] font-black uppercase tracking-widest ${formData.manufacturerAuthDoc ? 'text-emerald-700' : 'text-slate-700 group-hover:text-slate-900'}`}>{formData.manufacturerAuthDoc ? 'Auth Letter Uploaded' : 'Upload Auth Letter'}</p>
+                                <div className={`p-6 border-2 border-dashed rounded-2xl text-center transition-all ${formData.manufacturerAuthDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                    <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.manufacturerAuthDoc ? 'check_circle' : 'upload_file'}</span>
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-500">Upload Auth Letter</p>
                                 </div>
                             </div>
                             </FieldHighlight>
@@ -1246,125 +1237,27 @@ const RegisterAsSupplierPage = () => {
                 </div>
 
                 {/* Warehouse Media Uploads */}
-                <div className="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary text-xl">warehouse</span>
-                                <label className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-800">
-                                    Warehouse Media
-                                </label>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">
-                                    Mandatory
-                                </span>
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 mt-1">
-                                Upload at least 2 stock inventory photos and 1 dispatch area photo for warehouse verification
-                            </p>
-                        </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-start sm:self-auto">
-                            JPG, PNG up to 10MB
-                        </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        {[0, 1].map((idx) => {
-                            const photoUrl = formData.warehousePhotos[idx];
-                            return (
-                                <div key={`stock-${idx}`} className="relative aspect-square">
-                                    <FieldHighlight name="warehousePhotos" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                                        <div className="relative w-full h-full group">
-                                            <input 
-                                                type="file" 
-                                                accept="image/*"
-                                                onChange={(e) => handleFileUpload(e, 'warehousePhotos', idx)} 
-                                                className="absolute inset-0 opacity-0 cursor-pointer z-20" 
-                                                title={`Upload Stock Photo ${idx + 1}`}
-                                            />
-                                            {photoUrl ? (
-                                                <div className="w-full h-full rounded-3xl overflow-hidden border-2 border-emerald-500 shadow-md bg-emerald-50 relative">
-                                                    <img 
-                                                        src={photoUrl} 
-                                                        alt={`Stock Photo ${idx + 1}`} 
-                                                        className="w-full h-full object-cover" 
-                                                    />
-                                                    <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white gap-1 z-10">
-                                                        <span className="material-symbols-outlined text-2xl">change_circle</span>
-                                                        <span className="text-[10px] font-black uppercase tracking-wider">Change Photo</span>
-                                                    </div>
-                                                    <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg z-10">
-                                                        <span className="material-symbols-outlined text-base font-black">check</span>
-                                                    </div>
-                                                    <div className="absolute bottom-2.5 inset-x-2.5 bg-slate-900/80 backdrop-blur-md rounded-xl py-1.5 px-2.5 text-center z-10">
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-white truncate">
-                                                            Stock Photo {idx + 1}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50/80 hover:bg-indigo-50/40 hover:border-indigo-500 transition-all flex flex-col items-center justify-center p-3 sm:p-4 text-center group-hover:shadow-md cursor-pointer">
-                                                    <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-600 group-hover:text-indigo-600 group-hover:border-indigo-200 group-hover:scale-110 transition-all mb-2.5">
-                                                        <span className="material-symbols-outlined text-2xl">add_photo_alternate</span>
-                                                    </div>
-                                                    <p className="text-[11px] font-black uppercase tracking-wider text-slate-700 group-hover:text-indigo-600 transition-colors">
-                                                        Stock Photo {idx + 1}
-                                                    </p>
-                                                    <span className="text-[9px] font-bold text-slate-400 mt-1 group-hover:text-indigo-500 transition-colors flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-xs">upload</span> Tap to upload
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </FieldHighlight>
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Warehouse Media (Mandatory)</label>
+                    <div className="grid grid-cols-3 gap-4">
+                        {[0, 1].map((idx) => (
+                            <div key={`stock-${idx}`} className="relative aspect-square">
+                                <FieldHighlight name="warehousePhotos" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
+                                <input type="file" onChange={(e) => handleFileUpload(e, 'warehousePhotos', idx)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.warehousePhotos[idx] ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                    <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.warehousePhotos[idx] ? 'inventory_2' : 'add_photo_alternate'}</span>
+                                    <p className="text-[7px] font-black uppercase tracking-widest text-slate-400">Stock Photo {idx + 1}</p>
                                 </div>
-                            );
-                        })}
-
-                        {/* Dispatch Area Photo */}
+                                </FieldHighlight>
+                            </div>
+                        ))}
                         <div className="relative aspect-square">
                             <FieldHighlight name="dispatchPhoto" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                                <div className="relative w-full h-full group">
-                                    <input 
-                                        type="file" 
-                                        accept="image/*"
-                                        onChange={(e) => handleFileUpload(e, 'dispatchPhoto')} 
-                                        className="absolute inset-0 opacity-0 cursor-pointer z-20" 
-                                        title="Upload Dispatch Area Photo"
-                                    />
-                                    {formData.dispatchPhoto ? (
-                                        <div className="w-full h-full rounded-3xl overflow-hidden border-2 border-emerald-500 shadow-md bg-emerald-50 relative">
-                                            <img 
-                                                src={formData.dispatchPhoto} 
-                                                alt="Dispatch Area Photo" 
-                                                className="w-full h-full object-cover" 
-                                            />
-                                            <div className="absolute inset-0 bg-slate-950/50 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center text-white gap-1 z-10">
-                                                <span className="material-symbols-outlined text-2xl">change_circle</span>
-                                                <span className="text-[10px] font-black uppercase tracking-wider">Change Photo</span>
-                                            </div>
-                                            <div className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg z-10">
-                                                <span className="material-symbols-outlined text-base font-black">check</span>
-                                            </div>
-                                            <div className="absolute bottom-2.5 inset-x-2.5 bg-slate-900/80 backdrop-blur-md rounded-xl py-1.5 px-2.5 text-center z-10">
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-white truncate">
-                                                    Dispatch Area
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="w-full h-full border-2 border-dashed border-slate-300 rounded-3xl bg-slate-50/80 hover:bg-indigo-50/40 hover:border-indigo-500 transition-all flex flex-col items-center justify-center p-3 sm:p-4 text-center group-hover:shadow-md cursor-pointer">
-                                            <div className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-600 group-hover:text-indigo-600 group-hover:border-indigo-200 group-hover:scale-110 transition-all mb-2.5">
-                                                <span className="material-symbols-outlined text-2xl">local_shipping</span>
-                                            </div>
-                                            <p className="text-[11px] font-black uppercase tracking-wider text-slate-700 group-hover:text-indigo-600 transition-colors">
-                                                Dispatch Area
-                                            </p>
-                                            <span className="text-[9px] font-bold text-slate-400 mt-1 group-hover:text-indigo-500 transition-colors flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-xs">upload</span> Tap to upload
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
+                            <input type="file" onChange={(e) => handleFileUpload(e, 'dispatchPhoto')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                            <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.dispatchPhoto ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                <span className="material-symbols-outlined text-2xl text-slate-300 mb-1">{formData.dispatchPhoto ? 'local_shipping' : 'add_photo_alternate'}</span>
+                                <p className="text-[7px] font-black uppercase tracking-widest text-slate-400">Dispatch Area</p>
+                            </div>
                             </FieldHighlight>
                         </div>
                     </div>
@@ -1525,39 +1418,27 @@ const RegisterAsSupplierPage = () => {
 
                 {/* Final Documents */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200/90 shadow-sm space-y-4">
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
                         <FieldHighlight name="cancelledChequeDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-black uppercase tracking-wider text-slate-800 ml-1">Cancelled Cheque</label>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">Mandatory</span>
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 italic">For bank verification and settlements</p>
-                        </div>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Cancelled Cheque</label>
                         <div className="relative group aspect-video">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'cancelledChequeDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                            <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.cancelledChequeDoc ? 'border-emerald-500 bg-emerald-50/80' : 'border-slate-300 bg-slate-50/80 hover:border-primary/60 hover:bg-primary/5'}`}>
-                                <span className={`material-symbols-outlined text-3xl mb-2 ${formData.cancelledChequeDoc ? 'text-emerald-600' : 'text-slate-500 group-hover:text-primary'}`}>{formData.cancelledChequeDoc ? 'payments' : 'upload_file'}</span>
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${formData.cancelledChequeDoc ? 'text-emerald-700' : 'text-slate-700 group-hover:text-slate-900'}`}>{formData.cancelledChequeDoc ? 'Cheque Uploaded' : 'Upload Image / PDF'}</p>
+                            <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.cancelledChequeDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                <span className="material-symbols-outlined text-3xl text-slate-300 mb-2">{formData.cancelledChequeDoc ? 'payments' : 'upload_file'}</span>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Upload Image/PDF</p>
                             </div>
                         </div>
                         </FieldHighlight>
                     </div>
 
-                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200/90 shadow-sm space-y-4">
+                    <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm space-y-4">
                         <FieldHighlight name="priceListDoc" isRevisionRequired={isRevisionRequired} applicationStatus={applicationStatus}>
-                        <div className="space-y-1">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-black uppercase tracking-wider text-slate-800 ml-1">Product Catalog / Price List</label>
-                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">Mandatory</span>
-                            </div>
-                            <p className="text-[11px] font-medium text-slate-500 italic">Your catalog & supply pricing document</p>
-                        </div>
+                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Product Catalog / Price List</label>
                         <div className="relative group aspect-video">
                             <input type="file" onChange={(e) => handleFileUpload(e, 'priceListDoc')} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                            <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.priceListDoc ? 'border-emerald-500 bg-emerald-50/80' : 'border-slate-300 bg-slate-50/80 hover:border-primary/60 hover:bg-primary/5'}`}>
-                                <span className={`material-symbols-outlined text-3xl mb-2 ${formData.priceListDoc ? 'text-emerald-600' : 'text-slate-500 group-hover:text-primary'}`}>{formData.priceListDoc ? 'menu_book' : 'picture_as_pdf'}</span>
-                                <p className={`text-[10px] font-black uppercase tracking-widest ${formData.priceListDoc ? 'text-emerald-700' : 'text-slate-700 group-hover:text-slate-900'}`}>{formData.priceListDoc ? 'Catalog Uploaded' : 'Upload PDF Catalog'}</p>
+                            <div className={`w-full h-full border-2 border-dashed rounded-3xl flex flex-col items-center justify-center transition-all ${formData.priceListDoc ? 'border-emerald-500 bg-emerald-50' : 'border-slate-100 hover:border-primary/40'}`}>
+                                <span className="material-symbols-outlined text-3xl text-slate-300 mb-2">{formData.priceListDoc ? 'menu_book' : 'picture_as_pdf'}</span>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Upload PDF Catalog</p>
                             </div>
                         </div>
                         </FieldHighlight>

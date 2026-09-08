@@ -1,547 +1,549 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Megaphone, 
-  Building2, 
-  Mail, 
-  Phone, 
-  MapPin, 
-  IndianRupee, 
-  Calendar, 
-  Clock, 
-  CheckCircle2, 
-  ChevronRight, 
-  X, 
-  Sparkles, 
-  TrendingUp, 
-  Users, 
-  ShieldCheck,
-  FileText
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { mediaApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
-const STATUS_MAP = {
-  'Creative Pending Review': { label: 'Submitted', color: 'bg-slate-100 text-slate-800 border-slate-200' },
-  'Content Review': { label: 'Under Review', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  'Invoice Generated': { label: 'Payment Required', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  'Scheduled': { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  'Running': { label: 'Active Campaign', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  'Campaign Ended': { label: 'Completed', color: 'bg-slate-100 text-slate-500 border-slate-200' },
-  'Paused by Admin': { label: 'Paused', color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  'Rejected': { label: 'Declined', color: 'bg-rose-50 text-rose-700 border-rose-200' }
-};
-
 const AdvertiseWithUsPage = () => {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
 
-  // User Context
-  const userDataRaw = localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
-  const userData = JSON.parse(userDataRaw);
-  const userEmail = userData.email || userData.user?.email || '';
+    // User Context
+    const userDataRaw = localStorage.getItem('user') || localStorage.getItem('userData') || '{}';
+    const userData = JSON.parse(userDataRaw);
+    const userEmail = userData.email || userData.user?.email || '';
 
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState('submit'); // 'submit' | 'track'
-  const [myInquiries, setMyInquiries] = useState([]);
-  const [fetchingInquiries, setFetchingInquiries] = useState(false);
-  const [viewingProposal, setViewingProposal] = useState(null);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [activeTab, setActiveTab] = useState('Submit Proposal');
+    const [myInquiries, setMyInquiries] = useState([]);
+    const [fetchingInquiries, setFetchingInquiries] = useState(false);
+    const [viewingProposal, setViewingProposal] = useState(null);
 
-  // Location specific states
-  const [locationType, setLocationType] = useState('Pan India'); // 'Pan India' or 'Custom'
-  const [stateName, setStateName] = useState('');
-  const [cityName, setCityName] = useState('');
+    // Location specific states
+    const [locationType, setLocationType] = useState('Pan India'); // 'Pan India' or 'Custom'
+    const [stateName, setStateName] = useState('');
+    const [cityName, setCityName] = useState('');
 
-  const [formData, setFormData] = useState({ 
-    brandName: '', 
-    email: userEmail || localStorage.getItem('last_b2b_email') || '',
-    phone: '', 
-    location: 'Pan India',
-    budget: '', 
-    timeline: 'Launch Boost' 
-  });
+    const [formData, setFormData] = useState({ 
+        brandName: '', 
+        email: userEmail || localStorage.getItem('last_b2b_email') || '',
+        phone: '', 
+        location: 'Pan India',
+        budget: '', 
+        timeline: 'Launch Boost' 
+    });
 
-  const fetchMyInquiries = async () => {
-    const emailToQuery = userEmail || localStorage.getItem('last_b2b_email') || formData.email;
-    if (!emailToQuery) return;
-    try {
-      setFetchingInquiries(true);
-      const data = await mediaApi.getMyInquiries(emailToQuery);
-      setMyInquiries(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Failed to fetch inquiries:', error);
-    } finally {
-      setFetchingInquiries(false);
-    }
-  };
+    const fetchMyInquiries = async () => {
+        const emailToQuery = userEmail || localStorage.getItem('last_b2b_email') || formData.email;
+        if (!emailToQuery) return;
+        try {
+            setFetchingInquiries(true);
+            const data = await mediaApi.getMyInquiries(emailToQuery);
+            setMyInquiries(Array.isArray(data) ? data : []);
+        } catch (error) {
+            console.error('Failed to fetch inquiries:', error);
+        } finally {
+            setFetchingInquiries(false);
+        }
+    };
 
-  useEffect(() => {
-    const emailToQuery = userEmail || localStorage.getItem('last_b2b_email') || formData.email;
-    if (emailToQuery) {
-      fetchMyInquiries();
-    }
-  }, [userEmail, formData.email]);
+    useEffect(() => {
+        const emailToQuery = userEmail || localStorage.getItem('last_b2b_email') || formData.email;
+        if (emailToQuery) {
+            fetchMyInquiries();
+        }
+    }, [userEmail, formData.email]);
 
-  const campaignTypes = useMemo(() => ['Launch Boost', 'Retainer', 'One-Off'], []);
+    const campaignTypes = useMemo(() => ['Launch Boost', 'Retainer', 'One-Off'], []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setSubmitting(true);
-      const submittedEmail = formData.email || userEmail;
-      if (submittedEmail) {
-        localStorage.setItem('last_b2b_email', submittedEmail);
-      }
-      await mediaApi.submitInquiry({ ...formData, email: submittedEmail });
-      toast.success('Campaign proposal submitted successfully!');
-      fetchMyInquiries();
-      setIsSubmitted(true);
-      setTimeout(() => {
-        setActiveTab('track');
-        setIsSubmitted(false);
-        setLocationType('Pan India');
-        setStateName('');
-        setCityName('');
-        setFormData({
-          brandName: '',
-          email: submittedEmail,
-          phone: '',
-          location: 'Pan India',
-          budget: '',
-          timeline: 'Launch Boost'
-        });
-      }, 2000);
-    } catch (error) {
-      toast.error('Failed to submit proposal. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            setSubmitting(true);
+            const submittedEmail = formData.email || userEmail;
+            if (submittedEmail) {
+                localStorage.setItem('last_b2b_email', submittedEmail);
+            }
+            await mediaApi.submitInquiry({ ...formData, email: submittedEmail });
+            toast.success('Inquiry submitted!');
+            fetchMyInquiries();
+            setIsSubmitted(true);
+            setTimeout(() => {
+                setActiveTab('Track Proposals');
+                setIsSubmitted(false);
+                setLocationType('Pan India');
+                setStateName('');
+                setCityName('');
+                setFormData({
+                    brandName: '',
+                    email: submittedEmail,
+                    phone: '',
+                    location: 'Pan India',
+                    budget: '',
+                    timeline: 'Launch Boost'
+                });
+            }, 2500);
+        } catch (error) {
+            toast.error('Failed to submit. Try again.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
-  return (
-    <div className="min-h-[100dvh] flex flex-col font-['Poppins',sans-serif] text-slate-900 bg-[#f8fafc]">
-      <main className="flex-1 pb-36 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-8">
-        
-        {/* HERO SECTION */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200">
-                <Megaphone size={13} className="text-slate-700" />
-                <span>SPINZYT Brand Partnerships & Media Kit</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-                Advertise Inside Urban Households
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 font-normal leading-relaxed">
-                Connect your brand with verified, high-frequency laundry customers through premium eco-packaging sponsorship, in-app brand placements, and targeted metro marketing.
-              </p>
-            </div>
+    const containerVariants = useMemo(() => ({
+        hidden: { opacity: 0 },
+        visible: { 
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+        }
+    }), []);
 
-            {/* Segmented Switcher */}
-            <div className="bg-slate-100/90 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/80 shrink-0 self-start md:self-auto">
-              <button
-                onClick={() => setActiveTab('submit')}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer",
-                  activeTab === 'submit' ? "bg-white text-slate-900 shadow-xs font-semibold" : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                Submit Proposal
-              </button>
-              <button
-                onClick={() => setActiveTab('track')}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer flex items-center gap-1.5",
-                  activeTab === 'track' ? "bg-white text-slate-900 shadow-xs font-semibold" : "text-slate-600 hover:text-slate-900"
-                )}
-              >
-                <span>Track Inquiries</span>
-                {myInquiries.length > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-slate-900 text-white text-[10px] font-bold">
-                    {myInquiries.length}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
+    const itemVariants = useMemo(() => ({
+        hidden: { y: 10, opacity: 0 },
+        visible: { y: 0, opacity: 1, transition: { duration: 0.4 } }
+    }), []);
 
-          {/* Key Metrics Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-              <div className="flex items-center gap-2 text-slate-700 text-xs font-semibold">
-                <Users size={15} />
-                <span>50,000+ Monthly Bags</span>
-              </div>
-              <p className="text-xs text-slate-500 font-normal">Delivered directly into customer wardrobes.</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-              <div className="flex items-center gap-2 text-slate-700 text-xs font-semibold">
-                <TrendingUp size={15} />
-                <span>98.4% Attention Retention</span>
-              </div>
-              <p className="text-xs text-slate-500 font-normal">Garment covers kept in homes for weeks.</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-              <div className="flex items-center gap-2 text-slate-700 text-xs font-semibold">
-                <ShieldCheck size={15} />
-                <span>100% Brand Safe</span>
-              </div>
-              <p className="text-xs text-slate-500 font-normal">Exclusive non-compete sponsor categories.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* CONTENT AREA */}
-        <AnimatePresence mode="wait">
-          {activeTab === 'submit' ? (
-            !isSubmitted ? (
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                  
-                  {/* Left Column: Brand & Contact Info */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs space-y-4">
-                    <div className="pb-3 border-b border-slate-100">
-                      <h3 className="text-base font-bold text-slate-900">Brand & Contact Details</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Tell us about your company and primary contact.</p>
+    return (
+        <div className="bg-slate-50/50 text-on-surface min-h-[100dvh] pb-24 flex flex-col overflow-x-hidden font-body">
+            <header className="px-6 pt-4 flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                    <motion.button 
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => navigate(-1)}
+                        className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-on-surface border border-outline-variant/10"
+                    >
+                        <span className="material-symbols-outlined text-xl">arrow_back</span>
+                    </motion.button>
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tighter leading-none">Advertise</h1>
+                        <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest opacity-40 mt-1">Sponsorships & Marketing</p>
                     </div>
+                </div>
+            </header>
 
-                    <div className="space-y-3.5">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-700">Brand / Company Name</label>
-                        <div className="relative flex items-center">
-                          <Building2 size={15} className="absolute left-3.5 text-slate-400" />
-                          <input 
-                            required
-                            type="text"
-                            placeholder="e.g. Nike, Urban Company"
-                            value={formData.brandName}
-                            onChange={(e) => setFormData(prev => ({ ...prev, brandName: e.target.value }))}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-700">Official Work Email</label>
-                        <div className="relative flex items-center">
-                          <Mail size={15} className="absolute left-3.5 text-slate-400" />
-                          <input 
-                            required
-                            type="email"
-                            placeholder="marketing@yourbrand.com"
-                            value={formData.email}
-                            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-700">Contact Number</label>
-                        <div className="relative flex items-center">
-                          <Phone size={15} className="absolute left-3.5 text-slate-400" />
-                          <input 
-                            required
-                            type="tel"
-                            maxLength={10}
-                            placeholder="10-digit mobile number"
-                            value={formData.phone}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/\D/g, '');
-                              if (val.length <= 10) setFormData(prev => ({ ...prev, phone: val }));
-                            }}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-3.5 py-2.5 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5 pt-1">
-                        <label className="text-xs font-medium text-slate-700">Target Geographic Scope</label>
-                        <div className="flex gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200/60">
-                          <button
-                            type="button"
+            {/* Tabs */}
+            <div className="px-6 mb-6 max-w-md mx-auto w-full">
+                <div className="bg-white p-1 rounded-2xl border border-slate-100 flex shadow-sm">
+                    {['Submit Proposal', 'Track Proposals'].map((tab) => (
+                        <button 
+                            key={tab}
                             onClick={() => {
-                              setLocationType('Pan India');
-                              setFormData(prev => ({ ...prev, location: 'Pan India' }));
+                                setActiveTab(tab);
+                                setIsSubmitted(false);
                             }}
-                            className={cn(
-                              "flex-1 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                              locationType === 'Pan India' ? "bg-white text-slate-900 shadow-2xs font-semibold" : "text-slate-600 hover:text-slate-900"
-                            )}
-                          >
-                            Pan India
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setLocationType('Custom');
-                              setFormData(prev => ({ ...prev, location: cityName ? `${cityName}, ${stateName}` : stateName }));
-                            }}
-                            className={cn(
-                              "flex-1 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer",
-                              locationType === 'Custom' ? "bg-white text-slate-900 shadow-2xs font-semibold" : "text-slate-600 hover:text-slate-900"
-                            )}
-                          >
-                            Specific Cities
-                          </button>
-                        </div>
+                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            {tab}
+                        </button>
+                    ))}
+                </div>
+            </div>
 
-                        {locationType === 'Custom' && (
-                          <div className="grid grid-cols-2 gap-3 pt-2">
-                            <input 
-                              type="text" 
-                              placeholder="City (e.g. Indore)"
-                              value={cityName}
-                              onChange={(e) => {
-                                setCityName(e.target.value);
-                                setFormData(prev => ({ ...prev, location: `${e.target.value}, ${stateName}` }));
-                              }}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:bg-white focus:border-slate-400"
-                            />
-                            <input 
-                              type="text" 
-                              placeholder="State (e.g. MP)"
-                              value={stateName}
-                              onChange={(e) => {
-                                setStateName(e.target.value);
-                                setFormData(prev => ({ ...prev, location: `${cityName}, ${e.target.value}` }));
-                              }}
-                              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:bg-white focus:border-slate-400"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column: Campaign Budget & Scope */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs space-y-4">
-                    <div className="pb-3 border-b border-slate-100">
-                      <h3 className="text-base font-bold text-slate-900">Campaign Scope & Budget</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Customize your sponsorship tier and timeline.</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium text-slate-700">Estimated Monthly Budget (₹)</label>
-                        <div className="relative flex items-center">
-                          <span className="absolute left-3.5 text-slate-400 font-semibold text-xs">₹</span>
-                          <input 
-                            required
-                            type="number"
-                            placeholder="e.g. 50,000"
-                            value={formData.budget}
-                            onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2.5 text-xs sm:text-sm font-normal text-slate-900 outline-none focus:bg-white focus:border-slate-400 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-slate-700">Campaign Duration & Type</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {campaignTypes.map(type => (
-                            <button
-                              type="button"
-                              key={type}
-                              onClick={() => setFormData(prev => ({ ...prev, timeline: type }))}
-                              className={cn(
-                                "py-3 px-2 rounded-xl border text-xs font-medium transition-all text-center cursor-pointer",
-                                formData.timeline === type 
-                                  ? "bg-slate-900 text-white border-slate-900 shadow-2xs font-semibold" 
-                                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                              )}
+            <motion.main 
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="px-6 max-w-md mx-auto w-full flex-grow"
+            >
+                <AnimatePresence mode="wait">
+                    {activeTab === 'Submit Proposal' ? (
+                        !isSubmitted ? (
+                            <motion.form 
+                                key="form"
+                                variants={itemVariants}
+                                initial="hidden"
+                                animate="visible"
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                onSubmit={handleSubmit}
+                                className="bg-white p-10 rounded-[3rem] border border-outline-variant/10 shadow-lg space-y-10"
                             >
-                              {type}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                                <header>
+                                    <h3 className="text-2xl font-black tracking-tighter text-on-surface mb-2 leading-none">Campaign Inquiry</h3>
+                                    <p className="text-[10px] font-bold text-on-surface-variant opacity-60 uppercase tracking-widest leading-none">Brief our advertising team.</p>
+                                </header>
 
-                      <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200/60 space-y-2 text-xs">
-                        <p className="font-semibold text-slate-800">What happens next?</p>
-                        <ul className="space-y-1 text-slate-500 list-disc list-inside">
-                          <li>Our brand solutions team reviews your target geo & niche.</li>
-                          <li>You receive a bespoke media kit with print & digital mockups.</li>
-                          <li>Dedicated campaign execution manager assigned.</li>
-                        </ul>
-                      </div>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Brand Name</label>
+                                        <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all">
+                                            <input 
+                                                required 
+                                                type="text" 
+                                                placeholder="e.g. Nike" 
+                                                value={formData.brandName}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, brandName: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Contact Email</label>
+                                        <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all">
+                                            <input 
+                                                required 
+                                                type="email" 
+                                                placeholder="marketing@nike.com" 
+                                                value={formData.email}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Contact Number</label>
+                                            <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all">
+                                                <input 
+                                                    required 
+                                                    type="tel" 
+                                                    pattern="[0-9]{10}"
+                                                    maxLength="10"
+                                                    placeholder="10 digit number" 
+                                                    value={formData.phone}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value.replace(/\D/g, '');
+                                                        if (val.length <= 10) {
+                                                            setFormData(prev => ({ ...prev, phone: val }));
+                                                        }
+                                                    }}
+                                                    className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Target Location</label>
+                                            <div className="flex gap-2 p-1.5 bg-white border border-slate-300 rounded-[2rem] shadow-sm">
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setLocationType('Pan India');
+                                                        setFormData(prev => ({ ...prev, location: 'Pan India' }));
+                                                    }}
+                                                    className={`flex-1 py-3 rounded-2xl text-[9px] uppercase font-black tracking-wider transition-all cursor-pointer ${
+                                                        locationType === 'Pan India' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400'
+                                                    }`}
+                                                >
+                                                    Pan India
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setLocationType('Custom');
+                                                        setFormData(prev => ({ ...prev, location: cityName ? `${cityName}, ${stateName}` : stateName }));
+                                                    }}
+                                                    className={`flex-1 py-3 rounded-2xl text-[9px] uppercase font-black tracking-wider transition-all cursor-pointer ${
+                                                        locationType === 'Custom' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400'
+                                                    }`}
+                                                >
+                                                    Custom
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                      <button
-                        type="submit"
-                        disabled={submitting}
-                        className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold text-xs sm:text-sm transition-colors shadow-2xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                      >
-                        <Megaphone size={16} />
-                        <span>{submitting ? 'Submitting Proposal...' : 'Submit Campaign Proposal'}</span>
-                      </button>
-                    </div>
-                  </div>
+                                    <AnimatePresence>
+                                        {locationType === 'Custom' && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                className="grid grid-cols-2 gap-4 overflow-hidden pt-2"
+                                            >
+                                                <div>
+                                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">State</label>
+                                                    <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                                        <input 
+                                                            required={locationType === 'Custom'}
+                                                            type="text" 
+                                                            placeholder="e.g. Maharashtra" 
+                                                            value={stateName}
+                                                            onChange={(e) => {
+                                                                const s = e.target.value;
+                                                                setStateName(s);
+                                                                setFormData(prev => ({ ...prev, location: cityName ? `${cityName}, ${s}` : s }));
+                                                            }}
+                                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">City (Optional)</label>
+                                                    <div className="bg-white rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="e.g. Mumbai" 
+                                                            value={cityName}
+                                                            onChange={(e) => {
+                                                                const c = e.target.value;
+                                                                setCityName(c);
+                                                                setFormData(prev => ({ ...prev, location: c ? `${c}, ${stateName}` : stateName }));
+                                                            }}
+                                                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
 
-                </div>
-              </form>
-            ) : (
-              <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 text-center max-w-lg mx-auto shadow-xs space-y-4">
-                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto text-emerald-600 border border-emerald-200">
-                  <CheckCircle2 size={32} />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Proposal Received!</h2>
-                <p className="text-xs sm:text-sm text-slate-500 font-normal leading-relaxed">
-                  Our advertising team will review your brand's requirements and reach out with sample mockups and slots within 24 hours.
-                </p>
-                <button
-                  onClick={() => setActiveTab('track')}
-                  className="mt-2 px-6 py-2.5 bg-slate-900 text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  Track Proposal Status
-                </button>
-              </div>
-            )
-          ) : (
-            /* TRACKING INQUIRIES TAB */
-            <div className="space-y-4">
-              {fetchingInquiries ? (
-                <div className="py-20 text-center flex flex-col items-center">
-                  <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin mb-3" />
-                  <p className="text-xs font-medium text-slate-500">Syncing your proposals...</p>
-                </div>
-              ) : myInquiries.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {myInquiries.map((inq) => {
-                    const rawStatus = inq.status || 'Creative Pending Review';
-                    const mapped = STATUS_MAP[rawStatus] || { label: rawStatus, color: 'bg-slate-100 text-slate-800 border-slate-200' };
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Monthly Budget (₹)</label>
+                                        <div className="bg-surface-container-low rounded-3xl p-5 border border-slate-300 shadow-sm focus-within:bg-white transition-all flex items-center">
+                                            <span className="text-on-surface font-black mr-2 opacity-50">₹</span>
+                                            <input 
+                                                required 
+                                                type="number" 
+                                                placeholder="50,000" 
+                                                value={formData.budget}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, budget: e.target.value }))}
+                                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none p-0 text-md font-black placeholder:text-outline-variant/40" 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block font-label text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4 ml-1">Campaign Timeline</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {campaignTypes.map(type => (
+                                                <button 
+                                                    type="button" 
+                                                    key={type} 
+                                                    onClick={() => setFormData(prev => ({ ...prev, timeline: type }))}
+                                                    className={`px-5 py-4 border rounded-2xl text-[10px] uppercase font-black tracking-widest transition-all text-left ${
+                                                        formData.timeline === type ? 'bg-primary text-white border-primary' : 'bg-white border-slate-300 hover:bg-primary/5 hover:border-primary/20'
+                                                    }`}
+                                                >
+                                                    {type}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    type="submit"
+                                    disabled={submitting}
+                                    className={`w-full py-5 bg-primary-gradient text-on-primary font-black rounded-2xl uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary/30 ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {submitting ? 'Submitting...' : 'Request Proposal'}
+                                </motion.button>
+                            </motion.form>
+                        ) : (
+                            <motion.div 
+                                key="success"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="bg-white rounded-[3rem] p-12 text-center border border-outline-variant/10 shadow-2xl shadow-primary/10"
+                            >
+                                <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-8 text-success border border-success/20">
+                                    <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                                </div>
+                                <h2 className="text-3xl font-black tracking-tighter mb-4 leading-none">Campaign Slated</h2>
+                                <p className="text-on-surface-variant text-sm font-bold opacity-60 leading-relaxed mb-10">Our advertising specialists will draft a tailored proposal and contact your team within 24 hours.</p>
+                                <button 
+                                    onClick={() => setActiveTab('Track Proposals')}
+                                    className="bg-slate-900 text-white hover:bg-black px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-lg shadow-slate-950/20"
+                                >
+                                    Track My Application
+                                </button>
+                            </motion.div>
+                        )
+                    ) : (
+                        <motion.div 
+                            key="tracking"
+                            variants={itemVariants}
+                            initial="hidden"
+                            animate="visible"
+                            className="space-y-6"
+                        >
+                            {fetchingInquiries ? (
+                                <div className="py-20 flex flex-col items-center justify-center gap-3">
+                                    <div className="w-8 h-8 border-2 border-slate-300 border-t-slate-950 rounded-full animate-spin" />
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Syncing Campaigns...</p>
+                                </div>
+                            ) : myInquiries.length > 0 ? (
+                                <div className="bg-white border border-slate-200 rounded-[2rem] overflow-hidden shadow-sm">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-slate-50 border-b border-slate-100">
+                                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Brand</th>
+                                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Budget</th>
+                                                    <th className="px-6 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Stage</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-50">
+                                                {myInquiries.map((inq) => {
+                                                    const rawStatus = inq.status || 'Creative Pending Review';
+                                                    let status = rawStatus;
+                                                    if (rawStatus === 'New Application') status = 'Creative Pending Review';
+                                                    else if (rawStatus === 'Requested More Info') status = 'Content Review';
+                                                    else if (rawStatus === 'Scheduled Meeting') status = 'Scheduled';
+                                                    else if (rawStatus === 'Final Proposal') status = 'Running';
+
+                                                    const STATUS_MAP = {
+                                                        'Creative Pending Review': { label: 'Submitted', color: 'bg-slate-100 text-slate-800 border-slate-200' },
+                                                        'Content Review': { label: 'Under Review', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                                                        'Invoice Generated': { label: 'Payment Required', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                                                        'Scheduled': { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                                                        'Running': { label: 'Active', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                                                        'Campaign Ended': { label: 'Completed', color: 'bg-slate-100 text-slate-400 border-slate-200' },
+                                                        'Paused by Admin': { label: 'Paused', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+                                                        'Rejected': { label: 'Declined', color: 'bg-rose-50 text-rose-700 border-rose-200' }
+                                                    };
+                                                    const mapped = STATUS_MAP[status] || { label: status, color: 'bg-slate-100 text-slate-800 border-slate-200' };
+                                                    const displayStatus = mapped.label;
+                                                    const badgeColor = mapped.color;
+                                                    return (
+                                                        <tr 
+                                                            key={inq._id} 
+                                                            className="hover:bg-slate-50/70 active:bg-slate-100 transition-all cursor-pointer group"
+                                                            onClick={() => setViewingProposal(inq)}
+                                                        >
+                                                            <td className="px-6 py-5">
+                                                                <p className="text-xs font-black text-slate-900 leading-none">{inq.brandName}</p>
+                                                                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1.5">{inq.location}</p>
+                                                                {inq.notes && (
+                                                                    <div className="mt-2 p-2 bg-slate-50 border border-slate-100 rounded-lg text-[9px] font-bold text-slate-500 max-w-[200px] leading-relaxed">
+                                                                        <span className="font-extrabold text-slate-700">Note: </span>{inq.notes}
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-5 text-xs font-bold text-slate-600">
+                                                                ₹{inq.budget?.toLocaleString()}
+                                                            </td>
+                                                            <td className="px-6 py-5">
+                                                                <span className={`px-2.5 py-1 text-[8px] font-black rounded-full uppercase tracking-wider border whitespace-nowrap ${badgeColor}`}>
+                                                                    {displayStatus}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-white p-12 rounded-[2.5rem] border border-slate-200 text-center shadow-sm">
+                                    <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">assignment_late</span>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No active campaigns found</p>
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.main>
+
+            <AnimatePresence>
+                {viewingProposal && (() => {
+                    const rawStatus = viewingProposal.status || 'Creative Pending Review';
+                    const STATUS_MAP = {
+                        'Creative Pending Review': { label: 'Submitted', color: 'bg-slate-100 text-slate-800 border-slate-200' },
+                        'Content Review': { label: 'Under Review', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+                        'Invoice Generated': { label: 'Payment Required', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                        'Scheduled': { label: 'Approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                        'Running': { label: 'Active', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+                        'Campaign Ended': { label: 'Completed', color: 'bg-slate-100 text-slate-400 border-slate-200' },
+                        'Paused by Admin': { label: 'Paused', color: 'bg-orange-50 text-orange-700 border-orange-200' },
+                        'Rejected': { label: 'Declined', color: 'bg-rose-50 text-rose-700 border-rose-200' }
+                    };
+                    const status = rawStatus === 'New Application' ? 'Creative Pending Review' : rawStatus;
+                    const mapped = STATUS_MAP[status] || { label: status, color: 'bg-slate-100 text-slate-800 border-slate-200' };
 
                     return (
-                      <div 
-                        key={inq._id} 
-                        onClick={() => setViewingProposal(inq)}
-                        className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs hover:shadow-xs transition-all space-y-3 cursor-pointer group"
-                      >
-                        <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                          <div>
-                            <h4 className="text-sm font-bold text-slate-900">{inq.brandName}</h4>
-                            <p className="text-xs text-slate-500">{inq.location || 'Pan India'}</p>
-                          </div>
-                          <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold border", mapped.color)}>
-                            {mapped.label}
-                          </span>
-                        </div>
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setViewingProposal(null)}
+                                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                            />
+                            <motion.div 
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white w-full max-w-md rounded-[2.5rem] p-6 shadow-2xl relative z-10 text-slate-900 border border-slate-200 overflow-hidden"
+                            >
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider mb-2 inline-block border ${mapped.color}`}>
+                                            {mapped.label}
+                                        </span>
+                                        <h2 className="font-black text-xl tracking-tight text-slate-950 leading-tight">
+                                            {viewingProposal.brandName}
+                                        </h2>
+                                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Proposal Details</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setViewingProposal(null)}
+                                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-800 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg">close</span>
+                                    </button>
+                                </div>
 
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-slate-400">Budget</span>
-                            <p className="font-semibold text-slate-800">₹{inq.budget?.toLocaleString()}</p>
-                          </div>
-                          <div>
-                            <span className="text-slate-400">Timeline</span>
-                            <p className="font-semibold text-slate-800">{inq.timeline || 'Launch Boost'}</p>
-                          </div>
-                        </div>
+                                <div className="space-y-4 text-xs font-semibold text-slate-600">
+                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-3xl border border-slate-100">
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Target Location</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.location}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Monthly Budget</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">₹{viewingProposal.budget?.toLocaleString()}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Campaign Timeline</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.timeline}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Submitted On</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{new Date(viewingProposal.createdAt).toLocaleDateString('en-GB')}</p>
+                                        </div>
+                                    </div>
 
-                        <div className="flex items-center justify-between pt-1 text-xs text-slate-400">
-                          <span>Click to view details</span>
-                          <ChevronRight size={14} className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+                                    <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100 space-y-3">
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Email Address</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.email}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">Phone Number</p>
+                                            <p className="text-slate-900 font-bold mt-0.5">{viewingProposal.phone}</p>
+                                        </div>
+                                    </div>
+
+                                    {viewingProposal.notes && (
+                                        <div className="bg-emerald-500/10 p-4 rounded-3xl border border-emerald-500/20">
+                                            <p className="text-[8px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px]">info</span>
+                                                Feedback / Notes
+                                            </p>
+                                            <p className="text-slate-800 font-medium mt-1 leading-relaxed text-xs">
+                                                {viewingProposal.notes}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={() => setViewingProposal(null)}
+                                            className="w-full py-4 bg-slate-950 hover:bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+                                        >
+                                            Close Window
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
                         </div>
-                      </div>
                     );
-                  })}
-                </div>
-              ) : (
-                <div className="bg-white rounded-3xl border border-slate-200/80 p-12 text-center max-w-md mx-auto space-y-3">
-                  <Megaphone size={36} className="mx-auto text-slate-300" />
-                  <h3 className="text-base font-semibold text-slate-800">No campaigns submitted yet</h3>
-                  <p className="text-xs text-slate-500">Submit your brand inquiry to begin partnering with us.</p>
-                  <button
-                    onClick={() => setActiveTab('submit')}
-                    className="mt-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-medium hover:bg-slate-800 transition-colors cursor-pointer"
-                  >
-                    Create Proposal
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* PROPOSAL DETAILS MODAL */}
-        <AnimatePresence>
-          {viewingProposal && (() => {
-            const rawStatus = viewingProposal.status || 'Creative Pending Review';
-            const mapped = STATUS_MAP[rawStatus] || { label: rawStatus, color: 'bg-slate-100 text-slate-800 border-slate-200' };
-
-            return (
-              <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-                <div 
-                  onClick={() => setViewingProposal(null)} 
-                  className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs" 
-                />
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="relative w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-xl border border-slate-200 space-y-5"
-                >
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-900">{viewingProposal.brandName}</h3>
-                      <p className="text-xs text-slate-500">Proposal ID: #{viewingProposal._id?.slice(-8)}</p>
-                    </div>
-                    <button 
-                      onClick={() => setViewingProposal(null)} 
-                      className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors cursor-pointer"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-
-                  <div className="space-y-3 text-xs sm:text-sm">
-                    <div className="flex justify-between py-1.5 border-b border-slate-50">
-                      <span className="text-slate-500">Status</span>
-                      <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold border", mapped.color)}>
-                        {mapped.label}
-                      </span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-b border-slate-50">
-                      <span className="text-slate-500">Target Location</span>
-                      <span className="font-semibold text-slate-800">{viewingProposal.location}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-b border-slate-50">
-                      <span className="text-slate-500">Monthly Budget</span>
-                      <span className="font-semibold text-slate-800">₹{viewingProposal.budget?.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-b border-slate-50">
-                      <span className="text-slate-500">Timeline</span>
-                      <span className="font-semibold text-slate-800">{viewingProposal.timeline || 'Launch Boost'}</span>
-                    </div>
-                    <div className="flex justify-between py-1.5 border-b border-slate-50">
-                      <span className="text-slate-500">Contact Email</span>
-                      <span className="font-semibold text-slate-800">{viewingProposal.email}</span>
-                    </div>
-                    {viewingProposal.notes && (
-                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
-                        <span className="text-xs font-semibold text-slate-700">Team Notes:</span>
-                        <p className="text-xs text-slate-600 font-normal">{viewingProposal.notes}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => setViewingProposal(null)}
-                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </motion.div>
-              </div>
-            );
-          })()}
-        </AnimatePresence>
-      </main>
-    </div>
-  );
+                })()}
+            </AnimatePresence>
+        </div>
+    );
 };
 
 export default AdvertiseWithUsPage;

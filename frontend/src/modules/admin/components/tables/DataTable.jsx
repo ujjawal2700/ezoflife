@@ -49,7 +49,7 @@ const DataTable = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden flex flex-col h-full font-['Poppins',sans-serif]">
+    <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden flex flex-col h-full">
       {/* Table Header Strip */}
       <div className="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
         <div className="flex items-center gap-3">

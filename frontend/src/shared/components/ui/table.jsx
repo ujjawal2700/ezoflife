@@ -2,18 +2,17 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-/* ─── UntitledUI / Modern Clean SaaS Table Primitives with Poppins Font ─
-   - Font Family: Poppins throughout the table
+/* ─── UntitledUI / Modern Clean SaaS Table Primitives ─
    - Increased font size for enhanced legibility across all displays
    - Clean, spacious header and cell padding
    - UntitledUI status pills with colored dots and 3-piece pagination
    ──────────────────────────────────────────────────────────────────── */
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-x-auto font-['Poppins',sans-serif]">
+  <div className="relative w-full overflow-x-auto">
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-[14.5px] border-collapse bg-white font-['Poppins',sans-serif]", className)}
+      className={cn("w-full caption-bottom text-[14.5px] border-collapse bg-white", className)}
       {...props}
     />
   </div>
@@ -24,7 +23,7 @@ const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
   <thead
     ref={ref}
     className={cn(
-      "bg-slate-50/90 border-b border-slate-200 sticky top-0 z-10 font-['Poppins',sans-serif]",
+      "bg-slate-50/90 border-b border-slate-200 sticky top-0 z-10",
       className
     )}
     {...props}
@@ -35,7 +34,7 @@ TableHeader.displayName = "TableHeader";
 const TableBody = React.forwardRef(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("divide-y divide-slate-200/70 bg-white [&_tr:last-child]:border-0 font-['Poppins',sans-serif]", className)}
+    className={cn("divide-y divide-slate-200/70 bg-white [&_tr:last-child]:border-0", className)}
     {...props}
   />
 ));
@@ -45,7 +44,7 @@ const TableFooter = React.forwardRef(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-slate-200 bg-slate-50/50 font-medium [&>tr]:last:border-b-0 font-['Poppins',sans-serif]",
+      "border-t border-slate-200 bg-slate-50/50 font-medium [&>tr]:last:border-b-0",
       className
     )}
     {...props}
@@ -57,7 +56,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-slate-200/70 transition-colors hover:bg-slate-50/80 data-[state=selected]:bg-slate-50 font-['Poppins',sans-serif]",
+      "border-b border-slate-200/70 transition-colors hover:bg-slate-50/80 data-[state=selected]:bg-slate-50",
       className
     )}
     {...props}
@@ -69,7 +68,7 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
-      "h-12 px-6 text-left align-middle font-semibold text-[13.5px] text-slate-700 whitespace-nowrap select-none tracking-normal font-['Poppins',sans-serif]",
+      "h-12 px-6 text-left align-middle font-semibold text-[13.5px] text-slate-700 whitespace-nowrap select-none tracking-normal",
       className
     )}
     {...props}
@@ -81,7 +80,7 @@ const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
-      "px-6 py-4.5 align-middle text-[14.5px] font-normal text-slate-700 leading-normal font-['Poppins',sans-serif]",
+      "px-6 py-4.5 align-middle text-[14.5px] font-normal text-slate-700 leading-normal",
       className
     )}
     {...props}
@@ -92,7 +91,7 @@ TableCell.displayName = "TableCell";
 const TableCaption = React.forwardRef(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={cn("mt-4 text-sm text-slate-500 font-['Poppins',sans-serif]", className)}
+    className={cn("mt-4 text-sm text-slate-500", className)}
     {...props}
   />
 ));
@@ -131,7 +130,7 @@ export function StatusBadge({ status, label, className }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[13px] font-medium border whitespace-nowrap font-['Poppins',sans-serif]",
+        "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[13px] font-medium border whitespace-nowrap",
         theme,
         className
       )}
@@ -159,7 +158,7 @@ export function TagBadge({ label, color = "purple", className }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-3 py-1 rounded-full text-[13px] font-medium border whitespace-nowrap font-['Poppins',sans-serif]",
+        "inline-flex items-center px-3 py-1 rounded-full text-[13px] font-medium border whitespace-nowrap",
         style,
         className
       )}
@@ -174,7 +173,7 @@ export function UserAvatarCell({ name, subtitle, email, avatar, initials, classN
   const computedInitials = initials || (name ? name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U');
 
   return (
-    <div className={cn("flex items-center gap-3.5 font-['Poppins',sans-serif]", className)}>
+    <div className={cn("flex items-center gap-3.5", className)}>
       {avatar ? (
         <img
           src={avatar}
@@ -238,7 +237,7 @@ export function TablePagination({
   return (
     <div
       className={cn(
-        "px-6 py-4 bg-white border-t border-slate-200 flex items-center justify-between gap-4 select-none font-['Poppins',sans-serif]",
+        "px-6 py-4 bg-white border-t border-slate-200 flex items-center justify-between gap-4 select-none",
         className
       )}
     >
