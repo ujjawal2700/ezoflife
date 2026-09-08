@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Wallet, Sparkles, ArrowLeft, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import UserHeader from '../components/UserHeader';
 import { authApi, orderApi } from '../../../lib/api';
 
 const WalletPage = () => {
@@ -26,7 +26,7 @@ const WalletPage = () => {
                     const profile = await authApi.getProfile(userId);
                     setBalance(profile?.walletBalance || 0);
 
-                    // Fetch customer orders to find cashback records
+                    // Fetch customer orders to find B2B cashback records
                     const orders = await orderApi.getMyOrders(userId);
                     const cashbackTxList = (orders || [])
                         .filter(o => (o.ledger && o.ledger.customerWalletCredit > 0) || (o.walletAmountDeducted && o.walletAmountDeducted > 0))
@@ -36,7 +36,7 @@ const WalletPage = () => {
                                 id: o.orderId || `ORD-${o._id.toString().slice(-6).toUpperCase()}`,
                                 type: isDeduction ? 'Order Payment' : 'Promo Cashback',
                                 amount: isDeduction ? -o.walletAmountDeducted : o.ledger.customerWalletCredit,
-                                date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                                date: new Date(o.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                                 status: isDeduction ? 'Debited' : 'Credited'
                             };
                         });
@@ -58,136 +58,74 @@ const WalletPage = () => {
         hidden: { opacity: 0 },
         visible: { 
             opacity: 1,
-            transition: { staggerChildren: 0.08 }
+            transition: { staggerChildren: 0.1 }
         }
     }), []);
 
     const itemVariants = useMemo(() => ({
-        hidden: { y: 15, opacity: 0 },
-        visible: { y: 0, opacity: 1, transition: { duration: 0.4, ease: "easeOut" } }
+        hidden: { y: 20, opacity: 0 },
+        visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } }
     }), []);
 
     return (
-        <div className="bg-[#FAFBFD] text-slate-900 min-h-[100dvh] pb-44 sm:pb-36">
+        <div className="bg-[#FAFBFD] text-slate-900 min-h-screen pb-32 font-sans">
+            <UserHeader title="SPINZYT Wallet" showBack={true} onBack={() => navigate(-1)} />
+            
             <motion.main 
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="max-w-2xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6"
+                className="max-w-xl mx-auto px-6 pt-16 space-y-10"
             >
-                {/* Page Subheader */}
-                <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-200/60">
-                    <button 
-                        onClick={() => navigate('/user/profile')}
-                        className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 px-2.5 sm:px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
-                    >
-                        <ArrowLeft size={16} />
-                        <span>Back to Account</span>
-                    </button>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Spinzyt Wallet</span>
-                    </div>
-                </div>
-
-                {/* Balance Display Card */}
-                <motion.section variants={itemVariants} className="relative">
-                    <div className="relative bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 p-6 sm:p-8 rounded-3xl text-white shadow-xl overflow-hidden border border-slate-700/60">
-                        {/* Decorative subtle background shapes */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full blur-2xl pointer-events-none -ml-16 -mb-16" />
-
-                        <div className="relative z-10 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-9 h-9 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/15">
-                                        <Wallet size={18} />
-                                    </div>
-                                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-300">Available Credits</span>
-                                </div>
-                                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                                    <ShieldCheck size={12} />
-                                    Active Balance
-                                </span>
-                            </div>
-
-                            <div>
-                                <h2 className="text-4xl sm:text-5xl font-bold tracking-tight tabular-nums text-white">
-                                    ₹{balance.toLocaleString('en-IN')}
-                                </h2>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    Applicable automatically at checkout toward any laundry or dry cleaning order.
-                                </p>
-                            </div>
-
-                            <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
-                                <div className="flex items-center gap-1.5 text-slate-300">
-                                    <Sparkles size={13} className="text-amber-400" />
-                                    <span>Instant checkout when balance covers order total</span>
-                                </div>
-                            </div>
-                        </div>
+                {/* Balance Display */}
+                <motion.section variants={itemVariants} className="relative mt-8">
+                    <div className="bg-slate-950 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mb-3">Available Balance</p>
+                        <h2 className="text-5xl font-black tracking-tighter tabular-nums mb-2">
+                            ₹{balance.toLocaleString('en-IN')}
+                        </h2>
                     </div>
                 </motion.section>
 
                 {/* Transaction History */}
-                <motion.section variants={itemVariants} className="space-y-4">
-                    <div className="flex items-center justify-between px-1">
-                        <div className="flex items-center gap-2">
-                            <Clock size={16} className="text-slate-500" />
-                            <h3 className="text-sm sm:text-base font-bold text-slate-900">Wallet History</h3>
-                        </div>
-                        <span className="text-xs text-slate-500 font-medium">
-                            {transactions.length} {transactions.length === 1 ? 'Record' : 'Records'}
-                        </span>
+                <motion.section variants={itemVariants} className="space-y-6">
+                    <div className="flex items-center justify-between px-2">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Transaction History</h3>
+                        <span className="material-symbols-outlined text-slate-300">tune</span>
                     </div>
 
-                    <div className="space-y-2.5">
+                    <div className="space-y-3">
                         {loading ? (
-                            <div className="flex justify-center py-12 bg-white rounded-2xl border border-slate-200/80 shadow-2xs">
-                                <div className="w-7 h-7 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+                            <div className="flex justify-center py-10">
+                                <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
                             </div>
                         ) : transactions.length === 0 ? (
-                            <div className="text-center py-12 px-4 bg-white rounded-2xl border border-slate-200/80 shadow-2xs space-y-2">
-                                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                                    <Wallet size={22} />
-                                </div>
-                                <h4 className="text-sm font-semibold text-slate-800">No transactions yet</h4>
-                                <p className="text-xs text-slate-500 max-w-xs mx-auto">
-                                    Promotional cashback and refund credits will appear here as you place and receive orders.
-                                </p>
+                            <div className="text-center py-10 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                <span className="material-symbols-outlined text-3xl text-slate-200 mb-2">receipt_long</span>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No promotion cashback history yet</p>
                             </div>
-                        ) : transactions.map((tx) => (
+                        ) : transactions.map((tx, i) => (
                             <motion.div 
                                 variants={itemVariants}
                                 key={tx.id} 
-                                className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 flex items-center justify-between shadow-2xs hover:border-slate-300 transition-colors"
+                                className="bg-white p-5 rounded-3xl border border-slate-100 flex items-center justify-between shadow-sm"
                             >
-                                <div className="flex items-center gap-3.5">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                        tx.amount > 0 
-                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' 
-                                            : 'bg-slate-100 text-slate-700 border border-slate-200'
-                                    }`}>
-                                        {tx.amount > 0 ? <Sparkles size={18} /> : <Wallet size={18} />}
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 text-slate-900">
+                                        <span className="material-symbols-outlined text-[20px]">
+                                            {tx.type.includes('Cashback') || tx.type.includes('Promo') ? 'celebration' : 'account_balance_wallet'}
+                                        </span>
                                     </div>
                                     <div>
-                                        <h4 className="text-xs sm:text-sm font-semibold text-slate-900">{tx.type}</h4>
-                                        <p className="text-[11px] text-slate-400 mt-0.5">{tx.date} · {tx.id}</p>
+                                        <h4 className="text-sm font-black text-slate-900 tracking-tight leading-none mb-1">{tx.type}</h4>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{tx.date} · {tx.id}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <p className={`text-sm sm:text-base font-bold tabular-nums ${
-                                        tx.amount > 0 ? 'text-emerald-600' : 'text-slate-900'
-                                    }`}>
-                                        {tx.amount > 0 ? `+₹${tx.amount}` : `-₹${Math.abs(tx.amount)}`}
+                                    <p className="text-base font-black tracking-tighter tabular-nums text-slate-900">
+                                        {tx.amount > 0 ? '+' : ''}₹{tx.amount}
                                     </p>
-                                    <span className={`inline-block text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full mt-0.5 ${
-                                        tx.status === 'Credited' 
-                                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                                            : 'bg-slate-100 text-slate-600 border border-slate-200'
-                                    }`}>
-                                        {tx.status}
-                                    </span>
+                                    <p className="text-[8px] font-black uppercase tracking-widest text-slate-300 mt-1">{tx.status}</p>
                                 </div>
                             </motion.div>
                         ))}
