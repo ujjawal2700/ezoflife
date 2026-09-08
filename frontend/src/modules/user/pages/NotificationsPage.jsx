@@ -1,17 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Bell, 
-  Package, 
-  CreditCard, 
-  Truck, 
-  CheckCheck, 
-  Trash2, 
-  ArrowLeft,
-  Info
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
 import useNotificationStore from '../../../shared/stores/notificationStore';
 
 const NotificationsPage = () => {
@@ -29,122 +18,112 @@ const NotificationsPage = () => {
     [userNotifications]
   );
 
-  const getIcon = (type = '') => {
-    if (type.includes('order') || type.includes('delivery')) return Truck;
-    if (type.includes('payment') || type.includes('wallet')) return CreditCard;
-    if (type.includes('item')) return Package;
-    return Bell;
-  };
+  const containerVariants = useMemo(() => ({
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { staggerChildren: 0.1 }
+    }
+  }), []);
+
+  const itemVariants = useMemo(() => ({
+    hidden: { y: 10, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.4 } }
+  }), []);
 
   return (
-    <div className="min-h-[100dvh] flex flex-col text-slate-900 bg-slate-50/50">
-      <main className="flex-1 pb-36 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        
-        {/* Header Banner */}
-        <div className="bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 shadow-2xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200 mb-2">
-                <Bell size={13} className="text-slate-700" />
-                <span>Activity & Alerts</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-                Notifications
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-500 font-normal mt-1">
-                Real-time updates about your pickup schedules, dry cleaning progress, and credits.
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
-              {unreadUserCount > 0 && (
-                <span className="px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold">
-                  {unreadUserCount} Unread
-                </span>
-              )}
-              {userNotifications.length > 0 && (
-                <button
-                  onClick={clearAll}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trash2 size={13} />
-                  <span>Clear All</span>
-                </button>
-              )}
-            </div>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="bg-slate-50/50 text-on-background min-h-[100dvh] pb-32 font-body"
+    >
+      <main className="max-w-2xl mx-auto px-6 pt-8">
+        <motion.header 
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          className="mb-12"
+        >
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-primary font-black text-[10px] uppercase tracking-widest mb-6 hover:opacity-100 transition-opacity"
+          >
+            <span className="material-symbols-outlined text-sm">arrow_back</span>
+            Back to Flow
+          </button>
+          <div className="flex items-center justify-between">
+            <h1 className="text-4xl md:text-5xl font-black text-on-background leading-none tracking-tighter mb-4 italic">
+              Flow <br/><span className="text-primary tracking-tighter">Updates.</span>
+            </h1>
+            <span className="text-[10px] font-black text-primary bg-primary/10 px-4 py-2 rounded-full uppercase tracking-widest tabular-nums">
+              {unreadUserCount} New Active
+            </span>
           </div>
-        </div>
+        </motion.header>
 
-        {/* Notifications List */}
-        <div className="space-y-3">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-4"
+        >
           <AnimatePresence mode="popLayout">
-            {userNotifications.length > 0 ? (
-              userNotifications.map((notif) => {
-                const IconComponent = getIcon(notif.type);
-                const isUnread = !notif.read;
-
-                return (
-                  <motion.div 
-                    key={notif.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    onClick={() => markAsRead(notif.id)}
-                    className={cn(
-                      "bg-white rounded-2xl border p-4 sm:p-5 flex items-start gap-4 transition-all cursor-pointer group shadow-2xs hover:shadow-xs",
-                      isUnread ? "border-slate-300 bg-white" : "border-slate-200/80 bg-slate-50/50 opacity-80"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                      isUnread ? "bg-slate-900 text-white shadow-2xs" : "bg-slate-200 text-slate-500"
-                    )}>
-                      <IconComponent size={18} />
-                    </div>
-
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <h4 className={cn("text-xs sm:text-sm tracking-tight", isUnread ? "font-bold text-slate-900" : "font-medium text-slate-700")}>
-                          {notif.title}
-                        </h4>
-                        <span className="text-[10px] text-slate-400 font-normal shrink-0">
-                          {notif.timestamp}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-500 font-normal leading-relaxed">
-                        {notif.message}
-                      </p>
-                    </div>
-
-                    {isUnread && (
-                      <div className="w-2 h-2 rounded-full bg-slate-900 mt-2 shrink-0" />
-                    )}
-                  </motion.div>
-                );
-              })
-            ) : (
-              <div className="bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 text-center space-y-3 shadow-2xs max-w-md mx-auto">
-                <Bell size={36} className="mx-auto text-slate-300" />
-                <h3 className="text-base font-semibold text-slate-800">No notifications right now</h3>
-                <p className="text-xs text-slate-500">
-                  You're all caught up! Order status updates and announcements will appear here.
-                </p>
-                <button
-                  onClick={() => navigate('/user/home')}
-                  className="mt-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-medium hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  Explore Services
-                </button>
-              </div>
+            {userNotifications.length > 0 ? userNotifications.map((notif) => (
+              <motion.div 
+                key={notif.id}
+                layout
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, scale: 0.95 }}
+                onClick={() => markAsRead(notif.id)}
+                className={`p-6 rounded-[2.5rem] flex items-start gap-5 border transition-all cursor-pointer ${
+                  !notif.read ? 'bg-white border-primary/20 shadow-xl shadow-primary/5' : 'bg-slate-50 border-slate-100 opacity-60'
+                }`}
+              >
+                <div className={`w-14 h-14 rounded-2xl shrink-0 flex items-center justify-center ${
+                  !notif.read ? 'bg-primary/10 text-primary' : 'bg-slate-200 text-slate-400'
+                }`}>
+                  <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+                    {notif.type.includes('order') ? 'local_shipping' : 
+                     notif.type.includes('payment') ? 'payments' : 
+                     'notifications_active'}
+                  </span>
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex justify-between items-start">
+                    <h4 className="font-black text-[15px] text-on-surface tracking-tight leading-none italic">{notif.title}</h4>
+                    <span className="text-[9px] font-black text-on-surface-variant uppercase tracking-widest tabular-nums opacity-60">{notif.timestamp}</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-on-surface-variant leading-relaxed uppercase tracking-tight">
+                    {notif.message}
+                  </p>
+                </div>
+                {!notif.read && (
+                  <div className="w-2 h-2 rounded-full bg-primary mt-2 animate-pulse"></div>
+                )}
+              </motion.div>
+            )) : (
+                <div className="py-20 text-center space-y-4">
+                    <span className="material-symbols-outlined text-5xl text-slate-200">notifications_off</span>
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">No active signals detected.</p>
+                </div>
             )}
           </AnimatePresence>
-        </div>
+        </motion.div>
 
+        {userNotifications.length > 0 && (
+            <motion.button 
+              whileTap={{ scale: 0.98 }}
+              onClick={clearAll}
+              className="w-full mt-10 py-5 rounded-3xl border border-slate-200 bg-white text-slate-400 font-black text-[10px] uppercase tracking-[0.2em] hover:text-error hover:border-error/20 transition-all shadow-sm"
+            >
+              Clear Log Archive
+            </motion.button>
+        )}
       </main>
-    </div>
+    </motion.div>
   );
 };
 
 export default NotificationsPage;
+

@@ -394,7 +394,7 @@ export default function Users() {
         header: 'Email address',
         key: 'email',
         render: (val) => (
-          <span className="text-[14.5px] text-slate-700 font-normal">
+          <span className="text-[12px] text-slate-700 font-medium">
             {val || '—'}
           </span>
         )
@@ -406,7 +406,7 @@ export default function Users() {
         header: 'Facility name',
         key: 'facilityName',
         render: (val, row) => (
-          <span className="text-[15px] font-medium text-slate-900">
+          <span className="text-[12px] font-medium text-slate-900">
             {row.facilityName || '—'}
           </span>
         )
@@ -417,7 +417,7 @@ export default function Users() {
       header: 'Contact number',
       key: 'phone',
       render: (val) => (
-        <span className="text-[14.5px] text-slate-700 font-normal tabular-nums">
+        <span className="text-[12px] text-slate-700 font-medium tabular-nums">
           {val || '—'}
         </span>
       )
@@ -447,7 +447,7 @@ export default function Users() {
             );
           }
           if (row.role !== 'Customer') {
-            return <span className="text-sm text-slate-400 font-normal">N/A</span>;
+            return <span className="text-[12px] text-slate-400 font-medium">N/A</span>;
           }
           const isBusiness = val === 'retail';
           return (
@@ -473,7 +473,7 @@ export default function Users() {
           header: 'Designation',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal">
+            <span className="text-[12px] text-slate-600 font-medium">
               {val?.designation || '—'}
             </span>
           )
@@ -482,7 +482,7 @@ export default function Users() {
           header: 'GST number',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal tabular-nums">
+            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
               {val?.gst || '—'}
             </span>
           )
@@ -491,7 +491,7 @@ export default function Users() {
           header: 'Business PAN',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal tabular-nums">
+            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
               {val?.panNumber || '—'}
             </span>
           )
@@ -500,7 +500,7 @@ export default function Users() {
           header: 'Aadhaar number',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal tabular-nums">
+            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
               {val?.aadhaarNumber || '—'}
             </span>
           )
@@ -509,7 +509,7 @@ export default function Users() {
           header: 'Bank name',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal">
+            <span className="text-[12px] text-slate-600 font-medium">
               {val?.bankName || '—'}
             </span>
           )
@@ -518,7 +518,7 @@ export default function Users() {
           header: 'Account number',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal tabular-nums">
+            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
               {val?.accountNumber || '—'}
             </span>
           )
@@ -527,7 +527,7 @@ export default function Users() {
           header: 'IFSC code',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-sm text-slate-600 font-normal tabular-nums">
+            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
               {val?.ifscCode || '—'}
             </span>
           )
@@ -537,7 +537,7 @@ export default function Users() {
           key: 'supplierDetails',
           render: (val) => {
             const categories = val?.supplyCategories || [];
-            if (categories.length === 0) return <span className="text-sm text-slate-400 font-normal">—</span>;
+            if (categories.length === 0) return <span className="text-[12px] text-slate-400 font-medium">—</span>;
             return (
               <div className="flex flex-wrap gap-1.5 max-w-[220px]">
                 {categories.map((cat, index) => (
@@ -756,7 +756,7 @@ export default function Users() {
         header: 'Registration', 
         key: 'createdAt',
         render: (val) => (
-          <span className="text-[14.5px] text-slate-700 font-normal tabular-nums">
+          <span className="text-[12px] text-slate-700 font-medium tabular-nums">
             {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
         )

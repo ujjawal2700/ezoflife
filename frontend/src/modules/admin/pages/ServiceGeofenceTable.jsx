@@ -245,7 +245,7 @@ const ServiceGeofenceTable = () => {
                         <Map size={14} />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-semibold text-slate-900 text-[14.5px]">{val}</span>
+                        <span className="font-medium text-slate-900 text-[12px]">{val}</span>
                     </div>
                 </div>
             )

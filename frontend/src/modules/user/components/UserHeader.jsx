@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, ShoppingBag, User, ChevronDown } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import useNotificationStore from '../../../shared/stores/notificationStore';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 
@@ -83,103 +81,67 @@ const UserHeader = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-[100] bg-white/90 backdrop-blur-xl w-full border-b border-slate-200/80 shadow-2xs">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-3 sm:px-6 lg:px-8 h-14 sm:h-16 gap-2">
-          
-          {/* Brand Logo & Location Indicator */}
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-            <div onClick={() => navigate('/user/home')} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs sm:text-sm shadow-xs">
-                S
-              </div>
-              <span className="font-extrabold text-base sm:text-lg lg:text-xl tracking-tight text-slate-900">SPINZYT</span>
-            </div>
-
-            <div className="hidden sm:block h-4 sm:h-5 w-px bg-slate-200 shrink-0" />
-
-            {/* Location Pill */}
-            <button
-              onClick={() => setPickerOpen(true)}
-              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-slate-100 hover:bg-slate-200/80 transition-colors text-left cursor-pointer max-w-[105px] xs:max-w-[135px] sm:max-w-[200px] md:max-w-[280px] truncate group border border-slate-200/70 shrink"
-            >
-              <MapPin size={13} className="text-slate-500 shrink-0 group-hover:text-slate-900 transition-colors" />
-              <div className="min-w-0 flex-1 truncate">
-                <span className="text-[10px] sm:text-[11px] font-semibold text-slate-900 mr-1 uppercase tracking-wide truncate inline-block max-w-full">
-                  {location?.area || 'Location'}
-                </span>
-                <span className="text-[10px] sm:text-[11px] text-slate-500 font-normal truncate hidden md:inline">
-                  {location ? (location.city || location.fullAddress) : 'Set Address'}
-                </span>
-              </div>
-              <ChevronDown size={11} className="text-slate-400 shrink-0" />
-            </button>
+      <motion.header 
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="fixed top-0 z-[100] bg-white/80 backdrop-blur-xl w-full flex justify-between items-center px-4 md:px-6 py-1.5 border-b border-slate-100 min-h-[50px]"
+      >
+        {/* 1. App Logo (Left) */}
+        <div className="flex items-center gap-4">
+          <div onClick={() => navigate('/user/home')} className="cursor-pointer">
+            <h1 className="font-headline font-black text-lg text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
           </div>
-
-          {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-            {[
-              { label: 'Services', path: '/user/home' },
-              { label: 'My Orders', path: '/user/orders' },
-              { label: 'Support', path: '/user/support' },
-              { label: 'More', path: '/user/more' },
-            ].map(link => {
-              const isActive = locationPath.pathname === link.path;
-              return (
-                <button
-                  key={link.path}
-                  onClick={() => navigate(link.path)}
-                  className={cn(
-                    "px-3.5 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-                    isActive 
-                      ? "bg-slate-100 text-slate-900 font-semibold" 
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                  )}
-                >
-                  {link.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Right Action Items: Cart & Profile */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-            {/* Cart Button */}
-            {cartCount > 0 ? (
-              <button
-                onClick={() => navigate('/user/cart')}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium transition-all shadow-xs cursor-pointer"
-              >
-                <ShoppingBag size={14} className="sm:size-[15px]" />
-                <span className="hidden sm:inline">Cart</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-white text-[10px] sm:text-[11px] font-bold">
-                  {cartCount}
-                </span>
-              </button>
-            ) : (
-              <button
-                onClick={() => navigate('/user/cart')}
-                className="p-1.5 sm:p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-                title="View cart"
-              >
-                <ShoppingBag size={18} className="sm:size-[19px]" />
-              </button>
-            )}
-
-            {/* Profile Avatar Trigger */}
-            <button
-              onClick={handleProfileClick}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors cursor-pointer border border-slate-200/80 overflow-hidden shrink-0"
-              title="Profile"
-            >
-              {userData?.image ? (
-                <img src={userData.image} alt="User" className="w-full h-full object-cover" />
-              ) : (
-                <User size={15} />
-              )}
-            </button>
+          
+          <div className="h-4 w-px bg-slate-200" /> {/* Divider */}
+ 
+          {/* 2. Current Address (Home/Office) */}
+          <div className="flex flex-col max-w-[150px] md:max-w-[200px] cursor-default">
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest bg-slate-100 px-1.5 py-0.5 rounded-md">
+                {location && location.area ? location.area.toUpperCase() : 'NONE'}
+              </span>
+            </div>
+            <p className="text-[11px] font-black text-slate-950 truncate leading-tight mt-0.5">
+              {location ? (location.fullAddress || location.city) : 'Select Location'}
+            </p>
           </div>
         </div>
-      </header>
+
+        {/* Right Side Actions */}
+        <div className="flex items-center gap-3">
+          {/* 3. Cart Icon (Show if items exist) */}
+          {cartCount > 0 && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/user/cart')}
+              className="relative w-8 h-8 flex items-center justify-center cursor-pointer group"
+            >
+              <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-slate-950 group-hover:text-white transition-all border border-slate-100">
+                <span className="material-symbols-outlined text-[18px]">shopping_bag</span>
+              </div>
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-rose-500 text-white text-[7px] font-black flex items-center justify-center rounded-full px-1 border-2 border-white shadow-sm">
+                {cartCount}
+              </span>
+            </motion.div>
+          )}
+
+          {/* 4. Profile Icon */}
+          <motion.div 
+            onClick={handleProfileClick}
+            whileHover={{ scale: 1.05 }}
+            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden cursor-pointer border border-slate-200"
+          >
+            {userData.avatar ? (
+              <img src={userData.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className="material-symbols-outlined text-slate-500 text-[16px]">person</span>
+            )}
+          </motion.div>
+        </div>
+      </motion.header>
 
       {/* LOCATE ADDRESS MODAL */}
       <AnimatePresence>

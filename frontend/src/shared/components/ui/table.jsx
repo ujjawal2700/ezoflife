@@ -1,18 +1,16 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, ArrowRight } from "lucide-react";
 
-/* ─── UntitledUI / Modern Clean SaaS Table Primitives ─
-   - Increased font size for enhanced legibility across all displays
-   - Clean, spacious header and cell padding
-   - UntitledUI status pills with colored dots and 3-piece pagination
+/* ─── Admin Table Primitives ──────────────────────────────────────────
+   Styled to match DataGrid: dense rows, micro uppercase headers with
+   wide tracking, flat 1px borders and sharp corners.
    ──────────────────────────────────────────────────────────────────── */
 
 const Table = React.forwardRef(({ className, ...props }, ref) => (
   <div className="relative w-full overflow-x-auto">
     <table
       ref={ref}
-      className={cn("w-full caption-bottom text-[14.5px] border-collapse bg-white", className)}
+      className={cn("w-full border-collapse text-left bg-white", className)}
       {...props}
     />
   </div>
@@ -23,7 +21,7 @@ const TableHeader = React.forwardRef(({ className, ...props }, ref) => (
   <thead
     ref={ref}
     className={cn(
-      "bg-slate-50/90 border-b border-slate-200 sticky top-0 z-10",
+      "bg-slate-50/50 border-b border-slate-200 sticky top-0 z-20",
       className
     )}
     {...props}
@@ -34,7 +32,7 @@ TableHeader.displayName = "TableHeader";
 const TableBody = React.forwardRef(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("divide-y divide-slate-200/70 bg-white [&_tr:last-child]:border-0", className)}
+    className={cn("divide-y divide-slate-100 bg-white", className)}
     {...props}
   />
 ));
@@ -44,7 +42,7 @@ const TableFooter = React.forwardRef(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
     className={cn(
-      "border-t border-slate-200 bg-slate-50/50 font-medium [&>tr]:last:border-b-0",
+      "border-t border-slate-100 bg-slate-50/50 [&>tr]:last:border-b-0",
       className
     )}
     {...props}
@@ -56,7 +54,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b border-slate-200/70 transition-colors hover:bg-slate-50/80 data-[state=selected]:bg-slate-50",
+      "group hover:bg-slate-50 transition-all border-b border-transparent hover:border-slate-200/50 data-[state=selected]:bg-slate-50",
       className
     )}
     {...props}
@@ -68,7 +66,7 @@ const TableHead = React.forwardRef(({ className, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
-      "h-12 px-6 text-left align-middle font-semibold text-[13.5px] text-slate-700 whitespace-nowrap select-none tracking-normal",
+      "px-5 py-3 text-left align-middle text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap select-none transition-all",
       className
     )}
     {...props}
@@ -80,7 +78,7 @@ const TableCell = React.forwardRef(({ className, ...props }, ref) => (
   <td
     ref={ref}
     className={cn(
-      "px-6 py-4.5 align-middle text-[14.5px] font-normal text-slate-700 leading-normal",
+      "px-5 py-2.5 align-middle text-[12px] font-medium text-slate-700 tabular-nums tracking-tight",
       className
     )}
     {...props}
@@ -91,66 +89,65 @@ TableCell.displayName = "TableCell";
 const TableCaption = React.forwardRef(({ className, ...props }, ref) => (
   <caption
     ref={ref}
-    className={cn("mt-4 text-sm text-slate-500", className)}
+    className={cn(
+      "mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest",
+      className
+    )}
     {...props}
   />
 ));
 TableCaption.displayName = "TableCaption";
 
-/* ─── StatusBadge: Pill with colored dot (matches UntitledUI) ────────── */
+/* ─── StatusBadge: flat micro-label with dot ─────────────────────────── */
 export function StatusBadge({ status, label, className }) {
   const norm = String(status || '').toLowerCase().trim();
-  
-  let theme = "bg-emerald-50 text-emerald-700 border-emerald-200/80";
-  let dotColor = "bg-emerald-500";
-  let displayLabel = label || 'Active';
+
+  let theme = "bg-slate-50 text-slate-400 border-slate-100";
+  let dotColor = "bg-slate-400";
+  let displayLabel = label || status;
 
   if (['active', 'approved', 'verified', 'completed', 'paid', 'success'].includes(norm)) {
-    theme = "bg-emerald-50 text-emerald-700 border-emerald-200/80";
-    dotColor = "bg-emerald-500";
+    theme = "bg-emerald-50 text-emerald-600 border-emerald-100";
+    dotColor = "bg-emerald-600";
     displayLabel = label || 'Active';
   } else if (['pending', 'in progress', 'processing', 'review', 'revision_required', 'initial_review', 'final_review'].includes(norm)) {
-    theme = "bg-amber-50 text-amber-700 border-amber-200/80";
-    dotColor = "bg-amber-500";
+    theme = "bg-amber-50 text-amber-600 border-amber-100";
+    dotColor = "bg-amber-600 animate-pulse";
     displayLabel = label || 'Pending';
   } else if (['inactive', 'rejected', 'cancelled', 'failed', 'blocked', 'suspended'].includes(norm)) {
-    theme = "bg-rose-50 text-rose-700 border-rose-200/80";
-    dotColor = "bg-rose-500";
+    theme = "bg-rose-50 text-rose-600 border-rose-100";
+    dotColor = "bg-rose-600";
     displayLabel = label || 'Inactive';
   } else if (['draft', 'archived'].includes(norm)) {
-    theme = "bg-slate-100 text-slate-700 border-slate-200";
-    dotColor = "bg-slate-400";
-    displayLabel = label || status;
-  } else {
-    theme = "bg-slate-50 text-slate-700 border-slate-200";
-    dotColor = "bg-slate-400";
+    theme = "bg-slate-100 text-slate-500 border-slate-200";
+    dotColor = "bg-slate-500";
     displayLabel = label || status;
   }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 px-3 py-1 rounded-full text-[13px] font-medium border whitespace-nowrap",
+        "px-2.5 py-1 rounded-[1px] text-[8px] font-bold uppercase tracking-[0.25em] border inline-flex items-center gap-1.5 hover:scale-[1.02] transition-transform",
         theme,
         className
       )}
     >
-      <span className={cn("w-2 h-2 rounded-full shrink-0", dotColor)} />
+      <span className={cn("w-1 h-1 rounded-full shrink-0", dotColor)} />
       {displayLabel}
     </span>
   );
 }
 
-/* ─── TagBadge: Soft pill tag (matches Teams / Tags in UntitledUI) ───── */
-export function TagBadge({ label, color = "purple", className }) {
+/* ─── TagBadge: flat micro-label ─────────────────────────────────────── */
+export function TagBadge({ label, color = "slate", className }) {
   const colorMap = {
-    purple: "bg-purple-50 text-purple-700 border-purple-200/80",
-    blue: "bg-blue-50 text-blue-700 border-blue-200/80",
-    pink: "bg-pink-50 text-pink-700 border-pink-200/80",
-    indigo: "bg-indigo-50 text-indigo-700 border-indigo-200/80",
-    emerald: "bg-emerald-50 text-emerald-700 border-emerald-200/80",
-    amber: "bg-amber-50 text-amber-700 border-amber-200/80",
-    slate: "bg-slate-100 text-slate-700 border-slate-200/80",
+    purple: "bg-purple-50 text-purple-600 border-purple-100",
+    blue: "bg-blue-50 text-blue-600 border-blue-100",
+    pink: "bg-pink-50 text-pink-600 border-pink-100",
+    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
+    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
+    amber: "bg-amber-50 text-amber-600 border-amber-100",
+    slate: "bg-slate-50 text-slate-400 border-slate-100",
   };
 
   const style = colorMap[color] || colorMap.slate;
@@ -158,7 +155,7 @@ export function TagBadge({ label, color = "purple", className }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-3 py-1 rounded-full text-[13px] font-medium border whitespace-nowrap",
+        "px-2.5 py-1 rounded-[1px] text-[8px] font-bold uppercase tracking-[0.25em] border inline-flex items-center whitespace-nowrap",
         style,
         className
       )}
@@ -168,17 +165,17 @@ export function TagBadge({ label, color = "purple", className }) {
   );
 }
 
-/* ─── UserAvatarCell: Avatar + Name + Subtitle (matches UntitledUI) ──── */
+/* ─── UserAvatarCell: Avatar + Name + Subtitle ───────────────────────── */
 export function UserAvatarCell({ name, subtitle, email, avatar, initials, className }) {
   const computedInitials = initials || (name ? name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() : 'U');
 
   return (
-    <div className={cn("flex items-center gap-3.5", className)}>
+    <div className={cn("flex items-center gap-2.5", className)}>
       {avatar ? (
         <img
           src={avatar}
           alt={name || 'User'}
-          className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-200"
+          className="w-8 h-8 rounded-sm object-cover shrink-0 border border-slate-200"
           onError={(e) => {
             e.currentTarget.style.display = 'none';
             if (e.currentTarget.nextElementSibling) {
@@ -189,18 +186,18 @@ export function UserAvatarCell({ name, subtitle, email, avatar, initials, classN
       ) : null}
       <div
         className={cn(
-          "w-10 h-10 rounded-full bg-slate-100 text-slate-700 font-semibold text-sm flex items-center justify-center shrink-0 border border-slate-200 select-none",
+          "w-8 h-8 rounded-sm bg-slate-100 text-slate-500 font-bold text-[10px] items-center justify-center shrink-0 border border-slate-200 select-none tracking-widest",
           avatar ? "hidden" : "flex"
         )}
       >
         {computedInitials}
       </div>
       <div className="min-w-0">
-        <div className="text-[15px] font-semibold text-slate-900 truncate leading-snug">
+        <div className="text-[12px] font-bold text-slate-900 truncate leading-tight">
           {name || 'Unknown'}
         </div>
         {(subtitle || email) && (
-          <div className="text-[13px] text-slate-500 font-normal truncate leading-snug mt-0.5">
+          <div className="text-[10px] text-slate-400 font-medium truncate leading-tight tracking-wide mt-0.5">
             {subtitle || email}
           </div>
         )}
@@ -209,7 +206,7 @@ export function UserAvatarCell({ name, subtitle, email, avatar, initials, classN
   );
 }
 
-/* ─── TablePagination: Exact 3-part UntitledUI pagination bar ────────── */
+/* ─── TablePagination: flat Prev / PG nn / Next bar ──────────────────── */
 export function TablePagination({
   page = 1,
   totalPages = 1,
@@ -219,81 +216,34 @@ export function TablePagination({
   const safeTotal = Math.max(1, totalPages || 1);
   const safePage = Math.min(Math.max(1, page || 1), safeTotal);
 
-  const getPageNumbers = () => {
-    if (safeTotal <= 7) {
-      return Array.from({ length: safeTotal }, (_, i) => i + 1);
-    }
-    if (safePage <= 4) {
-      return [1, 2, 3, 4, 5, '...', safeTotal];
-    }
-    if (safePage >= safeTotal - 3) {
-      return [1, '...', safeTotal - 4, safeTotal - 3, safeTotal - 2, safeTotal - 1, safeTotal];
-    }
-    return [1, '...', safePage - 1, safePage, safePage + 1, '...', safeTotal];
-  };
-
-  const pages = getPageNumbers();
-
   return (
     <div
       className={cn(
-        "px-6 py-4 bg-white border-t border-slate-200 flex items-center justify-between gap-4 select-none",
+        "px-5 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end transition-colors hover:bg-slate-100/30 select-none",
         className
       )}
     >
-      {/* Left: Previous Button */}
-      <button
-        type="button"
-        disabled={safePage <= 1}
-        onClick={() => onPageChange?.(safePage - 1)}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-xs hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-      >
-        <ArrowLeft size={16} className="text-slate-500" />
-        Previous
-      </button>
-
-      {/* Center: Numbered Page Buttons */}
-      <div className="hidden sm:flex items-center gap-1.5">
-        {pages.map((p, idx) => {
-          if (p === '...') {
-            return (
-              <span
-                key={`ellipsis-${idx}`}
-                className="w-10 h-10 flex items-center justify-center text-sm font-medium text-slate-400"
-              >
-                ...
-              </span>
-            );
-          }
-          const isActive = p === safePage;
-          return (
-            <button
-              key={p}
-              type="button"
-              onClick={() => onPageChange?.(p)}
-              className={cn(
-                "w-10 h-10 rounded-lg text-sm font-medium flex items-center justify-center transition-colors cursor-pointer",
-                isActive
-                  ? "bg-slate-100 text-slate-900 font-semibold border border-slate-200"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              )}
-            >
-              {p}
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          disabled={safePage <= 1}
+          onClick={() => onPageChange?.(safePage - 1)}
+          className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          Prev
+        </button>
+        <span className="px-4 text-[9px] font-black text-slate-900 tracking-widest tabular-nums bg-slate-200/50 h-6 flex items-center rounded-sm whitespace-nowrap">
+          PG {String(safePage).padStart(2, '0')} / {String(safeTotal).padStart(2, '0')}
+        </span>
+        <button
+          type="button"
+          disabled={safePage >= safeTotal}
+          onClick={() => onPageChange?.(safePage + 1)}
+          className="p-1 px-3 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-950 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          Next
+        </button>
       </div>
-
-      {/* Right: Next Button */}
-      <button
-        type="button"
-        disabled={safePage >= safeTotal}
-        onClick={() => onPageChange?.(safePage + 1)}
-        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg shadow-xs hover:bg-slate-50 hover:text-slate-900 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors"
-      >
-        Next
-        <ArrowRight size={16} className="text-slate-500" />
-      </button>
     </div>
   );
 }
