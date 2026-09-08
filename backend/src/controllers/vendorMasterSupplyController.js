@@ -595,8 +595,14 @@ export const vendorMasterSupplyController = {
                     images: item.images || [],
                     deliveryFrequency: item.deliveryFrequency || 'On-Demand',
                     nextDeliveryDate: nextDeliveryDateString,
-                    movFreeDelivery: supplierZoneMap[item.supplierId]?.minOrderValue || 0,
-                    deliveryCharges: supplierZoneMap[item.supplierId]?.deliveryCharges || 0,
+                    movFreeDelivery: (item.movFreeDelivery !== undefined && item.movFreeDelivery !== null && Number(item.movFreeDelivery) > 0)
+                        ? Number(item.movFreeDelivery)
+                        : (Number(supplierZoneMap[item.supplierId]?.minOrderValue) || 0),
+                    deliveryCharges: (supplierZoneMap[item.supplierId]?.deliveryCharges !== undefined && Number(supplierZoneMap[item.supplierId]?.deliveryCharges) > 0)
+                        ? Number(supplierZoneMap[item.supplierId]?.deliveryCharges)
+                        : ((item.deliveryCharges !== undefined && Number(item.deliveryCharges) > 0)
+                            ? Number(item.deliveryCharges)
+                            : (Number(item.movFreeDelivery) > 0 ? 50 : 0)),
                     bulkDiscount: item.bulkDiscount || 0,
                     bulkThreshold: item.bulkThreshold || 0
                 };

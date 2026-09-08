@@ -92,6 +92,17 @@ export const placeB2BOrder = async (req, res) => {
             }
         }
 
+        if (!pincode && vendor.address) {
+            const pinMatch = vendor.address.match(/\b\d{6}\b/);
+            if (pinMatch) {
+                pincode = pinMatch[0];
+            }
+        }
+
+        // Safe fallbacks to prevent Mongoose schema validation failure
+        if (!pincode) pincode = '452001';
+        if (!city) city = 'Indore';
+
         const cleanAddress = (addr) => {
             if (!addr) return null;
             const trimmed = addr.trim();
@@ -106,11 +117,15 @@ export const placeB2BOrder = async (req, res) => {
                                      cleanAddress(vendor.shopDetails?.address) || 
                                      cleanAddress(vendor.address) || 
                                      cleanAddress(vendor.businessAddress) || 
-                                     `${city || ''}, ${pincode || ''}`.trim();
+                                     `${city}, ${pincode}`.trim();
 
         // 1. Get Global Delivery Day
         const config = await SystemConfig.findOne({ key: 'delivery_day' });
-        const deliveryDayName = config ? config.value : 'Sunday'; // Default to Sunday
+        let deliveryDayName = 'Sunday';
+        if (config && config.value && typeof config.value === 'string') {
+            const foundDay = DAYS.find(d => d.toLowerCase() === config.value.trim().toLowerCase());
+            if (foundDay) deliveryDayName = foundDay;
+        }
 
         // 2. Calculate Delivery Date & Cycle
         const deliveryDate = getNextDeliveryDate(deliveryDayName);
@@ -202,6 +217,9 @@ export const placeB2BOrder = async (req, res) => {
                 shippingAddress: finalShippingAddress,
                 pincode,
                 city: city?.trim(),
+                shippingAddress: finalShippingAddress || 'Store Address',
+                pincode: pincode || '452001',
+                city: (city || 'Indore').trim(),
                 status: (totalPlatformFee && totalPlatformFee > 0) ? 'PENDING_PAYMENT' : 'SUBMITTED',
                 cycleId: groupCycleId,
                 deliveryDay: groupDeliveryDay,

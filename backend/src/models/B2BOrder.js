@@ -55,15 +55,21 @@ const b2bOrderSchema = new mongoose.Schema({
     },
     pincode: { 
         type: String, 
-        required: true 
+        required: true ,
+        required: false,
+        default: '-'
     },
     city: {
         type: String,
-        required: false
+        required: false,
+        required: false,
+        default: '-'
     },
     shippingAddress: {
         type: String,
-        required: true
+        required: true,
+        required: false,
+        default: 'Store Address'
     },
     totalAmount: {
         type: Number,

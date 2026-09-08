@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Search, Plus, Minus, Camera, ShoppingBag, ArrowRight, CheckCircle2, Sparkles, X, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Search, Plus, Minus, Camera, ShoppingBag, ArrowRight, CheckCircle2, Sparkles, X, Trash2, Truck, ChevronDown, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 import { serviceApi, masterServiceApi, authApi, categoryApi, mediaApi, geofenceApi, adApi, UPLOADS_URL } from '../../../lib/api';
@@ -109,7 +109,7 @@ const HomePage = () => {
   const availableDates = useMemo(() => {
     const dates = [];
     const now = new Date();
-    for (let i = 0; i < 5; i++) { // Restricted to 5 days
+    for (let i = 0; i < 8; i++) { // Available dates for 8 days
       const d = new Date(now);
       d.setDate(now.getDate() + i);
       let dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
@@ -203,24 +203,7 @@ const HomePage = () => {
     };
   }, [location, pickupAddress, setPromptOpen]);
 
-  // --- 24H/72H GAP VALIDATION ---
-  useEffect(() => {
-    if (selectedPickup && pickupTime && selectedDelivery && deliveryTime) {
-      const pDT = getSlotDateTime(selectedPickup, pickupTime);
-      const dDT = getSlotDateTime(selectedDelivery, deliveryTime);
-      if (pDT && dDT) {
-        const diffH = (dDT - pDT) / (1000 * 60 * 60);
-        const minH = isExpress ? 24 : 72;
-        if (diffH < minH) {
-          // Reset drop-off selection if invalid
-          setSelectedDelivery('');
-          setDeliveryTime('');
-          localStorage.removeItem('delivery_date');
-          localStorage.removeItem('delivery_time');
-        }
-      }
-    }
-  }, [isExpress, selectedPickup, pickupTime, selectedDelivery, deliveryTime]);
+
   const [isLocating, setIsLocating] = useState(false);
   const [addressDetails, setAddressDetails] = useState({
     line1: '',
@@ -705,16 +688,40 @@ const HomePage = () => {
     return max;
   }, [selectedQuantities, services]);
 
+  const minDeliveryHours = useMemo(() => {
+    return isExpress ? 24 : Math.max(24, maxServiceTime * 24);
+  }, [isExpress, maxServiceTime]);
+
   useEffect(() => {
     if (!selectedPickup) return;
     const pickupIndex = availableDates.findIndex(d => `${d.day}, ${d.date}` === selectedPickup);
     if (pickupIndex !== -1) {
-      const deliveryIndex = Math.min(pickupIndex + maxServiceTime, availableDates.length - 1);
+      const minDays = isExpress ? 1 : Math.max(1, maxServiceTime);
+      const deliveryIndex = Math.min(pickupIndex + minDays, availableDates.length - 1);
       const deliveryD = availableDates[deliveryIndex];
-      setSelectedDelivery(`${deliveryD.day}, ${deliveryD.date}`);
-      if (!deliveryTime && pickupTime) setDeliveryTime(pickupTime);
+      if (deliveryD) {
+        setSelectedDelivery(`${deliveryD.day}, ${deliveryD.date}`);
+        if (!deliveryTime && pickupTime) setDeliveryTime(pickupTime);
+      }
     }
-  }, [selectedPickup, maxServiceTime, availableDates, pickupTime]);
+  }, [selectedPickup, maxServiceTime, availableDates, pickupTime, isExpress]);
+
+  // Validate that selected delivery slot maintains required minimum gap from pickup
+  useEffect(() => {
+    if (selectedPickup && pickupTime && selectedDelivery && deliveryTime) {
+      const pDT = getSlotDateTime(selectedPickup, pickupTime);
+      const dDT = getSlotDateTime(selectedDelivery, deliveryTime);
+      if (pDT && dDT) {
+        const diffH = (dDT - pDT) / (1000 * 60 * 60);
+        if (diffH < minDeliveryHours) {
+          setSelectedDelivery('');
+          setDeliveryTime('');
+          localStorage.removeItem('delivery_date');
+          localStorage.removeItem('delivery_time');
+        }
+      }
+    }
+  }, [minDeliveryHours, selectedPickup, pickupTime, selectedDelivery, deliveryTime]);
 
 
   const handleCartClick = () => {
@@ -1263,100 +1270,114 @@ const HomePage = () => {
                 initial={{ opacity: 0 }} 
                 animate={{ opacity: 1 }} 
                 exit={{ opacity: 0 }} 
-                onClick={() => {
-                  if (isLogisticsValid) {
-                    setShowSlotPicker(false);
-                  } else {
-                    toast.error('Please complete and confirm your pickup and drop-off logistics first');
-                  }
-                }} 
+                onClick={() => setShowSlotPicker(false)} 
                 className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" 
               />
               <motion.div 
-                initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+                initial={{ scale: 0.95, opacity: 0, y: 15 }} 
                 animate={{ scale: 1, opacity: 1, y: 0 }} 
-                exit={{ scale: 0.9, opacity: 0, y: 20 }} 
-                className="relative w-full max-w-[280px] bg-white rounded-[2rem] p-4 shadow-2xl flex flex-col gap-2 overflow-y-auto max-h-[85vh] hide-scrollbar border border-slate-100"
+                exit={{ scale: 0.95, opacity: 0, y: 15 }} 
+                className="relative w-full max-w-[380px] sm:max-w-[420px] bg-white rounded-[2rem] p-5 sm:p-6 shadow-2xl flex flex-col gap-4 max-h-[90vh] overflow-y-auto border border-slate-100"
               >
-                <div className="flex justify-between items-center">
-                  <div /> {/* Spacer for alignment */}
+                {/* Modal Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black tracking-tight text-slate-900 uppercase">
+                      Select Logistics
+                    </h3>
+                    <p className="text-[11px] font-medium text-slate-400">
+                      Choose pickup & drop-off slots
+                    </p>
+                  </div>
                   <button 
+                    type="button"
                     onClick={() => setShowSlotPicker(false)} 
-                    className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400"
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
                   >
-                    <span className="material-symbols-outlined text-base">close</span>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  {/* 1. Delivery Type Toggle - NOW AT THE TOP */}
-                  <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex gap-0.5">
-                    {['Normal', 'Express'].map(type => (
-                      <button 
-                        key={type}
-                        onClick={() => {
-                          setIsExpress(type === 'Express');
-                          setDeliveryConfirmed(true);
-                        }}
-                        className={`flex-1 py-1.5 rounded-lg font-black text-[7px] uppercase tracking-widest transition-all ${((type === 'Express' && isExpress === true) || (type === 'Normal' && isExpress === false)) ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400'}`}
-                      >
-                        {type === 'Normal' ? 'Normal Delivery' : 'Express Delivery'}
-                      </button>
-                    ))}
+                <div className="space-y-4">
+                  {/* Delivery Type Toggle */}
+                  <div className="bg-slate-100/80 p-1 rounded-2xl border border-slate-200/60 flex gap-1">
+                    {['Normal', 'Express'].map(type => {
+                      const active = (type === 'Express' && isExpress === true) || (type === 'Normal' && isExpress === false);
+                      return (
+                        <button 
+                          key={type}
+                          type="button"
+                          onClick={() => {
+                            setIsExpress(type === 'Express');
+                            setDeliveryConfirmed(true);
+                          }}
+                          className={`flex-1 py-2 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-150 cursor-pointer ${
+                            active 
+                              ? 'bg-slate-950 text-white shadow-md' 
+                              : 'text-slate-500 hover:text-slate-800 hover:bg-slate-200/50'
+                          }`}
+                        >
+                          {type === 'Normal' ? 'Normal Delivery' : 'Express Delivery'}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* --- PICKUP SECTION --- */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 px-1">
-                      <div className="w-4 h-4 rounded bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                        <span className="material-symbols-outlined text-[10px]">calendar_today</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                        <Calendar className="w-3.5 h-3.5" />
                       </div>
-                      <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">1. Pickup</p>
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">1. Pickup</span>
                     </div>
                     
-                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
-                      {/* Custom Address Dropdown */}
+                    <div className="space-y-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
+                      {/* Address Dropdown */}
                       <div className="relative">
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Select Address</p>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 ml-0.5">Select Address</span>
                         <button 
+                          type="button"
                           onClick={() => setOpenDropdown(openDropdown === 'address' ? null : 'address')}
-                          className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                          className="w-full bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold text-left flex justify-between items-center shadow-xs hover:border-slate-300 transition-all cursor-pointer"
                         >
-                          <span className={pickupAddress ? 'text-slate-900' : 'text-slate-300'}>
+                          <span className={pickupAddress ? 'text-slate-900 font-bold' : 'text-slate-400 font-normal'}>
                             {pickupAddress ? pickupAddress.type.toUpperCase() : 'Choose Address'}
                           </span>
-                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'address' ? 'rotate-180' : ''}`}>expand_more</span>
+                          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'address' ? 'rotate-180' : ''}`} />
                         </button>
                         
                         <AnimatePresence>
                           {openDropdown === 'address' && (
                             <motion.div 
                               initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              className="absolute z-[250] top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
                             >
-                              <div className="max-h-32 overflow-y-auto">
+                              <div className="max-h-40 overflow-y-auto">
                                 {savedAddresses.map(addr => (
                                   <button 
                                     key={addr.id}
+                                    type="button"
                                     onClick={() => {
                                       setPickupAddress(addr);
                                       if (isSameAsPickup) setDropAddress(addr);
                                       setOpenDropdown(null);
                                       updateGeofenceForAddress(addr.address);
                                     }}
-                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold uppercase text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
                                   >
                                     {addr.type}
                                   </button>
                                 ))}
                                 <button 
+                                  type="button"
                                   onClick={() => {
                                     setActiveAddressType('pickup');
                                     setShowSlotPicker(false);
                                     setShowAddressForm(true);
                                     setOpenDropdown(null);
                                   }}
-                                  className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
+                                  className="w-full px-3.5 py-2.5 text-left text-xs font-bold uppercase text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
                                 >
                                   + Enter New Address
                                 </button>
@@ -1366,34 +1387,36 @@ const HomePage = () => {
                         </AnimatePresence>
                       </div>
 
-                      {/* Custom Date Dropdown */}
+                      {/* Pickup Date Dropdown */}
                       <div className="relative">
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 ml-0.5">Date</span>
                         <button 
+                          type="button"
                           onClick={() => setOpenDropdown(openDropdown === 'date' ? null : 'date')}
-                          className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                          className="w-full bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold text-left flex justify-between items-center shadow-xs hover:border-slate-300 transition-all cursor-pointer"
                         >
-                          <span className={selectedPickup ? 'text-slate-900' : 'text-slate-300'}>
+                          <span className={selectedPickup ? 'text-slate-900 font-bold' : 'text-slate-400 font-normal'}>
                             {selectedPickup || 'Select Date'}
                           </span>
-                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'date' ? 'rotate-180' : ''}`}>expand_more</span>
+                          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'date' ? 'rotate-180' : ''}`} />
                         </button>
                         
                         <AnimatePresence>
                           {openDropdown === 'date' && (
                             <motion.div 
                               initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              className="absolute z-[250] top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
                             >
-                              <div className="max-h-32 overflow-y-auto">
+                              <div className="max-h-40 overflow-y-auto">
                                 {availableDates.slice(0, 6).map((d, i) => (
                                   <button 
                                     key={i}
+                                    type="button"
                                     onClick={() => {
                                       setSelectedPickup(`${d.day}, ${d.date}`);
                                       setOpenDropdown(null);
                                     }}
-                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold uppercase text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
                                   >
                                     {d.day}, {d.date}
                                   </button>
@@ -1404,26 +1427,27 @@ const HomePage = () => {
                         </AnimatePresence>
                       </div>
 
-                      {/* Custom Time Dropdown */}
+                      {/* Pickup Time Dropdown */}
                       <div className="relative">
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 ml-0.5">Time</span>
                         <button 
+                          type="button"
                           onClick={() => setOpenDropdown(openDropdown === 'time' ? null : 'time')}
-                          className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                          className="w-full bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold text-left flex justify-between items-center shadow-xs hover:border-slate-300 transition-all cursor-pointer"
                         >
-                          <span className={pickupTime ? 'text-slate-900' : 'text-slate-300'}>
+                          <span className={pickupTime ? 'text-slate-900 font-bold' : 'text-slate-400 font-normal'}>
                             {pickupTime || 'Select Time'}
                           </span>
-                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'time' ? 'rotate-180' : ''}`}>expand_more</span>
+                          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'time' ? 'rotate-180' : ''}`} />
                         </button>
                         
                         <AnimatePresence>
                           {openDropdown === 'time' && (
                             <motion.div 
                               initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              className="absolute z-[250] top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
                             >
-                              <div className="max-h-32 overflow-y-auto">
+                              <div className="max-h-40 overflow-y-auto">
                                 {timeSlots.filter(slot => {
                                   if (!selectedPickup || !selectedPickup.startsWith('TODAY')) return true;
                                   const [timePart] = slot.split(' - ');
@@ -1439,11 +1463,12 @@ const HomePage = () => {
                                 }).map((slot) => (
                                   <button 
                                     key={slot}
+                                    type="button"
                                     onClick={() => {
                                       setPickupTime(slot);
                                       setOpenDropdown(null);
                                     }}
-                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold uppercase text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
                                   >
                                     {slot}
                                   </button>
@@ -1457,70 +1482,75 @@ const HomePage = () => {
                   </div>
 
                   {/* --- DROP-OFF SECTION --- */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5 px-1">
-                      <div className="w-4 h-4 rounded bg-amber-500/10 flex items-center justify-center text-amber-600">
-                        <span className="material-symbols-outlined text-[10px]">local_shipping</span>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <div className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                        <Truck className="w-3.5 h-3.5" />
                       </div>
-                      <p className="text-[7px] font-black text-slate-900 uppercase tracking-widest">2. Drop-off</p>
+                      <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">2. Drop-off</span>
                     </div>
                     
-                    <div className="space-y-2 bg-slate-50 p-2 rounded-[1.2rem] border border-slate-100">
+                    <div className="space-y-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-100">
                       {/* Same as Pickup Toggle */}
-                       <div className="flex items-center justify-between px-1">
-                          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Same as Pickup Address</span>
-                          <button 
-                            onClick={() => {
-                              setIsSameAsPickup(!isSameAsPickup);
-                              if (!isSameAsPickup) setDropAddress(pickupAddress);
-                            }}
-                            className={`w-7 h-3.5 rounded-full transition-all relative ${isSameAsPickup ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                          >
-                            <div className={`absolute top-0.5 w-2.5 h-2.5 rounded-full bg-white shadow-sm transition-all ${isSameAsPickup ? 'right-0.5' : 'left-0.5'}`} />
-                          </button>
-                       </div>
+                      <div className="flex items-center justify-between px-1 py-0.5">
+                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Same as Pickup Address</span>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const next = !isSameAsPickup;
+                            setIsSameAsPickup(next);
+                            if (next) setDropAddress(pickupAddress);
+                          }}
+                          className={`w-9 h-5 rounded-full transition-colors relative cursor-pointer ${isSameAsPickup ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        >
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-200 ${isSameAsPickup ? 'right-0.5' : 'left-0.5'}`} />
+                        </button>
+                      </div>
 
-                       {/* Conditional Drop-off Address Dropdown - MOVED HERE */}
-                       {!isSameAsPickup && (
-                        <div className="relative mt-2">
-                          <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Drop-off Address</p>
+                      {/* Conditional Drop-off Address Dropdown */}
+                      {!isSameAsPickup && (
+                        <div className="relative pt-1 border-t border-slate-200/60">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 ml-0.5">Drop-off Address</span>
                           <button 
+                            type="button"
                             onClick={() => setOpenDropdown(openDropdown === 'dropAddress' ? null : 'dropAddress')}
-                            className="w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm"
+                            className="w-full bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold text-left flex justify-between items-center shadow-xs hover:border-slate-300 transition-all cursor-pointer"
                           >
-                            <span className={dropAddress && dropAddress.id !== pickupAddress?.id ? 'text-slate-900' : 'text-slate-300'}>
+                            <span className={dropAddress && dropAddress.id !== pickupAddress?.id ? 'text-slate-900 font-bold' : 'text-slate-400 font-normal'}>
                               {(dropAddress && dropAddress.id !== pickupAddress?.id) ? dropAddress.type.toUpperCase() : 'Select Drop Address'}
                             </span>
-                            <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropAddress' ? 'rotate-180' : ''}`}>expand_more</span>
+                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'dropAddress' ? 'rotate-180' : ''}`} />
                           </button>
                           
                           <AnimatePresence>
                             {openDropdown === 'dropAddress' && (
                               <motion.div 
                                 initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
-                                className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                                className="absolute z-[250] top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
                               >
-                                <div className="max-h-32 overflow-y-auto">
+                                <div className="max-h-40 overflow-y-auto">
                                   {savedAddresses.map(addr => (
                                     <button 
                                       key={addr.id}
+                                      type="button"
                                       onClick={() => {
                                         setDropAddress(addr);
                                         setOpenDropdown(null);
                                       }}
-                                      className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                                      className="w-full px-3.5 py-2.5 text-left text-xs font-semibold uppercase text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
                                     >
                                       {addr.type}
                                     </button>
                                   ))}
                                   <button 
+                                    type="button"
                                     onClick={() => {
                                       setActiveAddressType('drop');
                                       setShowSlotPicker(false);
                                       setShowAddressForm(true);
                                       setOpenDropdown(null);
                                     }}
-                                    className="w-full px-4 py-2.5 text-left text-[9px] font-black uppercase text-emerald-600 hover:bg-emerald-50"
+                                    className="w-full px-3.5 py-2.5 text-left text-xs font-bold uppercase text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
                                   >
                                     + Enter New Address
                                   </button>
@@ -1531,45 +1561,47 @@ const HomePage = () => {
                         </div>
                       )}
 
-                      {/* Date Dropdown */}
+                      {/* Drop-off Date Dropdown */}
                       <div className="relative">
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Date</p>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 ml-0.5">Date</span>
                         <button 
+                          type="button"
                           disabled={!selectedPickup || !pickupTime}
                           onClick={() => setOpenDropdown(openDropdown === 'dropDate' ? null : 'dropDate')}
-                          className={`w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm ${(!selectedPickup || !pickupTime) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                          className={`w-full bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold text-left flex justify-between items-center shadow-xs transition-all cursor-pointer ${
+                            (!selectedPickup || !pickupTime) ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:border-slate-300'
+                          }`}
                         >
-                          <span className={selectedDelivery ? 'text-slate-900' : 'text-slate-300'}>
+                          <span className={selectedDelivery ? 'text-slate-900 font-bold' : 'text-slate-400 font-normal'}>
                             {(!selectedPickup || !pickupTime) ? 'Select Pickup First' : (selectedDelivery || 'Select Date')}
                           </span>
-                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropDate' ? 'rotate-180' : ''}`}>expand_more</span>
+                          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'dropDate' ? 'rotate-180' : ''}`} />
                         </button>
                         
                         <AnimatePresence>
                           {openDropdown === 'dropDate' && (
                             <motion.div 
-                              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                              className="absolute z-[250] top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
                             >
                               <div className="max-h-40 overflow-y-auto">
                                 {availableDates.filter(d => {
                                   if (!selectedPickup || !pickupTime) return true;
                                   const dateStr = `${d.day}, ${d.date}`;
                                   const pDT = getSlotDateTime(selectedPickup, pickupTime);
-                                  // A date is valid if its LAST slot satisfies the min gap
                                   const lastSlotDT = getSlotDateTime(dateStr, timeSlots[timeSlots.length - 1]);
-                                  const minH = isExpress ? 24 : 72;
-                                  return (lastSlotDT - pDT) / (1000 * 60 * 60) >= minH;
+                                  return (lastSlotDT - pDT) / (1000 * 60 * 60) >= minDeliveryHours;
                                 }).map((d, i) => {
                                   const dateStr = `${d.day}, ${d.date}`;
                                   return (
                                     <button 
                                       key={i}
+                                      type="button"
                                       onClick={() => {
                                         setSelectedDelivery(dateStr);
                                         setOpenDropdown(null);
                                       }}
-                                      className="w-full px-4 py-3 text-left text-[10px] font-black uppercase border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                                      className="w-full px-3.5 py-2.5 text-left text-xs font-semibold uppercase text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
                                     >
                                       {d.day}, {d.date}
                                     </button>
@@ -1581,41 +1613,44 @@ const HomePage = () => {
                         </AnimatePresence>
                       </div>
 
-                      {/* Time Dropdown */}
+                      {/* Drop-off Time Dropdown */}
                       <div className="relative">
-                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">Time</p>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1 ml-0.5">Time</span>
                         <button 
+                          type="button"
                           disabled={!selectedPickup || !pickupTime || !selectedDelivery}
                           onClick={() => setOpenDropdown(openDropdown === 'dropTime' ? null : 'dropTime')}
-                          className={`w-full bg-white px-3 py-2 rounded-xl border border-slate-100 text-[9px] font-black uppercase tracking-tight text-left flex justify-between items-center shadow-sm ${(!selectedPickup || !pickupTime || !selectedDelivery) ? 'opacity-50 cursor-not-allowed bg-slate-50' : ''}`}
+                          className={`w-full bg-white px-3.5 py-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold text-left flex justify-between items-center shadow-xs transition-all cursor-pointer ${
+                            (!selectedPickup || !pickupTime || !selectedDelivery) ? 'opacity-50 cursor-not-allowed bg-slate-100' : 'hover:border-slate-300'
+                          }`}
                         >
-                          <span className={deliveryTime ? 'text-slate-900' : 'text-slate-300'}>
+                          <span className={deliveryTime ? 'text-slate-900 font-bold' : 'text-slate-400 font-normal'}>
                             {(!selectedPickup || !pickupTime || !selectedDelivery) ? 'Select Pickup/Date First' : (deliveryTime || 'Select Time')}
                           </span>
-                          <span className={`material-symbols-outlined text-slate-400 text-sm transition-transform ${openDropdown === 'dropTime' ? 'rotate-180' : ''}`}>expand_more</span>
+                          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${openDropdown === 'dropTime' ? 'rotate-180' : ''}`} />
                         </button>
                         
                         <AnimatePresence>
                           {openDropdown === 'dropTime' && (
                             <motion.div 
-                              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                              className="absolute z-[210] top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden"
+                              initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}
+                              className="absolute z-[250] top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
                             >
                               <div className="max-h-40 overflow-y-auto">
                                 {timeSlots.filter(slot => {
                                   if (!selectedPickup || !pickupTime || !selectedDelivery) return true;
                                   const pDT = getSlotDateTime(selectedPickup, pickupTime);
                                   const dDT = getSlotDateTime(selectedDelivery, slot);
-                                  const minH = isExpress ? 24 : 72;
-                                  return (dDT - pDT) / (1000 * 60 * 60) >= minH;
+                                  return (dDT - pDT) / (1000 * 60 * 60) >= minDeliveryHours;
                                 }).map((slot) => (
                                   <button 
                                     key={slot}
+                                    type="button"
                                     onClick={() => {
                                       setDeliveryTime(slot);
                                       setOpenDropdown(null);
                                     }}
-                                    className="w-full px-4 py-3 text-left text-[10px] font-black uppercase border-b border-slate-50 last:border-0 hover:bg-slate-50"
+                                    className="w-full px-3.5 py-2.5 text-left text-xs font-semibold uppercase text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors cursor-pointer"
                                   >
                                     {slot}
                                   </button>
@@ -1630,17 +1665,34 @@ const HomePage = () => {
                   </div>
                 </div>
 
+                {/* Confirm Button */}
                 <button 
+                  type="button"
                   onClick={() => {
-                    if (!isLogisticsValid) {
-                      toast.error("Please ensure all fields are selected.");
+                    if (!pickupAddress) {
+                      toast.error("Please select a pickup address");
                       return;
                     }
+                    if (!selectedPickup || !pickupTime) {
+                      toast.error("Please select pickup date & time");
+                      return;
+                    }
+                    if (!dropAddress) {
+                      toast.error("Please select a drop-off address");
+                      return;
+                    }
+                    if (!selectedDelivery || !deliveryTime) {
+                      toast.error("Please select drop-off date & time");
+                      return;
+                    }
+                    setDeliveryConfirmed(true);
+                    toast.success("Logistics confirmed!");
                     setShowSlotPicker(false);
                   }} 
-                  className="w-full bg-slate-950 text-white py-3 rounded-xl font-black text-[8px] uppercase tracking-[0.2em] mt-2 shadow-xl hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  className="w-full bg-slate-950 hover:bg-slate-900 text-white py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl shadow-slate-950/20 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 mt-1"
                 >
-                  Confirm Logistics
+                  <Check className="w-4 h-4" />
+                  <span>Confirm Logistics</span>
                 </button>
               </motion.div>
             </div>

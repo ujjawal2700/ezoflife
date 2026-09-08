@@ -255,17 +255,56 @@ export const becomeVendor = async (req, res) => {
         // Handle File Uploads (Cloudinary URLs from Multer)
         if (req.files) {
             const files = req.files;
-            if (files.panDoc) user.panDoc = files.panDoc[0].path;
-            if (files.gstDoc) user.gstDoc = files.gstDoc[0].path;
-            if (files.aadharDoc) user.aadharDoc = files.aadharDoc[0].path;
-            if (files.msmeDoc) user.msmeDoc = files.msmeDoc[0].path;
-            if (files.franchiseDoc) user.franchiseDoc = files.franchiseDoc[0].path;
-            if (files.chequeDoc) user.chequeDoc = files.chequeDoc[0].path;
-            if (files.exteriorPhoto) user.exteriorPhoto = files.exteriorPhoto[0].path;
-            if (files.walkthroughVideo) user.walkthroughVideo = files.walkthroughVideo[0].path;
+            if (!user.documents) user.documents = [];
+
+            const addOrUpdateDoc = (type, url) => {
+                if (!url) return;
+                const idx = user.documents.findIndex(d => d.type?.toLowerCase() === type.toLowerCase());
+                if (idx > -1) {
+                    user.documents[idx] = { type, url };
+                } else {
+                    user.documents.push({ type, url });
+                }
+            };
+
+            if (files.panDoc) {
+                user.panDoc = files.panDoc[0].path;
+                addOrUpdateDoc('PAN Card', user.panDoc);
+            }
+            if (files.gstDoc) {
+                user.gstDoc = files.gstDoc[0].path;
+                addOrUpdateDoc('GST Certificate', user.gstDoc);
+            }
+            if (files.aadharDoc) {
+                user.aadharDoc = files.aadharDoc[0].path;
+                addOrUpdateDoc('Aadhaar Card', user.aadharDoc);
+            }
+            if (files.msmeDoc) {
+                user.msmeDoc = files.msmeDoc[0].path;
+                addOrUpdateDoc('MSME Certificate', user.msmeDoc);
+            }
+            if (files.franchiseDoc) {
+                user.franchiseDoc = files.franchiseDoc[0].path;
+                addOrUpdateDoc('Franchise Agreement', user.franchiseDoc);
+            }
+            if (files.chequeDoc) {
+                user.chequeDoc = files.chequeDoc[0].path;
+                addOrUpdateDoc('Cancelled Cheque', user.chequeDoc);
+            }
+            if (files.exteriorPhoto) {
+                user.exteriorPhoto = files.exteriorPhoto[0].path;
+                addOrUpdateDoc('Store Exterior', user.exteriorPhoto);
+            }
+            if (files.walkthroughVideo) {
+                user.walkthroughVideo = files.walkthroughVideo[0].path;
+                addOrUpdateDoc('Facility Video', user.walkthroughVideo);
+            }
             
             if (files.interiorPhotos) {
                 user.interiorPhotos = files.interiorPhotos.map(f => f.path);
+                files.interiorPhotos.forEach((f, idx) => {
+                    addOrUpdateDoc(`Store Interior ${idx + 1}`, f.path);
+                });
             }
         }
 
@@ -741,6 +780,43 @@ export const getUserProfile = async (req, res) => {
             }
         }
 
+        // If Vendor, sync & populate documents array from registration fields if missing
+        if (user.role === 'Vendor' || user.status === 'approved' || user.panDoc || user.gstDoc || user.aadharDoc) {
+            let docList = Array.isArray(user.documents) ? [...user.documents] : [];
+            const docMap = new Map(docList.map(d => [d.type?.toLowerCase().trim(), d]));
+
+            const syncDoc = (type, url) => {
+                if (url && typeof url === 'string' && url.trim().length > 0) {
+                    if (!docMap.has(type.toLowerCase().trim())) {
+                        const newDoc = { type, url };
+                        docList.push(newDoc);
+                        docMap.set(type.toLowerCase().trim(), newDoc);
+                    }
+                }
+            };
+
+            syncDoc('PAN Card', user.panDoc);
+            syncDoc('GST Certificate', user.gstDoc);
+            syncDoc('Aadhaar Card', user.aadharDoc);
+            syncDoc('MSME Certificate', user.msmeDoc);
+            syncDoc('Cancelled Cheque', user.chequeDoc);
+            syncDoc('Franchise Agreement', user.franchiseDoc);
+            syncDoc('Store Exterior', user.exteriorPhoto);
+            if (Array.isArray(user.interiorPhotos)) {
+                user.interiorPhotos.forEach((photo, idx) => {
+                    syncDoc(`Store Interior ${idx + 1}`, photo);
+                });
+            }
+            syncDoc('Facility Video', user.walkthroughVideo);
+
+            if (docList.length > (user.documents?.length || 0)) {
+                user.documents = docList;
+                User.findByIdAndUpdate(id, { documents: docList }).exec().catch(err => {
+                    console.error('Background User sync error for vendor documents:', err);
+                });
+            }
+        }
+
         res.status(200).json(user);
     } catch (err) {
         console.error('Get Profile Error:', err);
@@ -834,6 +910,16 @@ export const updateVendorDocuments = async (req, res) => {
             // Add new
             user.documents.push(newDoc);
         }
+
+        // Keep direct fields in sync
+        const typeLower = (type || '').toLowerCase().trim();
+        if (typeLower.includes('pan')) user.panDoc = req.file.path;
+        else if (typeLower.includes('gst')) user.gstDoc = req.file.path;
+        else if (typeLower.includes('aadhaar') || typeLower.includes('aadhar')) user.aadharDoc = req.file.path;
+        else if (typeLower.includes('cheque')) user.chequeDoc = req.file.path;
+        else if (typeLower.includes('msme')) user.msmeDoc = req.file.path;
+        else if (typeLower.includes('franchise')) user.franchiseDoc = req.file.path;
+        else if (typeLower.includes('exterior')) user.exteriorPhoto = req.file.path;
 
         await user.save();
         res.status(200).json(user);

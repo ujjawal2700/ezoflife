@@ -7,8 +7,13 @@ export const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fr
  * @returns {Date}
  */
 export const getNextDeliveryDate = (dayName) => {
-    const targetDay = DAYS.indexOf(dayName);
-    if (targetDay === -1) throw new Error('Invalid day name');
+    let normalized = 'Sunday';
+    if (typeof dayName === 'string' && dayName.trim()) {
+        const trimmed = dayName.trim();
+        const found = DAYS.find(d => d.toLowerCase() === trimmed.toLowerCase());
+        if (found) normalized = found;
+    }
+    const targetDay = DAYS.indexOf(normalized);
 
     const now = new Date();
     const resultDate = new Date();
