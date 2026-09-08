@@ -3,7 +3,7 @@ import {
   Users as UsersIcon, Mail, Phone, MoreHorizontal, ShieldAlert, UserCheck, 
   Activity, Zap, Search, Filter, Eye, Edit2, Trash2, CheckCircle, XCircle, 
   UserPlus, X, Save, Check, Ban, Clock, Info, RotateCw, ChevronDown, FileText, MapPin,
-  AlertTriangle, Archive, Loader2, Building2, User, CreditCard, Lock, Shield, Copy, Sparkles, Landmark
+  AlertTriangle, Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useSearchParams } from 'react-router-dom';
@@ -13,7 +13,6 @@ import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell, UserAvatarCell, TagBadge } from '@/shared/components/ui/table';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -25,6 +24,9 @@ export default function Users() {
   const [activeTab, setActiveTab] = useState(roleParam || 'All');
   const [selectedCustomerType, setSelectedCustomerType] = useState(typeParam || 'All');
   const [selectedVendorType, setSelectedVendorType] = useState(vendorTypeParam || 'All');
+  const [deleteModalUser, setDeleteModalUser] = useState(null);
+  const [deleteRelatedData, setDeleteRelatedData] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (roleParam && ['All', 'Customer', 'Vendor', 'Supplier'].includes(roleParam)) {
@@ -78,9 +80,6 @@ export default function Users() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [customServices, setCustomServices] = useState([]); // Services from 'Service' collection for current editing user
   const [isSaving, setIsSaving] = useState(false);
-  const [deleteModalUser, setDeleteModalUser] = useState(null);
-  const [deleteRelatedData, setDeleteRelatedData] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showNameDropdown, setShowNameDropdown] = useState(false);
   const [nameSearchQuery, setNameSearchQuery] = useState('');
@@ -193,16 +192,16 @@ export default function Users() {
   const handleConfirmDelete = async () => {
     if (!deleteModalUser) return;
     try {
-      setIsDeleting(true);
-      const res = await adminApi.deleteUser(deleteModalUser._id, deleteRelatedData);
-      toast.success(res.message || 'User deleted successfully');
-      setDeleteModalUser(null);
-      fetchUsers();
+        setIsDeleting(true);
+        const res = await adminApi.deleteUser(deleteModalUser._id, deleteRelatedData);
+        toast.success(res?.message || 'User deleted');
+        setDeleteModalUser(null);
+        fetchUsers();
     } catch (err) {
-      console.error('Delete user error:', err);
-      toast.error(err.message || 'Failed to delete user');
+        console.error('Delete user error:', err);
+        toast.error(err?.message || 'Failed to delete user');
     } finally {
-      setIsDeleting(false);
+        setIsDeleting(false);
     }
   };
 
@@ -383,19 +382,18 @@ export default function Users() {
         render: (val, row) => {
           const displayVal = (row.role === 'Vendor' && row.ownerName) ? row.ownerName : (val || 'Unnamed User');
           return (
-            <UserAvatarCell
-              name={displayVal}
-              subtitle={row.email || row.phone}
-            />
+            <span className="font-black text-slate-900 text-[11px] uppercase tracking-tight">
+              {displayVal}
+            </span>
           );
         }
       },
       {
-        header: 'Email address',
+        header: 'Email Address',
         key: 'email',
         render: (val) => (
-          <span className="text-[12px] text-slate-700 font-medium">
-            {val || '—'}
+          <span className="text-[10px] text-slate-500 font-bold tracking-tight">
+            {val || 'N/A'}
           </span>
         )
       }
@@ -403,22 +401,22 @@ export default function Users() {
 
     if (activeTab === 'Vendor') {
       baseCols.push({
-        header: 'Facility name',
+        header: 'Facility Name',
         key: 'facilityName',
         render: (val, row) => (
-          <span className="text-[12px] font-medium text-slate-900">
-            {row.facilityName || '—'}
+          <span className="text-[10px] text-slate-900 font-bold uppercase tracking-tight">
+            {row.facilityName || 'N/A'}
           </span>
         )
       });
     }
 
     baseCols.push({
-      header: 'Contact number',
+      header: 'Contact Number',
       key: 'phone',
       render: (val) => (
-        <span className="text-[12px] text-slate-700 font-medium tabular-nums">
-          {val || '—'}
+        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider tabular-nums">
+          {val || 'N/A'}
         </span>
       )
     });
@@ -427,11 +425,10 @@ export default function Users() {
       baseCols.push({
         header: 'Role',
         key: 'role',
-        render: (val) => (
-          <TagBadge
-            label={val || 'Customer'}
-            color={val === 'Vendor' ? 'purple' : val === 'Supplier' ? 'blue' : 'slate'}
-          />
+        render: (val, row) => (
+          <span className="text-[10px] text-slate-900 font-black uppercase tracking-widest bg-slate-100 border border-slate-200 px-2.5 py-1 rounded">
+            {val || 'Customer'}
+          </span>
         )
       });
     }
@@ -443,18 +440,19 @@ export default function Users() {
         render: (val, row) => {
           if (row.role === 'Vendor') {
             return (
-              <TagBadge label={row.businessType || 'N/A'} color="slate" />
+              <span className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                {row.businessType || 'N/A'}
+              </span>
             );
           }
           if (row.role !== 'Customer') {
-            return <span className="text-[12px] text-slate-400 font-medium">N/A</span>;
+            return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
           }
           const isBusiness = val === 'retail';
           return (
-            <TagBadge
-              label={isBusiness ? 'Business' : 'Individual'}
-              color={isBusiness ? 'indigo' : 'slate'}
-            />
+            <span className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider ${isBusiness ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}`}>
+              {isBusiness ? 'Business' : 'Individual'}
+            </span>
           );
         }
       });
@@ -466,24 +464,26 @@ export default function Users() {
           header: 'Type',
           key: 'supplierDetails',
           render: (val) => (
-            <TagBadge label={val?.entityType || 'N/A'} color="slate" />
+            <span className="px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+              {val?.entityType || 'N/A'}
+            </span>
           )
         },
         {
           header: 'Designation',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium">
-              {val?.designation || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider">
+              {val?.designation || 'N/A'}
             </span>
           )
         },
         {
-          header: 'GST number',
+          header: 'GST Number',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
-              {val?.gst || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.gst || 'N/A'}
             </span>
           )
         },
@@ -491,57 +491,62 @@ export default function Users() {
           header: 'Business PAN',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
-              {val?.panNumber || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.panNumber || 'N/A'}
             </span>
           )
         },
         {
-          header: 'Aadhaar number',
+          header: 'Aadhaar Number',
           key: 'supplierDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
-              {val?.aadhaarNumber || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.aadhaarNumber || 'N/A'}
             </span>
           )
         },
         {
-          header: 'Bank name',
+          header: 'Bank Name',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium">
-              {val?.bankName || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wide">
+              {val?.bankName || 'N/A'}
             </span>
           )
         },
         {
-          header: 'Account number',
+          header: 'Account Number',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
-              {val?.accountNumber || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.accountNumber || 'N/A'}
             </span>
           )
         },
         {
-          header: 'IFSC code',
+          header: 'Bank IFSC Code',
           key: 'bankDetails',
           render: (val) => (
-            <span className="text-[12px] text-slate-600 font-medium tabular-nums">
-              {val?.ifscCode || '—'}
+            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-wider tabular-nums">
+              {val?.ifscCode || 'N/A'}
             </span>
           )
         },
         {
-          header: 'Categories',
+          header: 'Category',
           key: 'supplierDetails',
           render: (val) => {
             const categories = val?.supplyCategories || [];
-            if (categories.length === 0) return <span className="text-[12px] text-slate-400 font-medium">—</span>;
+            if (categories.length === 0) return <span className="text-[10px] text-slate-400 font-bold uppercase">N/A</span>;
             return (
-              <div className="flex flex-wrap gap-1.5 max-w-[220px]">
+              <div className="flex flex-wrap gap-1 max-w-[200px]">
                 {categories.map((cat, index) => (
-                  <TagBadge key={index} label={cat} color="blue" />
+                  <span 
+                    key={index} 
+                    className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200"
+                  >
+                    {cat}
+                  </span>
                 ))}
               </div>
             );
@@ -756,7 +761,7 @@ export default function Users() {
         header: 'Registration', 
         key: 'createdAt',
         render: (val) => (
-          <span className="text-[12px] text-slate-700 font-medium tabular-nums">
+          <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
             {new Date(val).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
         )
@@ -771,23 +776,20 @@ export default function Users() {
         key: 'actions', 
         align: 'right',
         render: (_, row) => (
-          <div className="flex items-center justify-end gap-1.5">
+          <div className="flex items-center justify-end gap-2">
             <button 
-              onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))}
+              onClick={() => setEditingUser(JSON.parse(JSON.stringify(row)))} // Deep clone for editing
               title="Edit Full Profile" 
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
             >
-              <Edit2 size={16} />
+              <Edit2 size={14} />
             </button>
-            <button 
-              onClick={() => {
-                setDeleteModalUser(row);
-                setDeleteRelatedData(false);
-              }}
-              title="Delete User" 
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+            <button
+              onClick={() => { setDeleteRelatedData(false); setDeleteModalUser(row); }}
+              title="Delete User"
+              className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all shadow-sm"
             >
-              <Trash2 size={16} />
+              <Trash2 size={14} />
             </button>
           </div>
         )
@@ -1316,420 +1318,230 @@ export default function Users() {
       {/* Edit User Modal */}
       <AnimatePresence>
         {editingUser && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
                 <motion.div 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                     onClick={() => setEditingUser(null)}
-                    className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+                    className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
                 />
                 <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                    className="bg-white w-full max-w-5xl max-h-[92vh] rounded-3xl sm:rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden border border-slate-200/80"
+                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                    className="bg-white w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden"
                 >
-                    {/* Modal Header */}
-                    <div className="p-6 sm:p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                    <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-800 text-white flex items-center justify-center shadow-md shadow-slate-900/20 shrink-0">
-                                <Edit2 size={20} />
+                            <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/20">
+                                <Edit2 size={24} />
                             </div>
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-2.5 flex-wrap">
-                                    <h3 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-tight">Edit Partner Profile</h3>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                                        editingUser.role === 'Vendor' 
-                                            ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                            : editingUser.role === 'Customer'
-                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    }`}>
-                                        {editingUser.role}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-2 mt-1 text-xs font-semibold text-slate-400">
-                                    <span>Account ID:</span>
-                                    <span className="font-mono text-slate-700 font-bold">{editingUser._id}</span>
-                                    <button 
-                                        type="button"
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(editingUser._id);
-                                            toast.success('Account ID copied to clipboard');
-                                        }}
-                                        className="text-slate-400 hover:text-slate-700 p-0.5 transition-colors cursor-pointer"
-                                        title="Copy Account ID"
-                                    >
-                                        <Copy size={13} />
-                                    </button>
-                                </div>
+                            <div className="flex flex-col">
+                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter">Edit Partner Profile</h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Role: {editingUser.role} · ID: {editingUser._id}</p>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => setEditingUser(null)} 
-                            className="w-10 h-10 rounded-full hover:bg-slate-200/70 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors border border-slate-200/80 shadow-2xs shrink-0 cursor-pointer"
-                        >
-                            <X size={18} />
+                        <button onClick={() => setEditingUser(null)} className="p-3 hover:bg-white rounded-full transition-colors border border-slate-200 shadow-sm">
+                            <X size={20} />
                         </button>
                     </div>
 
-                    {/* Modal Body */}
-                    <div className="flex-1 overflow-y-auto p-6 sm:p-10 space-y-10">
-                        {/* Section 01: Personal & Business Details */}
+                    <div className="flex-1 overflow-y-auto p-10 space-y-12">
+                        {/* Basic Information */}
                         <section className="space-y-6">
                             <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-black text-xs">
-                                    01
-                                </span>
-                                <div>
-                                    <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">Personal & Business Details</h4>
-                                    <p className="text-xs text-slate-400 font-medium">Primary profile, identity, and registered contact credentials</p>
-                                </div>
+                                <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs">01</span>
+                                <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Personal & Business Details</h4>
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {editingUser.role === 'Vendor' && !['Pvt Ltd', 'Franchise'].includes(editingUser.businessType) ? (
                                     <>
-                                        {/* Owner Name */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Owner Full Name</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <User size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.ownerName || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, ownerName: e.target.value})}
-                                                    placeholder="Owner name"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Owner Full Name</label>
+                                            <input 
+                                                value={editingUser.ownerName || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, ownerName: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
-
-                                        {/* Facility Name */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Facility / Store Name</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Building2 size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.facilityName || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, facilityName: e.target.value})}
-                                                    placeholder="Store or facility name"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Facility Name</label>
+                                            <input 
+                                                value={editingUser.facilityName || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, facilityName: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
-
-                                        {/* Business Entity Type */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Business Entity Type</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Building2 size={16} />
-                                                </div>
-                                                <select
-                                                    value={editingUser.businessType || 'Proprietorship'}
-                                                    onChange={(e) => setEditingUser({...editingUser, businessType: e.target.value})}
-                                                    className="w-full py-3 pr-8 bg-transparent text-sm font-semibold text-slate-900 outline-none cursor-pointer"
-                                                >
-                                                    <option value="Proprietorship">Proprietorship</option>
-                                                    <option value="Partnership">Partnership</option>
-                                                    <option value="Unregistered/Local">Unregistered/Local</option>
-                                                </select>
-                                                <ChevronDown size={15} className="absolute right-3 text-slate-400 pointer-events-none" />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Entity Type</label>
+                                            <select
+                                                value={editingUser.businessType || 'Proprietorship'}
+                                                onChange={(e) => setEditingUser({...editingUser, businessType: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all"
+                                            >
+                                                <option value="Proprietorship">Proprietorship</option>
+                                                <option value="Partnership">Partnership</option>
+                                                <option value="Unregistered/Local">Unregistered/Local</option>
+                                            </select>
                                         </div>
-
-                                        {/* Phone Number (Read-only) */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                                                <span>Phone Number</span>
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                                                    <Lock size={10} /> Verified
-                                                </span>
-                                            </label>
-                                            <div className="relative flex items-center rounded-xl bg-slate-50 border border-slate-200/70 shadow-2xs cursor-not-allowed">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Phone size={16} />
-                                                </div>
-                                                <input 
-                                                    disabled
-                                                    value={editingUser.phone || ''} 
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-bold text-slate-500 outline-none cursor-not-allowed font-mono" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                            <input 
+                                                disabled
+                                                value={editingUser.phone || ''} 
+                                                className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-xs font-bold text-slate-400 cursor-not-allowed" 
+                                            />
                                         </div>
-
-                                        {/* Aadhaar Number */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Aadhaar Number</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Shield size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.aadharNumber || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, aadharNumber: e.target.value})}
-                                                    placeholder="12-digit Aadhaar number"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-mono font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Aadhaar Number</label>
+                                            <input 
+                                                value={editingUser.aadharNumber || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, aadharNumber: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
-
-                                        {/* Address */}
-                                        <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                                            <label className="text-xs font-bold text-slate-700">Registered Facility Address</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <MapPin size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.address || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
-                                                    placeholder="Enter full address..."
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
+                                            <input 
+                                                value={editingUser.address || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
                                     </>
                                 ) : (
                                     <>
-                                        {/* Full Name */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Full Name</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <User size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.displayName || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, displayName: e.target.value})}
-                                                    placeholder="Partner name"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                            <input 
+                                                value={editingUser.displayName || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, displayName: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
-
-                                        {/* Phone Number (Read-only) */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                                                <span>Phone Number</span>
-                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                                                    <Lock size={10} /> Verified
-                                                </span>
-                                            </label>
-                                            <div className="relative flex items-center rounded-xl bg-slate-50 border border-slate-200/70 shadow-2xs cursor-not-allowed">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Phone size={16} />
-                                                </div>
-                                                <input 
-                                                    disabled
-                                                    value={editingUser.phone || ''} 
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-bold text-slate-500 outline-none cursor-not-allowed font-mono" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone Number</label>
+                                            <input 
+                                                disabled
+                                                value={editingUser.phone || ''} 
+                                                className="w-full p-4 bg-slate-100 border border-slate-100 rounded-2xl text-xs font-bold text-slate-400 cursor-not-allowed" 
+                                            />
                                         </div>
-
-                                        {/* Email Address */}
                                         <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Email Address</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Mail size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.email || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
-                                                    placeholder="partner@example.com"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label>
+                                            <input 
+                                                value={editingUser.email || ''} 
+                                                onChange={(e) => setEditingUser({...editingUser, email: e.target.value})}
+                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                            />
                                         </div>
-
                                         {!(editingUser.role === 'Customer' && editingUser.customerType === 'individual') && (
-                                            <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                                                <label className="text-xs font-bold text-slate-700">Address</label>
-                                                <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                    <div className="pl-3.5 pr-2 text-slate-400">
-                                                        <MapPin size={16} />
-                                                    </div>
-                                                    <input 
-                                                        value={editingUser.address || ''} 
-                                                        onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
-                                                        placeholder="Enter complete address..."
-                                                        className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                    />
-                                                </div>
+                                            <div className="space-y-1.5 md:col-span-2 lg:col-span-1">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address</label>
+                                                <input 
+                                                    value={editingUser.address || ''} 
+                                                    onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
+                                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                />
                                             </div>
                                         )}
-
                                         {(editingUser.role === 'Vendor' || editingUser.role === 'Supplier') && (
                                             <>
                                                 <div className="space-y-1.5">
-                                                    <label className="text-xs font-bold text-slate-700">Shop / Business Name</label>
-                                                    <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                        <div className="pl-3.5 pr-2 text-slate-400">
-                                                            <Building2 size={16} />
-                                                        </div>
-                                                        <input 
-                                                            value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.name || '') : (editingUser.supplierDetails?.businessName || '')} 
-                                                            onChange={(e) => {
-                                                                if(editingUser.role === 'Vendor') {
-                                                                    setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, name: e.target.value}});
-                                                                } else {
-                                                                    setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, businessName: e.target.value}});
-                                                                }
-                                                            }}
-                                                            placeholder="Registered business name"
-                                                            className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                        />
-                                                    </div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Shop/Business Name</label>
+                                                    <input 
+                                                        value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.name || '') : (editingUser.supplierDetails?.businessName || '')} 
+                                                        onChange={(e) => {
+                                                            if(editingUser.role === 'Vendor') {
+                                                                setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, name: e.target.value}});
+                                                            } else {
+                                                                setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, businessName: e.target.value}});
+                                                            }
+                                                        }}
+                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                    />
                                                 </div>
-
                                                 <div className="space-y-1.5">
-                                                    <label className="text-xs font-bold text-slate-700">GST Number</label>
-                                                    <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                        <div className="pl-3.5 pr-2 text-slate-400">
-                                                            <FileText size={16} />
-                                                        </div>
-                                                        <input 
-                                                            value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.gst || '') : (editingUser.supplierDetails?.gst || '')} 
-                                                            onChange={(e) => {
-                                                                const val = e.target.value.toUpperCase();
-                                                                if(editingUser.role === 'Vendor') {
-                                                                    setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, gst: val}});
-                                                                } else {
-                                                                    setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, gst: val}});
-                                                                }
-                                                            }}
-                                                            placeholder="15-digit GSTIN"
-                                                            className="w-full py-3 pr-3.5 bg-transparent text-sm font-mono uppercase font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                        />
-                                                    </div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
+                                                    <input 
+                                                        value={editingUser.role === 'Vendor' ? (editingUser.shopDetails?.gst || '') : (editingUser.supplierDetails?.gst || '')} 
+                                                        onChange={(e) => {
+                                                            if(editingUser.role === 'Vendor') {
+                                                                setEditingUser({...editingUser, shopDetails: {...editingUser.shopDetails, gst: e.target.value}});
+                                                            } else {
+                                                                setEditingUser({...editingUser, supplierDetails: {...editingUser.supplierDetails, gst: e.target.value}});
+                                                            }
+                                                        }}
+                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                    />
                                                 </div>
                                             </>
                                         )}
-
                                         {editingUser.role === 'Customer' && (
                                             <>
-                                                {/* Customer Type Indicator */}
                                                 <div className="space-y-1.5">
-                                                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
-                                                        <span>Customer Type</span>
-                                                        <span className="text-[10px] font-bold text-slate-400">Account Classification</span>
-                                                    </label>
-                                                    <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center gap-2.5">
-                                                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-indigo-600">
-                                                            {editingUser.customerType === 'retail' ? <Building2 size={16} /> : <User size={16} />}
-                                                        </div>
-                                                        <div>
-                                                            <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wide block">
-                                                                {editingUser.customerType === 'retail' ? 'Business (Retail)' : 'Individual Account'}
-                                                            </span>
-                                                            <span className="text-[10px] font-medium text-slate-400">
-                                                                {editingUser.customerType === 'retail' ? 'Commercial B2B Buyer' : 'Consumer B2C Buyer'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Customer Type</label>
+                                                    <input 
+                                                        value={editingUser.customerType === 'retail' ? 'Business (Retail)' : 'Individual'} 
+                                                        disabled
+                                                        className="w-full p-4 bg-slate-100 border border-slate-200 text-slate-500 rounded-2xl text-xs font-bold outline-none cursor-not-allowed" 
+                                                    />
                                                 </div>
-
-                                                {/* Individual Customer Addresses */}
                                                 {editingUser.customerType === 'individual' && (
-                                                    <div className="md:col-span-2 lg:col-span-3 space-y-3 pt-2">
-                                                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                                                            <MapPin size={14} className="text-rose-500" />
-                                                            Saved Delivery Address{(!editingUser.addresses || editingUser.addresses.length <= 1) ? '' : 'es'}
-                                                        </label>
+                                                    <>
                                                         {(!editingUser.addresses || editingUser.addresses.length === 0) ? (
-                                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                                    <MapPin size={16} />
-                                                                </div>
+                                                            <div className="space-y-1.5 md:col-span-2">
+                                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Address 01 (Home)</label>
                                                                 <input 
                                                                     value={editingUser.address || ''} 
                                                                     onChange={(e) => setEditingUser({...editingUser, address: e.target.value})}
-                                                                    placeholder="Enter complete residential address..."
-                                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
+                                                                    className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                                                 />
                                                             </div>
                                                         ) : (
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                {editingUser.addresses.map((addr, idx) => (
-                                                                    <div key={idx} className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2">
-                                                                        <div className="flex items-center justify-between">
-                                                                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                                                                                <MapPin size={12} className="text-indigo-600" />
-                                                                                Address 0{idx + 1}
-                                                                            </span>
-                                                                            <span className="px-2 py-0.5 bg-white border border-slate-200 text-slate-600 rounded-md text-[10px] font-bold uppercase">
-                                                                                {addr.type || 'Home'}
-                                                                            </span>
-                                                                        </div>
-                                                                        <input 
-                                                                            value={addr.address || ''} 
-                                                                            onChange={(e) => {
-                                                                                const updatedAddresses = [...(editingUser.addresses || [])];
-                                                                                updatedAddresses[idx] = { ...addr, address: e.target.value };
-                                                                                setEditingUser({ ...editingUser, addresses: updatedAddresses });
-                                                                            }}
-                                                                            className="w-full p-2.5 bg-white border border-slate-200/90 rounded-xl text-xs font-semibold text-slate-900 outline-none focus:border-indigo-500 transition-all" 
-                                                                        />
-                                                                    </div>
-                                                                ))}
-                                                            </div>
+                                                            editingUser.addresses.map((addr, idx) => (
+                                                                <div key={idx} className="space-y-1.5 md:col-span-2">
+                                                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                                                        Address 0{idx + 1} ({addr.type || 'Home'})
+                                                                    </label>
+                                                                    <input 
+                                                                        value={addr.address || ''} 
+                                                                        onChange={(e) => {
+                                                                            const updatedAddresses = [...(editingUser.addresses || [])];
+                                                                            updatedAddresses[idx] = { ...addr, address: e.target.value };
+                                                                            setEditingUser({ ...editingUser, addresses: updatedAddresses });
+                                                                        }}
+                                                                        className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                                    />
+                                                                </div>
+                                                            ))
                                                         )}
-                                                    </div>
+                                                    </>
                                                 )}
-
-                                                {/* Retail Business Customer Details */}
                                                 {editingUser.customerType === 'retail' && (
                                                     <>
                                                         <div className="space-y-1.5">
-                                                            <label className="text-xs font-bold text-slate-700">Business Name</label>
-                                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                                    <Building2 size={16} />
-                                                                </div>
-                                                                <input 
-                                                                    value={editingUser.businessName || ''} 
-                                                                    onChange={(e) => setEditingUser({...editingUser, businessName: e.target.value})}
-                                                                    placeholder="Retail enterprise name"
-                                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Name</label>
+                                                            <input 
+                                                                value={editingUser.businessName || ''} 
+                                                                onChange={(e) => setEditingUser({...editingUser, businessName: e.target.value})}
+                                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
                                                                 />
-                                                            </div>
                                                         </div>
-
                                                         <div className="space-y-1.5">
-                                                            <label className="text-xs font-bold text-slate-700">GST Number</label>
-                                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                                    <FileText size={16} />
-                                                                </div>
-                                                                <input 
-                                                                    value={editingUser.gstNumber || ''} 
-                                                                    onChange={(e) => setEditingUser({...editingUser, gstNumber: e.target.value.toUpperCase()})}
-                                                                    placeholder="15-digit GSTIN"
-                                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-mono uppercase font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                                />
-                                                            </div>
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">GST Number</label>
+                                                            <input 
+                                                                value={editingUser.gstNumber || ''} 
+                                                                onChange={(e) => setEditingUser({...editingUser, gstNumber: e.target.value.toUpperCase()})}
+                                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                            />
                                                         </div>
-
-                                                        <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                                                            <label className="text-xs font-bold text-slate-700">Business Address</label>
-                                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                                    <MapPin size={16} />
-                                                                </div>
-                                                                <input 
-                                                                    value={editingUser.businessAddress || ''} 
-                                                                    onChange={(e) => setEditingUser({...editingUser, businessAddress: e.target.value})}
-                                                                    placeholder="Commercial registered address"
-                                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                                />
-                                                            </div>
+                                                        <div className="space-y-1.5">
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Business Address</label>
+                                                            <input 
+                                                                value={editingUser.businessAddress || ''} 
+                                                                onChange={(e) => setEditingUser({...editingUser, businessAddress: e.target.value})}
+                                                                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                                            />
                                                         </div>
                                                     </>
                                                 )}
@@ -1745,212 +1557,217 @@ export default function Users() {
                             <section className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-black text-xs">02</span>
-                                        <div>
-                                            <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">Service Nodes & Pricing Approval</h4>
-                                            <p className="text-xs text-slate-400 font-medium">Verify custom menu items and tier-based commission rates</p>
-                                        </div>
-                                    </div>
-                                    <button 
-                                        onClick={() => {
-                                            const fetchVendorCustomServices = async () => {
-                                                if (editingUser && editingUser.role === 'Vendor') {
-                                                    try {
-                                                        const res = await serviceApi.getAll({ vendorId: editingUser._id });
-                                                        setCustomServices(res);
-                                                        toast.success('Services synchronized');
-                                                    } catch (err) {
-                                                        console.error('Fetch error:', err);
+                                        <span className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black text-xs">02</span>
+                                        <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Service Nodes & Pricing Approval</h4>
+                                        <button 
+                                            onClick={() => {
+                                                console.log('🔄 Manual Sync Triggered');
+                                                const fetchVendorCustomServices = async () => {
+                                                    if (editingUser && editingUser.role === 'Vendor') {
+                                                        try {
+                                                            const res = await serviceApi.getAll({ vendorId: editingUser._id });
+                                                            setCustomServices(res);
+                                                            toast.success('Services synchronized');
+                                                        } catch (err) {
+                                                            console.error('Fetch error:', err);
+                                                        }
                                                     }
-                                                }
-                                            };
-                                            fetchVendorCustomServices();
-                                        }}
-                                        className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
-                                    >
-                                        <RotateCw size={13} />
-                                        Sync Services
-                                    </button>
+                                                };
+                                                fetchVendorCustomServices();
+                                            }}
+                                            className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-900 transition-all active:rotate-180 duration-500"
+                                            title="Sync Services"
+                                        >
+                                            <RotateCw size={12} />
+                                        </button>
+                                    </div>
+                                    <span className="px-3 py-1 bg-slate-100 text-[9px] font-black text-slate-500 rounded-full uppercase tracking-widest">
+                                        {(editingUser.shopDetails?.services?.length || 0) + customServices.length} Nodes Found
+                                    </span>
                                 </div>
-                                <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-2xs">
-                                    <Table>
-                                        <TableHeader className="bg-slate-50/80">
-                                            <TableRow>
-                                                <TableHead className="font-black text-[10px] uppercase tracking-wider text-slate-500">Service Title</TableHead>
-                                                <TableHead className="font-black text-[10px] uppercase tracking-wider text-slate-500">Category</TableHead>
-                                                <TableHead className="font-black text-[10px] uppercase tracking-wider text-slate-500">Base Price</TableHead>
-                                                <TableHead className="font-black text-[10px] uppercase tracking-wider text-slate-500">Audit Status</TableHead>
-                                                <TableHead className="font-black text-[10px] uppercase tracking-wider text-slate-500 text-right">Action</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {((customServices.length > 0 ? customServices : editingUser.shopDetails?.services) || []).map((svc, idx) => (
-                                                <TableRow key={svc._id || idx} className="hover:bg-slate-50/50">
-                                                    <TableCell className="font-bold text-xs text-slate-900">{svc.title}</TableCell>
-                                                    <TableCell><TagBadge color="slate">{svc.category}</TagBadge></TableCell>
-                                                    <TableCell className="font-black text-xs font-mono text-slate-800">₹{svc.price}</TableCell>
-                                                    <TableCell>
-                                                        <StatusBadge 
-                                                            status={svc.approvalStatus || 'Pending'} 
-                                                            color={
-                                                                svc.approvalStatus === 'Approved' ? 'emerald' :
-                                                                svc.approvalStatus === 'Rejected' ? 'rose' : 'amber'
-                                                            } 
-                                                        />
-                                                    </TableCell>
-                                                    <TableCell className="text-right">
-                                                        <div className="flex items-center justify-end gap-1.5">
+
+                                <div className="bg-slate-50 border border-slate-100 rounded-3xl overflow-hidden">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-200/50 border-b border-slate-200">
+                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Type</th>
+                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Service Node</th>
+                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Vendor Rate</th>
+                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Current Status</th>
+                                                <th className="p-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-right">Moderation</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-200/50">
+                                            {/* 1. Master Services from ShopDetails */}
+                                            {editingUser.shopDetails?.services?.map((svc, idx) => (
+                                                <tr key={`master-${idx}`} className="hover:bg-white/50 transition-colors">
+                                                    <td className="p-5">
+                                                        <span className="px-2 py-0.5 bg-slate-900 text-white rounded text-[7px] font-black uppercase tracking-widest">Master</span>
+                                                    </td>
+                                                    <td className="p-5">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{getServiceName(svc.id)}</span>
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">ID: {svc.id?.slice(-6).toUpperCase()}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-5 text-center text-xs font-black text-slate-900 tabular-nums">₹{svc.vendorRate}</td>
+                                                    <td className="p-5 text-center">
+                                                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${svc.status === 'approved' ? 'bg-emerald-50 text-emerald-600' : svc.status === 'rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                            {svc.status || 'pending'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-5 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {svc.status !== 'approved' && (
+                                                                <button 
+                                                                    onClick={() => handleUpdateServiceStatus(editingUser._id, svc.id, 'approved')}
+                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white border border-slate-200 text-slate-300 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50"
+                                                                >
+                                                                    <Check size={14} />
+                                                                </button>
+                                                            )}
+                                                            {svc.status !== 'rejected' && (
+                                                                <button 
+                                                                    onClick={() => handleUpdateServiceStatus(editingUser._id, svc.id, 'rejected')}
+                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white border border-slate-200 text-slate-300 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50"
+                                                                >
+                                                                    <Ban size={14} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {/* 2. Custom Services from Collection */}
+                                            {customServices.map((svc, idx) => (
+                                                <tr key={`custom-${idx}`} className="hover:bg-white/50 transition-colors">
+                                                    <td className="p-5">
+                                                        <span className="px-2 py-0.5 bg-indigo-500 text-white rounded text-[7px] font-black uppercase tracking-widest">Custom</span>
+                                                    </td>
+                                                    <td className="p-5">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-black text-slate-900 uppercase tracking-tight">{svc.name}</span>
+                                                            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">CATEGORY: {svc.category}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-5 text-center text-xs font-black text-slate-900 tabular-nums">₹{svc.basePrice}</td>
+                                                    <td className="p-5 text-center">
+                                                        <span className={`inline-flex px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${svc.approvalStatus === 'Approved' ? 'bg-emerald-50 text-emerald-600' : svc.approvalStatus === 'Rejected' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'}`}>
+                                                            {svc.approvalStatus || 'Pending'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-5 text-right">
+                                                        <div className="flex items-center justify-end gap-2">
                                                             {svc.approvalStatus !== 'Approved' && (
                                                                 <button 
                                                                     onClick={() => handleUpdateServiceStatus(editingUser._id, svc._id, 'approved')}
-                                                                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-all bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 cursor-pointer"
-                                                                    title="Approve Service"
+                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white border border-slate-200 text-slate-300 hover:text-emerald-500 hover:border-emerald-200 hover:bg-emerald-50"
                                                                 >
-                                                                    <Check size={13} />
+                                                                    <Check size={14} />
                                                                 </button>
                                                             )}
                                                             {svc.approvalStatus !== 'Rejected' && (
                                                                 <button 
                                                                     onClick={() => handleUpdateServiceStatus(editingUser._id, svc._id, 'rejected')}
-                                                                    className="w-7 h-7 rounded-lg flex items-center justify-center transition-all bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 cursor-pointer"
-                                                                    title="Reject Service"
+                                                                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all bg-white border border-slate-200 text-slate-300 hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50"
                                                                 >
-                                                                    <Ban size={13} />
+                                                                    <Ban size={14} />
                                                                 </button>
                                                             )}
                                                         </div>
-                                                    </TableCell>
-                                                </TableRow>
+                                                    </td>
+                                                </tr>
                                             ))}
                                             {(!editingUser.shopDetails?.services?.length && !customServices.length) && (
-                                                <TableRow>
-                                                    <TableCell colSpan={5} className="p-8 text-center text-xs font-semibold text-slate-400 italic">No custom services configured for this vendor</TableCell>
-                                                </TableRow>
+                                                <tr>
+                                                    <td colSpan={5} className="p-10 text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">No service nodes configured for this vendor</td>
+                                                </tr>
                                             )}
-                                        </TableBody>
-                                    </Table>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </section>
                         )}
 
-                        {/* Settlement & Bank Configuration */}
                         {!(editingUser.role === 'Customer' && editingUser.customerType === 'individual') && (
-                            <section className="space-y-4 pt-2">
+                            <section className="space-y-6">
                                 <div className="flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-black text-xs">
+                                    <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-xs">
                                         {editingUser.role === 'Vendor' && ['Pvt Ltd', 'Franchise'].includes(editingUser.businessType) ? '03' : '02'}
                                     </span>
-                                    <div>
-                                        <h4 className="font-black text-sm uppercase tracking-wide text-slate-900">Settlement & Bank Configuration</h4>
-                                        <p className="text-xs text-slate-400 font-medium">Payout disbursement account credentials and IFSC verification</p>
-                                    </div>
+                                    <h4 className="font-black text-sm uppercase tracking-widest text-slate-900">Settlement & Bank Configuration</h4>
                                 </div>
-
-                                <div className="p-6 bg-slate-50/70 rounded-2xl border border-slate-200/80 space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                                        {/* Account Holder */}
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Account Holder Name</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <User size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.bankDetails?.accountHolder || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountHolder: e.target.value}})}
-                                                    placeholder="Account holder"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Bank Name */}
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Bank Name</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <Landmark size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.bankDetails?.bankName || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, bankName: e.target.value}})}
-                                                    placeholder="e.g. HDFC Bank"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Account Number */}
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Account Number</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <CreditCard size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.bankDetails?.accountNumber || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountNumber: e.target.value}})}
-                                                    placeholder="Account number"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-mono font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Bank IFSC Code */}
-                                        <div className="space-y-1.5">
-                                            <label className="text-xs font-bold text-slate-700">Bank IFSC Code</label>
-                                            <div className="relative flex items-center rounded-xl bg-white border border-slate-200/90 shadow-2xs hover:border-slate-300 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                                                <div className="pl-3.5 pr-2 text-slate-400">
-                                                    <FileText size={16} />
-                                                </div>
-                                                <input 
-                                                    value={editingUser.bankDetails?.ifscCode || ''} 
-                                                    onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, ifscCode: e.target.value.toUpperCase()}})}
-                                                    placeholder="HDFC0001234"
-                                                    className="w-full py-3 pr-3.5 bg-transparent text-sm font-mono uppercase font-semibold text-slate-900 outline-none placeholder:text-slate-300" 
-                                                />
-                                            </div>
-                                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Holder</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.accountHolder || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountHolder: e.target.value}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank Name</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.bankName || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, bankName: e.target.value}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Number</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.accountNumber || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, accountNumber: e.target.value}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Bank IFSC Code</label>
+                                        <input 
+                                            value={editingUser.bankDetails?.ifscCode || ''} 
+                                            onChange={(e) => setEditingUser({...editingUser, bankDetails: {...editingUser.bankDetails, ifscCode: e.target.value.toUpperCase()}})}
+                                            className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl text-xs font-bold outline-none focus:border-slate-900 transition-all" 
+                                        />
                                     </div>
                                 </div>
                             </section>
                         )}
                     </div>
 
-                    {/* Modal Footer */}
-                    <div className="p-6 sm:p-8 border-t border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="p-8 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => {
                                     const nextStatus = editingUser.status === 'rejected' ? 'approved' : 'rejected';
                                     setEditingUser({ ...editingUser, status: nextStatus });
-                                    toast.success(nextStatus === 'rejected' ? 'Partner marked as Blocked' : 'Partner marked as Active');
+                                    toast.success(nextStatus === 'rejected' ? 'Status set to Blocked' : 'Status set to Active');
                                 }}
-                                className={`w-full sm:w-auto px-5 py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-2xs cursor-pointer ${
+                                className={`px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.15em] transition-all flex items-center gap-2 shadow-sm ${
                                     editingUser.status === 'rejected'
-                                        ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
-                                        : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                                        ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100/80 border border-emerald-200/80'
+                                        : 'bg-rose-50 text-rose-600 hover:bg-rose-100/80 border border-rose-200/80'
                                 }`}
                             >
-                                {editingUser.status === 'rejected' ? <CheckCircle size={15} /> : <Ban size={15} />}
+                                {editingUser.status === 'rejected' ? <CheckCircle size={14} /> : <Ban size={14} />}
                                 {editingUser.status === 'rejected' ? 'Unblock Partner' : 'Block Partner'}
                             </button>
                         </div>
-                        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                        <div className="flex gap-4">
                             <button 
                                 onClick={() => setEditingUser(null)}
-                                className="flex-1 sm:flex-initial px-6 py-3 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
+                                className="px-10 py-4 border border-slate-200 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-white transition-all"
                             >
                                 Cancel
                             </button>
                             <button 
                                 onClick={handleSaveProfile}
                                 disabled={isSaving}
-                                className="flex-1 sm:flex-initial px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-slate-900/20 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                                className="px-12 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/20 flex items-center gap-2 active:scale-95 transition-all disabled:opacity-50"
                             >
                                 {isSaving ? <RotateCw size={14} className="animate-spin" /> : <Save size={14} />}
-                                {isSaving ? 'Saving Changes...' : 'Save Profile Changes'}
+                                {isSaving ? 'Synchronizing...' : 'Save Changes'}
                             </button>
                         </div>
                     </div>
@@ -1958,6 +1775,8 @@ export default function Users() {
             </div>
         )}
       </AnimatePresence>
+
+
 
       {/* Custom Rejection Modal */}
       <AnimatePresence>
@@ -1988,7 +1807,7 @@ export default function Users() {
 
                     <div className="p-10 space-y-6">
                         <div className="space-y-2">
-                             <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider ml-1">Rejection Reason</label>
+                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Rejection Reason</label>
                              <textarea 
                                 autoFocus
                                 value={rejectionReason}
@@ -2121,127 +1940,69 @@ export default function Users() {
             </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
+      {/* Delete User - cascade option */}
+      <AnimatePresence>
         {deleteModalUser && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isDeleting && setDeleteModalUser(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden flex flex-col"
+              className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl relative z-10 flex flex-col overflow-hidden border border-slate-100"
             >
-              {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shadow-sm shrink-0">
-                    <Trash2 size={24} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900 tracking-tight">Delete User Account</h3>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
-                      {deleteModalUser.displayName || deleteModalUser.ownerName || deleteModalUser.shopDetails?.name || 'Unnamed User'} 
-                      <span className="mx-1.5 text-slate-300">•</span>
-                      <span className="font-bold text-slate-700">{deleteModalUser.role}</span>
-                      <span className="mx-1.5 text-slate-300">•</span>
-                      <span className="tabular-nums">{deleteModalUser.phone}</span>
-                    </p>
-                  </div>
+              <div className="p-6 border-b border-slate-100 flex items-start gap-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={16} />
                 </div>
+                <div className="min-w-0">
+                  <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] leading-none mb-2">
+                    Delete User
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest truncate">
+                    {deleteModalUser.displayName || deleteModalUser.ownerName || deleteModalUser.shopDetails?.name || 'Unnamed User'}
+                    {' · '}{deleteModalUser.role}{' · '}{deleteModalUser.phone}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-3">
                 <button
-                  onClick={() => !isDeleting && setDeleteModalUser(null)}
-                  disabled={isDeleting}
-                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                  type="button"
+                  onClick={() => setDeleteRelatedData(false)}
+                  className={`w-full text-left p-4 rounded-2xl border transition-all ${!deleteRelatedData ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-300'}`}
                 >
-                  <X size={18} />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-1">Preserve history</p>
+                  <p className="text-[11px] text-slate-500 font-medium leading-snug">
+                    Deletes the account but keeps past orders and payments, relabelled as Ex-{deleteModalUser.role}.
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteRelatedData(true)}
+                  className={`w-full text-left p-4 rounded-2xl border transition-all ${deleteRelatedData ? 'border-rose-600 bg-rose-50' : 'border-slate-200 hover:border-slate-300'}`}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 mb-1">Delete everything</p>
+                  <p className="text-[11px] text-slate-500 font-medium leading-snug">
+                    Permanently purges the account and all related records. This cannot be undone.
+                  </p>
                 </button>
               </div>
 
-              {/* Body */}
-              <div className="p-6 space-y-5">
-                <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/60 flex items-start gap-3">
-                  <AlertTriangle className="text-amber-600 shrink-0 mt-0.5" size={18} />
-                  <div className="text-xs text-amber-900 leading-relaxed">
-                    <span className="font-bold">Attention Admin: </span> 
-                    Please choose how you want to handle this user's existing history, orders, and payment data upon deletion.
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
-                    Do you want to delete the existing data also?
-                  </span>
-
-                  {/* Option 1: Preserve History (deleteRelatedData = false) */}
-                  <label
-                    onClick={() => setDeleteRelatedData(false)}
-                    className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                      !deleteRelatedData
-                        ? 'border-indigo-600 bg-indigo-50/40 shadow-sm'
-                        : 'border-slate-100 bg-slate-50/60 hover:border-slate-200'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="deleteOption"
-                      checked={!deleteRelatedData}
-                      onChange={() => setDeleteRelatedData(false)}
-                      className="mt-1 h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-slate-900">
-                          Delete User Only (Preserve History)
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700">
-                          Recommended
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 leading-normal">
-                        Deletes the user account from the database, but safely preserves past orders and payments. Related historical records will be updated to display as <strong className="text-slate-800 font-bold">Ex-{deleteModalUser.role}: {deleteModalUser.displayName || deleteModalUser.phone}</strong> for accounting and tracking.
-                      </p>
-                    </div>
-                  </label>
-
-                  {/* Option 2: Delete Everything (deleteRelatedData = true) */}
-                  <label
-                    onClick={() => setDeleteRelatedData(true)}
-                    className={`flex items-start gap-3.5 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                      deleteRelatedData
-                        ? 'border-rose-600 bg-rose-50/40 shadow-sm'
-                        : 'border-slate-100 bg-slate-50/60 hover:border-slate-200'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="deleteOption"
-                      checked={deleteRelatedData}
-                      onChange={() => setDeleteRelatedData(true)}
-                      className="mt-1 h-4 w-4 text-rose-600 border-slate-300 focus:ring-rose-500"
-                    />
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-rose-950">
-                          Delete User & All Related Data
-                        </span>
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-700">
-                          Permanent Wipeout
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-600 leading-normal">
-                        Completely purges this user and wipes out all associated order history, payment records, payouts, tickets, and data. <span className="text-rose-600 font-semibold">This cannot be undone.</span>
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+              <div className="px-6 py-5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   disabled={isDeleting}
                   onClick={() => setDeleteModalUser(null)}
-                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="p-1 px-4 h-8 border border-slate-200 text-[9px] font-bold uppercase tracking-widest rounded-sm bg-white hover:bg-slate-100 disabled:opacity-50 transition-all"
                 >
                   Cancel
                 </button>
@@ -2249,18 +2010,10 @@ export default function Users() {
                   type="button"
                   disabled={isDeleting}
                   onClick={handleConfirmDelete}
-                  className={`px-5 py-2.5 rounded-xl text-white text-xs font-black tracking-wide flex items-center gap-2 transition-all cursor-pointer shadow-md active:scale-95 ${
-                    deleteRelatedData
-                      ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
-                      : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
-                  }`}
+                  className={`p-1 px-4 h-8 text-[9px] font-bold uppercase tracking-widest rounded-sm text-white flex items-center gap-2 disabled:opacity-50 transition-all ${deleteRelatedData ? 'bg-rose-600 hover:bg-rose-700' : 'bg-slate-900 hover:bg-slate-950'}`}
                 >
-                  {isDeleting && <Loader2 size={14} className="animate-spin" />}
-                  {isDeleting 
-                    ? 'Deleting...' 
-                    : deleteRelatedData 
-                      ? 'Confirm & Purge Everything' 
-                      : 'Confirm & Preserve History'}
+                  {isDeleting && <Loader2 size={12} className="animate-spin" />}
+                  {isDeleting ? 'Deleting' : deleteRelatedData ? 'Purge Everything' : 'Delete User'}
                 </button>
               </div>
             </motion.div>
