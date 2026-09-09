@@ -138,26 +138,52 @@ export const validatePromotion = async (req, res) => {
             return res.status(400).json({ message: 'Promo code is required' });
         }
 
+        const promoCodeUpper = code.toUpperCase().trim();
+
+        // Find promo by code
         const promo = await Promotion.findOne({
-            code: code.toUpperCase(),
-            status: 'Active',
-            approval_status: 'APPROVED',
-            expiryDate: { $gte: new Date() },
-            owner_type: 'PLATFORM'
+            code: promoCodeUpper
         });
 
         if (!promo) {
-            return res.status(404).json({ message: 'Invalid or expired promo code' });
+            return res.status(404).json({ message: 'Invalid promo code' });
+        }
+
+        if (promo.status !== 'Active') {
+            return res.status(400).json({ message: 'This promo code is currently inactive or paused' });
+        }
+
+        if (promo.approval_status === 'PENDING') {
+            return res.status(400).json({ message: 'This promo code is pending admin approval' });
+        }
+
+        if (promo.approval_status === 'REJECTED') {
+            return res.status(400).json({ message: `This promo code was rejected: ${promo.rejection_reason || 'By administrator'}` });
+        }
+
+        if (promo.expiryDate && new Date(promo.expiryDate) < new Date()) {
+            return res.status(400).json({ message: 'This promo code has expired' });
+        }
+
+        if (promo.start_date && new Date(promo.start_date) > new Date()) {
+            return res.status(400).json({ message: 'This promo code is not active yet' });
+        }
+
+        // If it's a partner promotion (Vendor/Supplier), ensure it matches the vendor's shop
+        if (promo.owner_type !== 'PLATFORM') {
+            if (vendorId && promo.vendorId && promo.vendorId.toString() !== vendorId.toString()) {
+                return res.status(400).json({ message: 'This coupon is only valid for orders with the issuing store' });
+            }
         }
 
         const minVal = promo.min_order_value !== undefined ? promo.min_order_value : (promo.minOrderValue || 0);
-        if (orderValue < minVal) {
+        if (orderValue !== undefined && orderValue < minVal) {
             return res.status(400).json({ 
                 message: `Minimum order value of ₹${minVal} required for this code` 
             });
         }
 
-        if (promo.currentUsage >= promo.usageLimit) {
+        if (promo.usageLimit && promo.currentUsage >= promo.usageLimit) {
             return res.status(400).json({ message: 'Promo code usage limit reached' });
         }
 

@@ -190,27 +190,44 @@ export const getDashboardAnalytics = async (req, res) => {
         // ----------------------------------------------------
         // MODULE 2.1: CUSTOMER ANALYTICS (Parallelized)
         // ----------------------------------------------------
+        const spanMs = Math.max(24 * 60 * 60 * 1000, end.getTime() - start.getTime());
+        const priorStart = new Date(start.getTime() - spanMs);
+        const priorEnd = new Date(start.getTime());
+
         const customerQuery = buildUserQuery('Customer');
         const individualQuery = buildUserQuery('Customer', { customerType: { $ne: 'retail' } });
         const businessQuery = buildUserQuery('Customer', { customerType: 'retail' });
         const recentOrderQuery = await buildOrderQuery({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } });
         const recentRegQuery = buildUserQuery('Customer', { createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
 
+        const priorCustomerQuery = buildUserQuery('Customer');
+        priorCustomerQuery.createdAt = { $gte: priorStart, $lt: priorEnd };
+
         const [
             totalCustomers,
             individualCustomers,
             businessCustomers,
             activeCustomerIds,
-            recentRegUsers
+            recentRegUsers,
+            priorCustomersCount
         ] = await Promise.all([
             User.countDocuments(customerQuery),
             User.countDocuments(individualQuery),
             User.countDocuments(businessQuery),
             Order.distinct('customer', recentOrderQuery),
-            User.find(recentRegQuery).select('_id').lean()
+            User.find(recentRegQuery).select('_id').lean(),
+            User.countDocuments(priorCustomerQuery)
         ]);
 
         const churnRiskCount = Math.max(0, totalCustomers - activeCustomerIds.length);
+
+        let customerTrendMoM = '0%';
+        if (priorCustomersCount > 0) {
+            const diff = ((totalCustomers - priorCustomersCount) / priorCustomersCount) * 100;
+            customerTrendMoM = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+        } else if (totalCustomers > 0) {
+            customerTrendMoM = '+100%';
+        }
 
         // Vectorized onboarding friction check (no N+1 loop)
         const recentRegCustomerIds = recentRegUsers.map(u => u._id);
@@ -289,6 +306,8 @@ export const getDashboardAnalytics = async (req, res) => {
         const orderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' } });
         const b2bOrderQ = await buildB2BOrderQuery({ status: { $nin: ['CANCELLED', 'REJECTED'] } });
         const walletQuery = buildUserQuery('Customer');
+        const refundOrderQ = await buildOrderQuery({ paymentStatus: 'Refunded' });
+        const refundB2BOrderQ = await buildB2BOrderQuery({ escrowStatus: 'Refunded' });
 
         // Past 6 months for dynamic monthly trend
         const sixMonthsAgo = new Date();
@@ -303,7 +322,11 @@ export const getDashboardAnalytics = async (req, res) => {
             b2bRevenues,
             walletAgg,
             monthlyB2CAgg,
-            monthlyB2BAgg
+            monthlyB2BAgg,
+            b2cRefundAgg,
+            b2bRefundAgg,
+            supplierDeliveriesAgg,
+            allSuppliersList
         ] = await Promise.all([
             User.countDocuments(supplierQuery),
             User.countDocuments(wholesalerQuery),
@@ -337,7 +360,20 @@ export const getDashboardAnalytics = async (req, res) => {
                     platform: { $sum: '$platformFee' }
                 }},
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
-            ])
+            ]),
+            Order.aggregate([
+                { $match: refundOrderQ },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            B2BOrder.aggregate([
+                { $match: refundB2BOrderQ },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            B2BOrder.aggregate([
+                { $match: { status: { $in: ['DELIVERED', 'Delivered', 'SETTLED', 'Settled'] } } },
+                { $group: { _id: '$supplier', count: { $sum: 1 } } }
+            ]),
+            User.find({ role: 'Supplier' }).select('_id supplierDetails').lean()
         ]);
 
         const manufacturersCount = Math.max(0, totalSuppliers - wholesalersCount);
@@ -352,6 +388,10 @@ export const getDashboardAnalytics = async (req, res) => {
         const logisticsFee = (channel === 'B2B') ? 0 : (b2cRevenues[0]?.logistics || 0);
         const vendorPayouts = Math.max(0, grossRevenue - netProfit - logisticsFee);
         const walletLiability = walletAgg[0]?.total || 0;
+
+        const b2cRefunds = b2cRefundAgg[0]?.total || 0;
+        const b2bRefunds = b2bRefundAgg[0]?.total || 0;
+        const totalRefunds = (channel === 'B2B') ? b2bRefunds : (channel === 'B2C') ? b2cRefunds : (b2cRefunds + b2bRefunds);
 
         // Merge real monthly aggregations
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -385,6 +425,27 @@ export const getDashboardAnalytics = async (req, res) => {
             });
         }
 
+        // Revenue MoM calculation from real monthly history
+        const curMRev = dynamicMonthlyTrend[5]?.Revenue || 0;
+        const prevMRev = dynamicMonthlyTrend[4]?.Revenue || 0;
+        let revenueTrendMoM = '0%';
+        if (prevMRev > 0) {
+            const diff = ((curMRev - prevMRev) / prevMRev) * 100;
+            revenueTrendMoM = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+        } else if (curMRev > 0) {
+            revenueTrendMoM = '+100%';
+        }
+
+        // Dynamic Supplier Scatter Data
+        const supplierDeliveriesMap = {};
+        supplierDeliveriesAgg.forEach(item => {
+            if (item._id) supplierDeliveriesMap[item._id.toString()] = item.count;
+        });
+        const dynamicSupplierScatter = allSuppliersList.map(s => ({
+            deliveries: supplierDeliveriesMap[s._id.toString()] || 0,
+            rating: Number((s.supplierDetails?.rating || 5.0).toFixed(1))
+        }));
+
         // ----------------------------------------------------
         // MODULE 2.5 & 2.6: CATALOGS (Parallelized)
         // ----------------------------------------------------
@@ -417,6 +478,13 @@ export const getDashboardAnalytics = async (req, res) => {
         const outboundLogisticsQ = await buildOrderQuery({ status: 'IN_TRANSIT' });
         const reverseLogisticsQ = await buildOrderQuery({ status: 'OUT_FOR_DELIVERY' });
 
+        const pickupViolationsQ = await buildOrderQuery({ pickupStatus: { $in: ['failed', 'rescheduled'] } });
+        const dropoffViolationsQ = await buildOrderQuery({ deliveryStatus: 'failed' });
+        const vendorSlaViolationsQ = await buildOrderQuery({ 
+            status: 'PROCESSING', 
+            updatedAt: { $lt: new Date(Date.now() - 48 * 60 * 60 * 1000) } 
+        });
+
         const [
             totalSubmitted,
             totalAccepted,
@@ -426,7 +494,10 @@ export const getDashboardAnalytics = async (req, res) => {
             inProgress,
             readyForDispatch,
             outboundLogistics,
-            reverseLogistics
+            reverseLogistics,
+            pickupViolations,
+            dropoffViolations,
+            vendorSlaViolations
         ] = await Promise.all([
             Order.countDocuments(mainOrderQuery),
             Order.countDocuments(acceptedOrderQuery),
@@ -436,7 +507,10 @@ export const getDashboardAnalytics = async (req, res) => {
             Order.countDocuments(inProgressQ),
             Order.countDocuments(readyForDispatchQ),
             Order.countDocuments(outboundLogisticsQ),
-            Order.countDocuments(reverseLogisticsQ)
+            Order.countDocuments(reverseLogisticsQ),
+            Order.countDocuments(pickupViolationsQ),
+            Order.countDocuments(dropoffViolationsQ),
+            Order.countDocuments(vendorSlaViolationsQ)
         ]);
 
         // ----------------------------------------------------
@@ -449,25 +523,56 @@ export const getDashboardAnalytics = async (req, res) => {
         const b2bDeliveredQ = await buildB2BOrderQuery({ status: { $in: ['DELIVERED', 'Settled'] } });
         const b2bCancelledQ = await buildB2BOrderQuery({ status: { $in: ['CANCELLED', 'REJECTED'] } });
 
+        const b2bSla1hQ = await buildB2BOrderQuery({ 
+            status: { $in: ['SUBMITTED', 'Submitted'] }, 
+            createdAt: { $lt: new Date(Date.now() - 60 * 60 * 1000) } 
+        });
+        const b2bSla48hQ = await buildB2BOrderQuery({ 
+            status: { $in: ['PROCESSING', 'ACCEPTED', 'Confirmed'] }, 
+            createdAt: { $lt: new Date(Date.now() - 48 * 60 * 60 * 1000) } 
+        });
+        const b2bLateQ = await buildB2BOrderQuery({ 
+            deliveryDate: { $lt: new Date() }, 
+            status: { $nin: ['DELIVERED', 'Delivered', 'SETTLED', 'Settled', 'CANCELLED', 'Cancelled', 'REJECTED'] } 
+        });
+        const b2bCancelledSupplierQ = await buildB2BOrderQuery({ status: { $in: ['REJECTED', 'Rejected'] } });
+        const b2bCancelledVendorQ = await buildB2BOrderQuery({ status: { $in: ['CANCELLED', 'Cancelled'] } });
+
         const [
             b2bPlaced,
             b2bAccepted,
             b2bProcessing,
             b2bDispatched,
             b2bDelivered,
-            b2bCancelled
+            b2bCancelled,
+            b2bSla1h,
+            b2bSla48h,
+            b2bLate,
+            b2bCancelledSupplier,
+            b2bCancelledVendor
         ] = await Promise.all([
             B2BOrder.countDocuments(b2bTotalPlacedQ),
             B2BOrder.countDocuments(b2bAcceptedQ),
             B2BOrder.countDocuments(b2bInProgressQ),
             B2BOrder.countDocuments(b2bDispatchedQ),
             B2BOrder.countDocuments(b2bDeliveredQ),
-            B2BOrder.countDocuments(b2bCancelledQ)
+            B2BOrder.countDocuments(b2bCancelledQ),
+            B2BOrder.countDocuments(b2bSla1hQ),
+            B2BOrder.countDocuments(b2bSla48hQ),
+            B2BOrder.countDocuments(b2bLateQ),
+            B2BOrder.countDocuments(b2bCancelledSupplierQ),
+            B2BOrder.countDocuments(b2bCancelledVendorQ)
         ]);
 
+        const b2bOnTime = Math.max(0, b2bDelivered - b2bLate);
+
         // ----------------------------------------------------
-        // MODULE 2.9 & 2.10: ATS & HELPDESK (Parallelized)
+        // MODULE 2.9 & 2.10: ATS, HELPDESK & FEEDBACK SENTIMENT (Parallelized)
         // ----------------------------------------------------
+        const priorFeedbackQ = await buildFeedbackQuery({
+            createdAt: { $gte: priorStart, $lt: priorEnd }
+        });
+
         const [
             adminApplicants,
             vendorApplicants,
@@ -475,7 +580,8 @@ export const getDashboardAnalytics = async (req, res) => {
             openTickets,
             progressTickets,
             resolvedTickets,
-            closedTickets
+            closedTickets,
+            priorFeedbacks
         ] = await Promise.all([
             JobApplication.countDocuments(await buildJobApplicationQuery({ creatorRole: 'Admin' })),
             JobApplication.countDocuments(await buildJobApplicationQuery({ creatorRole: 'Vendor' })),
@@ -483,7 +589,8 @@ export const getDashboardAnalytics = async (req, res) => {
             Ticket.countDocuments(await buildTicketQuery({ status: 'Open' })),
             Ticket.countDocuments(await buildTicketQuery({ status: 'In Progress' })),
             Ticket.countDocuments(await buildTicketQuery({ status: 'Resolved' })),
-            Ticket.countDocuments(await buildTicketQuery({ status: 'Closed' }))
+            Ticket.countDocuments(await buildTicketQuery({ status: 'Closed' })),
+            Feedback.find(priorFeedbackQ).select('rating').lean()
         ]);
 
         let avgRating = 0;
@@ -492,6 +599,61 @@ export const getDashboardAnalytics = async (req, res) => {
             feedbacks.forEach(f => { totalRating += f.rating; });
             avgRating = Number((totalRating / feedbacks.length).toFixed(1));
         }
+
+        let feedbackTrendMoM = '0.0';
+        if (priorFeedbacks.length > 0 && feedbacks.length > 0) {
+            const priorAvg = priorFeedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / priorFeedbacks.length;
+            const diff = avgRating - priorAvg;
+            feedbackTrendMoM = (diff >= 0 ? '+' : '') + diff.toFixed(1);
+        }
+
+        // Dynamic Feedback Sentiment Extraction from real customer submissions
+        const knownTags = [
+            'Crisp Folding', 'Fresh Fragrance', 'On-Time Delivery', 'Friendly Rider', 
+            'Polite Rider', 'Excellent Wash', 'Fast Service', 'Neat Packaging',
+            'Late Pickup', 'Damp Clothes', 'High Delivery Fee', 'Delayed Response',
+            'Improper Crease', 'Rude Rider', 'Missing Clothes', 'Poor Wash'
+        ];
+
+        const posCount = {};
+        const critCount = {};
+
+        feedbacks.forEach(f => {
+            const text = (f.comment || '') + ' ' + (f.category || '');
+            if (!text.trim()) return;
+
+            if (f.rating >= 4) {
+                knownTags.forEach(tag => {
+                    if (new RegExp(tag, 'i').test(text)) {
+                        posCount[tag] = (posCount[tag] || 0) + 1;
+                    }
+                });
+                if (f.category && f.category !== 'Other' && f.category !== 'order') {
+                    const catTag = f.category + ' Quality';
+                    posCount[catTag] = (posCount[catTag] || 0) + 1;
+                }
+            } else {
+                knownTags.forEach(tag => {
+                    if (new RegExp(tag, 'i').test(text)) {
+                        critCount[tag] = (critCount[tag] || 0) + 1;
+                    }
+                });
+                if (f.category && f.category !== 'Other' && f.category !== 'order') {
+                    const catTag = f.category + ' Issue';
+                    critCount[catTag] = (critCount[catTag] || 0) + 1;
+                }
+            }
+        });
+
+        const dynamicPositiveKeywords = Object.entries(posCount)
+            .sort((a, b) => b[1] - a[1])
+            .map(e => e[0])
+            .slice(0, 5);
+
+        const dynamicCriticalKeywords = Object.entries(critCount)
+            .sort((a, b) => b[1] - a[1])
+            .map(e => e[0])
+            .slice(0, 5);
 
         // ----------------------------------------------------
         // MODULE 2.10: PENDING PARTNER VERIFICATIONS
@@ -534,7 +696,7 @@ export const getDashboardAnalytics = async (req, res) => {
                     businessCount: businessCustomers,
                     churnRisk: churnRiskCount,
                     onboardingFriction: onboardingFrictionCount,
-                    trendMoM: '+8.4%'
+                    trendMoM: customerTrendMoM
                 },
                 vendorPerformance: {
                     totalVendors: totalVendors,
@@ -556,14 +718,7 @@ export const getDashboardAnalytics = async (req, res) => {
                     totalSuppliers: totalSuppliers,
                     wholesalers: wholesalersCount,
                     manufacturers: manufacturersCount,
-                    scatterData: [
-                        { deliveries: 120, rating: 4.8 },
-                        { deliveries: 85, rating: 4.5 },
-                        { deliveries: 40, rating: 3.2 },
-                        { deliveries: 15, rating: 2.5 },
-                        { deliveries: 200, rating: 4.9 },
-                        { deliveries: 95, rating: 4.6 }
-                    ]
+                    scatterData: dynamicSupplierScatter
                 },
                 financials: {
                     grossRevenue: grossRevenue,
@@ -572,8 +727,9 @@ export const getDashboardAnalytics = async (req, res) => {
                     vendorPayouts: vendorPayouts,
                     logisticsPayouts: logisticsFee,
                     netProfit: netProfit,
-                    refunds: 0,
-                    walletLiability: walletLiability
+                    refunds: totalRefunds,
+                    walletLiability: walletLiability,
+                    trendMoM: revenueTrendMoM
                 },
                 catalogB2C: {
                     totalServices: totalServices,
@@ -596,9 +752,9 @@ export const getDashboardAnalytics = async (req, res) => {
                     outboundLogistics: outboundLogistics,
                     reverseLogistics: reverseLogistics,
                     violations: {
-                        pickup: 0,
-                        dropoff: 0,
-                        vendorSla: 0
+                        pickup: pickupViolations,
+                        dropoff: dropoffViolations,
+                        vendorSla: vendorSlaViolations
                     }
                 },
                 orderLifecycleB2B: {
@@ -608,11 +764,11 @@ export const getDashboardAnalytics = async (req, res) => {
                     dispatched: b2bDispatched,
                     delivered: b2bDelivered,
                     cancelled: b2bCancelled,
-                    slaBreach1h: 0,
-                    slaBreach48h: 0,
-                    onTime: b2bDelivered,
-                    late: 0,
-                    cancellations: { supplier: b2bCancelled, vendor: 0 }
+                    slaBreach1h: b2bSla1h,
+                    slaBreach48h: b2bSla48h,
+                    onTime: b2bOnTime,
+                    late: b2bLate,
+                    cancellations: { supplier: b2bCancelledSupplier, vendor: b2bCancelledVendor }
                 },
                 atsLaborExchange: {
                     admin: adminApplicants,
@@ -627,9 +783,9 @@ export const getDashboardAnalytics = async (req, res) => {
                 },
                 feedbackSentiment: {
                     averageRating: avgRating,
-                    trendMoM: '+0.2',
-                    positiveKeywords: ['Crisp Folding', 'Fresh Fragrance', 'Excellent Wash', 'On-time Pickup', 'Polite Rider'],
-                    criticalKeywords: ['Late Pickup', 'Damp Clothes', 'High Delivery Fee', 'Delayed Response']
+                    trendMoM: feedbackTrendMoM,
+                    positiveKeywords: dynamicPositiveKeywords,
+                    criticalKeywords: dynamicCriticalKeywords
                 }
             }
         });

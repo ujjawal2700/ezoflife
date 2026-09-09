@@ -607,6 +607,14 @@ export const createOrder = async (req, res) => {
 
         await newOrder.save();
 
+        // Clear customer draftCart so it is removed from cart permanently
+        try {
+            await User.findByIdAndUpdate(customerId, { $set: { draftCart: {} } });
+            console.log(`🛒 [CART] Cleared draftCart for customer ${customerId}`);
+        } catch (cartErr) {
+            console.warn('⚠️ [CART] Error clearing draftCart:', cartErr);
+        }
+
         const io = getIO();
         const nearbyVendors = await getNearbyVendors(pickupLocation.lat, pickupLocation.lng, 3, serviceIds, isCustomerRD);
         

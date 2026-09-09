@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { materialApi, b2bOrderApi, adminApi, BASE_URL } from "../../../lib/api";
 import toast from "react-hot-toast";
@@ -170,6 +171,16 @@ const MaterialRequestPage = () => {
         setLoading(false);
       }
     };
+    const fetchInvoiceSettings = async () => {
+      try {
+        const configs = await adminApi.getConfig();
+        const config = configs.find((c) => c.key === "invoice_settings");
+        if (config) setInvoiceSettings(config.value);
+      } catch (err) {
+        console.error("Failed to fetch invoice settings:", err);
+      }
+    };
+
     fetchData();
     fetchInvoiceSettings();
   }, [vendorId]);
@@ -214,16 +225,6 @@ const MaterialRequestPage = () => {
     }
   }, [orderChatMessages, chatModal.step]);
 
-  const fetchInvoiceSettings = async () => {
-    try {
-      const configs = await adminApi.getConfig();
-      const config = configs.find((c) => c.key === "invoice_settings");
-      if (config) setInvoiceSettings(config.value);
-    } catch (err) {
-      console.error("Failed to fetch invoice settings:", err);
-    }
-  };
-
   const handlePrint = () => {
     const printContent = document.getElementById("b2b-invoice-content");
     const WindowPnt = window.open(
@@ -259,75 +260,73 @@ const MaterialRequestPage = () => {
   };
 
   const totalItems = Object.values(cart).reduce((a, b) => a + b, 0);
-  const { itemSubtotal, totalDeliveryCharges, grandTotal, supplierTotals } =
-    useMemo(() => {
-      let subTotal = 0;
-      const supplierGroups = {};
+  const { totalDeliveryCharges, grandTotal } = useMemo(() => {
+    let subTotal = 0;
+    const supplierGroups = {};
 
-      Object.entries(cart).forEach(([id, qty]) => {
-        if (qty > 0) {
-          const item = materials.find((m) => m._id === id);
-          if (item) {
-            const hasBulkDiscount =
-              item.bulkThreshold > 0 &&
-              qty >= item.bulkThreshold &&
-              item.bulkDiscount > 0;
-            const finalItemPrice = hasBulkDiscount
-              ? item.price - (item.price * item.bulkDiscount) / 100
-              : item.price;
+    Object.entries(cart).forEach(([id, qty]) => {
+      if (qty > 0) {
+        const item = materials.find((m) => m._id === id);
+        if (item) {
+          const hasBulkDiscount =
+            item.bulkThreshold > 0 &&
+            qty >= item.bulkThreshold &&
+            item.bulkDiscount > 0;
+          const finalItemPrice = hasBulkDiscount
+            ? item.price - (item.price * item.bulkDiscount) / 100
+            : item.price;
 
-            const itemTotal = finalItemPrice * qty;
-            subTotal += itemTotal;
+          const itemTotal = finalItemPrice * qty;
+          subTotal += itemTotal;
 
-            const itemMov = Number(item.movFreeDelivery) || 0;
-            const itemDelivery =
-              Number(item.deliveryCharges) > 0
-                ? Number(item.deliveryCharges)
-                : itemMov > 0
-                  ? 50
-                  : 0;
+          const itemMov = Number(item.movFreeDelivery) || 0;
+          const itemDelivery =
+            Number(item.deliveryCharges) > 0
+              ? Number(item.deliveryCharges)
+              : itemMov > 0
+                ? 50
+                : 0;
 
-            if (!supplierGroups[item.supplierId]) {
-              supplierGroups[item.supplierId] = {
-                totalAmount: 0,
-                movFreeDelivery: itemMov,
-                deliveryCharges: itemDelivery,
-              };
-            } else {
-              if (itemMov > supplierGroups[item.supplierId].movFreeDelivery) {
-                supplierGroups[item.supplierId].movFreeDelivery = itemMov;
-              }
-              if (
-                itemDelivery > supplierGroups[item.supplierId].deliveryCharges
-              ) {
-                supplierGroups[item.supplierId].deliveryCharges = itemDelivery;
-              }
+          if (!supplierGroups[item.supplierId]) {
+            supplierGroups[item.supplierId] = {
+              totalAmount: 0,
+              movFreeDelivery: itemMov,
+              deliveryCharges: itemDelivery,
+            };
+          } else {
+            if (itemMov > supplierGroups[item.supplierId].movFreeDelivery) {
+              supplierGroups[item.supplierId].movFreeDelivery = itemMov;
             }
-            supplierGroups[item.supplierId].totalAmount += itemTotal;
+            if (
+              itemDelivery > supplierGroups[item.supplierId].deliveryCharges
+            ) {
+              supplierGroups[item.supplierId].deliveryCharges = itemDelivery;
+            }
           }
+          supplierGroups[item.supplierId].totalAmount += itemTotal;
         }
-      });
+      }
+    });
 
-      let deliveryTotal = 0;
-      Object.values(supplierGroups).forEach((group) => {
-        if (
-          group.movFreeDelivery > 0 &&
-          group.totalAmount < group.movFreeDelivery
-        ) {
-          deliveryTotal +=
-            group.deliveryCharges > 0 ? group.deliveryCharges : 50;
-        } else if (group.movFreeDelivery === 0 && group.deliveryCharges > 0) {
-          deliveryTotal += group.deliveryCharges;
-        }
-      });
+    let deliveryTotal = 0;
+    Object.values(supplierGroups).forEach((group) => {
+      if (
+        group.movFreeDelivery > 0 &&
+        group.totalAmount < group.movFreeDelivery
+      ) {
+        deliveryTotal += group.deliveryCharges > 0 ? group.deliveryCharges : 50;
+      } else if (group.movFreeDelivery === 0 && group.deliveryCharges > 0) {
+        deliveryTotal += group.deliveryCharges;
+      }
+    });
 
-      return {
-        itemSubtotal: subTotal,
-        totalDeliveryCharges: deliveryTotal,
-        grandTotal: subTotal + deliveryTotal,
-        supplierTotals: supplierGroups,
-      };
-    }, [cart, materials]);
+    return {
+      itemSubtotal: subTotal,
+      totalDeliveryCharges: deliveryTotal,
+      grandTotal: subTotal + deliveryTotal,
+      supplierTotals: supplierGroups,
+    };
+  }, [cart, materials]);
 
   const b2bStatusMapVendor = {
     CART: {
@@ -993,7 +992,7 @@ const MaterialRequestPage = () => {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 shadow-xl">
+            className="fixed bottom-16 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 shadow-xl">
             <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">

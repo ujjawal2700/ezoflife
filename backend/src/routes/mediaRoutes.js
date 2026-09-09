@@ -1,7 +1,20 @@
 import express from 'express';
 import upload from '../middleware/upload.js';
 import localUpload from '../middleware/localUpload.js';
-import { uploadMedia, uploadMultipleMedia, getMediaHistory, getLatestMedia, submitInquiry, getAllInquiries, getInquiryFilters, deleteInquiry, updateInquiryStatus, updateInquiryNotes, getMyInquiries } from '../controllers/mediaController.js';
+import { 
+    uploadMedia, 
+    uploadMultipleMedia, 
+    getMediaHistory, 
+    getLatestMedia, 
+    submitInquiry, 
+    getAllInquiries, 
+    getInquiryFilters, 
+    deleteInquiry, 
+    updateInquiryStatus, 
+    updateInquiryNotes, 
+    getMyInquiries 
+} from '../controllers/mediaController.js';
+import { verifyAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -32,13 +45,11 @@ const makeUploadHandler = (multerMiddleware) => (req, res, next) => {
     });
 };
 
-router.post('/upload', verifyUser, makeUploadHandler(upload.single('media')), uploadMedia);
-router.post('/upload-pdf', verifyUser, makeUploadHandler(localUpload.single('media')), uploadMedia);
-router.post('/bulk-upload', verifyUser, makeUploadHandler(upload.array('photos', 5)), uploadMultipleMedia);
+router.post('/upload', makeUploadHandler(upload.single('media')), uploadMedia);
+router.post('/upload-pdf', makeUploadHandler(localUpload.single('media')), uploadMedia);
+router.post('/bulk-upload', makeUploadHandler(upload.array('photos', 5)), uploadMultipleMedia);
 router.get('/history', getMediaHistory);
 router.get('/latest', getLatestMedia);
-
-import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
 // Ad Inquiries
 router.post('/inquiry', submitInquiry);

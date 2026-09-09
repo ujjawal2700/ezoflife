@@ -19,6 +19,7 @@ import {
 } from "@react-google-maps/api";
 import { GOOGLE_MAPS_LOADER_OPTIONS } from "../../../lib/googleMaps";
 import { locationService } from "../../../lib/locationService";
+import { shippingConfigApi } from "../../../lib/shippingApi";
 
 const getAvailableDates = () => {
   const dates = [];
@@ -252,9 +253,41 @@ const WalkInOrderPage = () => {
   const [manualQtyService, setManualQtyService] = useState(null);
   const [manualQtyInput, setManualQtyInput] = useState("");
 
-  // Mock Logistic Fee states
+  // Logistic Fee states & config
   const [isCalculatingFee, setIsCalculatingFee] = useState(false);
+  const [baseLogisticsFee, setBaseLogisticsFee] = useState(50);
   const [calculatedLogisticFee, setCalculatedLogisticFee] = useState(0);
+
+  useEffect(() => {
+    const fetchShippingConfig = async () => {
+      try {
+        const configs = await shippingConfigApi.getConfig();
+        if (Array.isArray(configs)) {
+          const normalFee = configs.find(
+            (c) => c.key === "normal_logistics_fee",
+          );
+          if (normalFee && !isNaN(Number(normalFee.value))) {
+            setBaseLogisticsFee(Number(normalFee.value));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching shipping config in WalkIn:", err);
+      }
+    };
+    fetchShippingConfig();
+  }, []);
+
+  // Automatically calculate logistic fee when delivery is toggled or mode changes
+  useEffect(() => {
+    if (enableDelivery) {
+      const fee = Math.round(
+        baseLogisticsFee * (isExpress ? expressMultiplier || 1.5 : 1),
+      );
+      setCalculatedLogisticFee(fee > 0 ? fee : 50);
+    } else {
+      setCalculatedLogisticFee(0);
+    }
+  }, [enableDelivery, isExpress, baseLogisticsFee, expressMultiplier]);
 
   const isAddressComplete = useMemo(() => {
     return !!(
@@ -866,10 +899,10 @@ const WalkInOrderPage = () => {
   };
 
   const handleApplyPromo = async () => {
-    if (!promoCode) return;
+    if (!promoCode || !promoCode.trim()) return;
     try {
       const res = await promotionApi.validate({
-        code: promoCode,
+        code: promoCode.trim(),
         vendorId,
         orderValue: total,
       });
@@ -877,20 +910,32 @@ const WalkInOrderPage = () => {
         setPromoError(res.message);
         setIsPromoApplied(false);
         setDiscount(0);
+        toast.error(res.message);
       } else {
+        const dType = res.discountType || res.discount_type;
+        const dVal =
+          Number(
+            res.discountValue !== undefined
+              ? res.discountValue
+              : res.discount_value,
+          ) || 0;
+        const calcDiscount =
+          dType === "Flat" || dType === "FLAT_AMOUNT"
+            ? dVal
+            : Math.round((total * dVal) / 100);
+        const finalDiscount = Math.min(total, calcDiscount);
+
         setIsPromoApplied(true);
         setPromoError("");
-        setDiscount(
-          res.discountType === "Flat"
-            ? res.discountValue
-            : Math.round((total * res.discountValue) / 100),
-        );
-        toast.success("Promo applied successfully!");
+        setDiscount(finalDiscount);
+        toast.success(`Promo applied! ₹${finalDiscount} discount`);
       }
     } catch (err) {
-      setPromoError("Invalid or expired code");
+      const msg = err.message || "Invalid or expired code";
+      setPromoError(msg);
       setIsPromoApplied(false);
       setDiscount(0);
+      toast.error(msg);
     }
   };
 
@@ -994,41 +1039,6 @@ const WalkInOrderPage = () => {
     }
   }, [selectedService, items]);
 
-  const addItem = () => {
-    if (!selectedService) return;
-    const qty = getServiceQty(selectedService.serviceId);
-    if (qty > 0) {
-      toast.success("Item is already in the queue!");
-      return;
-    }
-    const newItem = {
-      ...selectedService,
-      id: Date.now(),
-      quantity: quantity,
-      tag: `T-${Math.floor(1000 + Math.random() * 9000)}`,
-    };
-    setItems([...items, newItem]);
-    toast.success(`${quantity}x ${selectedService.title} added!`);
-    setQuantity(1); // Reset quantity
-  };
-
-  const removeItem = (id) => {
-    const itemToRemove = items.find((item) => item.id === id);
-    const newItems = items.filter((item) => item.id !== id);
-    setItems(newItems);
-    if (itemToRemove) {
-      const hasRemaining = newItems.some(
-        (i) => i.serviceId === itemToRemove.serviceId,
-      );
-      if (!hasRemaining) {
-        setItemPhotos((prev) => {
-          const { [itemToRemove.serviceId]: _, ...rest } = prev;
-          return rest;
-        });
-      }
-    }
-  };
-
   const total = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
@@ -1039,6 +1049,8 @@ const WalkInOrderPage = () => {
 
     if (enableDelivery && !isAddressComplete) {
       toast.error("Please complete the delivery address");
+      setShowReviewModal(false);
+      setShowLocateModal(true);
       return;
     }
 
@@ -1424,7 +1436,7 @@ const WalkInOrderPage = () => {
         </div>
 
         {/* Sticky Bottom Action */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-slate-200/80 z-50">
+        <div className="fixed bottom-16 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-slate-200/80 z-40">
           <div className="max-w-xl mx-auto flex items-center justify-between gap-4">
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -1434,12 +1446,19 @@ const WalkInOrderPage = () => {
                 ₹{netPayable.toFixed(0)}
               </p>
             </div>
-            {enableDelivery ? (
+            {enableDelivery && calculatedLogisticFee > 0 ? (
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={async () => {
+                  if (enableDelivery && !isAddressComplete) {
+                    toast.error("Please complete the delivery address");
+                    setShowReviewModal(false);
+                    setShowLocateModal(true);
+                    return;
+                  }
+
                   const loadScript = (src) => {
                     return new Promise((resolve) => {
                       if (window.Razorpay) {
@@ -1504,18 +1523,38 @@ const WalkInOrderPage = () => {
 
                     const paymentObject = new window.Razorpay(options);
                     paymentObject.open();
-                  } catch (err) {
+                  } catch {
                     toast.dismiss(rzpToast);
                     toast.error("Payment initiation failed");
                     setIsProcessing(false);
                   }
                 }}
-                disabled={isProcessing || !calculatedLogisticFee}
-                className="flex-1 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
-                <span className="material-symbols-outlined text-sm">
-                  payment
-                </span>
-                <span>Pay Logistic Fee (₹{calculatedLogisticFee}) & Book</span>
+                disabled={isProcessing}
+                className="flex-1 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                {isProcessing ? (
+                  <>
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 1,
+                        ease: "linear",
+                      }}
+                      className="material-symbols-outlined text-sm">
+                      autorenew
+                    </motion.span>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm">
+                      payment
+                    </span>
+                    <span>
+                      Pay Logistic Fee (₹{calculatedLogisticFee}) & Book
+                    </span>
+                  </>
+                )}
               </motion.button>
             ) : (
               <motion.button
@@ -1524,7 +1563,7 @@ const WalkInOrderPage = () => {
                 type="button"
                 onClick={() => handleCollectAndPrint()}
                 disabled={isProcessing}
-                className="flex-1 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+                className="flex-1 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-slate-800 disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer">
                 {isProcessing ? (
                   <>
                     <motion.span
@@ -1541,7 +1580,11 @@ const WalkInOrderPage = () => {
                   </>
                 ) : (
                   <>
-                    <span>Confirm & Generate Order</span>
+                    <span>
+                      {enableDelivery
+                        ? "Confirm & Book (Free Delivery)"
+                        : "Confirm & Generate Order"}
+                    </span>
                     <span className="material-symbols-outlined text-sm">
                       arrow_forward
                     </span>
@@ -2087,7 +2130,7 @@ const WalkInOrderPage = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 30 }}
-            className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 shadow-lg">
+            className="fixed bottom-16 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 shadow-lg">
             <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">

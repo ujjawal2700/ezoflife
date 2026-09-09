@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateVendorCart } from './VendorCartDetailsPage.jsx';
+import { calculateVendorCart } from '../utils/vendorCartCalculations';
 
 describe('calculateVendorCart delivery threshold and fee logic', () => {
     const mockMaterials = [

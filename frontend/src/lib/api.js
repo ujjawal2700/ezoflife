@@ -2307,12 +2307,28 @@ export const promotionApi = {
 
 export const jobApi = {
     create: async (data) => {
-        const response = await fetch(`${BASE_URL}/jobs`, {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${BASE_URL}/jobs/vendor-create`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+            },
             body: JSON.stringify(data)
         });
-        return await response.json();
+        const resJson = await response.json();
+        if (!response.ok) throw new Error(resJson.message || 'Failed to post job');
+        return resJson;
+    },
+    adminCreate: async (data) => {
+        const response = await fetch(`${BASE_URL}/jobs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+            body: JSON.stringify(data)
+        });
+        const resJson = await response.json();
+        if (!response.ok) throw new Error(resJson.message || 'Failed to post job');
+        return resJson;
     },
     getVendorJobs: async (vendorId) => {
         const response = await fetch(`${BASE_URL}/jobs/vendor?vendorId=${vendorId}`);

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MASTER_SERVICES } from '../../../shared/data/sharedData';
-import { orderApi, serviceApi, authApi, promotionApi, masterServiceApi, mediaApi, geofenceApi } from '../../../lib/api';
+import { BASE_URL, orderApi, serviceApi, authApi, promotionApi, masterServiceApi, mediaApi, geofenceApi } from '../../../lib/api';
 import { shippingConfigApi } from '../../../lib/shippingApi';
 import { useLocationStore } from '../../../shared/stores/locationStore';
 import toast from 'react-hot-toast';
@@ -214,6 +214,7 @@ const CartPage = () => {
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [cameraError, setCameraError] = useState('');
+  const [capturedPhoto, setCapturedPhoto] = useState(null); // { file, previewUrl }
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [garmentPhotos, setGarmentPhotos] = useState(() => {
@@ -719,12 +720,40 @@ const CartPage = () => {
 
       const response = await orderApi.createOrder(orderData);
       if (response._id) {
-        localStorage.removeItem('cart_quantities');
-        localStorage.removeItem('order_photos');
-        localStorage.removeItem('order_notes');
-        localStorage.removeItem('item_photos');
+        // 1. Thoroughly remove all cart, scheduling, and draft items from localStorage
+        const keysToRemove = [
+          'cart_quantities',
+          'order_photos',
+          'order_notes',
+          'item_photos',
+          'selected_tier',
+          'is_express',
+          'pickup_date',
+          'pickup_time',
+          'delivery_date',
+          'delivery_time',
+          'applied_promo',
+          'cart_vendor_id'
+        ];
+        keysToRemove.forEach(key => localStorage.removeItem(key));
 
-        // Go directly to tracking for both Online and COD
+        // 2. Clear component state
+        setQuantities({});
+        setItemPhotos({});
+        setSpecialInstructions('');
+
+        // 3. Clear draft cart in backend database
+        try {
+          if (userId) {
+            await authApi.updateDraftCart(userId, {});
+          }
+        } catch (_) {}
+
+        // 4. Dispatch storage and custom events so Header, Home, & GlobalCartButton reset immediately
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new CustomEvent('cart-cleared'));
+
+        // 5. Navigate to order tracking
         navigate(`/user/tracking/${response._id}`);
       } else {
         // The server rejected the order — most often a payment it could not verify.
@@ -737,9 +766,9 @@ const CartPage = () => {
     }
   };
 
-  const handlePhotoFileChange = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0 || !activePhotoService) return;
+  // ─── Upload Files to Server ─────────────────────────────────────────────
+  const uploadFiles = async (files) => {
+    if (!files || files.length === 0 || !activePhotoService) return null;
     
     setUploading(true);
     setUploadProgress(0);
@@ -767,17 +796,34 @@ const CartPage = () => {
             if (xhr.status >= 200 && xhr.status < 300) {
               try {
                 const res = JSON.parse(xhr.responseText);
-                resolve(res.url);
+                const fileUrl = res.url || res.fileUrl || res.path;
+                if (fileUrl) {
+                  resolve(fileUrl);
+                } else {
+                  reject(new Error('Server did not return a valid photo URL'));
+                }
               } catch (e) {
-                reject(new Error('Invalid response'));
+                reject(new Error('Invalid response from server'));
               }
             } else {
-              reject(new Error(`Upload failed: ${xhr.status}`));
+              let errMsg = `Upload failed (${xhr.status})`;
+              try {
+                const errData = JSON.parse(xhr.responseText);
+                if (errData.message) errMsg = errData.message;
+              } catch (_) {}
+              reject(new Error(errMsg));
             }
           };
 
-          xhr.onerror = () => reject(new Error('Network error'));
-          xhr.open('POST', `${BASE_URL}/media/upload`);
+          xhr.onerror = () => reject(new Error('Network error during upload'));
+          
+          const uploadEndpoint = `${BASE_URL}/media/upload`;
+          xhr.open('POST', uploadEndpoint);
+          
+          const token = localStorage.getItem('token') || localStorage.getItem('user_auth_token') || localStorage.getItem('adminToken');
+          if (token) {
+            xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+          }
           xhr.send(formData);
         });
 
@@ -796,41 +842,70 @@ const CartPage = () => {
         return updated;
       });
       
-      toast.success('Photos uploaded successfully!');
+      toast.success('Photo uploaded successfully!');
+      return uploadedUrls;
     } catch (error) {
       console.error('Upload Error:', error);
-      toast.error('Failed to upload photos');
+      toast.error(error.message || 'Failed to upload photo');
+      return null;
     } finally {
       setUploading(false);
       setUploadProgress(0);
-      e.target.value = ''; // Reset input
     }
   };
 
+  const handlePhotoFileChange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    await uploadFiles(files);
+    if (e.target) e.target.value = ''; // Reset input
+  };
+
+  // ─── Camera Controls & Permission Flow ──────────────────────────────────
   const startCamera = async () => {
     setCameraError('');
-    setShowCameraModal(true);
+    if (capturedPhoto?.previewUrl) {
+      URL.revokeObjectURL(capturedPhoto.previewUrl);
+    }
+    setCapturedPhoto(null);
+
+    // If mediaDevices is not supported in this browser/environment, fallback to native camera input
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (cameraInputRef.current) {
+        cameraInputRef.current.click();
+      } else {
+        toast.error('Camera is not supported on this browser. Please use Upload Photo.');
+      }
+      return;
+    }
+
     try {
+      // Browser asks user for camera permission here
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false
       });
       setCameraStream(stream);
+      setShowCameraModal(true);
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          videoRef.current.play().catch(e => console.warn('Video play error:', e));
         }
       }, 100);
     } catch (err) {
       console.error('Camera error:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        toast.error('Camera permission was denied. Please allow camera in settings or use device camera.');
+      }
       setCameraError(
-        err.name === 'NotAllowedError'
-          ? 'Camera access was denied. Please allow camera access in your browser settings.'
-          : err.name === 'NotFoundError'
+        err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
+          ? 'Camera access was denied. Please allow camera access in your browser settings, or use the device camera option below.'
+          : err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError'
           ? 'No camera found on this device.'
-          : 'Unable to open camera. Please try uploading from gallery instead.'
+          : 'Unable to start camera. Please use the device camera option below.'
       );
+      setShowCameraModal(true);
     }
   };
 
@@ -839,25 +914,59 @@ const CartPage = () => {
       cameraStream.getTracks().forEach(t => t.stop());
       setCameraStream(null);
     }
+    if (capturedPhoto?.previewUrl) {
+      URL.revokeObjectURL(capturedPhoto.previewUrl);
+    }
+    setCapturedPhoto(null);
     setShowCameraModal(false);
     setCameraError('');
   };
 
-  const capturePhoto = async () => {
+  // Click / Snap photo from camera feed
+  const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    canvas.toBlob(async (blob) => {
-      if (!blob) return;
-      const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      stopCamera();
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      await handlePhotoFileChange({ target: { files: dt.files, value: '' } });
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        toast.error('Failed to capture photo');
+        return;
+      }
+      const file = new File([blob], `camera_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const previewUrl = URL.createObjectURL(blob);
+      setCapturedPhoto({ file, previewUrl });
+
+      // Pause video stream while in preview
+      if (videoRef.current) {
+        try { videoRef.current.pause(); } catch (_) {}
+      }
     }, 'image/jpeg', 0.92);
+  };
+
+  // Retake photo: discard captured preview & resume camera stream
+  const handleRetakePhoto = () => {
+    if (capturedPhoto?.previewUrl) {
+      URL.revokeObjectURL(capturedPhoto.previewUrl);
+    }
+    setCapturedPhoto(null);
+    if (videoRef.current && cameraStream) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  // Upload captured photo: automatically uploads and attaches to item
+  const handleUploadCapturedPhoto = async () => {
+    if (!capturedPhoto?.file) return;
+    const fileToUpload = capturedPhoto.file;
+    const uploaded = await uploadFiles([fileToUpload]);
+    if (uploaded && uploaded.length > 0) {
+      stopCamera();
+    }
   };
 
   // Release the camera if the page unmounts while the modal is open
@@ -1272,12 +1381,21 @@ const CartPage = () => {
                       {/* Action Buttons */}
                       <div className="flex gap-2">
                         <button 
-                          onClick={() => galleryInputRef.current.click()}
-                          className="flex-1 bg-white text-black py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform"
+                          type="button"
+                          onClick={startCamera}
+                          className="flex-1 bg-white text-black py-2.5 rounded-xl font-black text-[8.5px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-transform shadow-sm"
                         >
-                          <span className="material-symbols-outlined text-sm">add_a_photo</span> Add Photo
+                          <span className="material-symbols-outlined text-sm">photo_camera</span> Take Photo
                         </button>
                         <button 
+                          type="button"
+                          onClick={() => galleryInputRef.current.click()}
+                          className="flex-1 bg-white/10 border border-white/10 text-white py-2.5 rounded-xl font-black text-[8.5px] uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-transform hover:bg-white/20"
+                        >
+                          <span className="material-symbols-outlined text-sm">add_a_photo</span> Upload
+                        </button>
+                        <button 
+                          type="button"
                           onClick={() => {
                             if (window.confirm("Delete all photos for this item?")) {
                               setItemPhotos(prev => {
@@ -1288,9 +1406,10 @@ const CartPage = () => {
                               toast.success("Photos deleted");
                             }
                           }}
-                          className="flex-1 bg-white/10 border border-white/10 text-white py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform hover:bg-white/20"
+                          className="px-3 bg-rose-500/20 border border-rose-500/30 text-rose-300 py-2.5 rounded-xl font-black text-[8px] uppercase tracking-widest flex items-center justify-center active:scale-95 transition-transform hover:bg-rose-500/30"
+                          title="Delete all photos"
                         >
-                          <span className="material-symbols-outlined text-sm">delete_sweep</span> Delete All
+                          <span className="material-symbols-outlined text-sm">delete_sweep</span>
                         </button>
                       </div>
                     </div>
@@ -1298,6 +1417,7 @@ const CartPage = () => {
                     /* No Photos State */
                     <div className="grid grid-cols-2 gap-3 py-4">
                       <motion.button
+                        type="button"
                         whileTap={{ scale: 0.95 }}
                         onClick={startCamera}
                         className="bg-white/5 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 border border-dashed border-white/10 hover:border-white/20 transition-all text-white/60 hover:text-white"
@@ -1308,6 +1428,7 @@ const CartPage = () => {
                         <span className="text-[10px] font-black uppercase tracking-widest">Take Photo</span>
                       </motion.button>
                       <motion.button
+                        type="button"
                         whileTap={{ scale: 0.95 }}
                         onClick={() => galleryInputRef.current.click()}
                         className="bg-white/5 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 border border-dashed border-white/10 hover:border-white/20 transition-all text-white/60 hover:text-white"
@@ -1328,51 +1449,152 @@ const CartPage = () => {
           <canvas ref={canvasRef} className="hidden" />
           <AnimatePresence>
             {showCameraModal && (
-              <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+              <div className="fixed inset-0 z-[350] flex items-center justify-center p-4">
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   onClick={stopCamera}
-                  className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                  className="absolute inset-0 bg-black/85 backdrop-blur-md"
                 />
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  className="relative z-10 w-full max-w-md bg-[#0F0F0F] rounded-[2rem] border border-white/10 overflow-hidden flex flex-col"
+                  className="relative z-10 w-full max-w-md bg-[#0F0F0F] rounded-[2rem] border border-white/15 overflow-hidden flex flex-col shadow-2xl"
                 >
                   <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Take Photo</span>
-                    <button onClick={stopCamera} className="text-white/40 hover:text-white transition-colors">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-white/80">
+                        {capturedPhoto ? 'Review Photo' : 'Take Photo'}
+                      </span>
+                      <p className="text-[8.5px] font-bold text-white/40 mt-0.5 truncate max-w-[220px]">
+                        {activePhotoService?.name || 'Garment Photo'}
+                      </p>
+                    </div>
+                    <button onClick={stopCamera} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-white/50 hover:text-white transition-colors">
                       <span className="material-symbols-outlined text-lg">close</span>
                     </button>
                   </div>
 
                   {cameraError ? (
                     <div className="p-8 flex flex-col items-center gap-4 text-center">
-                      <span className="material-symbols-outlined text-3xl text-white/30">videocam_off</span>
-                      <p className="text-[11px] font-bold text-white/60 leading-relaxed">{cameraError}</p>
-                      <button
-                        onClick={() => { stopCamera(); galleryInputRef.current?.click(); }}
-                        className="mt-1 px-5 py-2.5 rounded-xl bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/20 transition-all"
-                      >
-                        Upload From Gallery
-                      </button>
+                      <div className="w-14 h-14 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                        <span className="material-symbols-outlined text-3xl">videocam_off</span>
+                      </div>
+                      <p className="text-[11px] font-bold text-white/70 leading-relaxed max-w-xs">{cameraError}</p>
+                      <div className="flex flex-col w-full gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => { stopCamera(); cameraInputRef.current?.click(); }}
+                          className="w-full py-3 rounded-xl bg-white text-black text-[10px] font-black uppercase tracking-widest hover:bg-white/90 transition-all flex items-center justify-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-sm">photo_camera</span> Open Device Camera
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { stopCamera(); galleryInputRef.current?.click(); }}
+                          className="w-full py-2.5 rounded-xl bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/80 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-sm">add_a_photo</span> Upload From Gallery
+                        </button>
+                      </div>
+                    </div>
+                  ) : capturedPhoto ? (
+                    /* ── PREVIEW OF CLICKED PHOTO: RETAKE & UPLOAD ── */
+                    <div className="flex flex-col">
+                      <div className="relative bg-black aspect-[3/4] w-full overflow-hidden flex items-center justify-center">
+                        <img 
+                          src={capturedPhoto.previewUrl} 
+                          alt="Captured" 
+                          className="w-full h-full object-cover" 
+                        />
+                        <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5 text-[9px] font-bold text-emerald-400">
+                          <span className="material-symbols-outlined text-xs">check_circle</span>
+                          Photo Ready
+                        </div>
+                      </div>
+
+                      {uploading && (
+                        <div className="px-5 pt-3 space-y-1.5">
+                          <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/60">
+                            <span>Uploading photo...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div className="h-full bg-white transition-all duration-300 rounded-full" style={{ width: `${uploadProgress}%` }} />
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="p-4 flex gap-3 border-t border-white/10 bg-black/40">
+                        <button
+                          type="button"
+                          disabled={uploading}
+                          onClick={handleRetakePhoto}
+                          className="flex-1 py-3 bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          <span className="material-symbols-outlined text-sm">replay</span> Retake
+                        </button>
+                        <button
+                          type="button"
+                          disabled={uploading}
+                          onClick={handleUploadCapturedPhoto}
+                          className="flex-2 py-3 bg-white text-black hover:bg-white/90 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-lg shadow-white/10 disabled:opacity-50"
+                        >
+                          {uploading ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-sm">cloud_upload</span> Upload Photo
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <>
+                    /* ── LIVE CAMERA VIEWFINDER & SHUTTER BUTTON ── */
+                    <div className="flex flex-col">
                       <div className="relative bg-black aspect-[3/4] w-full overflow-hidden">
-                        <video ref={videoRef} playsInline muted className="w-full h-full object-cover" />
+                        <video ref={videoRef} playsInline autoPlay muted className="w-full h-full object-cover" />
+                        <div className="absolute inset-6 pointer-events-none border border-white/20 rounded-2xl flex flex-col justify-between p-2">
+                          <div className="flex justify-between">
+                            <div className="w-4 h-4 border-t-2 border-l-2 border-white/60 rounded-tl-sm" />
+                            <div className="w-4 h-4 border-t-2 border-r-2 border-white/60 rounded-tr-sm" />
+                          </div>
+                          <div className="flex justify-between">
+                            <div className="w-4 h-4 border-b-2 border-l-2 border-white/60 rounded-bl-sm" />
+                            <div className="w-4 h-4 border-b-2 border-r-2 border-white/60 rounded-br-sm" />
+                          </div>
+                        </div>
                       </div>
-                      <div className="px-5 py-5 flex items-center justify-center">
+                      <div className="p-5 flex flex-col items-center gap-3 border-t border-white/10 bg-black/40">
                         <button
+                          type="button"
                           onClick={capturePhoto}
-                          className="w-16 h-16 rounded-full bg-white border-4 border-white/30 hover:border-white/60 transition-all active:scale-95"
-                          aria-label="Capture photo"
-                        />
+                          className="w-16 h-16 rounded-full bg-white border-4 border-white/30 hover:border-white/60 transition-all active:scale-90 flex items-center justify-center shadow-xl cursor-pointer"
+                          aria-label="Click Photo"
+                        >
+                          <span className="material-symbols-outlined text-slate-900 text-2xl">photo_camera</span>
+                        </button>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[8.5px] font-bold uppercase tracking-widest text-white/50">
+                            Tap to capture
+                          </span>
+                          <span className="text-white/30">·</span>
+                          <button
+                            type="button"
+                            onClick={() => { stopCamera(); cameraInputRef.current?.click(); }}
+                            className="text-[8.5px] font-bold uppercase tracking-widest text-blue-400 hover:text-blue-300 underline"
+                          >
+                            Device Camera
+                          </button>
+                        </div>
                       </div>
-                    </>
+                    </div>
                   )}
                 </motion.div>
               </div>

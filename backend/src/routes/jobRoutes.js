@@ -37,6 +37,7 @@ const router = express.Router();
 import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 
 router.post('/', verifyAdmin, createJob);
+router.post('/vendor-create', verifyUser, createJob); // Vendor/Supplier post their own jobs
 router.get('/admin/all', verifyAdmin, getAdminAllJobs);
 router.get('/admin/applications', verifyAdmin, getAdminApplications);
 router.get('/vendor', getVendorJobs); // Expected ?vendorId=

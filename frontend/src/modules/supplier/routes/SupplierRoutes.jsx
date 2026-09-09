@@ -1,25 +1,24 @@
-import React from 'react';
-import { Route, Routes, Navigate } from 'react-router-dom';
-import SupplierDashboard from '../pages/SupplierDashboard';
-import SupplierOrderDetails from '../pages/SupplierOrderDetails';
-import SupplierSupplies from '../pages/SupplierSupplies';
-import SupplierMySupplies from '../pages/SupplierMySupplies';
-import SupplierFulfillmentPage from '../pages/SupplierFulfillmentPage';
-import SupplierLogistics from '../pages/SupplierLogistics';
-import SupplierWallet from '../pages/SupplierWallet';
-import SupplierLayout from '../layouts/SupplierLayout';
-import SupplierProfile from '../pages/SupplierProfile';
-import SupplierMorePage from '../pages/SupplierMorePage';
-import SupplierLaborRequestPage from '../pages/SupplierLaborRequestPage';
-import SupplierCreateJobRequisition from '../pages/SupplierCreateJobRequisition';
-import SupplierAddressesPage from '../pages/SupplierAddressesPage';
-import SupplierNotifications from '../pages/SupplierNotifications';
-import PromotionManagerPage from '../../vendor/pages/PromotionManagerPage';
+import React from "react";
+import { Route, Routes, Navigate } from "react-router-dom";
+import SupplierDashboard from "../pages/SupplierDashboard";
+import SupplierOrderDetails from "../pages/SupplierOrderDetails";
+import SupplierSupplies from "../pages/SupplierSupplies";
+import SupplierMySupplies from "../pages/SupplierMySupplies";
+import SupplierFulfillmentPage from "../pages/SupplierFulfillmentPage";
+import SupplierLogistics from "../pages/SupplierLogistics";
+import SupplierWallet from "../pages/SupplierWallet";
+import SupplierLayout from "../layouts/SupplierLayout";
+import SupplierProfile from "../pages/SupplierProfile";
+import SupplierMorePage from "../pages/SupplierMorePage";
+import SupplierLaborRequestPage from "../pages/SupplierLaborRequestPage";
+import SupplierCreateJobRequisition from "../pages/SupplierCreateJobRequisition";
+import SupplierAddressesPage from "../pages/SupplierAddressesPage";
+import SupplierNotifications from "../pages/SupplierNotifications";
 
-import SupplierAuth from '../pages/SupplierAuth';
-import SupplierOtp from '../pages/SupplierOtp';
-import PrivacyPolicyPage from '../../user/pages/PrivacyPolicyPage';
-import TermsConditionsPage from '../../user/pages/TermsConditionsPage';
+import SupplierAuth from "../pages/SupplierAuth";
+import SupplierOtp from "../pages/SupplierOtp";
+import PrivacyPolicyPage from "../../user/pages/PrivacyPolicyPage";
+import TermsConditionsPage from "../../user/pages/TermsConditionsPage";
 
 const SupplierRoutes = () => {
   return (
@@ -42,11 +41,16 @@ const SupplierRoutes = () => {
         <Route path="/addresses" element={<SupplierAddressesPage />} />
         <Route path="/more" element={<SupplierMorePage />} />
         <Route path="/labor-request" element={<SupplierLaborRequestPage />} />
-        <Route path="/labor-request/create" element={<SupplierCreateJobRequisition />} />
-        <Route path="/promotions" element={<PromotionManagerPage />} />
-        
+        <Route
+          path="/labor-request/create"
+          element={<SupplierCreateJobRequisition />}
+        />
+
         {/* Default redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/supplier/dashboard" replace />} />
+        <Route
+          path="*"
+          element={<Navigate to="/supplier/dashboard" replace />}
+        />
       </Route>
 
       {/* Independent Standalone Legal Routes under /supplier/ */}

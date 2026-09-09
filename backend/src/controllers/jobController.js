@@ -17,6 +17,9 @@ export const createJob = async (req, res) => {
         const count = await Job.countDocuments();
         const jobCode = `JOB-${String(count + 1).padStart(4, '0')}`;
 
+        // Fall back to the authenticated user's ID if vendorId is missing from body
+        const resolvedVendorId = vendorId || req.user?._id || req.user?.id || null;
+
         const newJob = new Job({
             title, 
             category, 
@@ -36,7 +39,7 @@ export const createJob = async (req, res) => {
             shiftStartTime,
             shiftEndTime,
             jobCode,
-            vendor: (creatorRole === 'Admin' || !vendorId) ? null : vendorId,
+            vendor: (creatorRole === 'Admin' || !resolvedVendorId) ? null : resolvedVendorId,
             companyName,
             creatorRole: creatorRole || 'Vendor',
             status: status || 'Active'

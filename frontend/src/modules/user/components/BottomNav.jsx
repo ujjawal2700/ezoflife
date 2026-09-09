@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import React, { useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
+import { motion } from "framer-motion";
 
 const BottomNav = () => {
   const navigate = useNavigate();
@@ -9,61 +10,72 @@ const BottomNav = () => {
 
   const userRole = useMemo(() => {
     try {
-      return (localStorage.getItem('userRole') || 'customer').toLowerCase();
-    } catch (e) {
-      return 'customer';
+      return (localStorage.getItem("userRole") || "customer").toLowerCase();
+    } catch {
+      return "customer";
     }
   }, []);
 
   const userType = useMemo(() => {
     try {
-      return (localStorage.getItem('userType') || 'individual').toLowerCase();
-    } catch (e) {
-      return 'individual';
+      return (localStorage.getItem("userType") || "individual").toLowerCase();
+    } catch {
+      return "individual";
     }
   }, []);
 
   const navItems = useMemo(() => {
     switch (userRole) {
-      case 'vendor':
+      case "vendor":
         return [
-          { label: 'Dashboard', icon: 'dashboard', path: '/vendor/dashboard' },
-          { label: 'My Services', icon: 'local_laundry_service', path: '/vendor/services' },
-          { label: 'Profile', icon: 'person', path: '/vendor/profile' },
-          { label: 'More', icon: 'menu', path: '/user/more' }
+          { label: "Dashboard", icon: "dashboard", path: "/vendor/dashboard" },
+          {
+            label: "My Services",
+            icon: "local_laundry_service",
+            path: "/vendor/services",
+          },
+          { label: "Profile", icon: "person", path: "/vendor/profile" },
+          { label: "More", icon: "menu", path: "/user/more" },
         ];
-      case 'supplier':
+      case "supplier":
         return [
-          { label: 'Home', icon: 'home', path: '/supplier/dashboard' },
-          { label: 'Supplies', icon: 'inventory_2', path: '/supplier/supplies' },
-          { label: 'Profile', icon: 'person', path: '/user/profile' },
-          { label: 'More', icon: 'menu', path: '/user/more' }
+          { label: "Home", icon: "home", path: "/supplier/dashboard" },
+          {
+            label: "Supplies",
+            icon: "inventory_2",
+            path: "/supplier/supplies",
+          },
+          { label: "Profile", icon: "person", path: "/user/profile" },
+          { label: "More", icon: "menu", path: "/user/more" },
         ];
       default: // customer
         return [
-          { label: 'Home', icon: 'home', path: '/user/home' },
-          { 
-            label: userType === 'retail' ? 'Bulk Orders' : 'My Orders', 
-            icon: userType === 'retail' ? 'inventory' : 'local_laundry_service', 
-            path: '/user/orders' 
+          { label: "Home", icon: "home", path: "/user/home" },
+          {
+            label: userType === "retail" ? "Bulk Orders" : "My Orders",
+            icon: userType === "retail" ? "inventory" : "local_laundry_service",
+            path: "/user/orders",
           },
-          { label: 'Profile', icon: 'person', path: '/user/profile' },
-          { label: 'More', icon: 'menu', path: '/user/more' }
+          { label: "Profile", icon: "person", path: "/user/profile" },
+          { label: "More", icon: "menu", path: "/user/more" },
         ];
     }
   }, [userRole, userType]);
 
   const handleNavClick = (path) => {
     // Public paths allowed without login
-    const publicPaths = ['/user/home', '/user/more', '/user/land'];
+    const publicPaths = ["/user/home", "/user/more", "/user/land"];
     const getSafeToken = () => {
-      try { return localStorage.getItem('token'); }
-      catch (e) { return null; }
+      try {
+        return localStorage.getItem("token");
+      } catch {
+        return null;
+      }
     };
     const token = getSafeToken();
 
     if (!token && !publicPaths.includes(path)) {
-      navigate('/user/auth');
+      navigate("/user/auth");
       return;
     }
     navigate(path);
@@ -75,28 +87,34 @@ const BottomNav = () => {
         {navItems.map((item) => {
           const isActive = currentPath === item.path;
           return (
-            <motion.button 
+            <motion.button
               key={item.path}
               id={`nav-${item.label.toLowerCase()}`}
               whileTap={{ scale: 0.9 }}
               onClick={() => handleNavClick(item.path)}
-              className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 focus:outline-none touch-none no-underline ${
-                isActive ? 'text-white' : 'text-slate-400 hover:text-slate-600'
+              className={`relative flex flex-col items-center justify-center flex-1 h-full transition-all duration-300 focus:outline-none touch-none no-underline overflow-hidden ${
+                isActive ? "text-white" : "text-slate-400 hover:text-slate-600"
               }`}
-              style={{ WebkitTapHighlightColor: 'transparent' }}
-            >
+              style={{ WebkitTapHighlightColor: "transparent" }}>
               {isActive && (
-                <motion.div 
+                <motion.div
                   layoutId="activeNavBubble"
-                  className="absolute w-14 h-14 bg-black rounded-full shadow-xl shadow-black/30 z-0"
+                  className="absolute w-12 h-12 bg-black rounded-full shadow-lg shadow-black/20 z-0"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
-              <div className={`relative z-10 flex flex-col items-center justify-center gap-0.5 pointer-events-none transition-transform duration-300`}>
-                <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}>
+              <div
+                className={`relative z-10 flex flex-col items-center justify-center gap-0.5 pointer-events-none transition-transform duration-300`}>
+                <span
+                  className="material-symbols-outlined text-[20px]"
+                  style={{
+                    fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0",
+                  }}>
                   {item.icon}
                 </span>
-                <span className="font-headline font-black text-[7px] uppercase tracking-[0.1em]">{item.label}</span>
+                <span className="font-headline font-black text-[7px] uppercase tracking-widest">
+                  {item.label}
+                </span>
               </div>
             </motion.button>
           );
