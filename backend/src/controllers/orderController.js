@@ -16,6 +16,7 @@ import { resolveActorId, isOwnerOrAdmin } from '../middleware/authMiddleware.js'
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
 import ServiceArea from '../models/ServiceArea.js';
+import { generateOrderInvoices, checkCustomerRD, checkVendorRD } from '../utils/gstInvoiceHelper.js';
 
 
 const logToFile = (msg) => {
@@ -165,9 +166,7 @@ export const handleGetNearbyVendors = async (req, res) => {
         let isCustomerRD = false;
         if (customerId) {
             const customer = await User.findById(customerId);
-            if (customer && customer.customerType === 'retail') {
-                isCustomerRD = true;
-            }
+            isCustomerRD = checkCustomerRD(customer);
         }
         
         const vendors = await getNearbyVendors(lat, lng, radius || 10, [], isCustomerRD); // Default 10km for browsing
@@ -281,7 +280,7 @@ export const createOrder = async (req, res) => {
 
         const customerUser = await User.findById(customerId);
         if (!customerUser) return res.status(404).json({ message: 'Customer user not found' });
-        const isCustomerRD = customerUser.customerType === 'retail';
+        const isCustomerRD = checkCustomerRD(customerUser);
 
         // 1. Fetch pricing multipliers from SystemConfig
         const SystemConfig = (await import('../models/SystemConfig.js')).default;
@@ -602,6 +601,15 @@ export const createOrder = async (req, res) => {
             pickupStatus: 'none',
             allocation_status: allocationStatus,
             allocation_expires_at: allocationExpiresAt,
+            isCustomerRD: isCustomerRD,
+            customerSnapshot: {
+                displayName: customerUser.displayName || null,
+                phone: customerUser.phone || null,
+                email: customerUser.email || null,
+                customerType: customerUser.customerType || 'individual',
+                gstNumber: customerUser.gstNumber || null,
+                isExUser: false
+            },
             ledger: finalLedger
         });
 
@@ -1189,18 +1197,29 @@ export const getPoolOrders = async (req, res) => {
             console.log(`🕒 [EXPIRY] Auto-cancelled ${expiredResult.modifiedCount} stale orders in pool.`);
         }
 
-        // Find all active ORDER_PLACED orders (within 1 hour window)
-        const orders = await Order.find({ 
+        const isVendorRD = checkVendorRD(vendor);
+
+        // GST Business Customer Protection: Unregistered Vendors (URD) cannot see RD Customer orders
+        const poolQuery = { 
             status: 'ORDER_PLACED', 
             vendor: null,
             createdAt: { $gte: oneHourAgo }
-        }).populate('customer', 'displayName address location');
+        };
+        if (!isVendorRD) {
+            poolQuery.isCustomerRD = { $ne: true };
+        }
+
+        const orders = await Order.find(poolQuery).populate('customer', 'displayName address location customerType gstNumber');
         
         const Promotion = (await import('../models/Promotion.js')).default;
         const ServiceArea = (await import('../models/ServiceArea.js')).default;
 
         const pool = [];
         for (const order of orders) {
+            // Secondary safety check for RD customer protection
+            const orderIsRD = order.isCustomerRD || checkCustomerRD(order.customer);
+            if (orderIsRD && !isVendorRD) continue;
+
             if (!order.pickupLocation?.lat) continue;
             const dist = calculateHaversineDistance(vLat, vLng, order.pickupLocation.lat, order.pickupLocation.lng);
             if (dist > 3) continue; // 3km radius
@@ -1297,6 +1316,17 @@ export const vendorAcceptOrder = async (req, res) => {
             return res.status(400).json({ message: 'You cannot accept this order because some services are inactive or not offered by you.' });
         }
 
+        // GST Business Customer Protection: Restrict and prevent URD vendors from accepting RD customer orders
+        const customerUser = await User.findById(order.customer);
+        const isCustRD = order.isCustomerRD || checkCustomerRD(customerUser);
+        const isVendRD = checkVendorRD(vendor);
+
+        if (isCustRD && !isVendRD) {
+            return res.status(403).json({ 
+                message: 'Order Eligibility Restriction: Registered Business Customer (RD) orders require a GST-registered vendor (RD) for tax invoice compliance.' 
+            });
+        }
+
         // B2B Promotions priority window claim verification
         const Promotion = (await import('../models/Promotion.js')).default;
         const ServiceArea = (await import('../models/ServiceArea.js')).default;
@@ -1310,6 +1340,7 @@ export const vendorAcceptOrder = async (req, res) => {
             appliedPromoValue: 0,
             promoOwnerType: 'NONE'
         };
+        let finalPromoValue = 0;
 
         if (order.allocation_status === 'PROMO_EXCLUSIVE' && order.allocation_expires_at > new Date()) {
             // Must have matching Vendor-funded promotion
@@ -1358,8 +1389,9 @@ export const vendorAcceptOrder = async (req, res) => {
                 : matchingPromo.discountValue;
 
             const standardFee = order.totalAmount * 0.10;
-            const finalPromoValue = Math.min(promoVal, order.totalAmount - standardFee);
-            const customerCashback = finalPromoValue * 0.50;
+            const finalPromoValue = Math.min(promoVal, order.totalAmount);
+            // 50% of discount amount due to promotion goes to Customer's Wallet
+            const customerCashback = Math.round((finalPromoValue * 0.50) * 100) / 100;
 
             finalLedger = {
                 vendorNetPayout: order.totalAmount - standardFee - finalPromoValue,
@@ -1372,10 +1404,10 @@ export const vendorAcceptOrder = async (req, res) => {
 
             // Credit the customer's wallet balance
             const customerUser = await User.findById(order.customer);
-            if (customerUser) {
+            if (customerUser && customerCashback > 0) {
                 customerUser.walletBalance = (customerUser.walletBalance || 0) + customerCashback;
                 await customerUser.save();
-                console.log(`🎁 [WALLET] Credited ₹${customerCashback} cashback to customer ${customerUser.phone}`);
+                console.log(`🎁 [WALLET] Credited ₹${customerCashback} (50% promo discount) to customer ${customerUser.phone}`);
             }
         } else if (order.ledger && order.ledger.promoOwnerType === 'PLATFORM') {
             // Already populated during order creation under Branch B
@@ -1392,6 +1424,14 @@ export const vendorAcceptOrder = async (req, res) => {
             };
         }
 
+        // Generate Invoice 1 (Customer Invoice), Invoice 2 (Platform Revenue Invoice) and Payout Ledger
+        const invoiceData = await generateOrderInvoices({
+            order,
+            customer: customerUser,
+            vendor,
+            vendorPromoValue: finalPromoValue
+        });
+
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         
         order.vendor = vendorId;
@@ -1400,9 +1440,24 @@ export const vendorAcceptOrder = async (req, res) => {
         order.pickupStatus = 'scheduled';
         order.nearbyRiders = [];
         order.ledger = finalLedger;
+        order.invoices = {
+            customerInvoice: invoiceData.customerInvoice,
+            platformInvoice: invoiceData.platformInvoice
+        };
+        order.ledger = invoiceData.ledger;
+        order.vendorSnapshot = {
+            displayName: vendor.displayName || null,
+            shopName: vendor.shopDetails?.name || null,
+            phone: vendor.phone || null,
+            email: vendor.email || null,
+            gstNumber: vendor.shopDetails?.gst || vendor.gstNumber || null,
+            isExUser: false
+        };
+
         if (appliedPromo) {
             order.promoApplied = appliedPromo._id;
             order.discountAmount = finalLedger.appliedPromoValue;
+            order.discountAmount = finalPromoValue;
         }
 
         // Remove availability notifications for other vendors
@@ -1857,7 +1912,29 @@ export const createWalkInOrder = async (req, res) => {
         // 2. Parse delivery slots
         const parsedDeliverySlot = parseWalkInDeliveryTime(deliveryTime);
 
-        // 3. Create the order
+        // 3. Setup pricing breakdown and generate Invoices
+        const vendorUser = await User.findById(vendorId);
+        const isCustRD = checkCustomerRD(customer);
+        const itemsTotal = items.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
+        const deliveryChargeVal = riderDropOff ? (Number(req.body.deliveryCharge) || 0) : 0;
+        
+        const priceBreakdown = {
+            baseWithArea: itemsTotal,
+            expressSurcharge: 0,
+            platformFee: 0,
+            logisticsFee: deliveryChargeVal,
+            gstAmount: 0
+        };
+
+        const tempOrderId = `#WL-${Date.now().toString().slice(-4)}`;
+        const invoiceData = await generateOrderInvoices({
+            order: { _id: new mongoose.Types.ObjectId(), orderId: tempOrderId, priceBreakdown, deliveryCharge: deliveryChargeVal },
+            customer,
+            vendor: vendorUser,
+            vendorPromoValue: 0
+        });
+
+        // 4. Create the order
         const newOrder = new Order({
             customer: customer._id,
             vendor: vendorId,
@@ -1870,11 +1947,34 @@ export const createWalkInOrder = async (req, res) => {
             })),
             status: 'PROCESSING', // Direct to progress
             paymentStatus: 'Paid', // Assuming cash/direct payment for walk-in
-            totalAmount,
+            totalAmount: invoiceData.customerInvoice.totalAmount || totalAmount,
             orderType: 'Walk-In',
             tier: req.body.selectedTier || req.body.tier || 'Essential',
             deliveryMode: req.body.deliveryMode || 'Normal',
-            deliveryCharge: req.body.deliveryCharge || 0,
+            deliveryCharge: deliveryChargeVal,
+            priceBreakdown,
+            isCustomerRD: isCustRD,
+            customerSnapshot: {
+                displayName: customer.displayName || null,
+                phone: customer.phone || null,
+                email: customer.email || null,
+                customerType: customer.customerType || 'individual',
+                gstNumber: customer.gstNumber || null,
+                isExUser: false
+            },
+            vendorSnapshot: {
+                displayName: vendorUser?.displayName || null,
+                shopName: vendorUser?.shopDetails?.name || null,
+                phone: vendorUser?.phone || null,
+                email: vendorUser?.email || null,
+                gstNumber: vendorUser?.shopDetails?.gst || vendorUser?.gstNumber || null,
+                isExUser: false
+            },
+            invoices: {
+                customerInvoice: invoiceData.customerInvoice,
+                platformInvoice: invoiceData.platformInvoice
+            },
+            ledger: invoiceData.ledger,
             riderDropOff: riderDropOff || false,
             pickupStatus: 'picked',
             pickupExpectedDate: new Date(),
@@ -2052,5 +2152,68 @@ export const cancelOrder = async (req, res) => {
     } catch (err) {
         console.error('Cancel Order Error:', err);
         res.status(500).json({ message: 'Error cancelling order', error: err.message });
+    }
+};
+
+/**
+ * RBAC Invoice Endpoint:
+ * - Invoice 1 (Customer Invoice): Accessible by Customer, Vendor, and Admin
+ * - Invoice 2 (Platform Revenue Invoice): Strictly accessible ONLY by Vendor and Admin
+ */
+export const getOrderInvoices = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const order = await Order.findById(id).populate('customer', 'displayName phone address email customerType gstNumber');
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        const actorId = req.user?.id;
+        const actorRole = req.user?.role;
+
+        const isCustomer = order.customer && (order.customer._id?.toString() === actorId || order.customer.toString() === actorId);
+        const isVendor = order.vendor && (order.vendor._id?.toString() === actorId || order.vendor.toString() === actorId);
+        const isAdmin = actorRole === 'Admin';
+
+        if (!isCustomer && !isVendor && !isAdmin) {
+            return res.status(403).json({ message: 'Not authorized to view invoices for this order' });
+        }
+
+        // If invoices are not yet generated or order was accepted earlier without invoices, generate dynamically
+        let invoices = order.invoices;
+        if (!invoices || !invoices.customerInvoice?.invoiceNo) {
+            const vendor = order.vendor ? await User.findById(order.vendor) : null;
+            const customer = order.customer ? (order.customer._id ? order.customer : await User.findById(order.customer)) : null;
+            const generated = await generateOrderInvoices({
+                order,
+                customer,
+                vendor,
+                vendorPromoValue: order.ledger?.appliedPromoValue || 0
+            });
+            invoices = {
+                customerInvoice: generated.customerInvoice,
+                platformInvoice: generated.platformInvoice
+            };
+        }
+
+        // Access Control Rule:
+        // Invoice 1: Customer Invoice -> Only Customer and Vendor (and Admin) can see it.
+        // Invoice 2: Platform Revenue Invoice -> Only Vendor (and Admin) can see it. (Strictly hidden from customer)
+        if (isCustomer && !isVendor && !isAdmin) {
+            return res.status(200).json({
+                orderId: order._id,
+                orderNo: order.orderId,
+                customerInvoice: invoices.customerInvoice,
+                platformInvoice: null // Strictly restricted from Customer
+            });
+        }
+
+        return res.status(200).json({
+            orderId: order._id,
+            orderNo: order.orderId,
+            customerInvoice: invoices.customerInvoice,
+            platformInvoice: invoices.platformInvoice
+        });
+    } catch (err) {
+        console.error('Error fetching order invoices:', err);
+        res.status(500).json({ message: 'Error fetching order invoices', error: err.message });
     }
 };

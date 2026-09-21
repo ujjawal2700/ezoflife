@@ -201,58 +201,69 @@ const OrdersHistoryPage = () => {
       }
     }, 0);
 
-    const isMock = !order.priceBreakdown;
-    const isHeritage = order.tier === 'Heritage' || order.serviceTier === 'Heritage';
-    const gstPercent = isHeritage ? 18 : 5;
-    
-    const grandTotal = order.totalAmount || order.total || 0;
-    const discount = order.discountAmount || (order.priceBreakdown?.discount !== undefined ? order.priceBreakdown.discount : 0);
-    
-    let platformFee = 0;
-    if (!isMock) {
-      platformFee = order.priceBreakdown?.platformFee || 0;
-    } else if (itemsTotal !== grandTotal) {
-      platformFee = cfg.showServiceFee !== false ? grandTotal * 0.02 : 0;
-    }
-
-    let gstAmount = 0;
-    if (!isMock) {
-      gstAmount = order.priceBreakdown?.gstAmount || 0;
-    } else {
-      const target = grandTotal + discount - platformFee;
-      const taxable = target / (1 + gstPercent / 100);
-      gstAmount = target - taxable;
-    }
-
-    const subtotal = grandTotal - platformFee - gstAmount + discount;
+    const custInv = order.invoices?.customerInvoice;
 
     // GST Display Logic
     const customerObj = order.customer || order.user || userData;
-    const customerGstType = customerObj?.customerType === 'retail' ? 'RD' : 'URD';
+    const isCustRD = customerObj?.customerType === 'retail' && Boolean(customerObj?.gstNumber && customerObj.gstNumber.trim().length >= 10);
     const customerGstin = customerObj?.gstNumber || '';
 
     const vendorObj = order.vendor;
-    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || '';
-    const vendorGstType = vendorGstin ? 'RD' : 'URD';
+    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || order.vendorSnapshot?.gstNumber || '';
+    const isVendRD = Boolean(vendorGstin && vendorGstin.trim().length >= 10);
 
-    let displayGstNo = '';
-    let displayGstLabel = '';
+    let scenario = custInv?.scenario;
+    if (!scenario) {
+      if (isCustRD && isVendRD) scenario = 'A';
+      else if (!isCustRD && isVendRD) scenario = 'B';
+      else scenario = 'C';
+    }
+
+    let displayGstNo = custInv?.displayGstinNo;
+    let displayGstLabel = custInv?.displayGstinLabel;
     let gstNotice = '';
 
-    if (customerGstType === 'RD' && vendorGstType === 'RD') {
-        displayGstNo = customerGstin;
-        displayGstLabel = "Customer GSTIN";
-        gstNotice = "B2B Invoice - Tax Credit Available";
-    } else if (customerGstType === 'URD' && vendorGstType === 'RD') {
-        displayGstNo = vendorGstin;
-        displayGstLabel = "Vendor GSTIN";
-        gstNotice = "B2C Invoice";
+    if (scenario === 'A') {
+      displayGstNo = displayGstNo || customerGstin;
+      displayGstLabel = displayGstLabel || "Customer GSTIN";
+      gstNotice = "Scenario A: B2B Tax Invoice - Tax Credit Available";
+    } else if (scenario === 'B') {
+      displayGstNo = displayGstNo || vendorGstin;
+      displayGstLabel = displayGstLabel || "Vendor GSTIN";
+      gstNotice = "Scenario B: B2C Tax Invoice";
     } else {
-        // Includes URD-URD and fallback
-        displayGstNo = cfg.gstNumber || 'ZA1223324435435';
-        displayGstLabel = "Spinzyt GSTIN";
-        gstNotice = "Marketplace / Platform Invoice";
+      displayGstNo = displayGstNo || cfg.gstNumber || '07AAAAA0000A1Z5';
+      displayGstLabel = displayGstLabel || "Spinzyt GSTIN";
+      gstNotice = "Scenario C: Marketplace / Platform Invoice (0% GST Unregistered Vendor)";
     }
+
+    const baseWithArea = Number(order.priceBreakdown?.baseWithArea || 0) || itemsTotal;
+    const expressSurcharge = Number(order.priceBreakdown?.expressSurcharge || 0);
+    const platformFee = Number(order.priceBreakdown?.platformFee || 0);
+    const logisticsFee = Number(order.priceBreakdown?.logisticsFee || order.deliveryCharge || 0);
+    const discount = Number(order.discountAmount || order.priceBreakdown?.discount || 0);
+
+    const serviceValue = custInv?.serviceValue !== undefined 
+      ? custInv.serviceValue 
+      : Math.round((baseWithArea + expressSurcharge + platformFee + logisticsFee) * 100) / 100;
+
+    const gstPercent = custInv?.taxPercent !== undefined 
+      ? custInv.taxPercent 
+      : (scenario === 'C' ? 0 : 18);
+
+    const gstAmount = custInv?.taxAmount !== undefined 
+      ? custInv.taxAmount 
+      : (scenario === 'C' ? 0 : Math.round(serviceValue * (gstPercent / 100) * 100) / 100);
+
+    const customerWalletCredit = custInv?.customerWalletCredit !== undefined 
+      ? custInv.customerWalletCredit 
+      : (order.ledger?.customerWalletCredit || 0);
+
+    const grandTotal = custInv?.totalAmount !== undefined 
+      ? custInv.totalAmount 
+      : (serviceValue + gstAmount);
+
+    const subtotal = baseWithArea + expressSurcharge;
 
     const invoiceHtml = `
       <html>
@@ -411,9 +422,9 @@ const OrdersHistoryPage = () => {
                     <td colspan="5">Subtotal Services</td>
                     <td>₹${subtotal.toFixed(2)}</td>
                   </tr>
-                  ${cfg.showServiceFee && platformFee > 0 ? `
+                  ${platformFee > 0 ? `
                     <tr class="totals-row">
-                      <td colspan="5">Platform Fee</td>
+                      <td colspan="5">Platform Facilitation Fee</td>
                       <td>₹${platformFee.toFixed(2)}</td>
                     </tr>
                   ` : ''}
@@ -423,12 +434,28 @@ const OrdersHistoryPage = () => {
                       <td>- ₹${discount.toFixed(2)}</td>
                     </tr>
                   ` : ''}
+                  ${logisticsFee > 0 ? `
+                    <tr class="totals-row">
+                      <td colspan="5">Logistics & Delivery Fee</td>
+                      <td>₹${logisticsFee.toFixed(2)}</td>
+                    </tr>
+                  ` : ''}
+                  <tr class="totals-row" style="background-color: #f8fafc; font-weight: 900;">
+                    <td colspan="5">Total Service Value</td>
+                    <td>₹${serviceValue.toFixed(2)}</td>
+                  </tr>
+                  ${customerWalletCredit > 0 ? `
+                    <tr class="totals-row" style="color: #059669; background-color: #ecfdf5;">
+                      <td colspan="5">Customer Wallet Cashback (50% Promotion Benefit)</td>
+                      <td>₹${customerWalletCredit.toFixed(2)} Credit</td>
+                    </tr>
+                  ` : ''}
                   <tr class="totals-row">
-                    <td colspan="5">GST (${gstPercent}%)</td>
-                    <td>₹${gstAmount.toFixed(2)}</td>
+                    <td colspan="5">${scenario === 'C' ? 'GST (0% - Unregistered Vendor Facilitated)' : `GST (${gstPercent}%)`}</td>
+                    <td>${scenario === 'C' ? '₹0.00 (Inclusive)' : `₹${gstAmount.toFixed(2)}`}</td>
                   </tr>
                   <tr class="totals-row grand-total-row">
-                    <td colspan="5">Grand Total</td>
+                    <td colspan="5">Total Customer Payment (Invoice 1)</td>
                     <td class="grand-total-value">₹${grandTotal.toFixed(2)}</td>
                   </tr>
                 </tbody>

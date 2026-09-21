@@ -1264,6 +1264,44 @@ export const getSystemConfig = async (req, res) => {
             await SystemConfig.insertMany(defaults);
             configs = await SystemConfig.find();
         }
+
+        const requiredDefaults = [
+            { key: 'express_multiplier', value: 1.5, description: 'Multiplier for Express Delivery (Multiplicative Formula)' },
+            { key: 'platform_multiplier', value: 1.1, description: 'Platform Aggregator Fee Multiplier' },
+            { key: 'gst_percent', value: 18, description: 'GST Percentage (18% for RD)' },
+            { key: 'platform_fee_fixed', value: 20, description: 'Fixed Platform Fee charged to vendor (Invoice 2)' },
+            { key: 'platform_fee_gst_percent', value: 18, description: 'GST % on Platform Fee (Invoice 2)' },
+            { key: 'logistics_fee_gst_percent', value: 18, description: 'GST % on Logistics Fee (Invoice 2)' },
+            { key: 'spinzyt_gstin', value: '07AAAAA0000A1Z5', description: 'Spinzyt Official Facilitating GSTIN' },
+            { key: 'normal_logistics_fee', value: 50, description: 'Base logistics fee for Normal Delivery mode' },
+            { key: 'chat_welcome_message', value: 'Hello! How can we help you today?', description: 'Welcome message' },
+            { key: 'delivery_day', value: 'Sunday', description: 'Global Delivery Day for B2B Supplier Orders' },
+            { 
+                key: 'invoice_settings', 
+                value: {
+                    showLogo: true,
+                    showVendorDetails: true,
+                    showTerms: true,
+                    customTerms: 'Thank you for taking our services..',
+                    invoiceNote: 'This is a computer generated invoice.',
+                    showTaxes: true,
+                    accentColor: '#000000',
+                    businessName: 'SPINZYT',
+                    contactEmail: 'support@spinzyt.com',
+                    gstNumber: '07AAAAA0000A1Z5'
+                }, 
+                description: 'Invoice Template Configuration' 
+            }
+        ];
+
+        // Ensure missing keys are seeded even if configs exist
+        for (const item of requiredDefaults) {
+            const exists = configs.find(c => c.key === item.key);
+            if (!exists) {
+                await SystemConfig.create(item);
+            }
+        }
+        configs = await SystemConfig.find();
         
         res.status(200).json(configs);
     } catch (err) {
@@ -1466,9 +1504,12 @@ export const getVendorPaymentSummary = async (req, res) => {
             const orders = await Order.find({ 
                 vendor: vendor._id,
                 status: { $in: ['READY_FOR_DISPATCH', 'DELIVERED', 'OUT_FOR_DELIVERY'] }
-            }).select('priceBreakdown status orderId totalAmount refundAmount').lean();
+            }).select('priceBreakdown status orderId totalAmount refundAmount ledger').lean();
             
             const totalEarnings = orders.reduce((acc, curr) => {
+                if (curr.ledger?.vendorNetPayout !== undefined && curr.ledger?.vendorNetPayout !== null && curr.ledger.vendorNetPayout > 0) {
+                    return acc + curr.ledger.vendorNetPayout;
+                }
                 const breakdown = curr.priceBreakdown || {};
                 return acc + (breakdown.baseWithArea || 0) + (breakdown.expressSurcharge || 0);
             }, 0);
@@ -1523,7 +1564,7 @@ export const getVendorPaymentSummary = async (req, res) => {
                 { vendor: { $nin: Array.from(activeVendorIds) } }
             ],
             status: { $in: ['READY_FOR_DISPATCH', 'DELIVERED', 'OUT_FOR_DELIVERY'] }
-        }).select('vendor vendorSnapshot priceBreakdown status orderId totalAmount refundAmount').lean();
+        }).select('vendor vendorSnapshot priceBreakdown status orderId totalAmount refundAmount ledger').lean();
 
         const exVendorPayouts = await Payout.find({
             $or: [
@@ -1573,6 +1614,9 @@ export const getVendorPaymentSummary = async (req, res) => {
             const payouts = group.payouts;
 
             const totalEarnings = orders.reduce((acc, curr) => {
+                if (curr.ledger?.vendorNetPayout !== undefined && curr.ledger?.vendorNetPayout !== null && curr.ledger.vendorNetPayout > 0) {
+                    return acc + curr.ledger.vendorNetPayout;
+                }
                 const breakdown = curr.priceBreakdown || {};
                 return acc + (breakdown.baseWithArea || 0) + (breakdown.expressSurcharge || 0);
             }, 0);

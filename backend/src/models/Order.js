@@ -249,13 +249,47 @@ const orderSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    isCustomerRD: {
+        type: Boolean,
+        default: false
+    },
+    invoices: {
+        customerInvoice: {
+            invoiceNo: { type: String, default: '' },
+            scenario: { type: String, enum: ['A', 'B', 'C', ''], default: '' },
+            serviceValue: { type: Number, default: 0 },
+            taxPercent: { type: Number, default: 0 },
+            taxAmount: { type: Number, default: 0 },
+            displayGstinLabel: { type: String, default: '' },
+            displayGstinNo: { type: String, default: '' },
+            customerWalletCredit: { type: Number, default: 0 },
+            totalAmount: { type: Number, default: 0 },
+            generatedAt: { type: Date, default: null }
+        },
+        platformInvoice: {
+            invoiceNo: { type: String, default: '' },
+            platformFee: { type: Number, default: 0 },
+            platformFeeTaxPercent: { type: Number, default: 18 },
+            platformFeeTax: { type: Number, default: 0 },
+            logisticsFee: { type: Number, default: 0 },
+            logisticsFeeTaxPercent: { type: Number, default: 18 },
+            logisticsFeeTax: { type: Number, default: 0 },
+            spinzytGstin: { type: String, default: '' },
+            spinzytPromoShare: { type: Number, default: 0 },
+            totalInvoiceAmount: { type: Number, default: 0 },
+            generatedAt: { type: Date, default: null }
+        }
+    },
     ledger: {
         vendorNetPayout: { type: Number, default: 0 },
         customerWalletCredit: { type: Number, default: 0 },
         platformFee: { type: Number, default: 0 },
         spinzytCombinedRevenue: { type: Number, default: 0 },
         appliedPromoValue: { type: Number, default: 0 },
-        promoOwnerType: { type: String, enum: ['PLATFORM', 'VENDOR', 'NONE'], default: 'NONE' }
+        promoOwnerType: { type: String, enum: ['PLATFORM', 'VENDOR', 'NONE'], default: 'NONE' },
+        invoice1Total: { type: Number, default: 0 },
+        invoice2Total: { type: Number, default: 0 },
+        spinzytPromoShare: { type: Number, default: 0 }
     },
     statusHistory: [
         {
@@ -277,6 +311,7 @@ orderSchema.index({ vendor: 1, status: 1 });        // vendor dashboard tabs
 orderSchema.index({ status: 1, createdAt: -1 });    // admin lists / pool queries
 orderSchema.index({ paymentStatus: 1 });            // settlement + payout reporting
 orderSchema.index({ createdAt: -1 });               // dashboards and date ranges
+orderSchema.index({ isCustomerRD: 1, status: 1 });  // GST pool visibility
 
 // Pre-save hook to generate unique readable order ID and track status history
 orderSchema.pre('save', async function(next) {

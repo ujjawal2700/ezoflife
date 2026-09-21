@@ -14,7 +14,8 @@ import {
     verifyHandshake,
     handleGetNearbyVendors,
     createRazorpayOrder,
-    cancelOrder
+    cancelOrder,
+    getOrderInvoices
 } from '../controllers/orderController.js';
 import { verifyAdmin, verifyAdminOrVendor, verifyUser } from '../middleware/authMiddleware.js';
 
@@ -52,6 +53,7 @@ router.delete('/:id', verifyAdmin, deleteOrder);
 
 // Specific order by ID (Must be at the bottom). Ownership is enforced in the
 // handler so a customer cannot read somebody else's order.
+router.get('/:id/invoices', verifyUser, getOrderInvoices);
 router.get('/:id', verifyUser, getOrderById);
 
 export default router;

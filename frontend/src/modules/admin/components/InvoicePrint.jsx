@@ -1,74 +1,73 @@
 import React from 'react';
 
-const InvoicePrint = ({ order, settings = {} }) => {
+const InvoicePrint = ({ order, invoice = null, settings = {} }) => {
     if (!order) return null;
 
-    const itemsTotal = (order.items || []).reduce((sum, item) => {
-        const qty = parseFloat(item.quantity || item.qty || 1);
-        if (item.quantity !== undefined) {
-            return sum + (item.price * item.quantity);
-        } else {
-            return sum + item.price;
-        }
-    }, 0);
+    const custInv = invoice || order.invoices?.customerInvoice;
 
-    const isMock = !order.priceBreakdown;
-    const isHeritage = order.tier === 'Heritage' || order.serviceTier === 'Heritage';
-    const gstPercent = isHeritage ? 18 : 5;
-    
-    const grandTotal = order.total || order.totalAmount || 0;
-    const discount = order.discountAmount || (order.priceBreakdown?.discount !== undefined ? order.priceBreakdown.discount : (isMock && settings.showDiscount !== false ? 50 : 0));
-    
-    let platformFee = 0;
-    if (!isMock) {
-        platformFee = order.priceBreakdown?.platformFee || 0;
-    } else if (itemsTotal !== grandTotal) {
-        platformFee = settings.showServiceFee !== false ? grandTotal * 0.02 : 0;
-    }
-
-    let gstAmount = 0;
-    if (!isMock) {
-        gstAmount = order.priceBreakdown?.gstAmount || 0;
-    } else {
-        const target = grandTotal + discount - platformFee;
-        const taxable = target / (1 + gstPercent / 100);
-        gstAmount = target - taxable;
-    }
-
-    const subtotal = grandTotal - platformFee - gstAmount + discount;
-
-    // GST Display Logic
-    const customerObj = order.user || order.customer;
-    const customerGstType = customerObj?.customerType === 'retail' ? 'RD' : 'URD';
+    const customerObj = order.customer || order.user;
+    const isCustRD = customerObj?.customerType === 'retail' && Boolean(customerObj?.gstNumber && customerObj.gstNumber.trim().length >= 10);
     const customerGstin = customerObj?.gstNumber || '';
 
     const vendorObj = order.vendor;
-    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || '';
-    const vendorGstType = vendorGstin ? 'RD' : 'URD';
+    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || order.vendorSnapshot?.gstNumber || '';
+    const isVendRD = Boolean(vendorGstin && vendorGstin.trim().length >= 10);
 
-    let displayGstNo = '';
-    let displayGstLabel = '';
-    let gstNotice = '';
-
-    if (customerGstType === 'RD' && vendorGstType === 'RD') {
-        displayGstNo = customerGstin;
-        displayGstLabel = "Customer GSTIN";
-        gstNotice = "B2B Invoice - Tax Credit Available";
-    } else if (customerGstType === 'URD' && vendorGstType === 'RD') {
-        displayGstNo = vendorGstin;
-        displayGstLabel = "Vendor GSTIN";
-        gstNotice = "B2C Invoice";
-    } else {
-        // Includes URD-URD and fallback
-        displayGstNo = settings.gstNumber || 'ZA1223324435435';
-        displayGstLabel = "Spinzyt GSTIN";
-        gstNotice = "Marketplace / Platform Invoice";
+    let scenario = custInv?.scenario;
+    if (!scenario) {
+        if (isCustRD && isVendRD) scenario = 'A';
+        else if (!isCustRD && isVendRD) scenario = 'B';
+        else scenario = 'C';
     }
 
-    // Use settings or fallbacks
-    const accentColor = settings.accentColor || '#5B21B6';
+    let displayGstNo = custInv?.displayGstinNo;
+    let displayGstLabel = custInv?.displayGstinLabel;
+    let gstNotice = '';
+
+    if (scenario === 'A') {
+        displayGstNo = displayGstNo || customerGstin;
+        displayGstLabel = displayGstLabel || "Customer GSTIN";
+        gstNotice = "Scenario A: B2B Tax Invoice - Tax Credit Available";
+    } else if (scenario === 'B') {
+        displayGstNo = displayGstNo || vendorGstin;
+        displayGstLabel = displayGstLabel || "Vendor GSTIN";
+        gstNotice = "Scenario B: B2C Tax Invoice";
+    } else {
+        displayGstNo = displayGstNo || settings.gstNumber || '07AAAAA0000A1Z5';
+        displayGstLabel = displayGstLabel || "Spinzyt GSTIN";
+        gstNotice = "Scenario C: Marketplace / Platform Invoice (0% GST Unregistered Vendor)";
+    }
+
+    const baseWithArea = Number(order.priceBreakdown?.baseWithArea || 0) || (order.items || []).reduce((s, i) => s + (i.price * (i.quantity || i.qty || 1)), 0);
+    const expressSurcharge = Number(order.priceBreakdown?.expressSurcharge || 0);
+    const platformFee = Number(order.priceBreakdown?.platformFee || 0);
+    const logisticsFee = Number(order.priceBreakdown?.logisticsFee || order.deliveryCharge || 0);
+    const discount = Number(order.discountAmount || order.priceBreakdown?.discount || 0);
+
+    const serviceValue = custInv?.serviceValue !== undefined 
+        ? custInv.serviceValue 
+        : Math.round((baseWithArea + expressSurcharge + platformFee + logisticsFee) * 100) / 100;
+
+    const taxPercent = custInv?.taxPercent !== undefined 
+        ? custInv.taxPercent 
+        : (scenario === 'C' ? 0 : (settings.gstPercent || 18));
+
+    const taxAmount = custInv?.taxAmount !== undefined 
+        ? custInv.taxAmount 
+        : (scenario === 'C' ? 0 : Math.round(serviceValue * (taxPercent / 100) * 100) / 100);
+
+    const customerWalletCredit = custInv?.customerWalletCredit !== undefined 
+        ? custInv.customerWalletCredit 
+        : (order.ledger?.customerWalletCredit || 0);
+
+    const grandTotal = custInv?.totalAmount !== undefined 
+        ? custInv.totalAmount 
+        : (serviceValue + taxAmount);
+
+    const invoiceNo = custInv?.invoiceNo || order.invoiceNo || `SZ-CUST-${order.orderId ? order.orderId.replace('#', '') : String(order._id || '1001').slice(-6)}`;
     const businessName = settings.businessName || 'EZOFLIFE TECHNOLOGY LLP';
     const contactEmail = settings.contactEmail || 'connect@spinzyt.com';
+    const invoiceDate = custInv?.generatedAt ? new Date(custInv.generatedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (order.date || new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }));
 
     return (
         <div className="bg-white p-12 max-w-[850px] mx-auto font-sans text-slate-900" id="invoice-content">
@@ -76,11 +75,13 @@ const InvoicePrint = ({ order, settings = {} }) => {
             <div className="bg-[#f3f4f6] p-10 flex justify-between items-center relative overflow-hidden rounded-t-sm border border-slate-200">
                 <div className="relative z-10 space-y-4">
                     <h1 className="text-[32px] font-black tracking-tight leading-none text-slate-900">{businessName}</h1>
+                    <div className="inline-block bg-purple-100 text-purple-800 border border-purple-200 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest">
+                        Invoice 1 • Customer Tax Invoice
+                    </div>
                     <div className="space-y-1 text-[13px] font-bold text-slate-600">
-                        <p className="tracking-tight">www.spinzyt.com</p>
-                        <p className="tracking-tight">{contactEmail}</p>
+                        <p className="tracking-tight">www.spinzyt.com • {contactEmail}</p>
                         {displayGstNo && (
-                            <p className="tracking-tight">{displayGstLabel} # {displayGstNo}</p>
+                            <p className="tracking-tight text-slate-900 font-black">{displayGstLabel}: {displayGstNo}</p>
                         )}
                     </div>
                 </div>
@@ -96,7 +97,6 @@ const InvoicePrint = ({ order, settings = {} }) => {
                         <span className="text-2xl font-black tracking-[0.2em] leading-none text-slate-900">SPINZYT</span>
                     </div>
                 )}
-                {/* Subtle Geometric Background Pattern */}
                 <div className="absolute inset-0 opacity-[0.01] pointer-events-none">
                     <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                         <defs>
@@ -110,98 +110,120 @@ const InvoicePrint = ({ order, settings = {} }) => {
             </div>
 
             {/* Order Info Section */}
-            <div className="py-10 px-2 flex justify-between items-start border-x border-slate-200">
-                <div className="space-y-2">
-                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Invoice No: <span className="font-bold text-slate-600 ml-2">{order.invoiceNo || `SZ-CUST-2026-${order.id?.slice(-4) || '1001'}`}</span></p>
-                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer Name: <span className="font-bold text-slate-600 ml-2">{customerObj?.displayName || order.user?.name || '[Customer Name]'}</span></p>
-                    {customerGstType === 'RD' && customerGstin && (
-                        <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer GSTIN: <span className="font-bold text-slate-600 ml-2">{customerGstin}</span></p>
+            <div className="py-8 px-4 flex justify-between items-start border-x border-slate-200 bg-slate-50/50">
+                <div className="space-y-1.5">
+                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Invoice No: <span className="font-mono text-purple-700 ml-2">{invoiceNo}</span></p>
+                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer Name: <span className="font-bold text-slate-600 ml-2">{customerObj?.displayName || order.user?.name || 'Customer'}</span></p>
+                    {customerGstin && (
+                        <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Customer GSTIN: <span className="font-bold text-slate-900 ml-2">{customerGstin}</span></p>
                     )}
-                    {settings.showVendorDetails !== false && (
-                        <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Vendor ID : <span className="font-bold text-slate-600 ml-2">{order.vendor?.id || 'VEN-001'}</span></p>
+                    {vendorObj && (
+                        <p className="text-[12px] font-black uppercase tracking-tight text-slate-700">Vendor: <span className="font-bold text-slate-600 ml-2">{vendorObj.shopDetails?.name || vendorObj.displayName || 'Partner Vendor'} {vendorGstin ? `(${vendorGstin})` : ''}</span></p>
                     )}
                     {gstNotice && (
-                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mt-2">{gstNotice}</p>
+                        <p className="text-[11px] font-black uppercase tracking-wider text-purple-700 mt-2 bg-purple-50 inline-block px-2 py-1 rounded border border-purple-200">{gstNotice}</p>
                     )}
                 </div>
-                <div className="space-y-2 text-right">
-                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Order No: <span className="font-bold text-slate-600 ml-2">{order.orderNo || order.id || '#SPZ-98765'}</span></p>
-                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Date: <span className="font-bold text-slate-600 ml-2">{order.date || 'May 05, 2026'}</span></p>
+                <div className="space-y-1.5 text-right">
+                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Order Ref: <span className="font-bold text-slate-600 ml-2">{order.orderId || order.orderNo || '#SPZ-98765'}</span></p>
+                    <p className="text-[13px] font-black uppercase tracking-tight text-slate-900">Date: <span className="font-bold text-slate-600 ml-2">{invoiceDate}</span></p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-slate-500">Classification: <span className="text-slate-900 font-bold">Scenario {scenario}</span></p>
                 </div>
             </div>
 
             {/* Items Table */}
-            <div className="border border-slate-200 border-t-0">
+            <div className="border border-slate-200">
                 <table className="w-full border-collapse">
                     <thead>
-                        <tr className="bg-slate-50 border-y border-slate-200">
-                            <th className="border-r border-slate-200 px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-400">Item Description</th>
-                            <th className="border-r border-slate-200 px-4 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-400 w-20">SAC</th>
-                            <th className="border-r border-slate-200 px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-400">Service Type</th>
-                            <th className="border-r border-slate-200 px-4 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-400 w-28">Qty / Weight</th>
-                            <th className="border-r border-slate-200 px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-400 w-32">Unit Price</th>
-                            <th className="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-400 w-32">Total</th>
+                        <tr className="bg-slate-100 border-b border-slate-200">
+                            <th className="border-r border-slate-200 px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Item Description</th>
+                            <th className="border-r border-slate-200 px-4 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-500 w-20">SAC</th>
+                            <th className="border-r border-slate-200 px-6 py-4 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Service Type</th>
+                            <th className="border-r border-slate-200 px-4 py-4 text-center text-[11px] font-black uppercase tracking-widest text-slate-500 w-24">Qty</th>
+                            <th className="border-r border-slate-200 px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-500 w-28">Unit Price</th>
+                            <th className="px-6 py-4 text-right text-[11px] font-black uppercase tracking-widest text-slate-500 w-32">Total</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                         {(order.items || []).map((item, i) => (
                             <tr key={i} className="hover:bg-slate-50/50">
-                                <td className="border-r border-slate-200 px-6 py-4 text-[13px] font-bold text-slate-700">{item.name}</td>
-                                <td className="border-r border-slate-200 px-4 py-4 text-center text-[13px] font-bold text-slate-500">9994</td>
-                                <td className="border-r border-slate-200 px-6 py-4 text-[13px] font-bold text-slate-600">{item.serviceType || 'Laundry'}</td>
-                                <td className="border-r border-slate-200 px-4 py-4 text-center text-[13px] font-bold text-slate-700">{item.qty}</td>
-                                <td className="border-r border-slate-200 px-6 py-4 text-right text-[13px] font-bold text-slate-700">₹{(item.price / parseFloat(item.qty || 1)).toFixed(2)}</td>
-                                <td className="px-6 py-4 text-right text-[13px] font-black text-slate-900">₹{item.price.toFixed(2)}</td>
-                            </tr>
-                        ))}
-                        {/* Empty rows for layout */}
-                        {[...Array(Math.max(0, 4 - (order.items?.length || 0)))].map((_, i) => (
-                            <tr key={`blank-${i}`}>
-                                <td className="border-r border-slate-200 px-6 py-8" colSpan={6}></td>
+                                <td className="border-r border-slate-200 px-6 py-3.5 text-[13px] font-bold text-slate-800">{item.name}</td>
+                                <td className="border-r border-slate-200 px-4 py-3.5 text-center text-[12px] font-mono text-slate-500">9994</td>
+                                <td className="border-r border-slate-200 px-6 py-3.5 text-[13px] font-medium text-slate-600">{item.serviceType || 'Laundry & Dry Clean'}</td>
+                                <td className="border-r border-slate-200 px-4 py-3.5 text-center text-[13px] font-bold text-slate-700">{item.quantity || item.qty || 1}</td>
+                                <td className="border-r border-slate-200 px-6 py-3.5 text-right text-[13px] font-bold text-slate-700">₹{(item.price / parseFloat(item.quantity || item.qty || 1)).toFixed(2)}</td>
+                                <td className="px-6 py-3.5 text-right text-[13px] font-black text-slate-900">₹{item.price.toFixed(2)}</td>
                             </tr>
                         ))}
                         
                         {/* Calculations Section */}
-                        <tr className="border-t-2 border-slate-900">
-                            <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Subtotal Services</td>
-                            <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{subtotal.toFixed(2)}</td>
+                        <tr className="border-t-2 border-slate-300 bg-slate-50/50">
+                            <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Base Services Subtotal</td>
+                            <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{(baseWithArea + expressSurcharge).toFixed(2)}</td>
                         </tr>
-                        {settings.showServiceFee !== false && platformFee > 0 && (
-                            <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Platform Fee</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{platformFee.toFixed(2)}</td>
+                        {platformFee > 0 && (
+                            <tr className="bg-slate-50/50">
+                                <td colSpan={5} className="border-r border-slate-200 px-6 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">Platform Facilitation Fee</td>
+                                <td className="px-6 py-2.5 text-right text-[13px] font-bold text-slate-800">₹{platformFee.toFixed(2)}</td>
                             </tr>
                         )}
-                        {settings.showDiscount !== false && discount > 0 && (
-                            <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">Promotional Discount</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">- ₹{discount.toFixed(2)}</td>
+                        {discount > 0 && (
+                            <tr className="bg-slate-50/50 text-emerald-700">
+                                <td colSpan={5} className="border-r border-slate-200 px-6 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider">Promotional Discount</td>
+                                <td className="px-6 py-2.5 text-right text-[13px] font-bold">- ₹{discount.toFixed(2)}</td>
                             </tr>
                         )}
-                        {settings.showTaxes !== false && (
-                            <tr>
-                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-500">GST (${gstPercent}%)</td>
-                                <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{gstAmount.toFixed(2)}</td>
+                        {logisticsFee > 0 && (
+                            <tr className="bg-slate-50/50">
+                                <td colSpan={5} className="border-r border-slate-200 px-6 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">Logistics & Delivery Fee</td>
+                                <td className="px-6 py-2.5 text-right text-[13px] font-bold text-slate-800">₹{logisticsFee.toFixed(2)}</td>
                             </tr>
                         )}
+
+                        <tr className="bg-slate-100 border-t border-slate-200">
+                            <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[12px] font-black uppercase tracking-wider text-slate-800">Total Service Value</td>
+                            <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">₹{serviceValue.toFixed(2)}</td>
+                        </tr>
+
+                        {/* Promotional Discount (Customer Wallet Share only) */}
+                        {customerWalletCredit > 0 && (
+                            <tr className="bg-emerald-50/50">
+                                <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-emerald-800">
+                                    Customer Wallet Cashback (50% Promotion Benefit)
+                                </td>
+                                <td className="px-6 py-3 text-right text-[13px] font-black text-emerald-700">₹{customerWalletCredit.toFixed(2)} Credit</td>
+                            </tr>
+                        )}
+
+                        {/* Taxes */}
+                        <tr>
+                            <td colSpan={5} className="border-r border-slate-200 px-6 py-3 text-left text-[11px] font-black uppercase tracking-widest text-slate-600">
+                                {scenario === 'C' ? 'GST (0% - Unregistered Vendor Facilitated)' : `GST (${taxPercent}%)`}
+                            </td>
+                            <td className="px-6 py-3 text-right text-[13px] font-black text-slate-900">
+                                {scenario === 'C' ? '₹0.00 (Inclusive)' : `₹${taxAmount.toFixed(2)}`}
+                            </td>
+                        </tr>
+
+                        {/* Grand Total */}
                         <tr className="bg-slate-900 text-white">
-                            <td colSpan={5} className="px-6 py-4 text-left text-[12px] font-black uppercase tracking-[0.2em]">Grand Total</td>
-                            <td className="px-6 py-4 text-right text-[16px] font-black tracking-tight">₹{grandTotal.toFixed(2)}</td>
+                            <td colSpan={5} className="px-6 py-4 text-left text-[12px] font-black uppercase tracking-[0.2em]">Total Customer Payment (Invoice 1)</td>
+                            <td className="px-6 py-4 text-right text-[17px] font-black tracking-tight">₹{grandTotal.toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             {/* Footer Section */}
-            <div className="mt-12 text-center space-y-4">
-                <div className="py-4 border-y border-slate-100">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em]">{settings.invoiceNote || 'This is a computer generated invoice and does not require a physical signature.'}</p>
+            <div className="mt-10 text-center space-y-3">
+                <div className="py-3 border-y border-slate-100">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{settings.invoiceNote || 'This is a computer generated tax invoice and does not require a physical signature.'}</p>
                 </div>
-                <div className="pt-2">
-                    {settings.showTerms !== false && (
-                        <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest italic">{settings.customTerms}</p>
+                <div className="pt-1">
+                    {settings.showTerms !== false && settings.customTerms && (
+                        <p className="text-[10px] font-medium text-slate-500 mb-1 tracking-wide">{settings.customTerms}</p>
                     )}
-                    <h3 className="text-[12px] font-black tracking-[0.3em] uppercase text-slate-900">{businessName}</h3>
+                    <h3 className="text-[12px] font-black tracking-[0.2em] uppercase text-slate-900">{businessName}</h3>
                 </div>
             </div>
         </div>
