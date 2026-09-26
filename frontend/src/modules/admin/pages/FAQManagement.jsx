@@ -53,7 +53,7 @@ const FAQManagement = () => {
     const fetchFaqs = async () => {
         try {
             setLoading(true);
-            const data = await faqApi.getAll();
+            const data = await faqApi.getAllAdmin();
             setFaqs(data);
         } catch (error) {
             console.error('Fetch FAQs Error:', error);

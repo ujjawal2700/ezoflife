@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { orderApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -193,34 +193,37 @@ const CustomCalendar = ({ startDate, endDate, onChangeRange }) => {
 };
 
 
+/** Shown over a chart area when the selected period has no data for it. */
+const EmptyChartNote = ({ text }) => (
+  <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-white/90 px-3 py-1.5 rounded-xl">
+      {text}
+    </span>
+  </div>
+);
+
+/** Feedback tags taken from real customer reviews. */
+const TagList = ({ tags, tone, loading }) => {
+  const cls = tone === 'positive'
+    ? 'bg-emerald-50/60 text-emerald-700 border-emerald-100/40'
+    : 'bg-rose-50/60 text-rose-700 border-rose-100/40';
+  if (!tags || tags.length === 0) {
+    return (
+      <p className="text-[10px] font-bold text-slate-400">
+        {loading ? 'Loading…' : 'No matching customer feedback in this period'}
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {tags.map(tag => (
+        <span key={tag} className={`px-2.5 py-1 rounded-xl text-[10px] font-black border ${cls}`}>{tag}</span>
+      ))}
+    </div>
+  );
+};
+
 const VendorReports = () => {
-  const [vendorOrders, setVendorOrders] = useState([]);
-  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
-
-  const vendorId = useMemo(() => {
-    try {
-      const v = JSON.parse(localStorage.getItem('vendorData') || localStorage.getItem('user') || '{}');
-      return v._id || v.id || (v.user && (v.user._id || v.user.id)) || null;
-    } catch { return null; }
-  }, []);
-
-  useEffect(() => {
-    if (!vendorId) { setIsLoadingOrders(false); return; }
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await orderApi.getVendorOrders(vendorId);
-        if (!cancelled) setVendorOrders(Array.isArray(data) ? data : (data?.orders || []));
-      } catch (err) {
-        console.error('Failed to load vendor orders for reports:', err);
-        if (!cancelled) toast.error('Could not load report data');
-      } finally {
-        if (!cancelled) setIsLoadingOrders(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [vendorId]);
-
   const navigate = useNavigate();
   const [selectedFilter, setSelectedFilter] = useState('current_month'); // 'current_month', '3_months', '6_months'
   const [isCustomOpen, setIsCustomOpen] = useState(false);
@@ -236,6 +239,47 @@ const VendorReports = () => {
   const [gstFilter, setGstFilter] = useState('all');
   const [showB2bGstGraph, setShowB2bGstGraph] = useState(false);
   const [showB2cGstGraph, setShowB2cGstGraph] = useState(false);
+
+  // ---- Real data: every figure on this page comes from /orders/vendor/insights ----
+  const [insights, setInsights] = useState(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(true);
+
+  // Selected period -> from/to (YYYY-MM-DD). A complete custom range wins over presets.
+  const range = useMemo(() => {
+    const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const today = new Date();
+    if (startDate && endDate) return { from: startDate, to: endDate, custom: true };
+    const from = new Date(today);
+    if (selectedFilter === '3_months') from.setMonth(from.getMonth() - 3);
+    else if (selectedFilter === '6_months') from.setMonth(from.getMonth() - 6);
+    else from.setDate(1); // current month
+    return { from: ymd(from), to: ymd(today), custom: false };
+  }, [selectedFilter, startDate, endDate]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoadingInsights(true);
+    orderApi.getVendorInsights({ from: range.from, to: range.to })
+      .then((data) => { if (!cancelled) setInsights(data); })
+      .catch((err) => {
+        console.error('Failed to load business insights:', err);
+        if (!cancelled) toast.error(err.message || 'Could not load report data');
+      })
+      .finally(() => { if (!cancelled) setIsLoadingInsights(false); });
+    return () => { cancelled = true; };
+  }, [range.from, range.to]);
+
+  const kpis = insights?.kpis;
+  // Status chart: share of orders per status group (percent), with counts
+  const statusData = useMemo(
+    () => (insights?.statusBreakdown || []).map(st => ({ name: st.name, value: st.percent, count: st.count })),
+    [insights]
+  );
+  const emptyNote = isLoadingInsights ? 'Loading…' : 'No data for this period';
+  const feedback = insights?.feedback;
+  const money = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+  // While loading show a placeholder, never a sample value
+  const show = (value) => (isLoadingInsights && !insights ? '…' : value);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -254,27 +298,13 @@ const VendorReports = () => {
     }
   };
 
-  // GST ledger derived from this vendor's real orders.
-  const gstLedger = useMemo(() => vendorOrders.map(o => {
-    const total = Number(o.totalAmount) || 0;
-    const gst = Number(o.priceBreakdown?.gstAmount) || 0;
-    const taxable = Math.max(0, total - gst);
-    const isB2B = o.orderType === 'B2B' || Boolean(o.customer?.gstNumber);
-
-    return {
-      invoiceNo: o.orderId || String(o._id).slice(-8).toUpperCase(),
-      date: o.createdAt
-        ? new Date(o.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-        : '—',
-      client: o.customer?.displayName || o.customer?.phone || 'Walk-in Customer',
-      type: isB2B ? 'B2B' : 'B2C',
-      gstin: o.customer?.gstNumber || 'N/A',
-      taxable: Number(taxable.toFixed(2)),
-      rate: taxable > 0 ? Number(((gst / taxable) * 100).toFixed(0)) : 0,
-      gst: Number(gst.toFixed(2)),
-      total
-    };
-  }), [vendorOrders]);
+  // GST ledger for the selected period (from the insights endpoint)
+  const gstLedger = useMemo(() => (insights?.ledger || []).map(row => ({
+    ...row,
+    date: row.date
+      ? new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      : '—'
+  })), [insights]);
 
   const filteredLedger = gstLedger.filter(row => {
     if (gstFilter === 'b2b') return row.type === 'B2B';
@@ -341,9 +371,10 @@ const VendorReports = () => {
               >
                 <span className="material-symbols-outlined text-base text-slate-500">calendar_today</span>
                 <span className="text-xs font-bold tracking-tight">
-                  {selectedFilter === 'current_month' && 'Current Month'}
-                  {selectedFilter === '3_months' && 'Last 3 Months'}
-                  {selectedFilter === '6_months' && 'Last 6 Months'}
+                  {range.custom && `${range.from} → ${range.to}`}
+                  {!range.custom && selectedFilter === 'current_month' && 'Current Month'}
+                  {!range.custom && selectedFilter === '3_months' && 'Last 3 Months'}
+                  {!range.custom && selectedFilter === '6_months' && 'Last 6 Months'}
                 </span>
                 <span className="material-symbols-outlined text-xs text-slate-400">keyboard_arrow_down</span>
               </button>
@@ -371,11 +402,13 @@ const VendorReports = () => {
                           key={item.id}
                           onClick={() => {
                             setSelectedFilter(item.id);
+                            setStartDate('');
+                            setEndDate('');
                             setShowDropdown(false);
                             setIsCustomOpen(false);
                           }}
                           className={`w-full text-left px-4 py-3 text-xs font-bold tracking-tight transition-colors hover:bg-slate-50 ${
-                            selectedFilter === item.id ? 'text-black bg-slate-50/50' : 'text-slate-600'
+                            !range.custom && selectedFilter === item.id ? 'text-black bg-slate-50/50' : 'text-slate-600'
                           }`}
                         >
                           {item.label}
@@ -467,7 +500,7 @@ const VendorReports = () => {
                 </button>
               </div>
               <h4 className="text-3xl font-black text-slate-950 tracking-tighter leading-none mt-auto">
-                ₹0
+                {show(money(kpis?.revenue))}
               </h4>
             </motion.div>
 
@@ -478,7 +511,7 @@ const VendorReports = () => {
             >
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 leading-tight">
-                  Estimated Net Profit
+                  Net Earnings
                 </span>
                 <button 
                   onClick={() => setShowProfitGraph(true)}
@@ -488,7 +521,7 @@ const VendorReports = () => {
                 </button>
               </div>
               <h4 className="text-3xl font-black text-slate-950 tracking-tighter leading-none mt-auto">
-                ₹0
+                {show(money(kpis?.netEarnings))}
               </h4>
             </motion.div>
 
@@ -514,7 +547,7 @@ const VendorReports = () => {
                 </button>
               </div>
               <h4 className="text-3xl font-black text-slate-950 tracking-tighter leading-none mt-auto">
-                ₹0
+                {show(money(kpis?.aov))}
               </h4>
             </motion.div>
 
@@ -536,7 +569,7 @@ const VendorReports = () => {
               </div>
               
               <h4 className="text-3xl font-black text-slate-950 tracking-tighter leading-none mt-auto">
-                0%
+                {show(kpis?.successRate == null ? '—' : `${kpis.successRate}%`)}
               </h4>
             </motion.div>
 
@@ -572,11 +605,11 @@ const VendorReports = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/30">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Taxable Value</span>
-                <span className="text-xl font-black text-slate-950 mt-1 block">₹0</span>
+                <span className="text-xl font-black text-slate-950 mt-1 block">{show(money(insights?.gst?.taxable))}</span>
               </div>
               <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100/30">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Total GST</span>
-                <span className="text-xl font-black text-slate-950 mt-1 block">₹0</span>
+                <span className="text-xl font-black text-slate-950 mt-1 block">{show(money(insights?.gst?.gst))}</span>
               </div>
             </div>
 
@@ -614,7 +647,7 @@ const VendorReports = () => {
               </div>
               <div className="flex items-center gap-1 bg-amber-50 text-amber-700 px-2.5 py-1 rounded-xl border border-amber-100/50 shrink-0">
                 <span className="material-symbols-outlined text-xs font-bold animate-pulse" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                <span className="text-xs font-black">4.8</span>
+                <span className="text-xs font-black">{show(feedback?.average ?? '—')}</span>
               </div>
             </div>
 
@@ -622,19 +655,15 @@ const VendorReports = () => {
             <div className="space-y-2">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Average Rating Trend</span>
               <div className="h-28 w-full relative">
+                {!feedback?.count && <EmptyChartNote text={isLoadingInsights ? 'Loading…' : 'No customer ratings in this period'} />}
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={[
-                    { name: 'W1', rating: 4.2 },
-                    { name: 'W2', rating: 4.5 },
-                    { name: 'W3', rating: 4.4 },
-                    { name: 'W4', rating: 4.7 },
-                    { name: 'W5', rating: 4.8 }
-                  ]} margin={{ top: 10, bottom: 5, left: -25, right: 10 }}>
-                    <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} />
+                  <LineChart data={feedback?.trend || []} margin={{ top: 10, bottom: 5, left: -25, right: 10 }}>
+                    <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} />
                     <YAxis domain={[1, 5]} tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} />
                     <Line 
                       type="monotone" 
                       dataKey="rating" 
+                      connectNulls
                       stroke="#000000" 
                       strokeWidth={2} 
                       dot={{ r: 3.5, stroke: '#000000', strokeWidth: 1.5, fill: '#ffffff' }}
@@ -653,17 +682,7 @@ const VendorReports = () => {
                   <span className="material-symbols-outlined text-sm font-bold">sentiment_satisfied</span>
                   <span className="text-[9px] font-black uppercase tracking-wider">Top Positive Attributes</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 rounded-xl bg-emerald-50/60 text-emerald-700 text-[10px] font-black border border-emerald-100/40">
-                    Crisp Folding
-                  </span>
-                  <span className="px-2.5 py-1 rounded-xl bg-emerald-50/60 text-emerald-700 text-[10px] font-black border border-emerald-100/40">
-                    Fresh Fragrance
-                  </span>
-                  <span className="px-2.5 py-1 rounded-xl bg-emerald-50/60 text-emerald-700 text-[10px] font-black border border-emerald-100/40">
-                    On-Time Delivery
-                  </span>
-                </div>
+                <TagList tags={feedback?.positive} tone="positive" loading={isLoadingInsights} />
               </div>
 
               {/* Critical Areas */}
@@ -672,17 +691,7 @@ const VendorReports = () => {
                   <span className="material-symbols-outlined text-sm font-bold">sentiment_dissatisfied</span>
                   <span className="text-[9px] font-black uppercase tracking-wider">Critical Improvement Areas</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-2.5 py-1 rounded-xl bg-rose-50/60 text-rose-700 text-[10px] font-black border border-rose-100/40">
-                    Late Pickup
-                  </span>
-                  <span className="px-2.5 py-1 rounded-xl bg-rose-50/60 text-rose-700 text-[10px] font-black border border-rose-100/40">
-                    Damp Clothes
-                  </span>
-                  <span className="px-2.5 py-1 rounded-xl bg-rose-50/60 text-rose-700 text-[10px] font-black border border-rose-100/40">
-                    Improper Crease
-                  </span>
-                </div>
+                <TagList tags={feedback?.critical} tone="critical" loading={isLoadingInsights} />
               </div>
             </div>
           </motion.div>
@@ -720,13 +729,13 @@ const VendorReports = () => {
                 </div>
 
                 <div className="h-48 w-full relative">
+                  {!kpis?.billableOrders && <EmptyChartNote text={emptyNote} />}
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={[
-                      { val: 35 }, { val: 65 }, { val: 33 }, { val: 38 }, { val: 43 }, { val: 15 }, { val: 22 }, { val: 50 }, { val: 68 }
-                    ]} margin={{ top: 15, bottom: 15, left: 10, right: 10 }}>
+                    <LineChart data={insights?.trend || []} margin={{ top: 15, bottom: 15, left: 10, right: 10 }}>
+                      <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                       <Line 
                         type="linear" 
-                        dataKey="val" 
+                        dataKey="revenue" 
                         stroke="#000000" 
                         strokeWidth={2} 
                         dot={{ r: 4.5, stroke: '#000000', strokeWidth: 2, fill: '#ffffff' }}
@@ -738,7 +747,7 @@ const VendorReports = () => {
 
                 <div className="text-center bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Revenue</span>
-                  <span className="text-xl font-black text-slate-950 mt-0.5 block">₹0</span>
+                  <span className="text-xl font-black text-slate-950 mt-0.5 block">{show(money(kpis?.revenue))}</span>
                 </div>
               </motion.div>
             </div>
@@ -765,8 +774,8 @@ const VendorReports = () => {
               >
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex flex-col">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Monthly Distribution</span>
-                    <h3 className="text-base font-black text-slate-950 uppercase tracking-tight">Estimated Net Profit</h3>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Over Selected Period</span>
+                    <h3 className="text-base font-black text-slate-950 uppercase tracking-tight">Net Earnings</h3>
                   </div>
                   <button 
                     onClick={() => setShowProfitGraph(false)}
@@ -777,12 +786,12 @@ const VendorReports = () => {
                 </div>
 
                 <div className="h-48 w-full relative">
+                  {!kpis?.billableOrders && <EmptyChartNote text={emptyNote} />}
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { val: 25 }, { val: 40 }, { val: 30 }, { val: 55 }, { val: 45 }, { val: 70 }, { val: 60 }
-                    ]} margin={{ top: 15, bottom: 5, left: 5, right: 5 }}>
+                    <BarChart data={insights?.trend || []} margin={{ top: 15, bottom: 5, left: 5, right: 5 }}>
+                      <XAxis dataKey="label" tick={{ fill: '#94a3b8', fontSize: 8, fontWeight: 900 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
                       <Bar 
-                        dataKey="val" 
+                        dataKey="earnings" 
                         fill="#000000" 
                         radius={[4, 4, 0, 0]}
                         barSize={12}
@@ -792,8 +801,8 @@ const VendorReports = () => {
                 </div>
 
                 <div className="text-center bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Net Profit</span>
-                  <span className="text-xl font-black text-slate-950 mt-0.5 block">₹0</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Net Earnings</span>
+                  <span className="text-xl font-black text-slate-950 mt-0.5 block">{show(money(kpis?.netEarnings))}</span>
                 </div>
               </motion.div>
             </div>
@@ -832,17 +841,11 @@ const VendorReports = () => {
                 </div>
 
                 <div className="h-56 w-full relative">
+                  {!insights?.serviceAov?.length && <EmptyChartNote text={emptyNote} />}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
-                      data={[
-                        { name: "Dry Cleaning", val: 450 },
-                        { name: "Premium Leather", val: 380 },
-                        { name: "Wash & Fold", val: 280 },
-                        { name: "Steam Ironing", val: 180 },
-                        { name: "Shoe Cleaning", val: 150 },
-                        { name: "Curtains / Carpets", val: 120 }
-                      ]}
+                      data={insights?.serviceAov || []}
                       margin={{ top: 10, right: 35, left: 5, bottom: 5 }}
                     >
                       <XAxis type="number" hide />
@@ -855,12 +858,12 @@ const VendorReports = () => {
                         width={110}
                       />
                       <Bar 
-                        dataKey="val" 
+                        dataKey="avg" 
                         fill="#000000" 
                         radius={[0, 4, 4, 0]}
                         barSize={12}
                       >
-                        <LabelList dataKey="val" position="right" formatter={(v) => `₹${v}`} style={{ fontSize: 9, fontWeight: 900, fill: '#0f172a' }} />
+                        <LabelList dataKey="avg" position="right" formatter={(v) => `₹${v}`} style={{ fontSize: 9, fontWeight: 900, fill: '#0f172a' }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -868,7 +871,7 @@ const VendorReports = () => {
 
                 <div className="text-center bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Average AOV</span>
-                  <span className="text-xl font-black text-slate-950 mt-0.5 block">₹0</span>
+                  <span className="text-xl font-black text-slate-950 mt-0.5 block">{show(money(kpis?.aov))}</span>
                 </div>
               </motion.div>
             </div>
@@ -927,22 +930,16 @@ const VendorReports = () => {
                     ) : (
                       <>
                         <span className="text-[8px] font-black uppercase text-slate-400 tracking-wider">Success</span>
-                        <span className="text-lg font-black text-slate-950 leading-none mt-1">100%</span>
+                        <span className="text-lg font-black text-slate-950 leading-none mt-1">{kpis?.successRate == null ? '—' : `${kpis.successRate}%`}</span>
                       </>
                     )}
                   </div>
 
+                  {statusData.length === 0 && <EmptyChartNote text={emptyNote} />}
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          { name: 'Completed', value: 50 },
-                          { name: 'In Progress', value: 15 },
-                          { name: 'Awaiting Pickup', value: 12 },
-                          { name: 'In Transit', value: 10 },
-                          { name: 'New Order', value: 8 },
-                          { name: 'Cancelled', value: 5 }
-                        ]}
+                        data={statusData}
                         cx="50%"
                         cy="50%"
                         innerRadius={55}
@@ -953,14 +950,7 @@ const VendorReports = () => {
                           setSelectedSector(data);
                         }}
                       >
-                        {[
-                          { name: 'Completed', value: 50 },
-                          { name: 'In Progress', value: 15 },
-                          { name: 'Awaiting Pickup', value: 12 },
-                          { name: 'In Transit', value: 10 },
-                          { name: 'New Order', value: 8 },
-                          { name: 'Cancelled', value: 5 }
-                        ].map((entry, index) => (
+                        {statusData.map((entry, index) => (
                           <Cell 
                             key={`cell-${index}`} 
                             fill={['#000000', '#1e293b', '#475569', '#64748b', '#94a3b8', '#cbd5e1'][index]} 
@@ -999,7 +989,7 @@ const VendorReports = () => {
                   ) : (
                     <>
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total Orders</span>
-                      <span className="text-xl font-black text-slate-950 mt-0.5 block">0</span>
+                      <span className="text-xl font-black text-slate-950 mt-0.5 block">{show(kpis?.totalOrders ?? 0)}</span>
                     </>
                   )}
                 </div>
@@ -1168,15 +1158,11 @@ const VendorReports = () => {
                 </div>
 
                 <div className="h-56 w-full relative">
+                  {!insights?.b2bClients?.length && <EmptyChartNote text={emptyNote} />}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"
-                      data={[
-                        { name: "Apex Corporate", val: 12000 },
-                        { name: "Grand Plaza Hotel", val: 5000 },
-                        { name: "City Club Banquet", val: 3500 },
-                        { name: "Oakwood Res.", val: 2200 }
-                      ]}
+                      data={insights?.b2bClients || []}
                       margin={{ top: 10, right: 45, left: 5, bottom: 5 }}
                     >
                       <XAxis type="number" hide />
@@ -1189,12 +1175,12 @@ const VendorReports = () => {
                         width={100}
                       />
                       <Bar 
-                        dataKey="val" 
+                        dataKey="taxable" 
                         fill="#000000" 
                         radius={[0, 4, 4, 0]}
                         barSize={12}
                       >
-                        <LabelList dataKey="val" position="right" formatter={(v) => `₹${v}`} style={{ fontSize: 9, fontWeight: 900, fill: '#0f172a' }} />
+                        <LabelList dataKey="taxable" position="right" formatter={(v) => `₹${v}`} style={{ fontSize: 9, fontWeight: 900, fill: '#0f172a' }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -1202,7 +1188,7 @@ const VendorReports = () => {
 
                 <div className="text-center bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">B2B Taxable Total</span>
-                  <span className="text-xl font-black text-slate-955 mt-0.5 block">₹22,700.00</span>
+                  <span className="text-xl font-black text-slate-955 mt-0.5 block">{show(money(insights?.gst?.b2bTaxable))}</span>
                 </div>
               </motion.div>
             </div>
@@ -1241,17 +1227,11 @@ const VendorReports = () => {
                 </div>
 
                 <div className="h-56 w-full relative">
+                  {!insights?.gst?.b2cOrders && <EmptyChartNote text={emptyNote} />}
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={[
-                      { name: 'Jan', orders: 12 },
-                      { name: 'Feb', orders: 18 },
-                      { name: 'Mar', orders: 15 },
-                      { name: 'Apr', orders: 22 },
-                      { name: 'May', orders: 20 },
-                      { name: 'Jun', orders: 30 }
-                    ]} margin={{ top: 15, bottom: 5, left: 5, right: 5 }}>
-                      <XAxis dataKey="name" tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <BarChart data={insights?.b2cMonthly || []} margin={{ top: 15, bottom: 5, left: 5, right: 5 }}>
+                      <XAxis dataKey="label" tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={{ fill: '#475569', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
                       <Bar dataKey="orders" fill="#000000" radius={[4, 4, 0, 0]} name="B2C Orders" barSize={12} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -1259,7 +1239,7 @@ const VendorReports = () => {
 
                 <div className="text-center bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Total B2C Orders</span>
-                  <span className="text-xl font-black text-slate-955 mt-0.5 block">117 Orders</span>
+                  <span className="text-xl font-black text-slate-955 mt-0.5 block">{show(`${insights?.gst?.b2cOrders ?? 0} Orders`)}</span>
                 </div>
               </motion.div>
             </div>

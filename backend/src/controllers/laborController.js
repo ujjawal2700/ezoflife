@@ -1,3 +1,4 @@
+import User from '../models/User.js';
 import Specialist from '../models/Specialist.js';
 import LaborRequisition from '../models/LaborRequisition.js';
 import Notification from '../models/Notification.js';
@@ -34,7 +35,16 @@ export const deleteSpecialist = async (req, res) => {
 
 export const createRequisition = async (req, res) => {
     try {
-        const { vendorId, vendorName, items, totalAmount } = req.body;
+        const { items, totalAmount } = req.body;
+
+        // Identity comes from the login token, never the request body; previously
+        // anyone could file requisitions in any vendor's name.
+        if (req.user?.role !== 'Vendor') {
+            return res.status(403).json({ message: 'Only vendors can request labor' });
+        }
+        const vendorId = req.user.id;
+        const vendorUser = await User.findById(vendorId).select('displayName shopDetails.name').lean();
+        const vendorName = vendorUser?.shopDetails?.name || vendorUser?.displayName || 'Vendor';
 
         // Without this, a missing items array throws on .length and surfaces as a 500.
         if (!Array.isArray(items) || items.length === 0) {

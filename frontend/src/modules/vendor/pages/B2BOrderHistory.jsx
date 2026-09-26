@@ -285,6 +285,14 @@ const B2BOrderHistory = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2">
+                                                {['Delivered', 'DELIVERED', 'Settled', 'SETTLED'].includes(order.status) && order.supplier && (
+                                                    <button
+                                                        onClick={() => navigate(`/vendor/material-request/track/${order._id}`)}
+                                                        className="px-3 py-2.5 bg-amber-50 border border-amber-100 text-amber-700 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] flex items-center gap-1 hover:bg-amber-100 transition-all"
+                                                    >
+                                                        {order.supplierRating?.rating ? `★ ${order.supplierRating.rating} Rated` : 'Rate Supplier'}
+                                                    </button>
+                                                )}
                                                 {['Delivered', 'DELIVERED'].includes(order.status) && (
                                                     <button 
                                                         onClick={() => openInvoice(order)}

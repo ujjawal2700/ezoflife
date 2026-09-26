@@ -778,6 +778,13 @@ export const releaseSupplierPayment = async (req, res) => {
 
         if (!order) return res.status(404).json({ message: 'Order not found' });
         if (order.paymentStatus !== 'Paid') return res.status(400).json({ message: 'Cannot release unpaid order' });
+        // Funds go to the supplier only once the goods have been delivered.
+        if (!['DELIVERED', 'Delivered'].includes(order.status)) {
+            return res.status(400).json({ message: 'Funds can be released only after the order is delivered' });
+        }
+        if (order.escrowStatus === 'Released') {
+            return res.status(400).json({ message: 'Funds for this order were already released' });
+        }
 
         order.escrowStatus = 'Released';
         order.status = 'Settled';
@@ -931,3 +938,34 @@ export const updateB2BDeliveryDate = async (req, res) => {
 };
 
 
+
+// Vendor rates the supplier of one of their delivered supply orders (1-5).
+const RATEABLE_STATUSES = ['DELIVERED', 'Delivered', 'SETTLED', 'Settled'];
+export const rateSupplier = async (req, res) => {
+    try {
+        const rating = Number(req.body.rating);
+        const comment = typeof req.body.comment === 'string' ? req.body.comment.trim().slice(0, 500) : '';
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+            return res.status(400).json({ message: 'rating must be a whole number from 1 to 5' });
+        }
+
+        const order = await B2BOrder.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (!order.vendor || order.vendor.toString() !== req.user?.id) {
+            return res.status(403).json({ message: 'Only the vendor who placed this order can rate its supplier' });
+        }
+        if (!order.supplier) {
+            return res.status(400).json({ message: 'This order has no supplier to rate' });
+        }
+        if (!RATEABLE_STATUSES.includes(order.status)) {
+            return res.status(400).json({ message: 'You can rate the supplier once the order is delivered' });
+        }
+
+        order.supplierRating = { rating, comment, ratedAt: new Date() };
+        await order.save();
+        res.json({ message: 'Thanks! Your rating was saved.', supplierRating: order.supplierRating });
+    } catch (error) {
+        console.error('Rate supplier error:', error);
+        sendError(res, error, 'Error saving rating');
+    }
+};

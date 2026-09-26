@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { jobApi, UPLOADS_URL } from "../../../lib/api";
+import { jobApi, adminApi, UPLOADS_URL } from "../../../lib/api";
 import toast from "react-hot-toast";
 import * as XLSX from "xlsx";
 import {
@@ -46,17 +46,19 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
   const [appFilterRole, setAppFilterRole] = useState("");
 
   // Admin configuration profiles
+  // Loaded from the database (SystemConfig 'company_profile', set in Admin Settings)
   const [adminAddresses, setAdminAddresses] = useState([]);
-  const [adminCompany, setAdminCompany] = useState("EzOfLife Corporate");
+  const [adminCompany, setAdminCompany] = useState("");
+  const [defaultJobLocation, setDefaultJobLocation] = useState("");
 
   // Admin direct posting form
   const [form, setForm] = useState({
     title: "",
-    companyName: "EzOfLife Corporate",
+    companyName: "",
     description: "",
     requirements: "",
     experience: "1-2 Years",
-    location: "Gurgaon (HQ)",
+    location: "",
     type: "Full-time",
     salary: "As per Industry",
     skills: ["Punctual"],
@@ -84,59 +86,32 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
     }
   };
 
-  const loadAdminConfigs = () => {
-    // Load addresses from settings
-    let defaultLocation = "";
-    const savedAddresses = localStorage.getItem("admin_addresses");
-    if (savedAddresses) {
-      try {
-        const parsed = JSON.parse(savedAddresses);
-        setAdminAddresses(parsed);
-        if (parsed && parsed.length > 0) {
-          const firstAddr = parsed[0].address || "";
-          defaultLocation = firstAddr.split(",")[0].trim();
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    } else {
-      setAdminAddresses([
-        { id: "1", type: "HQ", address: "Gurgaon (HQ)" },
-        { id: "2", type: "Branch", address: "Delhi NCR" },
-        { id: "3", type: "Branch", address: "Noida Hub" },
-      ]);
-    }
-    // Load company name from settings
-    const savedProfile = localStorage.getItem("admin_profile");
-    if (savedProfile) {
-      const profile = JSON.parse(savedProfile);
-      if (profile.companyName) {
-        setAdminCompany(profile.companyName);
-        setForm((prev) => ({ ...prev, companyName: profile.companyName }));
-      }
-    }
+  // City part of an address, e.g. "Indore" from "12 MG Road, Indore, MP"
+  const cityFromAddress = (addr) => {
+    const parts = String(addr || "").split(",").map((p) => p.trim()).filter(Boolean);
+    return parts.length > 1 ? parts[parts.length - 2] : parts[0] || "";
+  };
 
-    // Resolve city name (from settings addresses, or profile, or default to Gurgaon)
-    if (!defaultLocation) {
-      const adminRaw =
-        localStorage.getItem("adminData") ||
-        localStorage.getItem("user") ||
-        localStorage.getItem("userData") ||
-        "{}";
-      try {
-        const adminData = JSON.parse(adminRaw);
-        defaultLocation =
-          adminData.city ||
-          adminData.shopDetails?.city ||
-          adminData.supplierDetails?.city ||
-          "";
-      } catch (e) {
-        console.error(e);
-      }
-    }
+  const loadAdminConfigs = async () => {
+    try {
+      const configs = await adminApi.getConfig();
+      const company =
+        (Array.isArray(configs) ? configs : []).find((c) => c.key === "company_profile")?.value || {};
+      const addresses = Array.isArray(company.addresses) ? company.addresses : [];
+      const primary = addresses.find((a) => a.isDefault) || addresses[0];
+      const location = primary ? cityFromAddress(primary.address) : "";
 
-    const city = defaultLocation || "Gurgaon";
-    setForm((prev) => ({ ...prev, location: city }));
+      setAdminAddresses(addresses);
+      setAdminCompany(company.companyName || "");
+      setDefaultJobLocation(location);
+      setForm((prev) => ({
+        ...prev,
+        companyName: prev.companyName || company.companyName || "",
+        location: prev.location || location,
+      }));
+    } catch (error) {
+      console.error("Failed to load company profile:", error);
+    }
   };
 
   const fetchJobs = async () => {
@@ -200,35 +175,13 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
       await fetchJobs();
       setIsCreating(false);
       toast.success("Corporate Job Posted Successfully");
-      let defaultLocation = "";
-      const savedAddresses = localStorage.getItem("admin_addresses");
-      if (savedAddresses) {
-        try {
-          const parsed = JSON.parse(savedAddresses);
-          if (parsed && parsed.length > 0) {
-            const firstAddr = parsed[0].address || "";
-            defaultLocation = firstAddr.split(",")[0].trim();
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      if (!defaultLocation) {
-        const cityRaw =
-          adminData.city ||
-          adminData.shopDetails?.city ||
-          adminData.supplierDetails?.city ||
-          "";
-        defaultLocation = cityRaw;
-      }
-      const city = defaultLocation || "Gurgaon";
       setForm({
         title: "",
         companyName: adminCompany,
         description: "",
         requirements: "",
         experience: "1-2 Years",
-        location: city,
+        location: defaultJobLocation,
         type: "Full-time",
         salary: "As per Industry",
         skills: ["Punctual"],
@@ -242,13 +195,13 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
     setEditingJob(job);
     setForm({
       title: job.title,
-      companyName: job.companyName || "EzOfLife Corporate",
+      companyName: job.companyName || adminCompany,
       description: job.description,
       requirements: Array.isArray(job.requirements)
         ? job.requirements.join(", ")
         : job.requirements || "",
       experience: job.experience || "1-2 Years",
-      location: job.location || "Gurgaon (HQ)",
+      location: job.location || defaultJobLocation,
       type: job.type || "Full-time",
       salary: job.salary || "As per Industry",
       skills: job.skills || [],
@@ -686,6 +639,12 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
   return (
     <div className="admin-theme flex flex-col min-h-screen bg-slate-50/50 pb-20">
       {/* Header Strip */}
+      {/* Office cities saved in Admin Settings (database), offered as job locations */}
+      <datalist id="company-office-locations">
+        {Array.from(new Set(adminAddresses.map((a) => cityFromAddress(a.address)).filter(Boolean))).map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
       <PageHeader
         title={`${creatorFilter} Posts`}
         actions={
@@ -980,6 +939,8 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
                   </label>
                   <input
                     required
+                    list="company-office-locations"
+                    placeholder="City of the job"
                     value={form.location}
                     onChange={(e) =>
                       setForm({ ...form, location: e.target.value })
@@ -1204,6 +1165,8 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
                   </label>
                   <input
                     required
+                    list="company-office-locations"
+                    placeholder="City of the job"
                     value={form.location}
                     onChange={(e) =>
                       setForm({ ...form, location: e.target.value })

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
-import SplashPage from '../pages/SplashPage';
+import AppEntryRedirect from '../pages/AppEntryRedirect';
 import AuthPage from '../pages/AuthPage';
 import OtpVerificationPage from '../pages/OtpVerificationPage';
 import HomePage from '../pages/HomePage';
@@ -41,15 +41,14 @@ import SupplierProductSelectionPage from '../pages/SupplierProductSelectionPage'
 
 
 import UserLayout from '../layouts/UserLayout';
-import LandingAdPage from '../pages/LandingAdPage';
 import ServiceImageUploadPage from '../pages/ServiceImageUploadPage';
 import ReferralPage from '../pages/ReferralPage';
 
 const UserRoutes = () => {
   return (
     <Routes>
-      <Route path="/" element={<SplashPage />} />
-      <Route path="/land" element={<LandingAdPage />} />
+      <Route path="/" element={<AppEntryRedirect />} />
+      <Route path="/land" element={<AppEntryRedirect />} />
       
       <Route element={<UserLayout />}>
         <Route path="/auth" element={<AuthPage />} />

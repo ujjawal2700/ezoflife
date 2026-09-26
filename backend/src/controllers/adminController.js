@@ -16,6 +16,7 @@ import Referral from '../models/Referral.js';
 import Notification from '../models/Notification.js';
 import Service from '../models/Service.js';
 import VendorProductQuery from '../models/VendorProductQuery.js';
+import { getSupplierRatings } from '../utils/supplierRatings.js';
 import { v2 as cloudinary } from 'cloudinary';
 
 // Helper: Ray casting algorithm to check if point is in polygon
@@ -309,6 +310,14 @@ export const getAllSuppliers = async (req, res) => {
             suppliers = await filterUsersByGeofence(suppliers, req.admin.id);
         }
 
+        // Average of vendors' ratings on delivered supply orders (null = not rated yet)
+        const ratings = await getSupplierRatings(suppliers.map(s => s._id));
+        suppliers = suppliers.map(s => ({
+            ...s,
+            avgRating: ratings.get(String(s._id))?.avgRating ?? null,
+            ratingCount: ratings.get(String(s._id))?.ratingCount || 0
+        }));
+
         res.status(200).json(suppliers);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching suppliers' });
@@ -552,7 +561,16 @@ export const getAllUsers = async (req, res) => {
             query.role = role;
         }
 
-        const users = await User.find(query).select('-otp -otpExpiry').sort({ createdAt: -1 }).lean();
+        let users = await User.find(query).select('-otp -otpExpiry').sort({ createdAt: -1 }).lean();
+
+        // Suppliers carry their real rating from vendors (null = not rated yet)
+        const supplierIds = users.filter(u => u.role === 'Supplier').map(u => u._id);
+        if (supplierIds.length) {
+            const ratings = await getSupplierRatings(supplierIds);
+            users = users.map(u => u.role === 'Supplier'
+                ? { ...u, avgRating: ratings.get(String(u._id))?.avgRating ?? null, ratingCount: ratings.get(String(u._id))?.ratingCount || 0 }
+                : u);
+        }
         res.status(200).json(users);
     } catch (err) {
         console.error('Get All Users Error:', err);
@@ -1063,6 +1081,41 @@ export const getAllVendors = async (req, res) => {
             vendors = await filterUsersByGeofence(vendors, req.admin.id);
         }
 
+        // Real per-vendor figures (previously the page hardcoded rating 4.8 and revenue ₹0).
+        const vendorIds = vendors.map(v => v._id);
+        const [orderStats, ratingStats] = await Promise.all([
+            Order.aggregate([
+                { $match: { vendor: { $in: vendorIds }, status: 'DELIVERED' } },
+                { $group: {
+                    _id: '$vendor',
+                    completedOrders: { $sum: 1 },
+                    // Same earnings rule as the vendor payout summary
+                    earnings: { $sum: { $cond: [
+                        { $gt: [{ $ifNull: ['$ledger.vendorNetPayout', 0] }, 0] },
+                        '$ledger.vendorNetPayout',
+                        { $add: [{ $ifNull: ['$priceBreakdown.baseWithArea', 0] }, { $ifNull: ['$priceBreakdown.expressSurcharge', 0] }] }
+                    ] } }
+                } }
+            ]),
+            Feedback.aggregate([
+                { $match: { vendor: { $in: vendorIds }, rating: { $gt: 0 } } },
+                { $group: { _id: '$vendor', avgRating: { $avg: '$rating' }, ratingCount: { $sum: 1 } } }
+            ])
+        ]);
+        const ordersBy = new Map(orderStats.map(o => [o._id.toString(), o]));
+        const ratingsBy = new Map(ratingStats.map(r => [r._id.toString(), r]));
+        vendors = vendors.map(v => {
+            const o = ordersBy.get(v._id.toString());
+            const r = ratingsBy.get(v._id.toString());
+            return {
+                ...v,
+                completedOrders: o?.completedOrders || 0,
+                earnings: Math.round((o?.earnings || 0) * 100) / 100,
+                avgRating: r ? Math.round(r.avgRating * 10) / 10 : null, // null = no reviews yet
+                ratingCount: r?.ratingCount || 0
+            };
+        });
+
         res.status(200).json(vendors);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching vendors' });
@@ -1382,50 +1435,51 @@ export const clearAllOrders = async (req, res) => {
 };
 
 // Get payment summary for all customers
+/**
+ * Payment figures for one customer's orders. Cancelled orders are excluded
+ * from spend and balances (they were previously counted as money owed).
+ */
+const summarizeCustomerOrders = (orders) => {
+    const live = orders.filter(o => o.status !== 'CANCELLED');
+    const totalSpent = live.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+    const totalAdvancePaid = live.reduce((acc, o) => acc + (o.advanceAmount || 0), 0);
+    // Cash collected on delivery
+    const totalCodPaid = live.filter(o => o.status === 'DELIVERED').reduce((acc, o) => acc + (o.dueAmount || 0), 0);
+    const totalPaid = totalAdvancePaid + totalCodPaid;
+    const latest = [...orders].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    const lastOnline = latest.find(o => o.razorpayPaymentId);
+    return {
+        totalOrders: live.length,
+        cancelledOrders: orders.length - live.length,
+        refundedOrders: orders.filter(o => o.paymentStatus === 'Refunded').length,
+        successOrderCount: live.filter(o => o.paymentStatus === 'Paid').length,
+        totalSpent,
+        totalAdvancePaid,
+        totalCodPaid,
+        totalPaid,
+        pendingBalance: Math.max(0, totalSpent - totalPaid),
+        totalGst: live.reduce((acc, o) => acc + ((o.priceBreakdown || {}).gstAmount || 0), 0),
+        totalPlatformFee: live.reduce((acc, o) => acc + ((o.priceBreakdown || {}).platformFee || 0), 0),
+        lastOrderAt: latest[0]?.createdAt || null,
+        lastPaymentId: lastOnline?.razorpayPaymentId || null
+    };
+};
+
 export const getCustomerPaymentSummary = async (req, res) => {
     try {
         const customers = await User.find({ role: 'Customer' }).select('displayName phone email').lean();
         
         const summary = await Promise.all(customers.map(async (cust) => {
-            const orders = await Order.find({ customer: cust._id }).select('totalAmount advanceAmount dueAmount status paymentStatus priceBreakdown').lean();
+            const orders = await Order.find({ customer: cust._id }).select('totalAmount advanceAmount dueAmount status paymentStatus priceBreakdown razorpayPaymentId createdAt').lean();
             
-            const totalOrders = orders.length;
-            const successOrderCount = orders.filter(o => o.paymentStatus === 'Paid').length;
-            const totalSpent = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
-            const totalAdvancePaid = orders.reduce((acc, curr) => acc + (curr.advanceAmount || 0), 0);
-            
-            // COD Paid: Only if status is DELIVERED
-            const totalCodPaid = orders
-                .filter(o => o.status === 'DELIVERED')
-                .reduce((acc, curr) => acc + (curr.dueAmount || 0), 0);
-            
-            const totalPaid = totalAdvancePaid + totalCodPaid;
-            const pendingBalance = totalSpent - totalPaid;
-
-            const totalGst = orders.reduce((acc, curr) => {
-                const breakdown = curr.priceBreakdown || {};
-                return acc + (breakdown.gstAmount || 0);
-            }, 0);
-
-            const totalPlatformFee = orders.reduce((acc, curr) => {
-                const breakdown = curr.priceBreakdown || {};
-                return acc + (breakdown.platformFee || 0);
-            }, 0);
+            const figures = summarizeCustomerOrders(orders);
 
             return {
                 _id: cust._id,
                 displayName: cust.displayName,
                 phone: cust.phone,
                 email: cust.email,
-                totalOrders,
-                successOrderCount,
-                totalSpent,
-                totalAdvancePaid,
-                totalCodPaid,
-                totalPaid,
-                pendingBalance,
-                totalGst,
-                totalPlatformFee
+                ...figures
             };
         }));
 
@@ -1436,7 +1490,7 @@ export const getCustomerPaymentSummary = async (req, res) => {
                 { 'customerSnapshot.isExUser': true },
                 { customer: { $nin: Array.from(activeCustomerIds) } }
             ]
-        }).select('customer customerSnapshot totalAmount advanceAmount dueAmount status paymentStatus priceBreakdown').lean();
+        }).select('customer customerSnapshot totalAmount advanceAmount dueAmount status paymentStatus priceBreakdown razorpayPaymentId createdAt').lean();
 
         const exGroups = {};
         for (const order of exCustomerOrders) {
@@ -1455,33 +1509,14 @@ export const getCustomerPaymentSummary = async (req, res) => {
         }
 
         const exSummary = Object.values(exGroups).map(group => {
-            const orders = group.orders;
-            const totalOrders = orders.length;
-            const successOrderCount = orders.filter(o => o.paymentStatus === 'Paid').length;
-            const totalSpent = orders.reduce((acc, curr) => acc + (curr.totalAmount || 0), 0);
-            const totalAdvancePaid = orders.reduce((acc, curr) => acc + (curr.advanceAmount || 0), 0);
-            const totalCodPaid = orders
-                .filter(o => o.status === 'DELIVERED')
-                .reduce((acc, curr) => acc + (curr.dueAmount || 0), 0);
-            const totalPaid = totalAdvancePaid + totalCodPaid;
-            const pendingBalance = totalSpent - totalPaid;
-            const totalGst = orders.reduce((acc, curr) => acc + ((curr.priceBreakdown || {}).gstAmount || 0), 0);
-            const totalPlatformFee = orders.reduce((acc, curr) => acc + ((curr.priceBreakdown || {}).platformFee || 0), 0);
+            const figures = summarizeCustomerOrders(group.orders);
 
             return {
                 _id: group._id,
                 displayName: group.displayName,
                 phone: group.phone,
                 email: group.email,
-                totalOrders,
-                successOrderCount,
-                totalSpent,
-                totalAdvancePaid,
-                totalCodPaid,
-                totalPaid,
-                pendingBalance,
-                totalGst,
-                totalPlatformFee,
+                ...figures,
                 isExCustomer: true
             };
         });
@@ -1494,9 +1529,35 @@ export const getCustomerPaymentSummary = async (req, res) => {
 };
 
 // Get payment summary for all vendors
+export const SETTLEMENT_CYCLES = { Daily: 1, Weekly: 7, Fortnightly: 14, Monthly: 30, Manual: null };
+
+/** Next settlement date for a vendor with money owed, from the configured cycle. */
+const nextSettlementDate = (cycle, lastPaidAt, pendingBalance) => {
+    const days = SETTLEMENT_CYCLES[cycle];
+    if (!days || !(pendingBalance > 0)) return null;
+    const base = lastPaidAt ? new Date(lastPaidAt) : new Date();
+    const next = new Date(base.getTime() + days * 24 * 60 * 60 * 1000);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return next < today ? today : next; // overdue settlements are due today
+};
+
 export const getVendorPaymentSummary = async (req, res) => {
     try {
-        const vendors = await User.find({ role: 'Vendor' }).select('displayName phone email shopDetails').lean();
+        const vendors = await User.find({ role: 'Vendor' }).select('displayName phone email shopDetails bankDetails').lean();
+
+        const [cycleCfg, gstCfg, refundAgg] = await Promise.all([
+            SystemConfig.findOne({ key: 'vendor_settlement_cycle' }).lean(),
+            SystemConfig.findOne({ key: 'platform_fee_gst_percent' }).lean(),
+            // Refunded orders are cancelled, so they never appear in the earning orders below
+            Order.aggregate([
+                { $match: { paymentStatus: 'Refunded', vendor: { $ne: null } } },
+                { $group: { _id: '$vendor', total: { $sum: '$totalAmount' } } }
+            ])
+        ]);
+        const settlementCycle = SETTLEMENT_CYCLES[cycleCfg?.value] !== undefined ? cycleCfg.value : 'Weekly';
+        const feeGstPercent = Number(gstCfg?.value) >= 0 ? Number(gstCfg.value) : 18;
+        const refundsByVendor = new Map(refundAgg.map(r => [String(r._id), r.total]));
         
         const summary = await Promise.all(vendors.map(async (vendor) => {
             // Vendor Earnings = baseWithArea + expressSurcharge from priceBreakdown
@@ -1521,11 +1582,13 @@ export const getVendorPaymentSummary = async (req, res) => {
                 return acc + (breakdown.platformFee || 0);
             }, 0);
 
-            const gstOnFee = Math.round(totalPlatformFee * 0.18 * 100) / 100;
-            const totalRefund = orders.reduce((acc, curr) => acc + (curr.refundAmount || 0), 0);
+            const gstOnFee = Math.round(totalPlatformFee * feeGstPercent) / 100;
+            const totalRefund = refundsByVendor.get(String(vendor._id)) || 0;
             
             // Total Paid by Admin to Vendor
-            const payouts = await Payout.find({ vendor: vendor._id, status: 'Completed' }).select('amount paidAt').lean();
+            const payouts = await Payout.find({ vendor: vendor._id, status: 'Completed' }).select('amount paidAt transactionId').sort({ paidAt: 1 }).lean();
+            const lastPayout = payouts.length > 0 ? payouts[payouts.length - 1] : null;
+            const acct = vendor.bankDetails?.accountNumber || '';
             const totalPaid = payouts.reduce((acc, curr) => acc + (curr.amount || 0), 0);
             
             const pendingBalance = totalEarnings - totalPaid;
@@ -1542,10 +1605,11 @@ export const getVendorPaymentSummary = async (req, res) => {
                 gstOnFee,
                 totalRefund,
                 netPayable: totalEarnings,
-                settlementCycle: 'T+3',
-                settlementDate: new Date(Date.now() + 3*24*60*60*1000).toLocaleDateString(),
-                razorpayPayoutId: `pout_${vendor._id.toString().slice(-6)}${vendor.phone.slice(-4)}`,
-                bankAccount: `SBI ···· ${vendor.phone.slice(-4)}`,
+                settlementCycle,
+                // Real values only: previously these were built from the vendor's phone number.
+                settlementDate: nextSettlementDate(settlementCycle, lastPayout?.paidAt, totalEarnings - totalPaid),
+                razorpayPayoutId: lastPayout?.transactionId || null,
+                bankAccount: acct ? `${vendor.bankDetails.bankName || 'Bank'} ···· ${acct.slice(-4)}` : null,
                 totalEarnings,
                 totalPaid,
                 pendingBalance,
@@ -1626,8 +1690,8 @@ export const getVendorPaymentSummary = async (req, res) => {
                 const breakdown = curr.priceBreakdown || {};
                 return acc + (breakdown.platformFee || 0);
             }, 0);
-            const gstOnFee = Math.round(totalPlatformFee * 0.18 * 100) / 100;
-            const totalRefund = orders.reduce((acc, curr) => acc + (curr.refundAmount || 0), 0);
+            const gstOnFee = Math.round(totalPlatformFee * feeGstPercent) / 100;
+            const totalRefund = refundsByVendor.get(String(group._id)) || 0;
             const totalPaid = payouts.reduce((acc, curr) => acc + (curr.amount || 0), 0);
             const pendingBalance = totalEarnings - totalPaid;
 
@@ -1672,6 +1736,9 @@ export const recordVendorPayout = async (req, res) => {
         
         if (!vendorId || !amount || !transactionId) {
             return res.status(400).json({ message: 'Vendor, Amount and Transaction ID are required' });
+        }
+        if (!(Number(amount) > 0)) {
+            return res.status(400).json({ message: 'Amount must be a positive number' });
         }
 
         const payout = new Payout({

@@ -461,6 +461,17 @@ export default function Users() {
     if (activeTab === 'Supplier') {
       baseCols.push(
         {
+          header: 'Rating',
+          key: 'avgRating',
+          render: (val, row) => (
+            <span className="text-[10px] font-bold text-slate-700 whitespace-nowrap">
+              {val == null
+                ? <span className="text-slate-400">Not rated</span>
+                : <>★ {val} <span className="text-slate-400">({row.ratingCount})</span></>}
+            </span>
+          )
+        },
+        {
           header: 'Type',
           key: 'supplierDetails',
           render: (val) => (

@@ -203,3 +203,22 @@ export const isOwnerOrAdmin = (req, ownerId) => {
     const owner = ownerId._id ? ownerId._id.toString() : ownerId.toString();
     return owner === req.user.id.toString();
 };
+
+/**
+ * Middleware: optionalUser
+ * Attaches `req.user` when a valid token is sent, and otherwise lets the
+ * request through anonymously (for public forms that should remember a
+ * signed-in submitter).
+ */
+export const optionalUser = (req, res, next) => {
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+            const decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'ezoflife_secret_key_2026');
+            if (decoded?.id) req.user = decoded;
+        } catch {
+            /* invalid/expired token: treat as anonymous */
+        }
+    }
+    next();
+};

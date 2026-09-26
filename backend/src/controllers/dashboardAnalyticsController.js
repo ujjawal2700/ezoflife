@@ -8,6 +8,8 @@ import MasterService from '../models/MasterService.js';
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
 import SupplierApplication from '../models/SupplierApplication.js';
 import ServiceArea from '../models/ServiceArea.js';
+import { extractFeedbackTags } from '../utils/feedbackTags.js';
+import { getSupplierRatings } from '../utils/supplierRatings.js';
 
 export const getDashboardAnalytics = async (req, res) => {
     try {
@@ -43,11 +45,12 @@ export const getDashboardAnalytics = async (req, res) => {
             }
         }
 
-        // Helper to construct dynamic queries for Users
-        const buildUserQuery = (role, extra = {}) => {
-            const q = { role, ...extra };
-            q.createdAt = { $gte: start, $lte: end };
+        const hasGeoFilter = Boolean(state || city || pincode || geofence);
 
+        // Location conditions for users. Deliberately has NO date component:
+        // "customers in Indore" means every customer there, not only those who
+        // signed up inside the selected period.
+        const buildGeoConditions = () => {
             const conditions = [];
             if (state) {
                 conditions.push({
@@ -77,112 +80,112 @@ export const getDashboardAnalytics = async (req, res) => {
                 });
             }
             if (geofence) {
-                if (geofencePincodes.length) {
-                    conditions.push({
+                conditions.push(geofencePincodes.length
+                    ? {
                         $or: [
                             { 'addresses.pincode': { $in: geofencePincodes } },
                             { 'shopDetails.pincode': { $in: geofencePincodes } },
                             { 'supplierDetails.pincode': { $in: geofencePincodes } }
                         ]
-                    });
-                } else {
-                    q._id = null; // No pincodes matches nothing
-                }
+                    }
+                    : { _id: null }); // geofence without pincodes matches nothing
             }
+            return conditions;
+        };
 
-            if (conditions.length) {
-                q.$and = conditions;
+        /**
+         * Users of a role in the selected location.
+         * `signedUpInPeriod: true` additionally limits to users created in the
+         * selected period (for "new sign-ups" style metrics only).
+         */
+        const buildUserQuery = (role, extra = {}, { signedUpInPeriod = false } = {}) => {
+            const q = { role, ...extra };
+            if (signedUpInPeriod && !extra.createdAt) {
+                q.createdAt = { $gte: start, $lte: end };
             }
+            const conditions = buildGeoConditions();
+            if (conditions.length) q.$and = conditions;
             return q;
         };
 
-        // Helper to construct dynamic queries for B2C Orders
-        const buildOrderQuery = async (extra = {}) => {
-            const q = { ...extra };
-            q.createdAt = { $gte: start, $lte: end };
+        // Cached ids of users in the selected location, by role(s).
+        const geoIdCache = {};
+        const userIdsInLocation = async (roles) => {
+            const key = roles.join(',');
+            if (!geoIdCache[key]) {
+                const q = { role: { $in: roles } };
+                const conditions = buildGeoConditions();
+                if (conditions.length) q.$and = conditions;
+                geoIdCache[key] = await User.distinct('_id', q);
+            }
+            return geoIdCache[key];
+        };
 
+        // Activity queries default to the selected period, but an explicit
+        // createdAt in `extra` (e.g. "last 5 days", "older than 24h",
+        // "prior period") is respected instead of being overwritten.
+        const withPeriod = (extra) => ({ ...extra, createdAt: extra.createdAt ?? { $gte: start, $lte: end } });
+
+        // B2C orders, filtered by the customer's location
+        const buildOrderQuery = async (extra = {}) => {
+            const q = withPeriod(extra);
             if (channel === 'B2B') {
                 q._id = null;
                 return q;
             }
-
-            if (state || city || pincode || geofence) {
-                const userQuery = buildUserQuery('Customer');
-                const customerIds = await User.distinct('_id', userQuery);
-                q.customer = { $in: customerIds };
+            if (hasGeoFilter) {
+                q.customer = { $in: await userIdsInLocation(['Customer']) };
             }
             return q;
         };
 
-        // Helper to construct dynamic queries for B2B Orders
+        // B2B (vendor -> supplier) orders, filtered by the order's delivery location
         const buildB2BOrderQuery = async (extra = {}) => {
-            const q = { ...extra };
-            q.createdAt = { $gte: start, $lte: end };
-
+            const q = withPeriod(extra);
             if (channel === 'B2C') {
                 q._id = null;
                 return q;
             }
-
-            if (city) {
-                q.city = { $regex: new RegExp(city, 'i') };
-            }
-            if (pincode) {
-                q.pincode = pincode;
-            }
+            if (city) q.city = { $regex: new RegExp(city, 'i') };
+            if (pincode) q.pincode = pincode;
             if (geofence) {
-                if (geofencePincodes.length) {
-                    q.pincode = { $in: geofencePincodes };
-                } else {
-                    q._id = null;
-                }
+                if (geofencePincodes.length) q.pincode = { $in: geofencePincodes };
+                else q._id = null;
             }
             if (state) {
-                const vendorQuery = buildUserQuery('Vendor');
-                const vendorIds = await User.distinct('_id', vendorQuery);
-                q.vendor = { $in: vendorIds };
+                q.vendor = { $in: await userIdsInLocation(['Vendor']) };
             }
             return q;
         };
 
-        // Helper to construct dynamic queries for Tickets
+        // Tickets raised by customers or vendors in the location
         const buildTicketQuery = async (extra = {}) => {
-            const q = { ...extra };
-            q.createdAt = { $gte: start, $lte: end };
-
-            if (state || city || pincode || geofence) {
-                const userQuery = buildUserQuery('Customer');
-                const customerIds = await User.distinct('_id', userQuery);
-                q.customer = { $in: customerIds };
+            const q = withPeriod(extra);
+            if (hasGeoFilter) {
+                const ids = await userIdsInLocation(['Customer', 'Vendor']);
+                q.$or = [{ customer: { $in: ids } }, { vendor: { $in: ids } }];
             }
             return q;
         };
 
-        // Helper to construct dynamic queries for JobApplications
+        // Job applications by applicants or for vendors in the location
         const buildJobApplicationQuery = async (extra = {}) => {
-            const q = { ...extra };
-            q.createdAt = { $gte: start, $lte: end };
-
-            if (state || city || pincode || geofence) {
-                const userQuery = buildUserQuery('User');
-                const userIds = await User.distinct('_id', userQuery);
+            const q = withPeriod(extra);
+            if (hasGeoFilter) {
+                const ids = await userIdsInLocation(['Customer', 'Vendor', 'Supplier', 'Rider']);
                 q.$or = [
-                    { applicant: { $in: userIds } },
-                    { vendor: { $in: userIds } }
+                    { applicant: { $in: ids } },
+                    { vendor: { $in: ids } }
                 ];
             }
             return q;
         };
 
-        // Helper to construct dynamic queries for Feedbacks
+        // Feedback from customers in the location
         const buildFeedbackQuery = async (extra = {}) => {
-            const q = { ...extra };
-            q.createdAt = { $gte: start, $lte: end };
-
-            if (state || city || pincode || geofence) {
-                const userQuery = buildUserQuery('Customer');
-                const customerIds = await User.distinct('_id', userQuery);
-                q.user = { $in: customerIds };
+            const q = withPeriod(extra);
+            if (hasGeoFilter) {
+                q.user = { $in: await userIdsInLocation(['Customer']) };
             }
             return q;
         };
@@ -193,15 +196,10 @@ export const getDashboardAnalytics = async (req, res) => {
         const spanMs = Math.max(24 * 60 * 60 * 1000, end.getTime() - start.getTime());
         const priorStart = new Date(start.getTime() - spanMs);
         const priorEnd = new Date(start.getTime());
+        const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 
         const customerQuery = buildUserQuery('Customer');
-        const individualQuery = buildUserQuery('Customer', { customerType: { $ne: 'retail' } });
-        const businessQuery = buildUserQuery('Customer', { customerType: 'retail' });
-        const recentOrderQuery = await buildOrderQuery({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } });
-        const recentRegQuery = buildUserQuery('Customer', { createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } });
-
-        const priorCustomerQuery = buildUserQuery('Customer');
-        priorCustomerQuery.createdAt = { $gte: priorStart, $lt: priorEnd };
+        const recentOrderQuery = await buildOrderQuery({ createdAt: { $gte: daysAgo(30) } });
 
         const [
             totalCustomers,
@@ -209,27 +207,31 @@ export const getDashboardAnalytics = async (req, res) => {
             businessCustomers,
             activeCustomerIds,
             recentRegUsers,
-            priorCustomersCount
+            newCustomersCount,
+            priorNewCustomersCount
         ] = await Promise.all([
             User.countDocuments(customerQuery),
-            User.countDocuments(individualQuery),
-            User.countDocuments(businessQuery),
+            User.countDocuments(buildUserQuery('Customer', { customerType: { $ne: 'retail' } })),
+            User.countDocuments(buildUserQuery('Customer', { customerType: 'retail' })),
             Order.distinct('customer', recentOrderQuery),
-            User.find(recentRegQuery).select('_id').lean(),
-            User.countDocuments(priorCustomerQuery)
+            User.find(buildUserQuery('Customer', { createdAt: { $gte: daysAgo(1) } })).select('_id').lean(),
+            User.countDocuments(buildUserQuery('Customer', {}, { signedUpInPeriod: true })),
+            User.countDocuments(buildUserQuery('Customer', { createdAt: { $gte: priorStart, $lt: priorEnd } }))
         ]);
 
-        const churnRiskCount = Math.max(0, totalCustomers - activeCustomerIds.length);
+        // Customers in the location with no order in the last 30 days
+        const churnRiskCount = await User.countDocuments({ ...customerQuery, _id: { $nin: activeCustomerIds } });
 
+        // Growth in new sign-ups vs the previous period of equal length
         let customerTrendMoM = '0%';
-        if (priorCustomersCount > 0) {
-            const diff = ((totalCustomers - priorCustomersCount) / priorCustomersCount) * 100;
+        if (priorNewCustomersCount > 0) {
+            const diff = ((newCustomersCount - priorNewCustomersCount) / priorNewCustomersCount) * 100;
             customerTrendMoM = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
-        } else if (totalCustomers > 0) {
+        } else if (newCustomersCount > 0) {
             customerTrendMoM = '+100%';
         }
 
-        // Vectorized onboarding friction check (no N+1 loop)
+        // Sign-ups in the last 24h who have not ordered yet
         const recentRegCustomerIds = recentRegUsers.map(u => u._id);
         const orderedCustomerIds = recentRegCustomerIds.length > 0 
             ? await Order.distinct('customer', { customer: { $in: recentRegCustomerIds } })
@@ -240,11 +242,8 @@ export const getDashboardAnalytics = async (req, res) => {
         // MODULE 2.2: VENDOR PERFORMANCE (Parallelized)
         // ----------------------------------------------------
         const vendorQuery = buildUserQuery('Vendor');
-        const activeVendorOrderQuery = await buildOrderQuery({ status: { $ne: 'ORDER_PLACED' }, createdAt: { $gte: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) } });
         const feedbackQuery = await buildFeedbackQuery({ vendor: { $exists: true } });
-        const b2bOrdersQuery = await buildB2BOrderQuery();
-        const b2bRecentOrdersQuery = await buildB2BOrderQuery({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } });
-        const jobAppQuery = await buildJobApplicationQuery({ creatorRole: 'Vendor', createdAt: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) } });
+        const jobAppQuery = await buildJobApplicationQuery({ creatorRole: 'Vendor', createdAt: { $gte: daysAgo(60) } });
 
         const [
             totalVendors,
@@ -265,16 +264,21 @@ export const getDashboardAnalytics = async (req, res) => {
             User.countDocuments(buildUserQuery('Vendor', { businessType: 'Partnership' })),
             User.countDocuments(buildUserQuery('Vendor', { businessType: 'Pvt Ltd' })),
             User.countDocuments(buildUserQuery('Vendor', { businessType: 'Franchise' })),
-            Order.distinct('vendor', activeVendorOrderQuery),
+            // Vendors who handled a customer order in the last 5 days
+            Order.distinct('vendor', { vendor: { $ne: null }, status: { $ne: 'ORDER_PLACED' }, createdAt: { $gte: daysAgo(5) } }),
             Feedback.find(feedbackQuery).populate('vendor', 'displayName phone').lean(),
-            B2BOrder.distinct('vendor', b2bOrdersQuery),
-            B2BOrder.distinct('vendor', b2bRecentOrdersQuery),
+            // Vendors who ever placed a supply order / did so in the last 30 days
+            B2BOrder.distinct('vendor', { vendor: { $ne: null }, status: { $nin: ['CART', 'PENDING_PAYMENT'] } }),
+            B2BOrder.distinct('vendor', { vendor: { $ne: null }, status: { $nin: ['CART', 'PENDING_PAYMENT'] }, createdAt: { $gte: daysAgo(30) } }),
             JobApplication.countDocuments(jobAppQuery)
         ]);
 
-        const dormantVendorsCount = Math.max(0, totalVendors - activeVendorIds.length);
-        const neverOrderedB2B = Math.max(0, totalVendors - b2bOrderVendors.length);
-        const dormancy30DaysB2B = Math.max(0, totalVendors - b2bRecentOrderVendors.length);
+        const [dormantVendorsCount, neverOrderedB2B, dormancy30DaysB2B] = await Promise.all([
+            // Approved vendors in the location with no customer orders in the last 5 days
+            User.countDocuments({ ...vendorQuery, status: 'approved', _id: { $nin: activeVendorIds } }),
+            User.countDocuments({ ...vendorQuery, _id: { $nin: b2bOrderVendors } }),
+            User.countDocuments({ ...vendorQuery, _id: { $nin: b2bRecentOrderVendors } })
+        ]);
 
         // Feedback Outliers
         const vendorRatings = {};
@@ -301,25 +305,34 @@ export const getDashboardAnalytics = async (req, res) => {
         // ----------------------------------------------------
         // MODULE 2.3 & 2.4: SUPPLIER & FINANCIAL INTELLIGENCE (Parallelized)
         // ----------------------------------------------------
+        // Unpaid (PENDING_PAYMENT) and draft supply orders are not revenue.
+        const B2B_NOT_REVENUE = ['CART', 'PENDING_PAYMENT', 'CANCELLED', 'Cancelled', 'REJECTED'];
         const supplierQuery = buildUserQuery('Supplier');
         const wholesalerQuery = buildUserQuery('Supplier', { 'supplierDetails.businessName': { $regex: /wholesaler|distributor/i } });
         const orderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' } });
-        const b2bOrderQ = await buildB2BOrderQuery({ status: { $nin: ['CANCELLED', 'REJECTED'] } });
-        const walletQuery = buildUserQuery('Customer');
+        const b2bOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE } });
+        const priorOrderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' }, createdAt: { $gte: priorStart, $lt: priorEnd } });
+        const priorB2BOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE }, createdAt: { $gte: priorStart, $lt: priorEnd } });
         const refundOrderQ = await buildOrderQuery({ paymentStatus: 'Refunded' });
         const refundB2BOrderQ = await buildB2BOrderQuery({ escrowStatus: 'Refunded' });
 
-        // Past 6 months for dynamic monthly trend
+        // Past 6 months for the monthly trend, with the same channel/location filters
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
         sixMonthsAgo.setDate(1);
         sixMonthsAgo.setHours(0, 0, 0, 0);
+        const monthlyOrderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' }, createdAt: { $gte: sixMonthsAgo } });
+        const monthlyB2BOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE }, createdAt: { $gte: sixMonthsAgo } });
+
+        const b2bPlatformFeeExpr = { $sum: '$platformFee' };
 
         const [
             totalSuppliers,
             wholesalersCount,
             b2cRevenues,
             b2bRevenues,
+            priorB2CRevenues,
+            priorB2BRevenues,
             walletAgg,
             monthlyB2CAgg,
             monthlyB2BAgg,
@@ -336,14 +349,23 @@ export const getDashboardAnalytics = async (req, res) => {
             ]),
             B2BOrder.aggregate([
                 { $match: b2bOrderQ },
-                { $group: { _id: null, total: { $sum: '$totalAmount' }, platform: { $sum: { $cond: [{ $eq: ['$status', 'PENDING_PAYMENT'] }, 0, '$platformFee'] } } } }
+                { $group: { _id: null, total: { $sum: '$totalAmount' }, platform: b2bPlatformFeeExpr } }
             ]),
+            Order.aggregate([
+                { $match: priorOrderQ },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            B2BOrder.aggregate([
+                { $match: priorB2BOrderQ },
+                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            ]),
+            // Wallet liability is every customer's current balance, not just recent sign-ups
             User.aggregate([
-                { $match: walletQuery },
+                { $match: customerQuery },
                 { $group: { _id: null, total: { $sum: '$walletBalance' } } }
             ]),
             Order.aggregate([
-                { $match: { createdAt: { $gte: sixMonthsAgo }, status: { $ne: 'CANCELLED' } } },
+                { $match: monthlyOrderQ },
                 { $group: {
                     _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
                     revenue: { $sum: '$totalAmount' },
@@ -353,11 +375,11 @@ export const getDashboardAnalytics = async (req, res) => {
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
             ]),
             B2BOrder.aggregate([
-                { $match: { createdAt: { $gte: sixMonthsAgo }, status: { $nin: ['CANCELLED', 'REJECTED'] } } },
+                { $match: monthlyB2BOrderQ },
                 { $group: {
                     _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
                     revenue: { $sum: '$totalAmount' },
-                    platform: { $sum: { $cond: [{ $eq: ['$status', 'PENDING_PAYMENT'] }, 0, '$platformFee'] } }
+                    platform: b2bPlatformFeeExpr
                 }},
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
             ]),
@@ -373,7 +395,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 { $match: { status: { $in: ['DELIVERED', 'Delivered', 'SETTLED', 'Settled'] } } },
                 { $group: { _id: '$supplier', count: { $sum: 1 } } }
             ]),
-            User.find({ role: 'Supplier' }).select('_id supplierDetails').lean()
+            User.find(supplierQuery).select('_id supplierDetails').lean()
         ]);
 
         const manufacturersCount = Math.max(0, totalSuppliers - wholesalersCount);
@@ -425,14 +447,15 @@ export const getDashboardAnalytics = async (req, res) => {
             });
         }
 
-        // Revenue MoM calculation from real monthly history
-        const curMRev = dynamicMonthlyTrend[5]?.Revenue || 0;
-        const prevMRev = dynamicMonthlyTrend[4]?.Revenue || 0;
+        // Revenue change vs the previous period of equal length, same filters
+        const priorB2CRev = priorB2CRevenues[0]?.total || 0;
+        const priorB2BRev = priorB2BRevenues[0]?.total || 0;
+        const priorGross = (channel === 'B2B') ? priorB2BRev : (channel === 'B2C') ? priorB2CRev : (priorB2CRev + priorB2BRev);
         let revenueTrendMoM = '0%';
-        if (prevMRev > 0) {
-            const diff = ((curMRev - prevMRev) / prevMRev) * 100;
+        if (priorGross > 0) {
+            const diff = ((grossRevenue - priorGross) / priorGross) * 100;
             revenueTrendMoM = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
-        } else if (curMRev > 0) {
+        } else if (grossRevenue > 0) {
             revenueTrendMoM = '+100%';
         }
 
@@ -441,9 +464,12 @@ export const getDashboardAnalytics = async (req, res) => {
         supplierDeliveriesAgg.forEach(item => {
             if (item._id) supplierDeliveriesMap[item._id.toString()] = item.count;
         });
+        // Ratings come from vendors rating delivered supply orders; unrated suppliers stay null.
+        const supplierRatings = await getSupplierRatings(allSuppliersList.map(s => s._id));
         const dynamicSupplierScatter = allSuppliersList.map(s => ({
             deliveries: supplierDeliveriesMap[s._id.toString()] || 0,
-            rating: Number((s.supplierDetails?.rating || 5.0).toFixed(1))
+            rating: supplierRatings.get(s._id.toString())?.avgRating ?? null,
+            ratingCount: supplierRatings.get(s._id.toString())?.ratingCount || 0
         }));
 
         // ----------------------------------------------------
@@ -457,12 +483,15 @@ export const getDashboardAnalytics = async (req, res) => {
             inactiveB2BProducts,
             pendingMaterialReviews
         ] = await Promise.all([
-            MasterService.countDocuments({ active: true }),
-            MasterService.countDocuments({ active: false }),
+            // Schema field is `isActive` (Boolean); `active` never existed, so these were always 0.
+            MasterService.countDocuments({ isActive: true }),
+            MasterService.countDocuments({ isActive: false }),
             User.countDocuments(buildUserQuery('Vendor', { 'shopDetails.services.status': 'pending' })),
-            VendorMasterSupply.countDocuments(),
-            VendorMasterSupply.countDocuments({ active: false }),
-            SupplierApplication.countDocuments({ status: 'pending' })
+            // Supply products use isActive: 'y' | 'n'
+            VendorMasterSupply.countDocuments({ isActive: 'y' }),
+            VendorMasterSupply.countDocuments({ isActive: 'n' }),
+            // Supplier-submitted products awaiting admin approval
+            VendorMasterSupply.countDocuments({ approvalStatus: 'Pending' })
         ]);
 
         // ----------------------------------------------------
@@ -516,13 +545,19 @@ export const getDashboardAnalytics = async (req, res) => {
         // ----------------------------------------------------
         // MODULE 2.8: B2B ORDER LIFECYCLE (Real MongoDB Counts)
         // ----------------------------------------------------
-        const b2bTotalPlacedQ = await buildB2BOrderQuery();
-        const b2bAcceptedQ = await buildB2BOrderQuery({ status: { $in: ['ACCEPTED', 'Confirmed', 'PROCESSING', 'DISPATCHED', 'DELIVERED', 'Settled'] } });
+        // Status values exist in both UPPERCASE and legacy Title Case, so match both.
+        const B2B_ACCEPTED = ['ACCEPTED', 'Confirmed', 'PROCESSING', 'DISPATCHED', 'Out for Delivery', 'DELIVERED', 'Delivered', 'SETTLED', 'Settled'];
+        const B2B_DELIVERED = ['DELIVERED', 'Delivered', 'SETTLED', 'Settled'];
+        const B2B_CLOSED = [...B2B_DELIVERED, 'CANCELLED', 'Cancelled', 'REJECTED'];
+
+        const b2bTotalPlacedQ = await buildB2BOrderQuery({ status: { $nin: ['CART', 'PENDING_PAYMENT'] } });
+        const b2bAcceptedQ = await buildB2BOrderQuery({ status: { $in: B2B_ACCEPTED } });
         const b2bInProgressQ = await buildB2BOrderQuery({ status: { $in: ['PROCESSING'] } });
         const b2bDispatchedQ = await buildB2BOrderQuery({ status: { $in: ['DISPATCHED', 'Out for Delivery'] } });
-        const b2bDeliveredQ = await buildB2BOrderQuery({ status: { $in: ['DELIVERED', 'Settled'] } });
-        const b2bCancelledQ = await buildB2BOrderQuery({ status: { $in: ['CANCELLED', 'REJECTED'] } });
+        const b2bDeliveredQ = await buildB2BOrderQuery({ status: { $in: B2B_DELIVERED } });
+        const b2bCancelledQ = await buildB2BOrderQuery({ status: { $in: ['CANCELLED', 'Cancelled', 'REJECTED'] } });
 
+        // Operational alerts: all currently-open orders past their SLA, whenever placed
         const b2bSla1hQ = await buildB2BOrderQuery({ 
             status: { $in: ['SUBMITTED', 'Submitted'] }, 
             createdAt: { $lt: new Date(Date.now() - 60 * 60 * 1000) } 
@@ -533,7 +568,13 @@ export const getDashboardAnalytics = async (req, res) => {
         });
         const b2bLateQ = await buildB2BOrderQuery({ 
             deliveryDate: { $lt: new Date() }, 
-            status: { $nin: ['DELIVERED', 'Delivered', 'SETTLED', 'Settled', 'CANCELLED', 'Cancelled', 'REJECTED'] } 
+            status: { $nin: [...B2B_CLOSED, 'CART', 'PENDING_PAYMENT'] },
+            createdAt: { $exists: true }
+        });
+        // Delivered on or before the promised date (last update = delivery)
+        const b2bOnTimeQ = await buildB2BOrderQuery({
+            status: { $in: B2B_DELIVERED },
+            $expr: { $lte: ['$updatedAt', '$deliveryDate'] }
         });
         const b2bCancelledSupplierQ = await buildB2BOrderQuery({ status: { $in: ['REJECTED', 'Rejected'] } });
         const b2bCancelledVendorQ = await buildB2BOrderQuery({ status: { $in: ['CANCELLED', 'Cancelled'] } });
@@ -548,6 +589,7 @@ export const getDashboardAnalytics = async (req, res) => {
             b2bSla1h,
             b2bSla48h,
             b2bLate,
+            b2bOnTime,
             b2bCancelledSupplier,
             b2bCancelledVendor
         ] = await Promise.all([
@@ -560,11 +602,11 @@ export const getDashboardAnalytics = async (req, res) => {
             B2BOrder.countDocuments(b2bSla1hQ),
             B2BOrder.countDocuments(b2bSla48hQ),
             B2BOrder.countDocuments(b2bLateQ),
+            B2BOrder.countDocuments(b2bOnTimeQ),
             B2BOrder.countDocuments(b2bCancelledSupplierQ),
             B2BOrder.countDocuments(b2bCancelledVendorQ)
         ]);
 
-        const b2bOnTime = Math.max(0, b2bDelivered - b2bLate);
 
         // ----------------------------------------------------
         // MODULE 2.9 & 2.10: ATS, HELPDESK & FEEDBACK SENTIMENT (Parallelized)
@@ -607,53 +649,8 @@ export const getDashboardAnalytics = async (req, res) => {
             feedbackTrendMoM = (diff >= 0 ? '+' : '') + diff.toFixed(1);
         }
 
-        // Dynamic Feedback Sentiment Extraction from real customer submissions
-        const knownTags = [
-            'Crisp Folding', 'Fresh Fragrance', 'On-Time Delivery', 'Friendly Rider', 
-            'Polite Rider', 'Excellent Wash', 'Fast Service', 'Neat Packaging',
-            'Late Pickup', 'Damp Clothes', 'High Delivery Fee', 'Delayed Response',
-            'Improper Crease', 'Rude Rider', 'Missing Clothes', 'Poor Wash'
-        ];
-
-        const posCount = {};
-        const critCount = {};
-
-        feedbacks.forEach(f => {
-            const text = (f.comment || '') + ' ' + (f.category || '');
-            if (!text.trim()) return;
-
-            if (f.rating >= 4) {
-                knownTags.forEach(tag => {
-                    if (new RegExp(tag, 'i').test(text)) {
-                        posCount[tag] = (posCount[tag] || 0) + 1;
-                    }
-                });
-                if (f.category && f.category !== 'Other' && f.category !== 'order') {
-                    const catTag = f.category + ' Quality';
-                    posCount[catTag] = (posCount[catTag] || 0) + 1;
-                }
-            } else {
-                knownTags.forEach(tag => {
-                    if (new RegExp(tag, 'i').test(text)) {
-                        critCount[tag] = (critCount[tag] || 0) + 1;
-                    }
-                });
-                if (f.category && f.category !== 'Other' && f.category !== 'order') {
-                    const catTag = f.category + ' Issue';
-                    critCount[catTag] = (critCount[catTag] || 0) + 1;
-                }
-            }
-        });
-
-        const dynamicPositiveKeywords = Object.entries(posCount)
-            .sort((a, b) => b[1] - a[1])
-            .map(e => e[0])
-            .slice(0, 5);
-
-        const dynamicCriticalKeywords = Object.entries(critCount)
-            .sort((a, b) => b[1] - a[1])
-            .map(e => e[0])
-            .slice(0, 5);
+        // Feedback tags from real customer submissions
+        const { positive: dynamicPositiveKeywords, critical: dynamicCriticalKeywords } = extractFeedbackTags(feedbacks);
 
         // ----------------------------------------------------
         // MODULE 2.10: PENDING PARTNER VERIFICATIONS
@@ -801,74 +798,59 @@ export const getDashboardFilters = async (req, res) => {
             return str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
         };
 
-        const getStateForCity = (city) => {
-            const c = city.toLowerCase();
-            if (c === 'indore' || c === 'bhopal') return 'Madhya Pradesh';
-            if (c === 'nashik' || c === 'mumbai' || c === 'pune') return 'Maharashtra';
-            return 'Madhya Pradesh'; // default fallback
-        };
-
         const stateCityMap = {};
         const cityPincodeMap = {};
         const geofenceMap = {};
         const allStates = new Set();
+        const cityState = {}; // learned from real addresses, never guessed
 
-        // 1. Process ServiceAreas (Geofences)
-        const serviceAreas = await ServiceArea.find({}).lean();
+        const addCityToState = (s, c) => {
+            allStates.add(s);
+            if (!stateCityMap[s]) stateCityMap[s] = new Set();
+            stateCityMap[s].add(c);
+            if (!cityState[c]) cityState[c] = s;
+        };
+        const addPincode = (c, pin) => {
+            if (!pin) return;
+            if (!cityPincodeMap[c]) cityPincodeMap[c] = new Set();
+            cityPincodeMap[c].add(String(pin).trim());
+        };
+
+        // 1. Users (Customers, Vendors, Suppliers): the only records that carry a state
+        const users = await User.find({ role: { $in: ['Customer', 'Vendor', 'Supplier'] } })
+            .select('addresses shopDetails supplierDetails').lean();
+        for (const u of users) {
+            (u.addresses || []).forEach(addr => {
+                if (addr.state && addr.city) {
+                    const c = capitalize(addr.city.trim());
+                    addCityToState(capitalize(addr.state.trim()), c);
+                    addPincode(c, addr.pincode);
+                }
+            });
+            const details = u.shopDetails || u.supplierDetails;
+            if (details && details.city && details.state) {
+                const c = capitalize(details.city.trim());
+                addCityToState(capitalize(details.state.trim()), c);
+                addPincode(c, details.pincode);
+            }
+        }
+
+        // 2. ServiceAreas (Geofences). They have no state field, so a city's state is
+        //    taken from real addresses above; cities with none stay unmapped.
+        const unmappedCities = new Set();
+        const serviceAreas = await ServiceArea.find({}).select('city pincodes areaName').lean();
         for (const area of serviceAreas) {
             if (!area.city) continue;
             const normalizedCity = capitalize(area.city.trim());
-            const normalizedState = getStateForCity(normalizedCity);
+            const knownState = cityState[normalizedCity];
+            if (knownState) addCityToState(knownState, normalizedCity);
+            else unmappedCities.add(normalizedCity);
 
-            allStates.add(normalizedState);
-
-            if (!stateCityMap[normalizedState]) stateCityMap[normalizedState] = new Set();
-            stateCityMap[normalizedState].add(normalizedCity);
-
-            if (!cityPincodeMap[normalizedCity]) cityPincodeMap[normalizedCity] = new Set();
-            if (area.pincodes) {
-                area.pincodes.forEach(p => {
-                    if (p) cityPincodeMap[normalizedCity].add(p.trim());
-                });
-            }
+            (area.pincodes || []).forEach(p => addPincode(normalizedCity, p));
 
             if (!geofenceMap[normalizedCity]) geofenceMap[normalizedCity] = new Set();
             if (area.areaName) {
                 geofenceMap[normalizedCity].add(capitalize(area.areaName.trim()));
-            }
-        }
-
-        // 2. Process Users (Customers, Vendors, Suppliers)
-        const users = await User.find({ role: { $in: ['Customer', 'Vendor', 'Supplier'] } }).lean();
-        for (const u of users) {
-            if (u.addresses) {
-                u.addresses.forEach(addr => {
-                    if (addr.state && addr.city) {
-                        const s = capitalize(addr.state.trim());
-                        const c = capitalize(addr.city.trim());
-                        allStates.add(s);
-                        if (!stateCityMap[s]) stateCityMap[s] = new Set();
-                        stateCityMap[s].add(c);
-
-                        if (addr.pincode) {
-                            if (!cityPincodeMap[c]) cityPincodeMap[c] = new Set();
-                            cityPincodeMap[c].add(addr.pincode.trim());
-                        }
-                    }
-                });
-            }
-            const details = u.shopDetails || u.supplierDetails;
-            if (details && details.city && details.state) {
-                const s = capitalize(details.state.trim());
-                const c = capitalize(details.city.trim());
-                allStates.add(s);
-                if (!stateCityMap[s]) stateCityMap[s] = new Set();
-                stateCityMap[s].add(c);
-
-                if (details.pincode) {
-                    if (!cityPincodeMap[c]) cityPincodeMap[c] = new Set();
-                    cityPincodeMap[c].add(details.pincode.trim());
-                }
             }
         }
 
@@ -891,6 +873,8 @@ export const getDashboardFilters = async (req, res) => {
             success: true,
             data: {
                 states: Array.from(allStates).sort(),
+                // Cities served by a geofence whose state isn't recorded on any address
+                unmappedCities: Array.from(unmappedCities).filter(c => !cityState[c]).sort(),
                 stateCityMap: formattedStateCityMap,
                 cityPincodeMap: formattedCityPincodeMap,
                 geofenceMap: formattedGeofenceMap

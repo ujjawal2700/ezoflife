@@ -22,7 +22,7 @@ const logToFile = (msg) => {
 
 // Route imports
 import authRoutes from './src/routes/authRoutes.js';
-import { verifyAdmin } from './src/middleware/authMiddleware.js';
+import { verifyAdmin, verifyUser } from './src/middleware/authMiddleware.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import orderRoutes from './src/routes/orderRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
@@ -189,7 +189,7 @@ app.use('/api/vendor-product-queries', vendorProductQueryRoutes);
 app.post('/api/labor/add', verifyAdmin, addSpecialist);
 app.get('/api/labor/all', getAllSpecialists);
 app.delete('/api/labor/:id', verifyAdmin, deleteSpecialist);
-app.post('/api/labor/place-request', createRequisition);
+app.post('/api/labor/place-request', verifyUser, createRequisition);
 app.get('/api/labor/active-requests', verifyAdmin, getAllRequisitions);
 app.patch('/api/labor/place-request/:id/assign', verifyAdmin, assignRequisition);
 

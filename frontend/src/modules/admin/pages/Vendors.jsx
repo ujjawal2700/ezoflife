@@ -60,10 +60,12 @@ export default function Vendors() {
       const mapped = (res || []).map(v => ({
         id: v._id,
         name: v.displayName || 'Unnamed Vendor',
-        shop: v.shopDetails?.name || 'Main Hub',
-        rating: '4.8', // Mock since not in schema yet
-        orders: v.ordersCount || 0,
-        revenue: '₹0',
+        shop: v.shopDetails?.name || '—',
+        // From the database: average customer feedback (null = no reviews yet)
+        rating: v.avgRating ?? null,
+        ratingCount: v.ratingCount || 0,
+        orders: v.completedOrders || 0,
+        revenue: `₹${(v.earnings || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`,
         status: v.status || 'pending',
         email: v.email,
         phone: v.phone,
@@ -94,7 +96,7 @@ export default function Vendors() {
     const avgRating = rated.length
       ? (rated.reduce((s, v) => s + Number(v.rating), 0) / rated.length).toFixed(2)
       : '—';
-    const totalOrders = vendors.reduce((s, v) => s + (Number(v.totalOrders) || 0), 0);
+    const totalOrders = vendors.reduce((s, v) => s + (Number(v.orders) || 0), 0);
 
     return [
       { label: 'Network Avg Rating', value: String(avgRating), icon: Star },
@@ -129,7 +131,7 @@ export default function Vendors() {
       render: (val) => (
         <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-sm border border-amber-100 w-fit group-hover:bg-amber-100 transition-colors">
           <Star size={10} fill="currentColor" />
-          <span className="text-[10px] font-bold tabular-nums tracking-widest">{val} <span className="opacity-40 text-[8px]">SCORE</span></span>
+          <span className="text-[10px] font-bold tabular-nums tracking-widest">{val ?? '—'} <span className="opacity-40 text-[8px]">{val == null ? 'NO REVIEWS' : 'SCORE'}</span></span>
         </div>
       )
     },
@@ -434,7 +436,7 @@ export default function Vendors() {
                     <div className="mt-3 flex items-center gap-2">
                         <StatusBadge status={selectedVendorForView.status} />
                         <span className="text-[10px] font-bold text-slate-300">•</span>
-                        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{selectedVendorForView.rating} RATING</span>
+                        <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">{selectedVendorForView.rating ?? 'NO'} RATING</span>
                     </div>
                   </div>
                 </div>

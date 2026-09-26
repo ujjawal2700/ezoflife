@@ -614,19 +614,20 @@ export const authApi = {
     }
 };
 
+const adJson = async (response, fallback) => {
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || data.message || fallback);
+    return data;
+};
+
 export const adApi = {
     create: async (formData) => {
-        try {
-            const response = await fetch(`${BASE_URL}/ads`, {
-                method: 'POST',
-                headers: adminAuthHeadersFormData(),
-                body: formData
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Create Ad Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/ads`, {
+            method: 'POST',
+            headers: adminAuthHeadersFormData(),
+            body: formData
+        });
+        return adJson(response, 'Upload failed');
     },
     getActive: async (category) => {
         try {
@@ -638,56 +639,46 @@ export const adApi = {
             throw error;
         }
     },
+    /** The live splash for 'customer' | 'vendor' | 'supplier', or null if none. */
+    getActiveSplash: async (app, { signal } = {}) => {
+        const response = await fetch(`${BASE_URL}/ads/active?category=splash&app=${app}`, { signal });
+        if (response.status === 404) return null;
+        return adJson(response, 'Failed to load splash');
+    },
     getAll: async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/ads/all`, {
-                headers: adminAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Get All Ads Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/ads/all`, { headers: adminAuthHeaders() });
+        return adJson(response, 'Failed to fetch advertisements');
     },
     toggleStatus: async (id) => {
-        try {
-            const response = await fetch(`${BASE_URL}/ads/${id}/toggle`, {
-                method: 'PATCH',
-                headers: adminAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Toggle Ad Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/ads/${id}/toggle`, {
+            method: 'PATCH',
+            headers: adminAuthHeaders()
+        });
+        return adJson(response, 'Update failed');
+    },
+    /** Edit title / notes / splash duration & audience. */
+    update: async (id, data) => {
+        const response = await fetch(`${BASE_URL}/ads/${id}`, {
+            method: 'PATCH',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(data)
+        });
+        return adJson(response, 'Update failed');
     },
     delete: async (id) => {
-        try {
-            const response = await fetch(`${BASE_URL}/ads/${id}`, {
-                method: 'DELETE',
-                headers: adminAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Delete Ad Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/ads/${id}`, {
+            method: 'DELETE',
+            headers: adminAuthHeaders()
+        });
+        return adJson(response, 'Delete failed');
     },
     updateNotes: async (id, notes) => {
-        try {
-            const response = await fetch(`${BASE_URL}/ads/${id}/notes`, {
-                method: 'PATCH',
-                headers: {
-                    ...adminAuthHeaders(),
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ notes })
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Update Ad Notes Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/ads/${id}/notes`, {
+            method: 'PATCH',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify({ notes })
+        });
+        return adJson(response, 'Update failed');
     }
 };
 
@@ -869,6 +860,17 @@ export const b2bOrderApi = {
         if (!response.ok) throw new Error(data.message || 'Failed to save platform fee settings');
         return data;
     },
+    // Vendor rates the supplier of a delivered supply order (1-5)
+    rateSupplier: async (orderId, { rating, comment }) => {
+        const response = await fetch(`${BASE_URL}/b2b-orders/${orderId}/rate-supplier`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating, comment })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to save rating');
+        return data;
+    },
     getAdminEscrowOrders: async () => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/admin/escrow`, {
@@ -905,6 +907,28 @@ export const b2bOrderApi = {
 
 
 export const adminApi = {
+    // Business reports: 'tat' | 'heatmap' | 'leakage' | 'customers'
+    getReport: async (type, { from, to } = {}) => {
+        const qs = new URLSearchParams(Object.entries({ from, to }).filter(([, v]) => v)).toString();
+        const response = await fetch(`${BASE_URL}/admin/reports/${type}${qs ? `?${qs}` : ''}`, {
+            headers: adminAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to load report');
+        return data;
+    },
+    getVendorPayoutHistoryAdmin: async (vendorId) => {
+        const response = await fetch(`${BASE_URL}/admin/vendor-payouts/${vendorId}`, { headers: adminAuthHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to load payout history');
+        return data;
+    },
+    getRefunds: async () => {
+        const response = await fetch(`${BASE_URL}/admin/refunds`, { headers: adminAuthHeaders() });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to load refunds');
+        return data;
+    },
     getSidebarCounts: async () => {
         try {
             const response = await fetch(`${BASE_URL}/admin/sidebar-counts`, {
@@ -1367,6 +1391,14 @@ export const orderApi = {
             throw error;
         }
     },
+    // Business Insights for the logged-in vendor, computed server-side for a date range
+    getVendorInsights: async ({ from, to }) => {
+        const qs = new URLSearchParams({ from, to }).toString();
+        const response = await fetch(`${BASE_URL}/orders/vendor/insights?${qs}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to load business insights');
+        return data;
+    },
     updateOrderStatus: async (id, status) => {
         try {
             const response = await fetch(`${BASE_URL}/orders/status/${id}`, {
@@ -1775,10 +1807,15 @@ export const ticketApi = {
 };
 
 export const faqApi = {
+    // Admin: includes hidden FAQs (the public list only has visible ones)
+    getAllAdmin: async () => {
+        const response = await fetch(`${BASE_URL}/faqs/admin/all`, { headers: adminAuthHeaders() });
+        return adJson(response, 'Failed to load FAQs');
+    },
     getAll: async () => {
         try {
             const response = await fetch(`${BASE_URL}/faqs`);
-            return await response.json();
+            return adJson(response, 'getAll failed');
         } catch (error) {
             console.error('Get FAQs Error:', error);
             throw error;
@@ -1791,7 +1828,7 @@ export const faqApi = {
                 headers: adminAuthHeaders(),
                 body: JSON.stringify(faqData)
             });
-            return await response.json();
+            return adJson(response, 'create failed');
         } catch (error) {
             console.error('Create FAQ Error:', error);
             throw error;
@@ -1803,7 +1840,7 @@ export const faqApi = {
                 method: 'DELETE',
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'delete failed');
         } catch (error) {
             console.error('Delete FAQ Error:', error);
             throw error;
@@ -1816,7 +1853,7 @@ export const faqApi = {
                 headers: adminAuthHeaders(),
                 body: JSON.stringify(faqData)
             });
-            return await response.json();
+            return adJson(response, 'update failed');
         } catch (error) {
             console.error('Update FAQ Error:', error);
             throw error;
@@ -1829,7 +1866,7 @@ export const faqApi = {
                 headers: adminAuthHeaders(),
                 body: JSON.stringify({ orders })
             });
-            return await response.json();
+            return adJson(response, 'reorder failed');
         } catch (error) {
             console.error('Reorder FAQs Error:', error);
             throw error;
@@ -1845,7 +1882,7 @@ export const feedbackApi = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(feedbackData)
             });
-            return await response.json();
+            return adJson(response, 'submit failed');
         } catch (error) {
             console.error('Submit Feedback Error:', error);
             throw error;
@@ -1860,7 +1897,7 @@ export const feedbackApi = {
             const response = await fetch(`${BASE_URL}/feedback/all?${params.toString()}`, {
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'getAll failed');
         } catch (error) {
             console.error('Get Feedbacks Error:', error);
             throw error;
@@ -1871,7 +1908,7 @@ export const feedbackApi = {
             const response = await fetch(`${BASE_URL}/feedback/filters`, {
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'getFilters failed');
         } catch (error) {
             console.error('Get Feedback Filters Error:', error);
             throw error;
@@ -1880,7 +1917,7 @@ export const feedbackApi = {
     getByVendorId: async (vendorId) => {
         try {
             const response = await fetch(`${BASE_URL}/feedback/vendor/${vendorId}`);
-            return await response.json();
+            return adJson(response, 'getByVendorId failed');
         } catch (error) {
             console.error('Get Vendor Feedbacks Error:', error);
             throw error;
@@ -1892,7 +1929,7 @@ export const feedbackApi = {
                 method: 'DELETE',
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'delete failed');
         } catch (error) {
             console.error('Delete Feedback Error:', error);
             throw error;
@@ -1910,7 +1947,7 @@ export const mediaApi = {
                 method: 'POST',
                 body: formData
             });
-            return await response.json();
+            return adJson(response, 'bulkUpload failed');
         } catch (error) {
             console.error('Media Upload Error:', error);
             throw error;
@@ -1922,7 +1959,7 @@ export const mediaApi = {
                 method: 'POST',
                 body: formData
             });
-            return await response.json();
+            return adJson(response, 'upload failed');
         } catch (error) {
             console.error('Media Upload Error:', error);
             throw error;
@@ -1955,7 +1992,7 @@ export const mediaApi = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            return adJson(response, 'submitInquiry failed');
         } catch (error) {
             console.error('Submit Inquiry Error:', error);
             throw error;
@@ -1973,7 +2010,7 @@ export const mediaApi = {
             const response = await fetch(url, {
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'getAllInquiries failed');
         } catch (error) {
             console.error('Get All Inquiries Error:', error);
             throw error;
@@ -1984,7 +2021,7 @@ export const mediaApi = {
             const response = await fetch(`${BASE_URL}/media/inquiries/filters`, {
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'getInquiryFilters failed');
         } catch (error) {
             console.error('Get Inquiry Filters Error:', error);
             throw error;
@@ -1996,7 +2033,7 @@ export const mediaApi = {
                 method: 'DELETE',
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'deleteInquiry failed');
         } catch (error) {
             console.error('Delete Inquiry Error:', error);
             throw error;
@@ -2012,7 +2049,7 @@ export const mediaApi = {
                 },
                 body: JSON.stringify({ status })
             });
-            return await response.json();
+            return adJson(response, 'updateInquiryStatus failed');
         } catch (error) {
             console.error('Update Inquiry Status Error:', error);
             throw error;
@@ -2028,7 +2065,7 @@ export const mediaApi = {
                 },
                 body: JSON.stringify({ notes })
             });
-            return await response.json();
+            return adJson(response, 'updateInquiryNotes failed');
         } catch (error) {
             console.error('Update Inquiry Notes Error:', error);
             throw error;
@@ -2037,7 +2074,7 @@ export const mediaApi = {
     getMyInquiries: async (email) => {
         try {
             const response = await fetch(`${BASE_URL}/media/inquiries/my?email=${encodeURIComponent(email)}`);
-            return await response.json();
+            return adJson(response, 'getMyInquiries failed');
         } catch (error) {
             console.error('Get My Ad Inquiries Error:', error);
             throw error;
@@ -2053,7 +2090,7 @@ export const partnershipApi = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            return await response.json();
+            return adJson(response, 'submit failed');
         } catch (error) {
             console.error('Partnership Submit Error:', error);
             throw error;
@@ -2062,7 +2099,7 @@ export const partnershipApi = {
     getMyInquiries: async (email) => {
         try {
             const response = await fetch(`${BASE_URL}/partnerships/my-inquiries?email=${encodeURIComponent(email)}`);
-            return await response.json();
+            return adJson(response, 'getMyInquiries failed');
         } catch (error) {
             console.error('Get My Partnerships Error:', error);
             throw error;
@@ -2077,7 +2114,7 @@ export const partnershipApi = {
             const response = await fetch(`${BASE_URL}/partnerships/all?${params.toString()}`, {
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'getAll failed');
         } catch (error) {
             console.error('Get Partnerships Error:', error);
             throw error;
@@ -2088,7 +2125,7 @@ export const partnershipApi = {
             const response = await fetch(`${BASE_URL}/partnerships/filters`, {
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'getFilters failed');
         } catch (error) {
             console.error('Get Partnership Filters Error:', error);
             throw error;
@@ -2100,7 +2137,7 @@ export const partnershipApi = {
                 method: 'DELETE',
                 headers: adminAuthHeaders()
             });
-            return await response.json();
+            return adJson(response, 'delete failed');
         } catch (error) {
             console.error('Delete Partnership Inquiry Error:', error);
             throw error;
@@ -2116,7 +2153,7 @@ export const partnershipApi = {
                 },
                 body: JSON.stringify({ status })
             });
-            return await response.json();
+            return adJson(response, 'updateStatus failed');
         } catch (error) {
             console.error('Update Partnership Status Error:', error);
             throw error;
@@ -2132,7 +2169,7 @@ export const partnershipApi = {
                 },
                 body: JSON.stringify({ notes })
             });
-            return await response.json();
+            return adJson(response, 'updateNotes failed');
         } catch (error) {
             console.error('Update Partnership Notes Error:', error);
             throw error;
@@ -2599,11 +2636,12 @@ export const logisticsApi = {
 export const legalApi = {
     getAll: async () => {
         const response = await fetch(`${BASE_URL}/legal/all`);
-        return await response.json();
+        return adJson(response, 'getAll failed');
     },
     getByType: async (type) => {
         const response = await fetch(`${BASE_URL}/legal/${type}`);
-        return await response.json();
+        if (response.status === 404) return null; // not uploaded yet
+            return adJson(response, 'getByType failed');
     },
     update: async (type, data) => {
         const response = await fetch(`${BASE_URL}/legal/${type}`, {
@@ -2611,7 +2649,7 @@ export const legalApi = {
             headers: adminAuthHeaders(),
             body: JSON.stringify(data)
         });
-        return await response.json();
+        return adJson(response, 'update failed');
     }
 };
 

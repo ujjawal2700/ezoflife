@@ -1,218 +1,354 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  ShoppingBag, 
-  Users, 
-  Zap, 
-  Calendar, 
-  Download, 
-  Filter, 
-  Target, 
-  Activity, 
-  Cpu, 
-  Monitor, 
-  IndianRupee, 
-  Clock,
-  ShieldCheck,
-  ShieldAlert,
-  Map,
-  RotateCcw,
-  UserCheck
-} from 'lucide-react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie
+import { Download, Clock, Map, ShieldAlert, UserCheck } from 'lucide-react';
+import {
+  XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, ScatterChart, Scatter
 } from 'recharts';
 import PageHeader from '../components/common/PageHeader';
 import MetricRow from '../components/cards/MetricRow';
 import ChartPanel from '../components/cards/ChartPanel';
-import { dashboardApi } from '../../../lib/api';
+import { adminApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
 
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const orDash = (v, suffix = '') => (v === null || v === undefined ? '—' : `${v}${suffix}`);
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#64748b'];
+
+const REPORTS = {
+  tat: { title: 'Vendor TAT Report', icon: Clock, blurb: 'How long orders take, from placement to delivery, measured from recorded status changes.' },
+  heatmap: { title: 'Geospatial Heatmap', icon: Map, blurb: 'Where orders come from, by pickup location and address pincode.' },
+  leakage: { title: 'Revenue Leakage Analysis', icon: ShieldAlert, blurb: 'Revenue lost to refunds, unpaid deliveries, platform discounts and unpaid fees.' },
+  customers: { title: 'Repeat Customers Analysis', icon: UserCheck, blurb: 'How many customers come back, and how much of revenue they drive.' }
+};
+
+const Empty = ({ text = 'No data for this period' }) => (
+  <div className="h-full w-full min-h-[120px] flex items-center justify-center text-[10px] font-black uppercase tracking-widest text-slate-300">
+    {text}
+  </div>
+);
+
+/** Simple table used by every report. */
+const Table = ({ columns, rows = [], empty }) => (
+  <div className="overflow-x-auto">
+    {rows.length === 0 ? <Empty text={empty} /> : (
+      <table className="w-full text-left text-[11px]">
+        <thead className="text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+          <tr>{columns.map(c => <th key={c.key} className={`py-2 pr-4 ${c.align === 'right' ? 'text-right' : ''}`}>{c.label}</th>)}</tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {columns.map(c => (
+                <td key={c.key} className={`py-2.5 pr-4 ${c.align === 'right' ? 'text-right tabular-nums' : ''} ${c.strong ? 'font-bold text-slate-900' : 'text-slate-600'}`}>
+                  {c.render ? c.render(r[c.key], r) : r[c.key]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )}
+  </div>
+);
+
+const downloadCsv = (filename, header, rows) => {
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+/**
+ * Business reports. Each report type is computed server-side from real
+ * orders for the selected period (GET /admin/reports/:type).
+ */
 export default function Reports() {
   const [searchParams] = useSearchParams();
-  const type = searchParams.get('type') || 'revenue';
-  const COLORS = useMemo(() => ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'], []);
+  const type = REPORTS[searchParams.get('type')] ? searchParams.get('type') : 'tat';
+  const meta = REPORTS[type];
 
-  const [analytics, setAnalytics] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [from, setFrom] = useState(() => ymd(new Date(Date.now() - 30 * 86400000)));
+  const [to, setTo] = useState(() => ymd(new Date()));
+  const [loaded, setLoaded] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await dashboardApi.getAnalytics();
-        if (!cancelled) setAnalytics(res?.data || null);
-      } catch (err) {
-        console.error('Failed to load report data:', err);
-        if (!cancelled) toast.error('Could not load report data');
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    })();
+    setLoading(true);
+    setLoaded(null);
+    adminApi.getReport(type, { from, to })
+      .then(d => { if (!cancelled) setLoaded(d); })
+      .catch(err => { if (!cancelled) toast.error(err.message || 'Could not load report'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [type, from, to]);
 
-  const financials = analytics?.financials;
-  const lifecycle = analytics?.orderLifecycleB2C;
+  // Switching report type keeps this component mounted, so for one render the
+  // previous type's data is still in state. Only use data for the type on screen.
+  const report = loaded?.type === type ? loaded : null;
+  const s = report?.summary || {};
+  const show = (v) => (loading || !report ? '…' : v);
 
-  const revenueFlow = useMemo(() => {
-    if (!financials) return [];
-    return [
-      { name: 'Gross Revenue', value: financials.grossRevenue || 0 },
-      { name: 'Vendor Payouts', value: financials.vendorPayouts || 0 },
-      { name: 'Logistics', value: financials.logisticsPayouts || 0 },
-      { name: 'Net Profit', value: financials.netProfit || 0 }
+  const metrics = useMemo(() => {
+    if (type === 'tat') return [
+      { label: 'Delivered Orders', value: show(orDash(s.deliveredOrders)) },
+      { label: 'Avg Order-to-Delivery', value: show(orDash(s.avgTotalHours, ' h')) },
+      { label: 'Delivered Within 48h', value: show(orDash(s.within48hPercent, '%')) },
+      { label: 'Without Status Timeline', value: show(orDash(s.ordersWithoutTimeline)) }
     ];
-  }, [financials]);
-
-  const orderStats = useMemo(() => {
-    if (!lifecycle) return [];
-    return [
-      { name: 'Submitted', value: lifecycle.totalSubmitted || 0 },
-      { name: 'Accepted', value: lifecycle.totalAccepted || 0 },
-      { name: 'In Progress', value: lifecycle.inProgress || 0 },
-      { name: 'Ready', value: lifecycle.readyForDispatch || 0 },
-      { name: 'Outbound', value: lifecycle.outboundLogistics || 0 },
-      { name: 'Reverse', value: lifecycle.reverseLogistics || 0 }
+    if (type === 'heatmap') return [
+      { label: 'Orders', value: show(orDash(s.orders)) },
+      { label: 'Mapped Orders', value: show(orDash(s.mappedOrders)) },
+      { label: 'Active Areas (~1 km)', value: show(orDash(s.activeCells)) },
+      { label: 'Pincodes', value: show(orDash(s.pincodes)) }
     ];
-  }, [lifecycle]);
-  
-  const reportTitles = {
-    tat: "Vendor TAT Report",
-    heatmap: "Geospatial Heatmaps",
-    leakage: "Revenue Leakage Analysis",
-    customers: "Repeat Customers Analysis"
-  };
+    if (type === 'leakage') return [
+      { label: 'Billed Revenue', value: show(inr(s.billed)) },
+      { label: 'Revenue Leakage', value: show(inr(s.totalLeakage)) },
+      { label: 'Leakage Rate', value: show(orDash(s.leakagePercent, '%')) },
+      { label: 'Wallet Credits Used', value: show(inr(s.walletCreditsUsed)) }
+    ];
+    return [
+      { label: 'Ordering Customers', value: show(orDash(s.customers)) },
+      { label: 'Repeat Customers', value: show(orDash(s.repeatCustomers)) },
+      { label: 'Repeat Rate', value: show(orDash(s.repeatRate, '%')) },
+      { label: 'Revenue from Repeaters', value: show(orDash(s.repeatRevenueShare, '%')) }
+    ];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, report, loading]);
 
-  const reportIcons = {
-    tat: Clock,
-    heatmap: Map,
-    leakage: ShieldAlert,
-    customers: UserCheck
+  const handleExport = () => {
+    if (!report) return;
+    const stamp = `${from}_to_${to}`;
+    if (type === 'tat') {
+      downloadCsv(`Vendor_TAT_${stamp}.csv`, ['Vendor', 'Phone', 'Delivered orders', 'Avg order-to-delivery (h)', 'Avg processing (h)', 'Within 48h'],
+        report.vendors.map(v => [v.name, v.phone, v.orders, v.avgTotalHours, v.avgProcessingHours ?? '', v.within48h]));
+    } else if (type === 'heatmap') {
+      downloadCsv(`Order_Heatmap_${stamp}.csv`, ['Pincode', 'Orders', 'Revenue (INR)'],
+        report.pincodes.map(p => [p.pincode, p.orders, p.revenue]));
+    } else if (type === 'leakage') {
+      downloadCsv(`Revenue_Leakage_${stamp}.csv`, ['Category', 'Orders', 'Amount (INR)', 'Counts as platform loss'],
+        report.categories.map(c => [c.name, c.count, c.amount, c.countsAsLoss ? 'Yes' : 'No']));
+    } else {
+      downloadCsv(`Repeat_Customers_${stamp}.csv`, ['Customer', 'Phone', 'Orders', 'Spend (INR)', 'Last order'],
+        report.topCustomers.map(c => [c.name, c.phone, c.orders, c.spend, c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('en-IN') : '']));
+    }
   };
-
-  const CurrentIcon = reportIcons[type] || BarChart3;
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50/50 pb-20">
-      <PageHeader 
-        title={reportTitles[type] || "Business Reports"} 
+      <PageHeader
+        title={meta.title}
         actions={[
-          { label: 'Download PDF', icon: Download, variant: 'secondary' },
-          { label: 'Export CSV', icon: Calendar, variant: 'primary' }
+          {
+            customComponent: (
+              <div className="flex items-center gap-1.5">
+                <input type="date" value={from} max={to} onChange={e => e.target.value && setFrom(e.target.value)} aria-label="From date"
+                  className="px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 outline-none" />
+                <span className="text-[9px] font-black text-slate-400 uppercase">to</span>
+                <input type="date" value={to} min={from} onChange={e => e.target.value && setTo(e.target.value)} aria-label="To date"
+                  className="px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] font-bold text-slate-700 outline-none" />
+              </div>
+            )
+          },
+          { label: 'Export CSV', icon: Download, variant: 'primary', onClick: handleExport }
         ]}
       />
 
-      {/* Reports Performance Layer */}
-      <div className="bg-white border-b border-slate-200 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 divide-x divide-slate-100 max-w-[1600px] mx-auto w-full">
-            <MetricRow label="Report Accuracy" value="99.9%" change="+0.1%" trend="up" icon={ShieldCheck} />
-            <MetricRow label="Data Freshness" value="REAL-TIME" change="ACTIVE" trend="up" icon={Zap} />
-            <MetricRow label="Total Nodes" value="1.2K" change="+42" trend="up" icon={Activity} />
-            <MetricRow label="Contextual ID" value={type.toUpperCase()} trend="up" icon={CurrentIcon} />
+      <div className="bg-white border-b border-slate-200">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 divide-x divide-slate-100 max-w-[1600px] mx-auto w-full">
+          {metrics.map(m => <MetricRow key={m.label} label={m.label} value={m.value} icon={meta.icon} />)}
         </div>
       </div>
 
-      <div className="p-6 space-y-8 max-w-[1600px] mx-auto w-full">
-        
-        {/* Report Content based on type */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ChartPanel 
-                title={`${reportTitles[type]} Overview`} 
-                subtitle={`Global trend for ${type} metrics`}
-                height={400}
-            >
-                <div className="h-full w-full p-8">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={revenueFlow} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorReport" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0f172a" stopOpacity={0.1}/>
-                                    <stop offset="95%" stopColor="#0f172a" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
-                            <Tooltip contentStyle={{ borderRadius: '1px', border: '1px solid #f1f5f9', fontWeight: 'black', textTransform: 'uppercase' }} />
-                            <Area type="monotone" dataKey="value" stroke="#0f172a" fillOpacity={1} fill="url(#colorReport)" strokeWidth={4} />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+      <div className="p-4 sm:p-6 space-y-6 max-w-[1600px] mx-auto w-full">
+        <p className="text-[11px] text-slate-500 font-semibold">{meta.blurb}</p>
+
+        {type === 'tat' && report && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ChartPanel title="Delivery Time Distribution" subtitle="Order placed → delivered" height={320}>
+              <div className="h-full w-full p-6">
+                {!s.measuredOrders ? <Empty text="No delivered orders with a status timeline" /> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={report.distribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                      <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                      <Tooltip />
+                      <Bar dataKey="value" name="Orders" radius={[1, 1, 0, 0]} barSize={32}>
+                        {report.distribution.map((e, i) => <Cell key={i} fill={COLORS[i]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             </ChartPanel>
-
-            <ChartPanel 
-                title="Distribution Breakdown" 
-                subtitle="Categorical segmentation"
-                height={400}
-            >
-                <div className="h-full w-full p-8">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={orderStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} dy={10} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
-                            <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '1px', border: '1px solid #f1f5f9' }} />
-                            <Bar dataKey="value" fill="#0f172a" radius={[1, 1, 0, 0]} barSize={32}>
-                                {orderStats.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+            <ChartPanel title="By Vendor" subtitle="Slowest first" height={320} className="lg:col-span-2">
+              <div className="p-6">
+                <Table
+                  empty="No delivered orders in this period"
+                  rows={report.vendors}
+                  columns={[
+                    { key: 'name', label: 'Vendor', strong: true },
+                    { key: 'orders', label: 'Delivered', align: 'right' },
+                    { key: 'avgTotalHours', label: 'Avg order→delivery', align: 'right', render: v => orDash(v, ' h') },
+                    { key: 'avgProcessingHours', label: 'Avg processing', align: 'right', render: v => orDash(v, ' h') },
+                    { key: 'within48h', label: 'Within 48h', align: 'right', render: (v, r) => `${v}/${r.orders}` }
+                  ]}
+                />
+              </div>
             </ChartPanel>
-        </div>
+          </div>
+        )}
 
-        {/* Tactical Intel Layer */}
-        <div className="bg-white border border-slate-200 rounded-sm p-10 space-y-10">
-            <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-slate-900 text-white flex items-center justify-center rounded-sm">
-                    <Activity size={24} />
-                </div>
-                <div>
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Tactical Report Intelligence</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Deep-dive into {type} operational variables</p>
-                </div>
-            </div>
+        {type === 'heatmap' && report && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ChartPanel title="Order Density Map" subtitle="Each bubble is a ~1 km area; size = orders" height={420} className="lg:col-span-2">
+              <div className="h-full w-full p-6">
+                {report.cells.length === 0 ? <Empty text="No orders with a pickup location" /> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis type="number" dataKey="lng" name="Longitude" domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 9 }} />
+                      <YAxis type="number" dataKey="lat" name="Latitude" domain={['auto', 'auto']} tick={{ fill: '#94a3b8', fontSize: 9 }} />
+                      <ZAxis type="number" dataKey="orders" range={[60, 900]} name="Orders" />
+                      <Tooltip
+                        cursor={{ strokeDasharray: '3 3' }}
+                        content={({ payload }) => {
+                          const c = payload?.[0]?.payload;
+                          if (!c) return null;
+                          return (
+                            <div className="bg-white border border-slate-200 p-2 text-[10px] font-bold text-slate-700">
+                              <div>{c.area || `${c.lat}, ${c.lng}`}</div>
+                              <div>{c.orders} orders · {inr(c.revenue)}</div>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Scatter data={report.cells} fill="#ef4444" fillOpacity={0.55} />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartPanel>
+            <ChartPanel title="Busiest Areas" subtitle="By order count" height={420}>
+              <div className="p-6">
+                <Table
+                  empty="No mapped orders"
+                  rows={report.cells.slice(0, 10)}
+                  columns={[
+                    { key: 'area', label: 'Area', strong: true, render: (v, r) => v || `${r.lat}, ${r.lng}` },
+                    { key: 'orders', label: 'Orders', align: 'right' },
+                    { key: 'revenue', label: 'Revenue', align: 'right', render: inr }
+                  ]}
+                />
+              </div>
+            </ChartPanel>
+            <ChartPanel title="By Pincode" subtitle="From the pickup address" height={320} className="lg:col-span-3">
+              <div className="p-6">
+                <Table
+                  empty="No pincodes found in pickup addresses"
+                  rows={report.pincodes}
+                  columns={[
+                    { key: 'pincode', label: 'Pincode', strong: true },
+                    { key: 'orders', label: 'Orders', align: 'right' },
+                    { key: 'revenue', label: 'Revenue', align: 'right', render: inr }
+                  ]}
+                />
+              </div>
+            </ChartPanel>
+          </div>
+        )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-                {[
-                    {
-                        label: 'Orders Submitted',
-                        value: String(lifecycle?.totalSubmitted ?? 0),
-                        desc: 'Total orders in the period'
-                    },
-                    {
-                        label: 'Acceptance Rate',
-                        value: lifecycle?.totalSubmitted
-                            ? `${((lifecycle.totalAccepted / lifecycle.totalSubmitted) * 100).toFixed(1)}%`
-                            : '0.0%',
-                        desc: 'Accepted by a vendor'
-                    },
-                    {
-                        label: 'Logistics Bounces',
-                        value: String(lifecycle?.logisticsBounces ?? 0),
-                        desc: 'Failed pickup or delivery legs'
-                    },
-                    {
-                        label: 'Net Profit',
-                        value: `₹${Number(financials?.netProfit || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`,
-                        desc: 'Gross revenue less payouts'
-                    }
-                ].map((intel, i) => (
-                    <div key={i} className="space-y-2 border-l-2 border-slate-50 pl-6">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{intel.label}</span>
-                        <p className="text-2xl font-black text-slate-900 tabular-nums leading-none tracking-tighter">{intel.value}</p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight opacity-60">{intel.desc}</p>
-                    </div>
-                ))}
-            </div>
-        </div>
+        {type === 'leakage' && report && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ChartPanel title="Where Revenue Leaks" subtitle="Amount by category" height={360}>
+              <div className="h-full w-full p-6">
+                {report.categories.every(c => !c.amount) ? <Empty text="No leakage in this period" /> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={report.categories} layout="vertical" margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="name" width={170} axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 9, fontWeight: 700 }} />
+                      <Tooltip formatter={v => inr(v)} />
+                      <Bar dataKey="amount" name="Amount" barSize={14}>
+                        {report.categories.map((c, i) => <Cell key={i} fill={c.countsAsLoss ? '#ef4444' : '#cbd5e1'} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartPanel>
+            <ChartPanel title="Breakdown" subtitle="Red = counted as platform loss" height={360}>
+              <div className="p-6">
+                <Table
+                  rows={report.categories}
+                  columns={[
+                    { key: 'name', label: 'Category', strong: true, render: (v, r) => <span className={r.countsAsLoss ? 'text-rose-600' : ''}>{v}</span> },
+                    { key: 'count', label: 'Orders', align: 'right' },
+                    { key: 'amount', label: 'Amount', align: 'right', render: inr }
+                  ]}
+                />
+              </div>
+            </ChartPanel>
+            <ChartPanel title="Delivered but Unpaid" subtitle="Largest first — follow up for collection" height={320} className="lg:col-span-2">
+              <div className="p-6">
+                <Table
+                  empty="Every delivered order in this period is paid"
+                  rows={report.unpaidDelivered}
+                  columns={[
+                    { key: 'orderId', label: 'Order', strong: true },
+                    { key: 'customer', label: 'Customer' },
+                    { key: 'paymentStatus', label: 'Payment' },
+                    { key: 'createdAt', label: 'Placed', render: v => new Date(v).toLocaleDateString('en-IN') },
+                    { key: 'amount', label: 'Amount', align: 'right', render: inr }
+                  ]}
+                />
+              </div>
+            </ChartPanel>
+          </div>
+        )}
 
+        {type === 'customers' && report && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <ChartPanel title="Order Frequency" subtitle="Customers by number of orders" height={320}>
+              <div className="h-full w-full p-6">
+                {!s.customers ? <Empty text="No customer orders in this period" /> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={report.frequency} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                      <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9, fontWeight: 900 }} />
+                      <Tooltip />
+                      <Bar dataKey="value" name="Customers" radius={[1, 1, 0, 0]} barSize={32}>
+                        {report.frequency.map((e, i) => <Cell key={i} fill={COLORS[i]} />)}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </ChartPanel>
+            <ChartPanel title="Top Repeat Customers" subtitle="Two or more orders in the period" height={320} className="lg:col-span-2">
+              <div className="p-6">
+                <Table
+                  empty="No repeat customers in this period"
+                  rows={report.topCustomers}
+                  columns={[
+                    { key: 'name', label: 'Customer', strong: true },
+                    { key: 'phone', label: 'Phone' },
+                    { key: 'orders', label: 'Orders', align: 'right' },
+                    { key: 'spend', label: 'Spend', align: 'right', render: inr },
+                    { key: 'lastOrder', label: 'Last order', render: v => (v ? new Date(v).toLocaleDateString('en-IN') : '—') }
+                  ]}
+                />
+              </div>
+            </ChartPanel>
+          </div>
+        )}
       </div>
     </div>
   );

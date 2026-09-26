@@ -18,6 +18,7 @@ import {
     getOrderInvoices
 } from '../controllers/orderController.js';
 import { verifyAdmin, verifyAdminOrVendor, verifyUser } from '../middleware/authMiddleware.js';
+import { getVendorInsights } from '../controllers/vendorInsightsController.js';
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ router.get('/trace', (req, res) => res.json({ msg: 'Order Router is ALIVE' }));
 // narrow further (a customer sees their orders, a vendor sees theirs).
 router.get('/pool', verifyUser, getPoolOrders);
 router.get('/vendor', verifyUser, getVendorOrders);
+router.get('/vendor/insights', verifyUser, getVendorInsights);
 router.get('/my', verifyUser, getMyOrders);
 router.get('/nearby-vendors', verifyUser, handleGetNearbyVendors);
 

@@ -2,7 +2,6 @@ import React from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 
 // Auth flow
-import VendorSplash from "../pages/VendorSplash";
 import VendorAuth from "../pages/VendorAuth";
 import VendorOtp from "../pages/VendorOtp";
 
@@ -57,7 +56,7 @@ const VendorRoutes = () => {
     <Routes>
       <Route element={<VendorLayout />}>
         {/* Auth Flow */}
-        <Route path="/splash" element={<VendorSplash />} />
+        <Route path="/splash" element={<Navigate to="/vendor/auth" replace />} />
         <Route path="/auth" element={<VendorAuth />} />
         <Route path="/otp" element={<VendorOtp />} />
 

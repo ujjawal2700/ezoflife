@@ -8,6 +8,8 @@ import Orders from '../pages/Orders';
 import Vendors from '../pages/Vendors';
 import OnboardingApprovals from '../pages/OnboardingApprovals';
 import Payouts from '../pages/Payouts';
+import Analytics from '../pages/Analytics';
+import Reports from '../pages/Reports';
 import Services from '../pages/Services';
 import Users from '../pages/Users';
 import AdminLogin from '../pages/AdminLogin';
@@ -56,7 +58,6 @@ import ServiceGeofenceTable from '../pages/ServiceGeofenceTable';
 import GeofencePincodeMapping from '../pages/GeofencePincodeMapping';
 import PricingPreview from '../pages/PricingPreview';
 import AreaPricingOverrides from '../pages/AreaPricingOverrides';
-import CustomerPayments from '../pages/CustomerPayments';
 import AdminInvoiceSettings from '../pages/AdminInvoiceSettings';
 import ReferralManagement from '../pages/ReferralManagement';
 import AdminSettings from '../pages/AdminSettings';
@@ -152,6 +153,14 @@ const AdminRoutes = () => {
         <Route path="/faqs" element={<FAQManagement />} />
         <Route path="/media" element={<MediaConfig />} />
         <Route path="/partnerships" element={<PartnershipInquiries />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/payments" element={<Payouts />} />
+        <Route path="/labor" element={<LaborManagement />} />
+        {/* Older URLs for pages merged into the ones above */}
+        <Route path="/payouts" element={<Navigate to="/admin/payments?tab=vendor" replace />} />
+        <Route path="/customer-payments" element={<Navigate to="/admin/payments?tab=customer" replace />} />
+        <Route path="/b2b-leads" element={<Navigate to="/admin/partnerships" replace />} />
         <Route path="/careers" element={<CareerModeration creatorFilter="Admin" />} />
         <Route path="/careers/admin-posts" element={<CareerModeration creatorFilter="Admin" />} />
         <Route path="/careers/vendor-posts" element={<CareerModeration creatorFilter="Vendor" />} />

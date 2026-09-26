@@ -29,5 +29,6 @@ router.patch('/:id/status', verifyUser, b2bController.updateB2BStatus);
 router.post('/:id/verify-otp', verifyUser, b2bController.verifyDeliveryOtp);
 router.patch('/:id/delivery-date', verifyUser, b2bController.updateB2BDeliveryDate);
 router.patch('/:id/release', verifyAdmin, b2bController.releaseSupplierPayment);
+router.post('/:id/rate-supplier', verifyUser, b2bController.rateSupplier);
 
 export default router;

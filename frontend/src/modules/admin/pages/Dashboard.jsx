@@ -46,12 +46,11 @@ export default function Dashboard() {
     stateCityMap: {},
     cityPincodeMap: {},
     geofenceMap: {},
+    unmappedCities: [],
   });
 
-  const [statesList, setStatesList] = useState([
-    "Madhya Pradesh",
-    "Maharashtra",
-  ]);
+  // Populated only from the database (see fetchFilters); no hardcoded states.
+  const [statesList, setStatesList] = useState([]);
 
   // Fetch cascading dropdown filters
   const fetchFilters = async () => {
@@ -63,12 +62,9 @@ export default function Dashboard() {
           stateCityMap: res.data.stateCityMap || {},
           cityPincodeMap: res.data.cityPincodeMap || {},
           geofenceMap: res.data.geofenceMap || {},
+          unmappedCities: res.data.unmappedCities || [],
         });
-        setStatesList(
-          res.data.states?.length
-            ? res.data.states
-            : ["Madhya Pradesh", "Maharashtra"],
-        );
+        setStatesList(res.data.states || []);
       }
     } catch (err) {
       console.error("Failed to fetch filters:", err);
@@ -80,14 +76,14 @@ export default function Dashboard() {
   // Dynamically calculate cascading filters
   const availableCities = useMemo(() => {
     if (!selectedState) {
-      const allCities = [];
+      const allCities = [...geographyMap.unmappedCities];
       Object.values(geographyMap.stateCityMap).forEach((list) =>
         allCities.push(...list),
       );
       return Array.from(new Set(allCities)).sort();
     }
     return geographyMap.stateCityMap[selectedState] || [];
-  }, [selectedState, geographyMap.stateCityMap]);
+  }, [selectedState, geographyMap.stateCityMap, geographyMap.unmappedCities]);
 
   const availablePincodes = useMemo(() => {
     if (!selectedCity) {
@@ -482,7 +478,7 @@ export default function Dashboard() {
                   </h3>
                   <span
                     className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${(analytics?.financials?.trendMoM || "").startsWith("-") ? "text-rose-600 bg-rose-50" : "text-emerald-600 bg-emerald-50"}`}>
-                    {analytics?.financials?.trendMoM || "0%"} vs MoM
+                    {analytics?.financials?.trendMoM || "0%"} vs prior period
                   </span>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">

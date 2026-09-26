@@ -127,8 +127,16 @@ const b2bOrderSchema = new mongoose.Schema({
     stockDecreased: {
         type: Boolean,
         default: false
+    },
+    // The ordering vendor's rating of the supplier, once the order is delivered.
+    supplierRating: {
+        rating: { type: Number, min: 1, max: 5, default: null },
+        comment: { type: String, default: '', maxlength: 500 },
+        ratedAt: { type: Date, default: null }
     }
 }, { timestamps: true });
+
+b2bOrderSchema.index({ supplier: 1, 'supplierRating.rating': 1 });
 
 b2bOrderSchema.pre('save', async function(next) {
     if (!this.b2bOrderId) {

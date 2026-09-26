@@ -48,6 +48,18 @@ const navItems = [
     items: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
       {
+        icon: BarChart3,
+        label: "Reports & Analytics",
+        path: "/admin/analytics",
+        subItems: [
+          { label: "Platform Analytics", path: "/admin/analytics" },
+          { label: "Vendor TAT Report", path: "/admin/reports?type=tat" },
+          { label: "Geospatial Heatmap", path: "/admin/reports?type=heatmap" },
+          { label: "Revenue Leakage", path: "/admin/reports?type=leakage" },
+          { label: "Repeat Customers", path: "/admin/reports?type=customers" },
+        ],
+      },
+      {
         icon: Users,
         label: "User Management",
         path: "/admin/users",
@@ -118,6 +130,18 @@ const navItems = [
           { label: "Completed Orders", path: "/admin/orders?tab=Completed" },
         ],
       },
+      {
+        icon: CreditCard,
+        label: "Payments",
+        path: "/admin/payments?tab=customer",
+        subItems: [
+          { label: "Customer Payments", path: "/admin/payments?tab=customer" },
+          { label: "Vendor Payouts", path: "/admin/payments?tab=vendor" },
+          { label: "Supplier Payouts", path: "/admin/payments?tab=supplier" },
+          { label: "Refunds", path: "/admin/payments?tab=refunds" },
+        ],
+      },
+      { icon: Briefcase, label: "Labor Management", path: "/admin/labor" },
 
       {
         icon: Layers,

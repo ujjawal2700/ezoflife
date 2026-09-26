@@ -103,6 +103,11 @@ const LaborManagement = () => {
 
             {activeTab === 'inventory' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {!loading && laborList.length === 0 && (
+                        <p className="md:col-span-2 lg:col-span-3 text-center py-16 text-[10px] font-black uppercase tracking-widest text-slate-400 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
+                            No specialists registered yet. Use “Register Specialist” to add one.
+                        </p>
+                    )}
                     {Array.isArray(laborList) && laborList.map((labor) => (
                         <motion.div 
                             key={labor._id}
