@@ -99,7 +99,7 @@ const VendorMasterSupplyManagement = () => {
             toast.error('No master supplies available to download');
             return;
         }
-        const headers = ['Zone', 'SKU ID', 'Category ID', 'HSN Code', 'GST', 'Brand', 'Material Name', 'Quantity', 'Wholesale Rate', 'Bulk Discount (%)', 'Bulk Threshold', 'Active', 'Delivery Frequency', 'MOV Free Delivery', 'Supplier ID', 'Supplier Facility Name', 'Platform Aggregator', 'Platform Fee Calc.'];
+        const headers = ['Zone', 'SKU ID', 'Category ID', 'HSN Code', 'GST', 'Brand', 'Material Name', 'Quantity', 'Wholesale Rate', 'Bulk Discount (%)', 'Bulk Threshold', 'Active', 'Delivery Frequency', 'MOV Free Delivery', 'Supplier ID', 'Supplier Facility Name', 'Platform Fee Rule', 'Platform Fee / Unit (est.)'];
         const rows = supplies.map(s => [
             s.zoneName || '—',
             s.skuId || '—',
@@ -117,8 +117,10 @@ const VendorMasterSupplyManagement = () => {
             s.movFreeDelivery || 0,
             s.supplierId || '-',
             s.supplierFacilityName || '-',
-            s.supplierPlatformMultiplier || 1.0,
-            ((s.wholesaleRate || 0) + ((s.wholesaleRate || 0) * (s.gst || 18) / 100)) * (s.supplierPlatformMultiplier || 1.0)
+            s.platformFeeLabel || 'No fee',
+            s.platformFeeRule?.type === 'PERCENTAGE'
+                ? ((s.wholesaleRate || 0) * (s.platformFeeRule.value || 0) / 100).toFixed(2)
+                : ''
         ]);
 
         const csvRows = [
@@ -592,31 +594,34 @@ const VendorMasterSupplyManagement = () => {
             )
         },
         {
-            header: 'Platform Aggregator',
-            key: 'supplierPlatformMultiplier',
+            header: 'Platform Fee',
+            key: 'platformFeeLabel',
             render: (val) => (
-                <span className="font-bold text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-sm tabular-nums text-[10px] whitespace-nowrap">
-                    {val ? `${val}x` : '1.0x'}
+                <span className="font-bold text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-sm text-[10px] whitespace-nowrap">
+                    {val || 'No fee'}
                 </span>
             )
         },
         {
-            header: 'Platform Fee Calc.',
+            header: 'Fee / Unit (est.)',
             key: 'calculatedFee',
             render: (val, row) => {
-                const price = parseFloat(row.wholesaleRate) || 0;
-                const gstPercent = parseFloat(row.gst) || 18;
-                const gstAmt = price * (gstPercent / 100);
-                const total = price + gstAmt;
-                const multiplier = parseFloat(row.supplierPlatformMultiplier) || 1.0;
-                const finalAmt = total * multiplier;
+                // Charged once per supplier order on goods value (excl. GST); min/max apply per order.
+                const rule = row.platformFeeRule;
+                if (!rule || rule.type === 'NONE') {
+                    return <span className="text-slate-400 font-bold text-[10px]">—</span>;
+                }
+                if (rule.type === 'FLAT') {
+                    return <span className="font-black text-slate-900 tabular-nums text-[11px]">₹{rule.value} / order</span>;
+                }
+                const rate = parseFloat(row.wholesaleRate) || 0;
                 return (
                     <div className="flex flex-col">
                         <span className="font-black text-slate-900 tabular-nums text-[11px]">
-                            ₹{finalAmt.toFixed(2)}
+                            ₹{(rate * (rule.value || 0) / 100).toFixed(2)}
                         </span>
                         <span className="text-slate-400 font-bold text-[8px]">
-                            (₹{total.toFixed(2)} × {multiplier}x)
+                            (₹{rate.toFixed(2)} × {rule.value}%)
                         </span>
                     </div>
                 );

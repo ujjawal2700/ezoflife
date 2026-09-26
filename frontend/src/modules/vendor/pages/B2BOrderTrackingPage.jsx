@@ -429,6 +429,10 @@ const B2BOrderTrackingPage = () => {
                       <span>Shipping Address</span>
                       <span className="text-slate-900 text-right max-w-[200px] truncate">{order?.shippingAddress}</span>
                   </div>
+                  <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
+                      <span>Platform Fee{order?.platformFee > 0 && order?.status === 'PENDING_PAYMENT' ? ' (Unpaid)' : ''}</span>
+                      <span className="text-slate-900">{order?.platformFee > 0 ? `₹${order.platformFee}` : 'Nil'}</span>
+                  </div>
                   <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                       <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Total Amount</p>
                       <p className="font-black text-slate-900 text-2xl tracking-tighter">₹{order?.totalAmount}</p>

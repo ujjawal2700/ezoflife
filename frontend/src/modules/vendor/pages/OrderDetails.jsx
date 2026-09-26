@@ -334,6 +334,17 @@ const OrderDetails = () => {
               </h1>
             </div>
           </div>
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate(`/vendor/order-chat/${order._id}`)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/80 hover:bg-rose-100 transition-all font-black text-[10px] uppercase tracking-wider shadow-xs"
+            title="Report Issue to Admin / Support">
+            <span className="material-symbols-outlined text-sm">
+              support_agent
+            </span>
+            Need Help?
+          </motion.button>
         </header>
 
         {/* ORDER PROGRESS TIMELINE */}
@@ -647,6 +658,31 @@ const OrderDetails = () => {
         )}
 
         {/* 5. BOTTOM ACTION & INFORMATION AREA */}
+        {/* 5. ORDER ISSUE & SUPPORT CARD */}
+        <section className="bg-white rounded-[2rem] p-5 border border-slate-100 shadow-sm flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 border border-rose-100">
+              <span className="material-symbols-outlined text-xl">
+                report_problem
+              </span>
+            </div>
+            <div>
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-tight">
+                Report Issue to Admin
+              </h4>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                Missing items, rider delays, or order concerns
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate(`/vendor/order-chat/${order._id}`)}
+            className="px-4 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-black transition-colors shrink-0 shadow-sm">
+            Chat Support
+          </button>
+        </section>
+
+        {/* 6. BOTTOM ACTION & INFORMATION AREA */}
         <section className="flex flex-col items-center gap-4 mt-2">
           {/* Read-Only Statuses */}
           {["PICKUP_ASSIGNED", "RIDER_ARRIVING"].includes(order.status) && (

@@ -336,7 +336,7 @@ export const getDashboardAnalytics = async (req, res) => {
             ]),
             B2BOrder.aggregate([
                 { $match: b2bOrderQ },
-                { $group: { _id: null, total: { $sum: '$totalAmount' }, platform: { $sum: '$platformFee' } } }
+                { $group: { _id: null, total: { $sum: '$totalAmount' }, platform: { $sum: { $cond: [{ $eq: ['$status', 'PENDING_PAYMENT'] }, 0, '$platformFee'] } } } }
             ]),
             User.aggregate([
                 { $match: walletQuery },
@@ -357,7 +357,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 { $group: {
                     _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
                     revenue: { $sum: '$totalAmount' },
-                    platform: { $sum: '$platformFee' }
+                    platform: { $sum: { $cond: [{ $eq: ['$status', 'PENDING_PAYMENT'] }, 0, '$platformFee'] } }
                 }},
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
             ]),

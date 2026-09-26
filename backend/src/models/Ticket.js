@@ -9,6 +9,7 @@ const messageSchema = new mongoose.Schema({
     senderRole: {
         type: String,
         enum: ['Customer', 'Admin'],
+        enum: ['Customer', 'Vendor', 'Supplier', 'Admin'],
         required: true
     },
     message: {
@@ -34,6 +35,17 @@ const ticketSchema = new mongoose.Schema({
         required: false,
         default: null
     },
+    vendor: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false,
+        default: null
+    },
+    userType: {
+        type: String,
+        enum: ['Customer', 'Vendor', 'Supplier'],
+        default: 'Customer'
+    },
     customerSnapshot: {
         displayName: { type: String, default: null },
         phone: { type: String, default: null },
@@ -51,6 +63,19 @@ const ticketSchema = new mongoose.Schema({
     category: {
         type: String,
         enum: ['Missing Items', 'Damaged Items', 'Wrong Items', 'Payment Issue', 'Rider Behavior', 'Others'],
+        enum: [
+            'Missing Items', 
+            'Damaged Items', 
+            'Wrong Items', 
+            'Payment Issue', 
+            'Rider Behavior', 
+            'Rider Delay', 
+            'Pickup Issue', 
+            'Processing Issue', 
+            'Order Dispute', 
+            'Customer Unreachable', 
+            'Others'
+        ],
         default: 'Others'
     },
     description: {

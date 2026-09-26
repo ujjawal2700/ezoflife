@@ -78,6 +78,24 @@ const CartPage = () => {
   // Combined Address/Map States
   const [mapLocation, setMapLocation] = useState(defaultCenter);
   const [mapAddress, setMapAddress] = useState('');
+  const [promosLoading, setPromosLoading] = useState(false);
+
+  const fetchApplicablePromos = useCallback(async (vId = null) => {
+    try {
+      setPromosLoading(true);
+      const data = await promotionApi.getApplicablePromos({
+        vendorId: vId || detectedVendorId || undefined,
+        lat: mapLocation?.lat,
+        lng: mapLocation?.lng
+      });
+      console.log('🎁 CartPage: Fetched Admin Platform Promos:', data);
+      if (Array.isArray(data)) setApplicablePromos(data);
+    } catch (err) {
+      console.error('❌ CartPage: Promo Fetch Error:', err);
+    } finally {
+      setPromosLoading(false);
+    }
+  }, [detectedVendorId, mapLocation]);
 
   useEffect(() => {
     const detectAndFetchPromos = async () => {
@@ -143,9 +161,26 @@ const CartPage = () => {
             } catch (err) {
                 console.error('❌ CartPage: Promo Fetch Error:', err);
             }
+            setDetectedVendorId(vId);
         } else {
             setDetectedVendorId(null);
             console.warn('⚠️ CartPage: No Vendor ID detected (even after fallback) for promo fetching');
+        }
+
+        // Fetch Admin Platform Promos unconditionally for customer checkout
+        try {
+            setPromosLoading(true);
+            const data = await promotionApi.getApplicablePromos({
+                vendorId: vId || undefined,
+                lat: mapLocation?.lat,
+                lng: mapLocation?.lng
+            });
+            console.log('🎁 CartPage: Fetched Admin Promos on mount/update:', data);
+            if (Array.isArray(data)) setApplicablePromos(data);
+        } catch (err) {
+            console.error('❌ CartPage: Promo Fetch Error:', err);
+        } finally {
+            setPromosLoading(false);
         }
     };
 
@@ -558,11 +593,13 @@ const CartPage = () => {
         setPromoError('Vendor context missing. Please refresh cart.');
         return;
     }
+    setPromoError('');
 
     try {
         const response = await promotionApi.validate({
             code: targetCode,
             vendorId,
+            vendorId: detectedVendorId || undefined,
             orderValue: subtotal
         });
 
@@ -578,6 +615,7 @@ const CartPage = () => {
         }
     } catch (err) {
         setPromoError('Invalid or Expired Code');
+        setPromoError(err?.message || 'Invalid or Expired Code');
         setIsPromoApplied(false);
         setAppliedPromoData(null);
     }
@@ -682,15 +720,26 @@ const CartPage = () => {
         customerId: userId,
         items: cartItems.map(item => {
           const itemId = item._id || item.id;
+          const u = billingUnits[itemId];
+          const w = u === 'kg' ? 1 : Number(item.avgWeight || item.weight || 0.5);
           return {
             serviceId: itemId,
             name: item.name || item.itemName || 'Service Item',
             quantity: quantities[itemId],
             price: getItemPrice(item),
             unit: billingUnits[itemId],
+            unit: u,
+            weight: w,
             photos: itemPhotos[itemId] || []
           };
         }),
+        totalWeight: cartItems.reduce((acc, item) => {
+          const itemId = item._id || item.id;
+          const q = Number(quantities[itemId] || 0);
+          const u = billingUnits[itemId];
+          const w = u === 'kg' ? 1 : Number(item.avgWeight || item.weight || 0.5);
+          return acc + (q * w);
+        }, 0),
         pickupSlot: { date: selectedPickup, time: pickupTime },
         deliverySlot: { date: selectedDelivery, time: deliveryTime },
         pickupAddress: selectedPickupAddress?.address || '',
@@ -1120,6 +1169,12 @@ const CartPage = () => {
                         setShowPromoDropdown(true);
                       }}
                       onFocus={() => setShowPromoDropdown(true)}
+                      onFocus={() => {
+                        setShowPromoDropdown(true);
+                        if (applicablePromos.length === 0 && !promosLoading) {
+                          fetchApplicablePromos();
+                        }
+                      }}
                       className="w-full bg-white/10 border border-white/10 rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest outline-none focus:bg-white/20 transition-all text-white placeholder:text-white/30 pr-24 shadow-inner"
                     />
                     
@@ -1140,7 +1195,7 @@ const CartPage = () => {
                 </div>
 
                 <AnimatePresence>
-                  {showPromoDropdown && applicablePromos.length > 0 && (
+                  {showPromoDropdown && (
                     <>
                       <motion.div 
                         initial={{ opacity: 0 }}
@@ -1157,28 +1212,49 @@ const CartPage = () => {
                       >
                         <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center">
                           <span className="text-[8px] font-black text-white/40 uppercase tracking-widest">Available Offers</span>
-                          <span className="text-[8px] font-black text-emerald-400 uppercase">{applicablePromos.length} Found</span>
+                          <span className="text-[8px] font-black text-emerald-400 uppercase">
+                            {promosLoading ? 'Loading...' : `${applicablePromos.length} Found`}
+                          </span>
                         </div>
                         <div className="max-h-48 overflow-y-auto custom-scrollbar">
-                          {applicablePromos.map(p => (
-                            <button
-                              key={p._id}
-                              onClick={() => {
-                                setPromoCode(p.code);
-                                handleApplyPromo(p.code);
-                                setShowPromoDropdown(false);
-                              }}
-                              className="w-full px-5 py-4 text-left hover:bg-white/5 transition-all border-b border-white/5 last:border-0 flex items-center justify-between group"
-                            >
-                              <div className="flex flex-col gap-0.5">
-                                <span className="text-[10px] font-black text-white group-hover:text-emerald-400 transition-colors">{p.code}</span>
-                                <p className="text-[7px] font-bold text-white/40 uppercase line-clamp-1">{p.description || 'Special discount'}</p>
-                              </div>
-                              <span className="text-[9px] font-black text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded-lg">
-                                {p.discountType === 'Flat' ? `₹${p.discountValue}` : `${p.discountValue}%`} OFF
-                              </span>
-                            </button>
-                          ))}
+                          {promosLoading ? (
+                            <div className="p-6 text-center text-white/40 text-[9px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                              <div className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                              Loading available offers...
+                            </div>
+                          ) : applicablePromos.length > 0 ? (
+                            applicablePromos.map(p => (
+                              <button
+                                key={p._id}
+                                onClick={() => {
+                                  setPromoCode(p.code);
+                                  handleApplyPromo(p.code);
+                                  setShowPromoDropdown(false);
+                                }}
+                                className="w-full px-5 py-4 text-left hover:bg-white/5 transition-all border-b border-white/5 last:border-0 flex items-center justify-between group"
+                              >
+                                <div className="flex flex-col gap-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-white group-hover:text-emerald-400 transition-colors tracking-wider">{p.code}</span>
+                                    <span className="text-[7px] font-black bg-white/10 text-white/70 px-1.5 py-0.5 rounded tracking-widest uppercase">Admin Offer</span>
+                                  </div>
+                                  <p className="text-[8px] font-bold text-white/50 uppercase line-clamp-1">{p.title || p.description || 'Special Platform Offer'}</p>
+                                  {(p.minOrderValue > 0 || p.min_order_value > 0) && (
+                                    <span className="text-[7px] text-white/30 font-bold uppercase tracking-wider">
+                                      Min Order ₹{p.minOrderValue || p.min_order_value}
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[9px] font-black text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2.5 py-1 rounded-lg group-hover:bg-emerald-400 group-hover:text-white transition-all">
+                                  {['Flat', 'FLAT_AMOUNT'].includes(p.discountType) ? `₹${p.discountValue}` : `${p.discountValue}%`} OFF
+                                </span>
+                              </button>
+                            ))
+                          ) : (
+                            <div className="p-6 text-center text-white/40 text-[9px] font-bold uppercase tracking-widest">
+                              No active platform offers available right now. You can still enter an admin promo code above.
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     </>

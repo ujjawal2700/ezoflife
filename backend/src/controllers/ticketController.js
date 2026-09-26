@@ -4,18 +4,37 @@ import { httpStatusForError } from '../utils/errorResponse.js';
 // Create a new support ticket
 export const createTicket = async (req, res) => {
     try {
-        const { customer, subject, category, description, orderId, attachments } = req.body;
+        const {
+            customer,
+            vendor,
+            userType = 'Customer', 
+            subject, 
+            category, 
+            description, 
+            message,
+            orderId, 
+            order,
+            attachments 
+        } = req.body;
+
+        const effectiveDescription = description || message || subject || 'Support request';
+        const senderId = userType === 'Vendor' 
+            ? (vendor || req.user?.id || req.user?._id || customer) 
+            : (customer || req.user?.id || req.user?._id);
+        const senderRole = userType === 'Vendor' ? 'Vendor' : 'Customer';
         
         const newTicket = new Ticket({
-            customer,
-            subject,
-            category,
-            description,
-            order: orderId || null,
+            customer: customer || null,
+            vendor: vendor || (userType === 'Vendor' ? senderId : null),
+            userType,
+            subject: subject || (userType === 'Vendor' ? 'Vendor Support Ticket' : 'Customer Support Ticket'),
+            category: category || 'Others',
+            description: effectiveDescription,
+            order: orderId || order || null,
             messages: [{
-                sender: customer,
-                senderRole: 'Customer',
-                message: description,
+                sender: senderId,
+                senderRole,
+                message: effectiveDescription,
                 attachments: attachments || []
             }]
         });
@@ -28,8 +47,9 @@ export const createTicket = async (req, res) => {
         if (io) {
             io.emit('new_ticket', {
                 ticketId: newTicket._id,
-                customerName: 'Customer', // Would be better with name from req.body or DB
-                subject: newTicket.subject
+                customerName: userType === 'Vendor' ? 'Vendor' : 'Customer',
+                subject: newTicket.subject,
+                userType
             });
         }
 
@@ -55,7 +75,8 @@ export const getAllTickets = async (req, res) => {
     try {
         const tickets = await Ticket.find()
             .populate('customer', 'displayName phone email role')
-            .populate('order', 'totalAmount status createdAt items')
+            .populate('vendor', 'displayName phone email role shopDetails')
+            .populate('order', 'totalAmount status createdAt items orderId')
             .sort({ createdAt: -1 });
         res.status(200).json(tickets);
     } catch (error) {
@@ -72,11 +93,14 @@ export const addMessage = async (req, res) => {
         const ticket = await Ticket.findById(ticketId);
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
-        const newMessage = { 
-            sender, 
-            senderRole, 
+        const effectiveSender = sender || req.user?.id || req.user?._id;
+        const effectiveRole = senderRole || (req.user?.role === 'Admin' ? 'Admin' : req.user?.role === 'Vendor' ? 'Vendor' : 'Customer');
+
+        const newMessage = {
+            sender: effectiveSender,
+            senderRole: effectiveRole,
             message,
-            attachments: attachments || [] 
+            attachments: attachments || []
         };
 
         ticket.messages.push(newMessage);
@@ -175,9 +199,10 @@ export const getTicketDetails = async (req, res) => {
         const { ticketId } = req.params;
         const ticket = await Ticket.findById(ticketId)
             .populate('customer', 'displayName phone email role')
-            .populate('order', 'totalAmount status createdAt items')
-            .populate('messages.sender', 'displayName profileImage role');
-            
+            .populate('vendor', 'displayName phone email role shopDetails')
+            .populate('order', 'totalAmount status createdAt items orderId')
+            .populate('messages.sender', 'displayName profileImage role shopDetails');
+
         if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
         res.status(200).json(ticket);
     } catch (error) {

@@ -10,9 +10,13 @@ import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
 // Both endpoints were unreachable.
 router.get('/timeline', b2bController.getSupplierTimeline);
 router.get('/admin/escrow', verifyAdmin, b2bController.getAdminEscrowOrders);
+router.get('/admin/all', verifyAdmin, b2bController.getAdminB2BOrders);
+router.get('/admin/platform-fee-config', verifyAdmin, b2bController.getPlatformFeeConfig);
+router.put('/admin/platform-fee-config', verifyAdmin, b2bController.updatePlatformFeeConfig);
 router.get('/supplier/:supplierId', b2bController.getSupplierOrders);
 router.get('/vendor/:vendorId', b2bController.getVendorOrders);
 
+router.post('/quote', verifyUser, b2bController.quotePlatformFee);
 router.post('/place', verifyUser, b2bController.placeB2BOrder);
 router.post('/bulk-status-update', verifyAdmin, b2bController.bulkUpdateB2BStatus);
 router.post('/verify-platform-fee', verifyUser, b2bController.verifyPlatformFeePayment);

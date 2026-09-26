@@ -568,6 +568,14 @@ export const createOrder = async (req, res) => {
             console.log(`💸 [WALLET] Deducted ₹${walletDeduction} from customer ${customerUser.phone} for order`);
         }
 
+        const orderTotalWeight = req.body.totalWeight !== undefined && req.body.totalWeight !== null
+            ? Number(req.body.totalWeight)
+            : items.reduce((acc, i) => {
+                const w = Number(i.weight || (i.unit === 'kg' ? 1 : 0.5));
+                const q = Number(i.quantity || 1);
+                return acc + (w * q);
+            }, 0);
+
         const newOrder = new Order({
             customer: customerId,
             items,
@@ -602,6 +610,7 @@ export const createOrder = async (req, res) => {
             allocation_status: allocationStatus,
             allocation_expires_at: allocationExpiresAt,
             isCustomerRD: isCustomerRD,
+            totalWeight: Math.round(orderTotalWeight * 100) / 100,
             customerSnapshot: {
                 displayName: customerUser.displayName || null,
                 phone: customerUser.phone || null,

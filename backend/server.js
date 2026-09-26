@@ -195,7 +195,19 @@ app.patch('/api/labor/place-request/:id/assign', verifyAdmin, assignRequisition)
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ezoflife';
-mongoose.connect(MONGODB_URI)
+mongoose.connection.on('error', (err) => {
+    console.error('❌ [MongoDB] Connection error:', err.message);
+});
+mongoose.connection.on('disconnected', () => {
+    console.warn('⚠️ [MongoDB] Disconnected — driver will retry in the background');
+});
+mongoose.connection.on('reconnected', () => {
+    console.log('✅ [MongoDB] Reconnected');
+});
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 8000, // fail fast instead of hanging the default 30s when a shard is briefly unreachable
+    socketTimeoutMS: 20000
+})
     .then(async () => {
         console.log('✅ Connected to MongoDB');
         try {

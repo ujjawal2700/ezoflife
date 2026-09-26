@@ -259,6 +259,20 @@ const B2BOrderHistory = () => {
                                                 <span className="text-[10px] font-black text-slate-400 uppercase">Settlement Value</span>
                                                 <span className="text-md font-black text-slate-900 tracking-tighter italic">₹{order.totalAmount.toLocaleString()}</span>
                                             </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-black text-slate-400 uppercase">
+                                                    Platform Fee
+                                                    {order.platformFee > 0 && order.status === 'PENDING_PAYMENT' && (
+                                                        <span className="ml-2 text-amber-600">(Unpaid)</span>
+                                                    )}
+                                                    {order.platformFee > 0 && order.status !== 'PENDING_PAYMENT' && (
+                                                        <span className="ml-2 text-emerald-600">(Paid)</span>
+                                                    )}
+                                                </span>
+                                                <span className="text-[11px] font-black text-slate-700 tabular-nums">
+                                                    {order.platformFee > 0 ? `₹${Number(order.platformFee).toLocaleString(undefined, { maximumFractionDigits: 2 })}` : 'Nil'}
+                                                </span>
+                                            </div>
                                         </div>
 
                                         {/* Timeline Footer & Actions */}

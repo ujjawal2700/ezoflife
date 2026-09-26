@@ -29,6 +29,8 @@ import RoleDetails from '../pages/RoleDetails';
 import Suppliers from '../pages/Suppliers';
 import AdminAdvertisementPage from '../pages/AdminAdvertisementPage';
 import B2BEscrowManagement from '../pages/B2BEscrowManagement';
+import PlatformFeeSettings from '../pages/PlatformFeeSettings';
+import VendorSupplyOrders from '../pages/VendorSupplyOrders';
 import AdminLegalPage from '../pages/AdminLegalPage';
 import ServiceAreas from '../pages/ServiceAreas';
 import AdminSupplierRequestsPage from '../pages/AdminSupplierRequestsPage';
@@ -160,6 +162,8 @@ const AdminRoutes = () => {
         <Route path="/vendor-supply-pricing/supplies" element={<VendorMasterSupplyManagement />} />
         <Route path="/vendor-supply-pricing/products" element={<VendorProductTableManagement />} />
         <Route path="/vendor-supply-pricing/zones" element={<SupplierServiceZoneManagement />} />
+        <Route path="/vendor-supply-pricing/platform-fee" element={<PlatformFeeSettings />} />
+        <Route path="/vendor-supply-pricing/orders" element={<VendorSupplyOrders />} />
 
 
         <Route path="/privacy-policy" element={<AdminLegalPage type="privacy-policy" />} />

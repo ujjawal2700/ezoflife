@@ -1474,61 +1474,55 @@ const HomePage = () => {
         </section>
 
         {/* 2. CONSOLIDATED CONTROLS: TIER SELECTOR & SCHEDULE SLOT */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 w-full">
+        <div className="flex items-center gap-2 mb-6 w-full">
           {/* Tier Switcher */}
-          <div className="bg-slate-100/90 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/80 shrink-0">
-            {["Essential", "Heritage"].map((tier) => {
-              const isHeritage = tier === "Heritage";
-              const isSelected = selectedTier === tier;
-              return (
-                <button
-                  key={tier}
-                  onClick={() => {
-                    setSelectedTier(tier);
-                    setDeliveryConfirmed(true);
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-4 sm:px-6 py-2.5 rounded-xl font-medium text-xs sm:text-sm transition-all cursor-pointer",
-                    isSelected
-                      ? isHeritage
-                        ? "bg-amber-800 text-white shadow-xs font-semibold"
-                        : "bg-slate-900 text-white shadow-xs font-semibold"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
-                  )}>
-                  {isHeritage && (
-                    <Sparkles
-                      size={14}
-                      className={
-                        isSelected ? "text-amber-200" : "text-amber-600"
-                      }
-                    />
-                  )}
-                  <span>{tier}</span>
-                </button>
-              );
-            })}
-          </div>
+          {["Essential", "Heritage"].map((tier) => {
+            const isHeritageTab = tier === "Heritage";
+            const isSelected = selectedTier === tier;
+            return (
+              <button
+                key={tier}
+                onClick={() => {
+                  setSelectedTier(tier);
+                  setDeliveryConfirmed(true);
+                }}
+                className={cn(
+                  "flex items-center justify-center gap-1 px-3 sm:px-5 py-3 sm:py-3.5 rounded-full font-black text-[9px] sm:text-xs uppercase tracking-wide sm:tracking-widest transition-all cursor-pointer shrink-0 active:scale-95",
+                  isSelected
+                    ? "bg-slate-950 text-white shadow-lg shadow-slate-950/20"
+                    : "bg-white text-slate-900 border border-slate-200 shadow-2xs hover:bg-slate-50",
+                )}>
+                {isHeritageTab && (
+                  <Sparkles
+                    size={13}
+                    className={isSelected ? "text-amber-300 shrink-0" : "text-amber-600 shrink-0"}
+                  />
+                )}
+                <span>{tier}</span>
+              </button>
+            );
+          })}
 
           {/* Schedule Pickup & Drop-off Button */}
           <button
             disabled={!selectedTier}
             onClick={() => setShowSlotPicker(true)}
             className={cn(
-              "flex-1 flex items-center justify-center sm:justify-start gap-2.5 px-4 py-2.5 rounded-2xl border transition-all cursor-pointer",
+              "flex-1 min-w-0 flex items-center justify-center gap-2 px-3 sm:px-4 py-3 sm:py-3.5 rounded-full transition-all cursor-pointer active:scale-95",
               !selectedTier
-                ? "opacity-50 grayscale cursor-not-allowed bg-slate-50 text-slate-400 border-slate-200"
-                : "bg-white hover:bg-slate-50 text-slate-800 border-slate-200 shadow-2xs",
+                ? "opacity-50 grayscale cursor-not-allowed bg-slate-100 text-slate-400"
+                : "bg-slate-950 text-white shadow-lg shadow-slate-950/20 hover:bg-slate-800",
             )}>
-            <Calendar size={16} className="text-slate-500 shrink-0" />
+            <Calendar size={15} className="shrink-0" />
             <div className="text-left min-w-0 truncate">
-              <span className="text-xs sm:text-sm font-medium text-slate-900 truncate">
+              <span className="text-[9px] sm:text-xs font-black uppercase tracking-wide sm:tracking-widest truncate">
                 {selectedPickup
                   ? `${selectedPickup} · ${pickupTime || "Anytime"}`
                   : "Schedule Pickup & Drop-off"}
               </span>
             </div>
             {selectedDelivery && (
-              <span className="hidden md:inline text-xs text-slate-500 font-normal ml-auto">
+              <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest opacity-70 ml-auto">
                 Drop: {selectedDelivery}
               </span>
             )}

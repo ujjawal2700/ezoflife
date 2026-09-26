@@ -80,6 +80,28 @@ const b2bOrderSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
+    // Goods value (excl. GST & delivery) the platform fee was calculated on.
+    platformFeeBase: {
+        type: Number,
+        default: 0
+    },
+    // Snapshot of the rule used, so later admin changes don't rewrite history.
+    platformFeeRule: {
+        type: { type: String, enum: ['PERCENTAGE', 'FLAT', 'NONE'], default: 'NONE' },
+        value: { type: Number, default: 0 },
+        minFee: { type: Number, default: 0 },
+        maxFee: { type: Number, default: null },
+        source: { type: String, enum: ['ZONE', 'GLOBAL', 'NONE'], default: 'NONE' }
+    },
+    platformFeeStatus: {
+        type: String,
+        enum: ['NOT_APPLICABLE', 'PENDING', 'PAID'],
+        default: 'NOT_APPLICABLE'
+    },
+    platformFeePaymentId: {
+        type: String,
+        default: null
+    },
     razorpayOrderId: {
         type: String,
         required: false

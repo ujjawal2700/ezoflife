@@ -1599,98 +1599,61 @@ const WalkInOrderPage = () => {
   }
 
   return (
-    <div className="text-slate-900 min-h-[100dvh] pb-36 flex flex-col font-sans bg-slate-50/50 overflow-x-hidden">
+    <div className="text-slate-900 min-h-[100dvh] pb-36 flex flex-col font-sans bg-gradient-to-b from-white via-emerald-50/30 to-teal-50/50 overflow-x-hidden">
       <main className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 space-y-5 flex-1 w-full">
         {/* Header */}
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 shadow-xs transition-all">
-              <span className="material-symbols-outlined text-lg">
-                arrow_back
+        <header className="flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-white border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 shadow-xs transition-all shrink-0">
+            <span className="material-symbols-outlined text-lg">
+              arrow_back
+            </span>
+          </button>
+          <h1 className="text-sm font-black text-slate-900 lowercase">
+            take customer order here
+          </h1>
+          {isVerified && (
+            <span className="ml-auto bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1 shrink-0">
+              <span className="material-symbols-outlined text-xs">
+                verified
               </span>
-            </button>
-            <div>
-              <h1 className="text-lg font-black tracking-tight text-slate-900">
-                Take Customer Order
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                Direct in-store counter order intake
-              </p>
-            </div>
-          </div>
-          <span className="bg-slate-100 text-slate-600 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-slate-200">
-            Counter Mode
-          </span>
+              Verified
+            </span>
+          )}
         </header>
 
         {/* 1. Customer Section */}
-        <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-700">
-                1
-              </span>
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                Customer Verification
-              </h2>
-            </div>
-            {isVerified && (
-              <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">
-                  verified
-                </span>
-                Verified
-              </span>
-            )}
-          </div>
-
+        <section className="space-y-4">
           {!isVerified ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Phone Input */}
                 <div className="relative">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Mobile Number
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">
-                      phone_iphone
-                    </span>
-                    <input
-                      type="tel"
-                      placeholder="10-digit number"
-                      value={customerPhone}
-                      onChange={(e) => handlePhoneChange(e.target.value)}
-                      maxLength={10}
-                      className="w-full bg-slate-50 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold border border-slate-200/80 outline-none focus:bg-white focus:border-slate-400 transition-all"
-                    />
-                  </div>
+                  <input
+                    type="tel"
+                    placeholder="Enter Customer Mobile Number"
+                    value={customerPhone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    maxLength={10}
+                    className="w-full bg-white rounded-full pl-5 pr-4 py-3.5 text-xs font-bold border border-slate-200/80 outline-none focus:bg-white focus:border-slate-400 shadow-xs transition-all"
+                  />
                 </div>
 
                 {/* Name Input */}
                 <div
                   className={`relative transition-all duration-200 ${customerPhone.length !== 10 ? "opacity-50 pointer-events-none" : ""}`}>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-                    Customer Name
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">
-                      person
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Enter full name"
-                      value={tempName}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/[^A-Za-z\s]/g, "");
-                        setTempName(val);
-                      }}
-                      disabled={customerPhone.length !== 10}
-                      className="w-full bg-slate-50 rounded-2xl pl-10 pr-4 py-3 text-xs font-bold border border-slate-200/80 outline-none focus:bg-white focus:border-slate-400 transition-all"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="Enter Customer Name"
+                    value={tempName}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^A-Za-z\s]/g, "");
+                      setTempName(val);
+                    }}
+                    disabled={customerPhone.length !== 10}
+                    className="w-full bg-white rounded-full pl-5 pr-4 py-3.5 text-xs font-bold border border-slate-200/80 outline-none focus:bg-white focus:border-slate-400 shadow-xs transition-all"
+                  />
                 </div>
               </div>
 
@@ -1799,175 +1762,106 @@ const WalkInOrderPage = () => {
           )}
         </section>
 
-        {/* 2. Order Mode & Logistics Options */}
+        {/* 2. Tier & Delivery Controls */}
         <section
-          className={`bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4 transition-all duration-300 ${!isVerified ? "opacity-40 pointer-events-none" : ""}`}>
+          className={`space-y-3 transition-all duration-300 ${!isVerified ? "opacity-40 pointer-events-none" : ""}`}>
           <div className="flex items-center gap-2">
-            <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-700">
-              2
-            </span>
-            <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-              Service Tier & Delivery Logistics
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {/* Tier Selection */}
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                Service Quality Tier
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
+            {["Essential", "Heritage"].map((tier) => {
+              const isSelected = selectedTier === tier;
+              return (
                 <button
+                  key={tier}
                   type="button"
-                  onClick={() => setSelectedTier("Essential")}
-                  className={`p-3.5 rounded-2xl border text-left transition-all ${selectedTier === "Essential" ? "bg-slate-900 text-white border-slate-900 shadow-md" : "bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100"}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-black uppercase tracking-wider">
-                      Essential
-                    </span>
-                    {selectedTier === "Essential" && (
-                      <span className="material-symbols-outlined text-sm">
-                        check_circle
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className={`text-[10px] leading-tight ${selectedTier === "Essential" ? "text-slate-300" : "text-slate-500"}`}>
-                    Standard care for everyday garments
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedTier("Heritage")}
-                  className={`p-3.5 rounded-2xl border text-left transition-all ${selectedTier === "Heritage" ? "bg-amber-900 text-white border-amber-900 shadow-md" : "bg-slate-50 text-slate-700 border-slate-200/80 hover:bg-slate-100"}`}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs font-black uppercase tracking-wider">
-                      Heritage
-                    </span>
-                    {selectedTier === "Heritage" && (
-                      <span className="material-symbols-outlined text-sm">
-                        check_circle
-                      </span>
-                    )}
-                  </div>
-                  <p
-                    className={`text-[10px] leading-tight ${selectedTier === "Heritage" ? "text-amber-200" : "text-slate-500"}`}>
-                    Premium care for delicate & designer wear
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            {/* Drop-off Delivery Toggle */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                    Rider Drop-off Delivery
-                  </span>
-                  <p className="text-[11px] text-slate-500">
-                    Deliver finished laundry to customer's doorstep
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!enableDelivery) {
-                      setEnableDelivery(true);
-                      if (
-                        savedCustomerAddress &&
-                        (savedCustomerAddress.street ||
-                          savedCustomerAddress.flatNo)
-                      ) {
-                        setAddressDetails((prev) => ({
-                          ...prev,
-                          type: savedCustomerAddress.type
-                            ? savedCustomerAddress.type.toUpperCase()
-                            : "HOME",
-                          flatNo: savedCustomerAddress.flatNo || "",
-                          street: savedCustomerAddress.street || "",
-                          city: savedCustomerAddress.city || "",
-                          state: savedCustomerAddress.state || "",
-                          pincode: savedCustomerAddress.pincode || "",
-                          lat: savedCustomerAddress.lat || 22.7196,
-                          lng: savedCustomerAddress.lng || 75.8577,
-                        }));
-                        toast.success(
-                          "Delivery address auto-filled from customer profile!",
-                        );
-                      } else {
-                        setShowLocateModal(true);
-                      }
-                    } else {
-                      setEnableDelivery(false);
-                    }
-                  }}
-                  className={`w-12 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 border ${
-                    enableDelivery
-                      ? "bg-slate-900 border-slate-900 justify-end"
-                      : "bg-slate-200 border-slate-300 justify-start"
+                  onClick={() => setSelectedTier(tier)}
+                  className={`px-4 sm:px-5 py-3 rounded-full font-black text-[10px] sm:text-xs uppercase tracking-wide sm:tracking-widest transition-all shrink-0 active:scale-95 ${
+                    isSelected
+                      ? "bg-slate-950 text-white shadow-lg shadow-slate-950/20"
+                      : "bg-white text-slate-900 border border-slate-200 shadow-2xs hover:bg-slate-50"
                   }`}>
-                  <motion.div
-                    layout
-                    className="w-4 h-4 bg-white rounded-full shadow-xs"
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  />
+                  {tier}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (!enableDelivery) {
+                  setEnableDelivery(true);
+                  if (
+                    savedCustomerAddress &&
+                    (savedCustomerAddress.street ||
+                      savedCustomerAddress.flatNo)
+                  ) {
+                    setAddressDetails((prev) => ({
+                      ...prev,
+                      type: savedCustomerAddress.type
+                        ? savedCustomerAddress.type.toUpperCase()
+                        : "HOME",
+                      flatNo: savedCustomerAddress.flatNo || "",
+                      street: savedCustomerAddress.street || "",
+                      city: savedCustomerAddress.city || "",
+                      state: savedCustomerAddress.state || "",
+                      pincode: savedCustomerAddress.pincode || "",
+                      lat: savedCustomerAddress.lat || 22.7196,
+                      lng: savedCustomerAddress.lng || 75.8577,
+                    }));
+                    toast.success(
+                      "Delivery address auto-filled from customer profile!",
+                    );
+                  } else {
+                    setShowLocateModal(true);
+                  }
+                } else {
+                  setEnableDelivery(false);
+                }
+              }}
+              className="flex-1 min-w-0 flex items-center justify-center gap-2 px-3 sm:px-4 py-3 rounded-full bg-slate-950 text-white shadow-lg shadow-slate-950/20 hover:bg-slate-800 transition-all cursor-pointer active:scale-95">
+              <span className="material-symbols-outlined text-base shrink-0">
+                local_shipping
+              </span>
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wide sm:tracking-widest truncate">
+                {enableDelivery ? "Rider Drop-off On" : "Select Delivery Type"}
+              </span>
+            </button>
+          </div>
+
+          {enableDelivery && (
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 px-1">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="material-symbols-outlined text-emerald-600 text-sm shrink-0">
+                  location_on
+                </span>
+                <span className="text-xs font-bold text-slate-800 truncate">
+                  {addressDetails.flatNo || addressDetails.street
+                    ? `${addressDetails.flatNo ? addressDetails.flatNo + ", " : ""}${addressDetails.street}`
+                    : "No address configured yet"}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowLocateModal(true)}
+                  className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-[11px] font-bold hover:bg-slate-50 transition-colors">
+                  Edit Address
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeliveryTypeModal(true)}
+                  className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-colors flex items-center gap-1">
+                  <span className="material-symbols-outlined text-xs">
+                    schedule
+                  </span>
+                  Schedule
                 </button>
               </div>
-
-              {enableDelivery && (
-                <div className="pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="material-symbols-outlined text-emerald-600 text-sm shrink-0">
-                      location_on
-                    </span>
-                    <span className="text-xs font-bold text-slate-800 truncate">
-                      {addressDetails.flatNo || addressDetails.street
-                        ? `${addressDetails.flatNo ? addressDetails.flatNo + ", " : ""}${addressDetails.street}`
-                        : "No address configured yet"}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setShowLocateModal(true)}
-                      className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-[11px] font-bold hover:bg-slate-50 transition-colors">
-                      Edit Address
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeliveryTypeModal(true)}
-                      className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-[11px] font-bold hover:bg-slate-800 transition-colors flex items-center gap-1">
-                      <span className="material-symbols-outlined text-xs">
-                        schedule
-                      </span>
-                      Schedule
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
+          )}
         </section>
 
         {/* 3. Services Selection */}
         <section
-          className={`bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4 transition-all duration-300 ${!isVerified ? "opacity-40 pointer-events-none" : ""}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-xs font-black text-slate-700">
-                3
-              </span>
-              <h2 className="text-xs font-black uppercase tracking-wider text-slate-900">
-                Select Garments & Services
-              </h2>
-            </div>
-            <span className="text-[11px] font-bold text-slate-400">
-              {filteredServices.length} options
-            </span>
-          </div>
-
+          className={`space-y-3 transition-all duration-300 ${!isVerified ? "opacity-40 pointer-events-none" : ""}`}>
           {/* Category Filter Pills */}
           {uniqueCategories.length > 0 && (
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 -mx-1 px-1">
@@ -2010,8 +1904,8 @@ const WalkInOrderPage = () => {
             )}
           </AnimatePresence>
 
-          {/* Service Items Grid / List */}
-          <div className="space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
+          {/* Service Items List */}
+          <div className="max-h-[480px] overflow-y-auto pr-1 divide-y divide-slate-200/70">
             {filteredServices.length > 0 ? (
               filteredServices.map((s) => {
                 const qty = getServiceQty(s.serviceId);
@@ -2019,36 +1913,24 @@ const WalkInOrderPage = () => {
                 return (
                   <div
                     key={s.serviceId}
-                    className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
-                      qty > 0
-                        ? "bg-slate-50/80 border-slate-900/40 shadow-xs"
-                        : "bg-white border-slate-100 hover:border-slate-200"
-                    }`}>
-                    {/* Icon & Details */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${qty > 0 ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}>
-                        <span className="material-symbols-outlined text-lg">
-                          {s.icon || "dry_cleaning"}
-                        </span>
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-xs font-black text-slate-900 uppercase truncate leading-snug">
-                          {s.title}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-[10px] text-slate-400 font-medium">
-                            {s.subCategory || s.category}
-                          </span>
-                          <span className="text-xs font-black text-slate-900">
-                            ₹{s.price}
-                          </span>
-                        </div>
-                      </div>
+                    className="py-3.5 flex items-center justify-between gap-3">
+                    {/* Details */}
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-bold text-slate-900 truncate">
+                        {s.title}
+                      </h3>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5 truncate">
+                        {s.category}
+                        {s.subCategory ? ` · ${s.subCategory}` : ""}
+                      </p>
                     </div>
 
-                    {/* Quantity & Photos */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Price, Quantity & Photos */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <span className="text-xs font-black text-slate-900">
+                        ₹{s.price}
+                      </span>
+
                       {qty > 0 && (
                         <button
                           type="button"
@@ -2075,41 +1957,32 @@ const WalkInOrderPage = () => {
                         </button>
                       )}
 
-                      {qty === 0 ? (
+                      <div className="flex items-center bg-white rounded-full border border-slate-200 p-0.5 shadow-2xs">
+                        <button
+                          type="button"
+                          onClick={() => updateServiceQty(s, -1)}
+                          className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-full hover:bg-slate-50">
+                          <span className="material-symbols-outlined text-sm">
+                            remove
+                          </span>
+                        </button>
+                        <span
+                          onClick={() => {
+                            setManualQtyService(s);
+                            setManualQtyInput(qty.toString());
+                          }}
+                          className="w-7 text-center text-xs font-black text-slate-900 cursor-pointer hover:bg-slate-100 rounded py-0.5">
+                          {qty}
+                        </span>
                         <button
                           type="button"
                           onClick={() => updateServiceQty(s, 1)}
-                          className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase tracking-wider hover:bg-slate-800 transition-colors shadow-xs">
-                          Add
-                        </button>
-                      ) : (
-                        <div className="flex items-center bg-white rounded-xl border border-slate-200 p-0.5 shadow-2xs">
-                          <button
-                            type="button"
-                            onClick={() => updateServiceQty(s, -1)}
-                            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-50">
-                            <span className="material-symbols-outlined text-sm">
-                              remove
-                            </span>
-                          </button>
-                          <span
-                            onClick={() => {
-                              setManualQtyService(s);
-                              setManualQtyInput(qty.toString());
-                            }}
-                            className="w-7 text-center text-xs font-black text-slate-900 cursor-pointer hover:bg-slate-100 rounded py-0.5">
-                            {qty}
+                          className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-full hover:bg-slate-50">
+                          <span className="material-symbols-outlined text-sm">
+                            add
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => updateServiceQty(s, 1)}
-                            className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-50">
-                            <span className="material-symbols-outlined text-sm">
-                              add
-                            </span>
-                          </button>
-                        </div>
-                      )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

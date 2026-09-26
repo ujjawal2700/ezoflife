@@ -38,6 +38,7 @@ import VendorCartDetailsPage from "../pages/VendorCartDetailsPage";
 import VendorProductQueries from "../pages/VendorProductQueries";
 import VendorProductQueryChat from "../pages/VendorProductQueryChat";
 import B2BOrderTrackingPage from "../pages/B2BOrderTrackingPage";
+import VendorOrderChatPage from "../pages/VendorOrderChatPage";
 
 // Profile sub-pages
 import EditProfile from "../pages/EditProfile";
@@ -68,6 +69,7 @@ const VendorRoutes = () => {
         {/* Main App */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/order/:id" element={<OrderDetails />} />
+        <Route path="/order-chat/:orderId" element={<VendorOrderChatPage />} />
         <Route path="/earnings" element={<Earnings />} />
         <Route path="/services" element={<ServiceManagement />} />
         <Route path="/my-services" element={<VendorMyServices />} />

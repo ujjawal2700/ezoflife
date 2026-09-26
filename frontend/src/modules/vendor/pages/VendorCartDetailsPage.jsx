@@ -61,35 +61,12 @@ const VendorCartDetailsPage = () => {
     itemSubtotal,
     totalGst,
     totalDeliveryCharges,
-    grandTotal,
-    totalPlatformFee,
+    grandTotal: localGrandTotal,
+    totalPlatformFee: localPlatformFee,
     payableToSupplier,
     orderItems,
     groupedCarts,
   } = useMemo(() => calculateVendorCart(cart, materials), [cart, materials]);
-
-  // Handle empty cart state
-  if (orderItems.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 mb-4">
-          <ShoppingBag className="w-8 h-8" />
-        </div>
-        <h2 className="text-base font-black uppercase tracking-wider text-slate-800">
-          Your Cart is Empty
-        </h2>
-        <p className="text-xs text-slate-500 mt-1 max-w-xs">
-          Please select materials from the B2B catalog to proceed with
-          procurement.
-        </p>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-6 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md active:scale-95">
-          Return to Catalog
-        </button>
-      </div>
-    );
-  }
 
   let city =
     profileData.shopDetails?.city ||
@@ -118,6 +95,59 @@ const VendorCartDetailsPage = () => {
   }
   if (!city || city === "Unknown") {
     city = "Indore";
+  }
+
+  // The server decides the platform fee. Show its quote (the exact amount
+  // /place will charge); fall back to the local estimate until it arrives.
+  const [feeQuote, setFeeQuote] = useState(null);
+  useEffect(() => {
+    if (orderItems.length === 0) return;
+    let cancelled = false;
+    b2bOrderApi
+      .quotePlatformFee({ items: orderItems, pincode })
+      .then((q) => {
+        if (!cancelled) setFeeQuote(q);
+      })
+      .catch((err) => console.error("Platform fee quote failed:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [orderItems, pincode]);
+
+  const totalPlatformFee = feeQuote
+    ? Number(feeQuote.totalPlatformFee) || 0
+    : localPlatformFee;
+  const grandTotal = localGrandTotal - localPlatformFee + totalPlatformFee;
+  const feeLines = (feeQuote?.groups || [])
+    .filter((g) => g.platformFee > 0)
+    .map((g) => ({
+      ...g,
+      supplierName:
+        groupedCarts.find((c) => c.supplierId === g.supplierId)
+          ?.supplierName || g.supplierId,
+    }));
+
+  // Handle empty cart state
+  if (orderItems.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-400 mb-4">
+          <ShoppingBag className="w-8 h-8" />
+        </div>
+        <h2 className="text-base font-black uppercase tracking-wider text-slate-800">
+          Your Cart is Empty
+        </h2>
+        <p className="text-xs text-slate-500 mt-1 max-w-xs">
+          Please select materials from the B2B catalog to proceed with
+          procurement.
+        </p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-6 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md active:scale-95">
+          Return to Catalog
+        </button>
+      </div>
+    );
   }
 
   const loadRazorpayScript = () => {
@@ -557,6 +587,23 @@ const VendorCartDetailsPage = () => {
                   ? "A nominal platform fee is required to confirm order processing, reserve inventory, and lock wholesale pricing."
                   : "Platform processing fee is waived for this order during the introductory promotional window."}
               </p>
+              {feeLines.length > 0 && (
+                <ul className="mt-2.5 space-y-1">
+                  {feeLines.map((g) => (
+                    <li
+                      key={g.supplierId}
+                      className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="text-slate-600 truncate">
+                        {g.supplierName}
+                        <span className="text-slate-400"> · {g.ruleLabel}</span>
+                      </span>
+                      <span className="font-bold text-slate-800 shrink-0">
+                        ₹{Number(g.platformFee).toFixed(2)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
 

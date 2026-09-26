@@ -1144,6 +1144,28 @@ const Dashboard = () => {
                                   className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md shadow-slate-900/20">
                                   More
                                 </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(
+                                        `/vendor/order-chat/${order._id}`,
+                                      );
+                                    }}
+                                    className="p-1.5 bg-rose-50 text-rose-600 rounded-lg hover:bg-rose-100 transition-all border border-rose-100"
+                                    title="Report Issue / Chat Support">
+                                    <span className="material-symbols-outlined text-[16px] block">
+                                      support_agent
+                                    </span>
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      navigate(`/vendor/order/${order._id}`)
+                                    }
+                                    className="px-4 py-1.5 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-md shadow-slate-900/20">
+                                    More
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </motion.div>

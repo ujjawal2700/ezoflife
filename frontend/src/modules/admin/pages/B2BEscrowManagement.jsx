@@ -82,10 +82,12 @@ export default function B2BEscrowManagement() {
     { 
       header: 'Held Amount', 
       key: 'totalAmount', 
-      render: (val) => (
+      render: (val, row) => (
         <div className="flex flex-col">
           <span className="font-black text-slate-900 tabular-nums text-xs">₹{val.toLocaleString()}</span>
-          <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1">Incl. Platform Fee</span>
+          <span className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1">
+            {row.platformFee > 0 ? `+ ₹${row.platformFee.toLocaleString()} Platform Fee` : 'No Platform Fee'}
+          </span>
         </div>
       )
     },

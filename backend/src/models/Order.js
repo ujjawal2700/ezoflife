@@ -24,10 +24,15 @@ const orderSchema = new mongoose.Schema({
             quantity: { type: Number, required: true },
             price: { type: Number, required: true },
             unit: { type: String, default: 'pc' },
+            weight: { type: Number, default: 0.5 },
             clothCount: { type: Number, default: 0 },
             photos: [{ type: String }]
         }
     ],
+    totalWeight: {
+        type: Number,
+        default: 0
+    },
     status: {
         type: String,
         enum: [

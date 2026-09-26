@@ -42,8 +42,20 @@ const GEOCODE_RESULT = [{
 
 let fetchSpy;
 
+/** Answer fetch by URL substring; anything unmatched fails like a network error. */
+const routeFetch = (routes) => {
+    fetchSpy.mockImplementation(async (url) => {
+        const key = Object.keys(routes).find(k => String(url).includes(k));
+        if (!key) throw new Error(`network error: ${url}`);
+        return { ok: true, json: async () => routes[key] };
+    });
+};
+
+const noGoogleRestCalls = () =>
+    fetchSpy.mock.calls.every(([url]) => !String(url).includes('googleapis.com'));
+
 beforeEach(() => {
-    fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(() => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
         throw new Error('locationService must not call fetch');
     });
 });
@@ -74,14 +86,49 @@ describe('reverseGeocode', () => {
         expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    test('rejects when the geocoder finds nothing', async () => {
+    test('falls back to OpenStreetMap when the geocoder finds nothing', async () => {
         installMaps({ geocoder: mockGeocoder([], 'ZERO_RESULTS') });
-        await expect(locationService.reverseGeocode(0, 0)).rejects.toThrow(/No address found/i);
+        routeFetch({
+            'nominatim.openstreetmap.org': {
+                display_name: 'Vijay Nagar, Indore, Madhya Pradesh, 452010, India',
+                address: { city: 'Indore', suburb: 'Vijay Nagar', state: 'Madhya Pradesh', postcode: '452010', road: 'AB Road' }
+            }
+        });
+
+        const r = await locationService.reverseGeocode(22.75, 75.89);
+
+        expect(r).toEqual({
+            fullAddress: 'Vijay Nagar, Indore, Madhya Pradesh, 452010, India',
+            city: 'Indore',
+            area: 'Vijay Nagar',
+            state: 'Madhya Pradesh',
+            pincode: '452010',
+            subLocal: 'AB Road',
+            lat: 22.75,
+            lng: 75.89
+        });
+        expect(noGoogleRestCalls()).toBe(true);
     });
 
-    test('rejects with the gateway status on failure', async () => {
+    test('falls back to a coordinates label when the geocoder and OpenStreetMap both fail', async () => {
         installMaps({ geocoder: mockGeocoder(null, 'REQUEST_DENIED') });
-        await expect(locationService.reverseGeocode(1, 1)).rejects.toThrow(/REQUEST_DENIED/);
+        // fetch throws by default (beforeEach), so the OpenStreetMap lookup fails too
+
+        const r = await locationService.reverseGeocode(1, 1);
+
+        expect(r.fullAddress).toBe('Location (1.0000, 1.0000)');
+        expect(r.city).toBe('');
+        expect(r.lat).toBe(1);
+        expect(r.lng).toBe(1);
+    });
+
+    test('uses provided fallback data without any lookup', async () => {
+        installMaps({ geocoder: mockGeocoder(GEOCODE_RESULT) });
+        const r = await locationService.reverseGeocode(5, 6, { fullAddress: 'Known Place', city: 'Bhopal', pincode: '462001' });
+        expect(r.fullAddress).toBe('Known Place');
+        expect(r.city).toBe('Bhopal');
+        expect(window.google.maps.Geocoder).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
     });
 
     test('tolerates a result with missing address components', async () => {
@@ -145,25 +192,48 @@ describe('searchLocations', () => {
 });
 
 describe('getCurrentCoordinates', () => {
+    const IP_RESPONSE = { latitude: 22.72, longitude: 75.86, city: 'Indore', region: 'Madhya Pradesh', postal: '452001', country_name: 'India' };
+    let savedGeo;
+
+    beforeEach(() => { savedGeo = globalThis.navigator.geolocation; });
+    afterEach(() => { globalThis.navigator.geolocation = savedGeo; });
+
     test('resolves with the browser position', async () => {
-        global.navigator.geolocation = {
+        globalThis.navigator.geolocation = {
             getCurrentPosition: (ok) => ok({ coords: { latitude: 1, longitude: 2, accuracy: 5 } })
         };
         await expect(locationService.getCurrentCoordinates())
-            .resolves.toEqual({ lat: 1, lng: 2, accuracy: 5 });
+            .resolves.toEqual({ lat: 1, lng: 2, accuracy: 5, isGPS: true });
     });
 
-    test('rejects when the browser denies permission', async () => {
-        global.navigator.geolocation = {
+    test('falls back to IP location when the browser denies permission', async () => {
+        globalThis.navigator.geolocation = {
             getCurrentPosition: (_ok, err) => err(new Error('User denied Geolocation'))
         };
-        await expect(locationService.getCurrentCoordinates()).rejects.toThrow(/denied/i);
+        routeFetch({ 'ipapi.co': IP_RESPONSE });
+
+        const r = await locationService.getCurrentCoordinates();
+
+        expect(r).toMatchObject({ lat: 22.72, lng: 75.86, city: 'Indore', pincode: '452001', isFromIP: true });
     });
 
-    test('rejects when geolocation is unavailable', async () => {
-        const saved = global.navigator.geolocation;
-        delete global.navigator.geolocation;
-        await expect(locationService.getCurrentCoordinates()).rejects.toThrow(/not supported/i);
-        global.navigator.geolocation = saved;
+    test('falls back to IP location when geolocation is unavailable', async () => {
+        delete globalThis.navigator.geolocation;
+        routeFetch({ 'freeipapi.com': { latitude: 19.07, longitude: 72.87, cityName: 'Mumbai', regionName: 'Maharashtra', zipCode: '400001', countryName: 'India' } });
+
+        const r = await locationService.getCurrentCoordinates();
+
+        expect(r).toMatchObject({ lat: 19.07, lng: 72.87, city: 'Mumbai', isFromIP: true });
+    });
+
+    test('returns the default location when GPS and IP lookups all fail', async () => {
+        globalThis.navigator.geolocation = {
+            getCurrentPosition: (_ok, err) => err(new Error('User denied Geolocation'))
+        };
+        // fetch throws by default (beforeEach)
+
+        const r = await locationService.getCurrentCoordinates();
+
+        expect(r).toMatchObject({ lat: 28.6139, lng: 77.2090, city: 'New Delhi', isDefault: true });
     });
 });

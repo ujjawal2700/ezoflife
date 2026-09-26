@@ -828,6 +828,47 @@ export const b2bOrderApi = {
             throw error;
         }
     },
+    // Server-calculated platform fee for a cart (same calculation as placeOrder)
+    quotePlatformFee: async ({ items, pincode }) => {
+        const response = await fetch(`${BASE_URL}/b2b-orders/quote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: items.map(i => ({ materialId: i.materialId, quantity: i.quantity })),
+                pincode
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to calculate platform fee');
+        return data;
+    },
+    getAdminAllOrders: async (params = {}) => {
+        const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString();
+        const response = await fetch(`${BASE_URL}/b2b-orders/admin/all${qs ? `?${qs}` : ''}`, {
+            headers: adminAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to fetch vendor supply orders');
+        return data;
+    },
+    getPlatformFeeConfig: async () => {
+        const response = await fetch(`${BASE_URL}/b2b-orders/admin/platform-fee-config`, {
+            headers: adminAuthHeaders()
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to load platform fee settings');
+        return data;
+    },
+    updatePlatformFeeConfig: async (config) => {
+        const response = await fetch(`${BASE_URL}/b2b-orders/admin/platform-fee-config`, {
+            method: 'PUT',
+            headers: adminAuthHeaders(),
+            body: JSON.stringify(config)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to save platform fee settings');
+        return data;
+    },
     getAdminEscrowOrders: async () => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/admin/escrow`, {
@@ -1651,9 +1692,10 @@ export const ticketApi = {
             throw error;
         }
     },
-    getTicketByOrder: async (orderId) => {
+    getTicketByOrder: async (orderId, role) => {
         try {
-            const response = await fetch(`${BASE_URL}/tickets/order/${orderId}`);
+            const query = role ? `?role=${encodeURIComponent(role)}` : '';
+            const response = await fetch(`${BASE_URL}/tickets/order/${orderId}${query}`);
             return await response.json();
         } catch (error) {
             console.error('Get Ticket By Order Error:', error);
@@ -2224,9 +2266,24 @@ export const promotionApi = {
             throw error;
         }
     },
-    getApplicablePromos: async (vendorId) => {
+    getApplicablePromos: async (params = {}) => {
         try {
-            const response = await fetch(`${BASE_URL}/promotions/applicable?vendorId=${vendorId}`);
+            let query = '';
+            if (typeof params === 'string') {
+                if (params && params !== 'undefined' && params !== 'null') {
+                    query = `?vendorId=${encodeURIComponent(params)}`;
+                }
+            } else if (params && typeof params === 'object') {
+                const sp = new URLSearchParams();
+                if (params.vendorId && params.vendorId !== 'undefined' && params.vendorId !== 'null') {
+                    sp.append('vendorId', params.vendorId);
+                }
+                if (params.lat !== undefined && params.lat !== null) sp.append('lat', params.lat);
+                if (params.lng !== undefined && params.lng !== null) sp.append('lng', params.lng);
+                const s = sp.toString();
+                if (s) query = `?${s}`;
+            }
+            const response = await fetch(`${BASE_URL}/promotions/applicable${query}`);
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to fetch applicable promotions');
             return result;
