@@ -66,6 +66,7 @@ const WalkInOrderPage = () => {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerId, setCustomerId] = useState(null);
   const [customerName, setCustomerName] = useState("");
+  const [walkInWeight, setWalkInWeight] = useState("");
   const [tempName, setTempName] = useState("");
   const [otpValue, setOtpValue] = useState("");
   const [isSendingOtp, setIsSendingOtp] = useState(false);
@@ -1044,8 +1045,20 @@ const WalkInOrderPage = () => {
     0,
   );
 
+  const walkInWeightNum = Number(walkInWeight);
+  const walkInWeightValid =
+    walkInWeight !== "" && walkInWeightNum > 0 && walkInWeightNum <= 200;
+
+  const requireWeight = () => {
+    if (walkInWeightValid) return true;
+    toast.error("Enter the weight of the clothes (0.1–200 kg)");
+    document.getElementById("walkin-weight")?.focus();
+    return false;
+  };
+
   const handleCollectAndPrint = async (razorpayPaymentId = null) => {
     if (!customerPhone || items.length === 0) return;
+    if (!requireWeight()) return;
 
     if (enableDelivery && !isAddressComplete) {
       toast.error("Please complete the delivery address");
@@ -1078,6 +1091,7 @@ const WalkInOrderPage = () => {
         customerPhone,
         customerName,
         vendorId,
+        weight: walkInWeightNum,
         orderType: "Walk-In",
         riderDropOff: enableDelivery,
         deliveryMode: enableDelivery
@@ -1382,6 +1396,50 @@ const WalkInOrderPage = () => {
             )}
           </div>
 
+          {/* Weight Card (required: the weight shown on the order) */}
+          <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
+            <label
+              htmlFor="walkin-weight"
+              className="text-xs font-black text-slate-900 uppercase tracking-wider">
+              Weight of Clothes <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-base">
+                scale
+              </span>
+              <input
+                id="walkin-weight"
+                type="number"
+                inputMode="decimal"
+                min="0.1"
+                max="200"
+                step="0.1"
+                placeholder="Weigh the clothes, e.g. 3.5"
+                value={walkInWeight}
+                onChange={(e) => setWalkInWeight(e.target.value)}
+                aria-invalid={walkInWeight !== "" && !walkInWeightValid}
+                className={`w-full bg-slate-50 border pl-10 pr-12 py-2.5 rounded-xl text-sm font-bold outline-none focus:bg-white transition-all ${
+                  walkInWeight !== "" && !walkInWeightValid
+                    ? "border-rose-400 focus:border-rose-500"
+                    : "border-slate-200 focus:border-slate-400"
+                }`}
+              />
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">
+                kg
+              </span>
+            </div>
+            <p
+              className={`text-[11px] font-medium ${
+                walkInWeight !== "" && !walkInWeightValid
+                  ? "text-rose-500"
+                  : "text-slate-400"
+              }`}>
+              {walkInWeight !== "" && !walkInWeightValid
+                ? "Enter a weight between 0.1 and 200 kg"
+                : "Required. Weigh the clothes at the counter."}
+            </p>
+          </div>
+
           {/* Bill Breakdown Card */}
           <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-3">
             <span className="text-xs font-black text-slate-900 uppercase tracking-wider">
@@ -1452,6 +1510,7 @@ const WalkInOrderPage = () => {
                 whileTap={{ scale: 0.98 }}
                 type="button"
                 onClick={async () => {
+                  if (!requireWeight()) return;
                   if (enableDelivery && !isAddressComplete) {
                     toast.error("Please complete the delivery address");
                     setShowReviewModal(false);

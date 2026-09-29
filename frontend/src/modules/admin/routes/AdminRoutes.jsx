@@ -106,6 +106,12 @@ const AdminGuard = ({ children }) => {
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminData');
+    // Admin login also writes the generic session keys. If they belong to this
+    // stale admin session, clear them too, otherwise the customer app keeps
+    // treating the browser as an admin and redirects here.
+    if ((localStorage.getItem('userRole') || '').toLowerCase() === 'admin') {
+      ['token', 'user_auth_token', 'userRole', 'user', 'userData', 'userId'].forEach(k => localStorage.removeItem(k));
+    }
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 

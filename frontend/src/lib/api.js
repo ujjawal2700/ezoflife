@@ -1521,6 +1521,14 @@ export const orderApi = {
             throw error;
         }
     },
+    recordWeight: async (id, weight) => {
+        const response = await fetch(`${BASE_URL}/orders/${id}/weight`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ weight })
+        });
+        return adJson(response, 'Failed to record weight');
+    },
     verifyHandshake: async (id, phase, otp) => {
         try {
             const response = await fetch(`${BASE_URL}/orders/verify-handshake/${id}`, {

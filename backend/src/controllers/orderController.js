@@ -12,6 +12,8 @@ import { dispatchReturn } from '../services/logistics/dispatch.js';
 import Razorpay from 'razorpay';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
 import { verifyRazorpayPayment } from '../utils/paymentVerification.js';
+import { sendError } from '../utils/errorResponse.js';
+import { estimateWeightFromItems, isInvalidWeight, MAX_WEIGHT_KG, parseWeightKg, resolveOrderWeight } from '../utils/orderWeight.js';
 import { resolveActorId, isOwnerOrAdmin } from '../middleware/authMiddleware.js';
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
@@ -271,6 +273,10 @@ export const createOrder = async (req, res) => {
         const customerId = resolveActorId(req, 'customerId');
 
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
+        // Optional approximate weight from the customer; checked before any payment work
+        if (isInvalidWeight(req.body.approxWeight)) {
+            return res.status(400).json({ message: `Approximate weight must be between 0.1 and ${MAX_WEIGHT_KG} kg` });
+        }
 
         // Reject a malformed id up front. Without this, findById throws a CastError
         // that surfaces as a 500 — bad client input should never read as a server fault.
@@ -568,17 +574,16 @@ export const createOrder = async (req, res) => {
             console.log(`💸 [WALLET] Deducted ₹${walletDeduction} from customer ${customerUser.phone} for order`);
         }
 
-        const orderTotalWeight = req.body.totalWeight !== undefined && req.body.totalWeight !== null
-            ? Number(req.body.totalWeight)
-            : items.reduce((acc, i) => {
-                const w = Number(i.weight || (i.unit === 'kg' ? 1 : 0.5));
-                const q = Number(i.quantity || 1);
-                return acc + (w * q);
-            }, 0);
+        // Weight: customer's approximate weight if given, otherwise an estimate from
+        // the services' Avg Weight. Client-sent per-item weights are not trusted.
+        const customerWeight = parseWeightKg(req.body.approxWeight);
+        const estimatedWeight = await estimateWeightFromItems(items);
+        const orderWeight = resolveOrderWeight({ customerWeight, estimatedWeight });
+        const itemsForOrder = (items || []).map(({ weight, ...rest }) => rest);
 
         const newOrder = new Order({
             customer: customerId,
-            items,
+            items: itemsForOrder,
             pickupSlot,
             deliverySlot,
             pickupAddress,
@@ -610,7 +615,10 @@ export const createOrder = async (req, res) => {
             allocation_status: allocationStatus,
             allocation_expires_at: allocationExpiresAt,
             isCustomerRD: isCustomerRD,
-            totalWeight: Math.round(orderTotalWeight * 100) / 100,
+            totalWeight: orderWeight.totalWeight,
+            weightSource: orderWeight.weightSource,
+            customerWeight,
+            estimatedWeight,
             customerSnapshot: {
                 displayName: customerUser.displayName || null,
                 phone: customerUser.phone || null,
@@ -1872,6 +1880,12 @@ export const createWalkInOrder = async (req, res) => {
             return res.status(400).json({ message: 'Missing required fields for walk-in order' });
         }
 
+        // The clothes are at the counter, so the vendor must weigh them.
+        const weighedWeight = parseWeightKg(req.body.weight);
+        if (!weighedWeight) {
+            return res.status(400).json({ message: `Enter the weight of the clothes (0.1–${MAX_WEIGHT_KG} kg)` });
+        }
+
         // 1. Find or create a shadow user for this walk-in customer
         let customer = await User.findOne({ phone: new RegExp(customerPhone.slice(-10) + '$') });
         
@@ -1954,6 +1968,10 @@ export const createWalkInOrder = async (req, res) => {
                 price: item.price,
                 unit: 'pc'
             })),
+            totalWeight: weighedWeight,
+            weightSource: 'weighed',
+            weighedWeight,
+            weighedAt: new Date(),
             status: 'PROCESSING', // Direct to progress
             paymentStatus: 'Paid', // Assuming cash/direct payment for walk-in
             totalAmount: invoiceData.customerInvoice.totalAmount || totalAmount,
@@ -2224,5 +2242,39 @@ export const getOrderInvoices = async (req, res) => {
     } catch (err) {
         console.error('Error fetching order invoices:', err);
         res.status(500).json({ message: 'Error fetching order invoices', error: err.message });
+    }
+};
+
+// Vendor records the measured weight once the clothes are with them.
+// It replaces the customer's estimate / the Avg Weight estimate.
+const WEIGHABLE_STATUSES = ['RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH'];
+export const recordOrderWeight = async (req, res) => {
+    try {
+        const weighedWeight = parseWeightKg(req.body.weight);
+        if (!weighedWeight) {
+            return res.status(400).json({ message: `Weight must be between 0.1 and ${MAX_WEIGHT_KG} kg` });
+        }
+        const order = await Order.findById(req.params.id);
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+
+        const isAdmin = req.user?.role === 'Admin';
+        if (!isAdmin && String(order.vendor) !== String(req.user?.id)) {
+            return res.status(403).json({ message: 'Only the vendor handling this order can record its weight' });
+        }
+        if (!isAdmin && !WEIGHABLE_STATUSES.includes(order.status)) {
+            return res.status(400).json({ message: 'Weight can be recorded once the clothes have reached you' });
+        }
+
+        order.weighedWeight = weighedWeight;
+        order.weighedAt = new Date();
+        order.totalWeight = weighedWeight;
+        order.weightSource = 'weighed';
+        await order.save();
+        res.json({
+            message: 'Weight recorded',
+            weight: { totalWeight: order.totalWeight, weightSource: order.weightSource, weighedAt: order.weighedAt, customerWeight: order.customerWeight }
+        });
+    } catch (err) {
+        sendError(res, err, 'Error recording weight');
     }
 };

@@ -66,6 +66,10 @@ const CartPage = () => {
   });
 
   const [clothCounts, setClothCounts] = useState({});
+  // Optional approximate weight (kg) of the clothes being sent
+  const [approxWeight, setApproxWeight] = useState('');
+  const approxWeightNum = Number(approxWeight);
+  const approxWeightInvalid = approxWeight !== '' && !(approxWeightNum > 0 && approxWeightNum <= 200);
 
   const cartItems = useMemo(() => {
     if (services.length === 0) return [];
@@ -624,6 +628,11 @@ const CartPage = () => {
   const [specialInstructions, setSpecialInstructions] = useState(() => localStorage.getItem('order_notes') || '');
 
   const handlePlaceOrder = async () => {
+    if (approxWeightInvalid) {
+      toast.error('Approximate weight must be between 0.1 and 200 kg');
+      document.getElementById('approx-weight')?.focus();
+      return;
+    }
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = userData._id || userData.id; 
@@ -720,26 +729,17 @@ const CartPage = () => {
         customerId: userId,
         items: cartItems.map(item => {
           const itemId = item._id || item.id;
-          const u = billingUnits[itemId];
-          const w = u === 'kg' ? 1 : Number(item.avgWeight || item.weight || 0.5);
           return {
             serviceId: itemId,
             name: item.name || item.itemName || 'Service Item',
             quantity: quantities[itemId],
             price: getItemPrice(item),
             unit: billingUnits[itemId],
-            unit: u,
-            weight: w,
             photos: itemPhotos[itemId] || []
           };
         }),
-        totalWeight: cartItems.reduce((acc, item) => {
-          const itemId = item._id || item.id;
-          const q = Number(quantities[itemId] || 0);
-          const u = billingUnits[itemId];
-          const w = u === 'kg' ? 1 : Number(item.avgWeight || item.weight || 0.5);
-          return acc + (q * w);
-        }, 0),
+        // Customer's optional estimate; the server otherwise estimates from each service's Avg Weight
+        approxWeight: approxWeight === '' ? undefined : approxWeightNum,
         pickupSlot: { date: selectedPickup, time: pickupTime },
         deliverySlot: { date: selectedDelivery, time: deliveryTime },
         pickupAddress: selectedPickupAddress?.address || '',
@@ -1124,6 +1124,33 @@ const CartPage = () => {
             </div>
           </div>
             
+            {/* Approximate weight (optional) */}
+            <div className="bg-slate-950 text-white px-6 pt-5 pb-1">
+              <label htmlFor="approx-weight" className="block text-[8px] font-black text-white/40 uppercase tracking-widest mb-2">
+                Approx. weight of clothes <span className="text-white/25">· optional</span>
+              </label>
+              <div className={`flex items-center rounded-xl bg-white/5 border ${approxWeightInvalid ? 'border-rose-400/70' : 'border-white/10'} focus-within:border-white/40 transition-colors`}>
+                <input
+                  id="approx-weight"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.1"
+                  max="200"
+                  step="0.1"
+                  placeholder="e.g. 3.5"
+                  value={approxWeight}
+                  onChange={(e) => setApproxWeight(e.target.value)}
+                  aria-invalid={approxWeightInvalid}
+                  aria-describedby="approx-weight-hint"
+                  className="flex-1 bg-transparent px-4 py-3 text-sm font-bold text-white placeholder:text-white/25 outline-none min-w-0"
+                />
+                <span className="pr-4 text-[10px] font-black text-white/40 uppercase">kg</span>
+              </div>
+              <p id="approx-weight-hint" className={`mt-1.5 text-[9px] font-semibold ${approxWeightInvalid ? 'text-rose-300' : 'text-white/35'}`}>
+                {approxWeightInvalid ? 'Enter a weight between 0.1 and 200 kg' : 'Your estimate helps the vendor plan. They weigh the clothes on arrival.'}
+              </p>
+            </div>
+
             {/* 2. PRICE BREAKDOWN / PAYMENT BOX */}
             <div className="bg-slate-950 text-white rounded-b-[2rem] p-6 shadow-2xl space-y-4 relative overflow-hidden group">
             <div className="absolute right-0 top-0 p-8 opacity-[0.02] rotate-12 pointer-events-none group-hover:opacity-[0.04] transition-opacity">

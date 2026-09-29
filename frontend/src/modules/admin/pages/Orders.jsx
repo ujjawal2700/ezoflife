@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { formatOrderWeight, getOrderWeight } from "../../../lib/orderWeight";
 import {
   ShoppingBag,
   Search,
@@ -146,31 +147,6 @@ const calculateTotalTurnaroundTime = (row) => {
   if (diffMs <= 0) return "0.0 hrs";
   const diffHours = diffMs / (1000 * 60 * 60);
   return `${diffHours.toFixed(1)} hrs`;
-};
-
-const calculateRowWeight = (row) => {
-  if (
-    row.totalWeight !== undefined &&
-    row.totalWeight !== null &&
-    !isNaN(Number(row.totalWeight)) &&
-    Number(row.totalWeight) > 0
-  ) {
-    return Number(row.totalWeight);
-  }
-  if (row.singleItem) {
-    const item = row.singleItem;
-    if (item.unit === "kg") return Number(item.quantity || 0);
-    const w = Number(item.weight || item.avgWeight || 0.5);
-    return (Number(item.quantity) || 1) * w;
-  }
-  if (Array.isArray(row.items) && row.items.length > 0) {
-    return row.items.reduce((sum, item) => {
-      if (item.unit === "kg") return sum + Number(item.quantity || 0);
-      const w = Number(item.weight || item.avgWeight || 0.5);
-      return sum + (Number(item.quantity) || 1) * w;
-    }, 0);
-  }
-  return 0;
 };
 
 export default function Orders() {
@@ -759,7 +735,7 @@ export default function Orders() {
         row.singleItem
           ? `${row.singleItem.name} (Qty: ${row.singleItem.quantity}, Rate: Rs. ${row.singleItem.price})`
           : "-",
-        `${calculateRowWeight(row).toFixed(1)} kg`,
+        formatOrderWeight(row),
         row.status,
         "-",
         "-",
@@ -888,7 +864,7 @@ export default function Orders() {
         "Rider ID",
         "Rider Name",
         "Service Items JSON",
-        "Total Weight (kg)",
+        "Total Weight",
         "Current Order Status",
         "Rider ID",
         "Rider Name",
@@ -938,7 +914,7 @@ export default function Orders() {
         row.singleItem
           ? `${row.singleItem.name} (Qty: ${row.singleItem.quantity}, Rate: Rs. ${row.singleItem.price})`
           : "-",
-        Number(calculateRowWeight(row)).toFixed(1),
+        formatOrderWeight(row),
         row.status,
         "-",
         "-",
@@ -1280,10 +1256,25 @@ export default function Orders() {
           key: "totalWeight",
           align: "right",
           render: (val, row) => {
-            const weight = calculateRowWeight(row);
+            const weight = getOrderWeight(row);
+            if (weight.kg === null) {
+              return (
+                <span className="text-slate-400 text-xs" title="No weight recorded yet">
+                  —
+                </span>
+              );
+            }
             return (
-              <span className="font-bold text-slate-800 tabular-nums text-xs bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
-                {weight > 0 ? `${weight.toFixed(1)} kg` : "0 kg"}
+              <span className="inline-flex flex-col items-end gap-0.5">
+                <span className="font-bold text-slate-800 tabular-nums text-xs bg-slate-50 border border-slate-200 px-2 py-0.5 rounded">
+                  {weight.text}
+                </span>
+                <span
+                  className={`text-[9px] font-bold uppercase tracking-wider ${
+                    weight.exact ? "text-emerald-600" : "text-amber-600"
+                  }`}>
+                  {weight.label}
+                </span>
               </span>
             );
           },

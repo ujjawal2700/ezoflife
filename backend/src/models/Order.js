@@ -24,15 +24,25 @@ const orderSchema = new mongoose.Schema({
             quantity: { type: Number, required: true },
             price: { type: Number, required: true },
             unit: { type: String, default: 'pc' },
-            weight: { type: Number, default: 0.5 },
+            weight: { type: Number, default: null },
             clothCount: { type: Number, default: 0 },
             photos: [{ type: String }]
         }
     ],
+    // Best available weight in kg (null = unknown); see utils/orderWeight.js
     totalWeight: {
         type: Number,
-        default: 0
+        default: null
     },
+    weightSource: {
+        type: String,
+        enum: ['weighed', 'customer', 'estimated', null],
+        default: null
+    },
+    customerWeight: { type: Number, default: null },   // customer's approximate weight
+    weighedWeight: { type: Number, default: null },    // measured by the vendor
+    weighedAt: { type: Date, default: null },
+    estimatedWeight: { type: Number, default: null },  // from services' Avg Weight
     status: {
         type: String,
         enum: [

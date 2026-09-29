@@ -15,7 +15,8 @@ import {
     handleGetNearbyVendors,
     createRazorpayOrder,
     cancelOrder,
-    getOrderInvoices
+    getOrderInvoices,
+    recordOrderWeight
 } from '../controllers/orderController.js';
 import { verifyAdmin, verifyAdminOrVendor, verifyUser } from '../middleware/authMiddleware.js';
 import { getVendorInsights } from '../controllers/vendorInsightsController.js';
@@ -45,6 +46,7 @@ router.post('/razorpay', verifyUser, createRazorpayOrder);
 
 router.patch('/status/:id', verifyUser, updateOrderStatus);
 router.post('/mark-ready/:id', verifyUser, markOrderReady);
+router.patch('/:id/weight', verifyUser, recordOrderWeight);
 router.post('/verify-handshake/:id', verifyUser, verifyHandshake);
 router.post('/cancel/:id', verifyUser, cancelOrder);
 
