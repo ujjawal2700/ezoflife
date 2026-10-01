@@ -127,13 +127,52 @@ export const getDashboardAnalytics = async (req, res) => {
         // "prior period") is respected instead of being overwritten.
         const withPeriod = (extra) => ({ ...extra, createdAt: extra.createdAt ?? { $gte: start, $lte: end } });
 
-        // B2C orders, filtered by the customer's location
+        const businessCustomerUserMatch = {
+            $or: [
+                { customerType: { $regex: /^retail$/i } },
+                { gstNumber: { $type: 'string', $regex: /\S/ } }
+            ]
+        };
+        const individualCustomerUserMatch = { $nor: businessCustomerUserMatch.$or };
+        let businessCustomerIdsCache;
+        let individualCustomerIdsCache;
+        const customerIdsForSegment = async (business) => {
+            if (business && !businessCustomerIdsCache) {
+                businessCustomerIdsCache = await User.distinct('_id', { role: 'Customer', ...businessCustomerUserMatch });
+            }
+            if (!business && !individualCustomerIdsCache) {
+                individualCustomerIdsCache = await User.distinct('_id', { role: 'Customer', ...individualCustomerUserMatch });
+            }
+            return business ? businessCustomerIdsCache : individualCustomerIdsCache;
+        };
+        const appendAnd = (q, condition) => {
+            q.$and = [...(q.$and || []), condition];
+        };
+
+        const businessOrderCondition = async () => ({
+            $or: [
+                { customer: { $in: await customerIdsForSegment(true) } },
+                { 'customerSnapshot.customerType': { $regex: /^retail$/i } },
+                { 'customerSnapshot.gstNumber': { $type: 'string', $regex: /\S/ } }
+            ]
+        });
+        const individualOrderCondition = async () => ({
+            $and: [
+                { $or: [
+                    { customer: { $in: await customerIdsForSegment(false) } },
+                    { 'customerSnapshot.isExUser': true }
+                ] },
+                { 'customerSnapshot.customerType': { $not: /^retail$/i } },
+                { 'customerSnapshot.gstNumber': { $not: /\S/ } }
+            ]
+        });
+
+        // Customer-service orders are split by the customer account: individual
+        // orders are B2C; retail/GST-registered customer orders are B2B.
         const buildOrderQuery = async (extra = {}) => {
             const q = withPeriod(extra);
-            if (channel === 'B2B') {
-                q._id = null;
-                return q;
-            }
+            if (channel === 'B2B') appendAnd(q, await businessOrderCondition());
+            if (channel === 'B2C') appendAnd(q, await individualOrderCondition());
             if (hasGeoFilter) {
                 const legacyCustomerIds = await userIdsInLocation(['Customer']);
                 const snapshot = {};
@@ -141,10 +180,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 if (city) snapshot['analyticsLocation.city'] = { $regex: new RegExp(city, 'i') };
                 if (pincode) snapshot['analyticsLocation.pincode'] = pincode;
                 if (geofence) snapshot['analyticsLocation.geofence'] = { $regex: new RegExp(`^${geofence}$`, 'i') };
-                q.$and = [
-                    ...(q.$and || []),
-                    { $or: [{ customer: { $in: legacyCustomerIds } }, snapshot] }
-                ];
+                appendAnd(q, { $or: [{ customer: { $in: legacyCustomerIds } }, snapshot] });
             }
             return q;
         };
@@ -177,11 +213,28 @@ export const getDashboardAnalytics = async (req, res) => {
         // Tickets raised by customers or vendors in the location
         const buildTicketQuery = async (extra = {}) => {
             const q = withPeriod(extra);
-            if (channel === 'B2C') q.userType = 'Customer';
-            if (channel === 'B2B') q.userType = { $in: ['Vendor', 'Supplier'] };
+            if (channel === 'B2C') {
+                appendAnd(q, { userType: 'Customer' });
+                appendAnd(q, { $or: [
+                    { customer: { $in: await customerIdsForSegment(false) } },
+                    {
+                        'customerSnapshot.isExUser': true,
+                        'customerSnapshot.customerType': { $not: /^retail$/i },
+                        'customerSnapshot.gstNumber': { $not: /\S/ }
+                    }
+                ] });
+            }
+            if (channel === 'B2B') {
+                appendAnd(q, { $or: [
+                    { userType: { $in: ['Vendor', 'Supplier'] } },
+                    { userType: 'Customer', customer: { $in: await customerIdsForSegment(true) } },
+                    { userType: 'Customer', 'customerSnapshot.customerType': { $regex: /^retail$/i } },
+                    { userType: 'Customer', 'customerSnapshot.gstNumber': { $type: 'string', $regex: /\S/ } }
+                ] });
+            }
             if (hasGeoFilter) {
                 const ids = await userIdsInLocation(['Customer', 'Vendor']);
-                q.$or = [{ customer: { $in: ids } }, { vendor: { $in: ids } }, { supplier: { $in: ids } }];
+                appendAnd(q, { $or: [{ customer: { $in: ids } }, { vendor: { $in: ids } }, { supplier: { $in: ids } }] });
             }
             return q;
         };
@@ -202,10 +255,9 @@ export const getDashboardAnalytics = async (req, res) => {
         // Feedback from customers in the location
         const buildFeedbackQuery = async (extra = {}) => {
             const q = withPeriod(extra);
-            if (channel === 'B2B') q._id = null;
-            if (hasGeoFilter) {
-                q.user = { $in: await userIdsInLocation(['Customer']) };
-            }
+            if (channel === 'B2B') appendAnd(q, { user: { $in: await customerIdsForSegment(true) } });
+            if (channel === 'B2C') appendAnd(q, { user: { $in: await customerIdsForSegment(false) } });
+            if (hasGeoFilter) appendAnd(q, { user: { $in: await userIdsInLocation(['Customer']) } });
             return q;
         };
 
@@ -217,7 +269,12 @@ export const getDashboardAnalytics = async (req, res) => {
         const priorEnd = new Date(start.getTime());
         const daysAgo = (n) => new Date(Date.now() - n * 24 * 60 * 60 * 1000);
 
-        const customerQuery = buildUserQuery('Customer');
+        const customerSegmentMatch = channel === 'B2B'
+            ? businessCustomerUserMatch
+            : channel === 'B2C'
+                ? individualCustomerUserMatch
+                : {};
+        const customerQuery = buildUserQuery('Customer', customerSegmentMatch);
         const recentOrderQuery = await buildOrderQuery({ createdAt: { $gte: daysAgo(30) } });
 
         const [
@@ -230,12 +287,12 @@ export const getDashboardAnalytics = async (req, res) => {
             priorNewCustomersCount
         ] = await Promise.all([
             User.countDocuments(customerQuery),
-            User.countDocuments(buildUserQuery('Customer', { customerType: { $ne: 'retail' } })),
-            User.countDocuments(buildUserQuery('Customer', { customerType: 'retail' })),
+            User.countDocuments(buildUserQuery('Customer', individualCustomerUserMatch)),
+            User.countDocuments(buildUserQuery('Customer', businessCustomerUserMatch)),
             Order.distinct('customer', recentOrderQuery),
-            User.find(buildUserQuery('Customer', { createdAt: { $gte: daysAgo(1) } })).select('_id').lean(),
-            User.countDocuments(buildUserQuery('Customer', {}, { signedUpInPeriod: true })),
-            User.countDocuments(buildUserQuery('Customer', { createdAt: { $gte: priorStart, $lt: priorEnd } }))
+            User.find(buildUserQuery('Customer', { ...customerSegmentMatch, createdAt: { $gte: daysAgo(1) } })).select('_id').lean(),
+            User.countDocuments(buildUserQuery('Customer', customerSegmentMatch, { signedUpInPeriod: true })),
+            User.countDocuments(buildUserQuery('Customer', { ...customerSegmentMatch, createdAt: { $gte: priorStart, $lt: priorEnd } }))
         ]);
 
         // Customers in the location with no order in the last 30 days
@@ -519,23 +576,25 @@ export const getDashboardAnalytics = async (req, res) => {
         const manufacturersCount = Math.max(0, totalSuppliers - wholesalersCount);
         const b2cRev = b2cRevenues[0]?.total || 0;
         const b2bRev = b2bRevenues[0]?.total || 0;
-        const grossRevenue = (channel === 'B2B') ? b2bRev : (channel === 'B2C') ? b2cRev : (b2cRev + b2bRev);
+        // In B2B, transaction value includes both business-customer service
+        // orders and vendor-to-supplier supply orders.
+        const grossRevenue = channel === 'B2C' ? b2cRev : (b2cRev + b2bRev);
 
         const b2cPlatform = b2cRevenues[0]?.platform || 0;
         const b2bPlatformRaised = b2bFeeAgg[0]?.raised || 0;
         const b2bPlatform = b2bFeeAgg[0]?.collected || 0;
         const b2bPlatformPending = b2bFeeAgg[0]?.pending || 0;
-        const netProfit = (channel === 'B2B') ? b2bPlatform : (channel === 'B2C') ? b2cPlatform : (b2cPlatform + b2bPlatform);
+        const netProfit = channel === 'B2C' ? b2cPlatform : (b2cPlatform + b2bPlatform);
 
-        const logisticsFee = (channel === 'B2B') ? 0 : (b2cRevenues[0]?.logistics || 0);
+        const logisticsFee = b2cRevenues[0]?.logistics || 0;
         const b2cVendorPayable = b2cRevenues[0]?.vendorPayable || 0;
         const directSupplierPayable = b2bRev;
-        const vendorPayouts = channel === 'B2B' ? 0 : b2cVendorPayable;
+        const vendorPayouts = b2cVendorPayable;
         const walletLiability = walletAgg[0]?.total || 0;
 
         const b2cRefunds = b2cRefundAgg[0]?.total || 0;
         const b2bRefunds = b2bRefundAgg[0]?.total || 0;
-        const totalRefunds = (channel === 'B2B') ? b2bRefunds : (channel === 'B2C') ? b2cRefunds : (b2cRefunds + b2bRefunds);
+        const totalRefunds = channel === 'B2C' ? b2cRefunds : (b2cRefunds + b2bRefunds);
 
         // Merge real monthly aggregations
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -557,10 +616,10 @@ export const getDashboardAnalytics = async (req, res) => {
             const b2bMPlat = b2bItem?.platform || 0;
             const logM = b2cItem?.logistics || 0;
 
-            const revM = (channel === 'B2B') ? b2bMRev : (channel === 'B2C') ? b2cMRev : (b2cMRev + b2bMRev);
-            const profM = (channel === 'B2B') ? b2bMPlat : (channel === 'B2C') ? b2cMPlat : (b2cMPlat + b2bMPlat);
+            const revM = channel === 'B2C' ? b2cMRev : (b2cMRev + b2bMRev);
+            const profM = channel === 'B2C' ? b2cMPlat : (b2cMPlat + b2bMPlat);
             const b2cPayableM = Math.max(0, b2cMRev - b2cMPlat - logM);
-            const payM = (channel === 'B2B') ? b2bMRev : (channel === 'B2C') ? b2cPayableM : (b2cPayableM + b2bMRev);
+            const payM = channel === 'B2C' ? b2cPayableM : (b2cPayableM + b2bMRev);
 
             dynamicMonthlyTrend.push({
                 month: label,
@@ -579,7 +638,7 @@ export const getDashboardAnalytics = async (req, res) => {
         // Revenue change vs the previous period of equal length, same filters
         const priorB2CRev = priorB2CRevenues[0]?.total || 0;
         const priorB2BRev = priorB2BRevenues[0]?.total || 0;
-        const priorGross = (channel === 'B2B') ? priorB2BRev : (channel === 'B2C') ? priorB2CRev : (priorB2CRev + priorB2BRev);
+        const priorGross = channel === 'B2C' ? priorB2CRev : (priorB2CRev + priorB2BRev);
         let revenueTrendMoM = '0%';
         if (priorGross > 0) {
             const diff = ((grossRevenue - priorGross) / priorGross) * 100;
@@ -820,7 +879,7 @@ export const getDashboardAnalytics = async (req, res) => {
             comment: order.supplierRating?.comment || ''
         }));
         const sentimentFeedbacks = channel === 'B2B'
-            ? supplierFeedbacks
+            ? [...feedbacks, ...supplierFeedbacks]
             : channel === 'B2C'
                 ? feedbacks
                 : [...feedbacks, ...supplierFeedbacks];
@@ -879,7 +938,9 @@ export const getDashboardAnalytics = async (req, res) => {
                     transactionValue: grossRevenue,
                     platformRevenue: netProfit,
                     activeB2COrders,
-                    activeB2BOrders: b2bActive,
+                    activeB2BOrders: channel === 'B2B' ? activeB2COrders + b2bActive : b2bActive,
+                    activeBusinessCustomerOrders: channel === 'B2B' ? activeB2COrders : 0,
+                    activeSupplyOrders: b2bActive,
                     awaitingB2BPlatformFee: b2bAwaitingFee,
                     totalCustomers,
                     orderingCustomers: orderingCustomerIds.filter(Boolean).length,
@@ -949,6 +1010,11 @@ export const getDashboardAnalytics = async (req, res) => {
                         walletLiability
                     },
                     b2b: {
+                        transactionValue: b2cRev + b2bRev,
+                        businessCustomerOrderValue: channel === 'B2B' ? b2cRev : 0,
+                        businessCustomerPlatformRevenue: channel === 'B2B' ? b2cPlatform : 0,
+                        businessCustomerVendorPayable: channel === 'B2B' ? b2cVendorPayable : 0,
+                        businessCustomerLogisticsCharges: channel === 'B2B' ? (b2cRevenues[0]?.logistics || 0) : 0,
                         supplierOrderValue: b2bRev,
                         directSupplierPayable,
                         platformFeesRaised: b2bPlatformRaised,
@@ -982,6 +1048,24 @@ export const getDashboardAnalytics = async (req, res) => {
                     readyForDispatch: readyForDispatch,
                     outboundLogistics: outboundLogistics,
                     reverseLogistics: reverseLogistics,
+                    violations: {
+                        pickup: pickupViolations,
+                        dropoff: dropoffViolations,
+                        vendorSla: vendorSlaViolations
+                    }
+                },
+                customerServiceLifecycle: {
+                    segment: channel === 'B2B' ? 'business' : channel === 'B2C' ? 'individual' : 'all',
+                    totalSubmitted,
+                    active: activeB2COrders,
+                    totalAccepted,
+                    logisticsBounces,
+                    immediateTimeouts,
+                    criticalTimeouts,
+                    inProgress,
+                    readyForDispatch,
+                    outboundLogistics,
+                    reverseLogistics,
                     violations: {
                         pickup: pickupViolations,
                         dropoff: dropoffViolations,

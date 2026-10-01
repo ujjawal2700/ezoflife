@@ -711,6 +711,7 @@ export const deleteUser = async (req, res) => {
                             phone,
                             email,
                             customerType: user.customerType || 'individual',
+                            gstNumber: user.gstNumber || null,
                             isExUser: true
                         }
                     }
@@ -798,6 +799,8 @@ export const deleteUser = async (req, res) => {
                         customerSnapshot: {
                             displayName: exDisplayName,
                             phone,
+                            customerType: user.customerType || 'individual',
+                            gstNumber: user.gstNumber || null,
                             isExUser: true
                         }
                     }

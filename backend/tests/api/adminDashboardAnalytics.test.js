@@ -34,7 +34,7 @@ before(async () => {
 
     await db.collection('users').insertMany([
         customer(c1, '9300000001', ago(90 * DAY), 100),
-        customer(c2, '9300000002', ago(90 * DAY), 100),
+        { ...customer(c2, '9300000002', ago(90 * DAY), 100), customerType: 'retail', gstNumber: '23ABCDE1234F1Z5' },
         customer(c3, '9300000003', ago(90 * DAY), 100),
         customer(c4, '9300000004', ago(3 * DAY), 50),
         customer(c5, '9300000005', ago(90 * DAY), 0, { city: 'Pune', state: 'Maharashtra', pincode: '411001' }),
@@ -118,8 +118,15 @@ describe('admin dashboard: revenue', () => {
     });
 
     test('channel filter', async () => {
-        assert.equal((await analytics('&channel=B2C')).financials.grossRevenue, 1500);
-        assert.equal((await analytics('&channel=B2B')).financials.grossRevenue, 800);
+        const b2c = await analytics('&channel=B2C');
+        const b2b = await analytics('&channel=B2B');
+        assert.equal(b2c.financials.grossRevenue, 1000, 'B2C contains individual-customer service orders only');
+        assert.equal(b2b.financials.grossRevenue, 1300, 'B2B combines business-customer services and supply orders');
+        assert.equal(b2b.financials.b2b.businessCustomerOrderValue, 500);
+        assert.equal(b2b.financials.b2b.supplierOrderValue, 800);
+        assert.equal(b2b.financials.netProfit, 90, 'B2B platform revenue combines service margin and collected supply fees');
+        assert.equal(b2b.customerAnalytics.totalCustomers, 1);
+        assert.equal(b2c.customerAnalytics.totalCustomers, 4);
     });
 
     test('overview separates active B2C, active B2B and fee-pending orders', async () => {

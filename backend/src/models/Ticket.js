@@ -55,6 +55,8 @@ const ticketSchema = new mongoose.Schema({
     customerSnapshot: {
         displayName: { type: String, default: null },
         phone: { type: String, default: null },
+        customerType: { type: String, default: null },
+        gstNumber: { type: String, default: null },
         isExUser: { type: Boolean, default: false }
     },
     order: {

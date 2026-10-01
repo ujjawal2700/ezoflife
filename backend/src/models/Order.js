@@ -245,6 +245,7 @@ const orderSchema = new mongoose.Schema({
         phone: { type: String, default: null },
         email: { type: String, default: null },
         customerType: { type: String, default: null },
+        gstNumber: { type: String, default: null },
         isExUser: { type: Boolean, default: false }
     },
     vendorSnapshot: {

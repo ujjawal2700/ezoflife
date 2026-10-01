@@ -219,9 +219,11 @@ export default function Dashboard() {
     if (!analytics?.financials) return [];
     if (channel === "B2B") {
       return [
+        { name: "Business Customer Orders", value: analytics.financials.b2b?.businessCustomerOrderValue || 0, color: "#2563eb" },
+        { name: "Vendor Service Payable", value: -(analytics.financials.b2b?.businessCustomerVendorPayable || 0), color: "#f97316" },
         { name: "Supplier Orders", value: analytics.financials.b2b?.supplierOrderValue || 0, color: "#3b82f6" },
         { name: "Direct to Suppliers", value: -(analytics.financials.b2b?.directSupplierPayable || 0), color: "#f59e0b" },
-        { name: "Fees Collected", value: analytics.financials.b2b?.platformFeesCollected || 0, color: "#10b981" },
+        { name: "Platform Revenue", value: analytics.financials.netProfit || 0, color: "#10b981" },
         { name: "Fees Pending", value: analytics.financials.b2b?.platformFeesPending || 0, color: "#8b5cf6" },
       ];
     }
@@ -264,10 +266,10 @@ export default function Dashboard() {
   const isB2C = channel === "B2C";
   const overviewCards = isB2B
     ? [
+        { label: "Business customer orders", value: money(analytics?.financials?.b2b?.businessCustomerOrderValue), note: `${analytics?.overview?.orderingCustomers || 0} ordering businesses`, icon: "business_center" },
         { label: "Supplier order value", value: money(analytics?.financials?.b2b?.supplierOrderValue), note: "Paid directly to suppliers", icon: "inventory_2" },
-        { label: "Platform fees collected", value: money(analytics?.financials?.b2b?.platformFeesCollected), note: `${money(analytics?.financials?.b2b?.platformFeesPending)} pending`, icon: "payments" },
-        { label: "Active B2B orders", value: analytics?.overview?.activeB2BOrders || 0, note: `${analytics?.overview?.awaitingB2BPlatformFee || 0} awaiting fee`, icon: "local_shipping" },
-        { label: "Ordering vendors", value: analytics?.overview?.orderingVendors || 0, note: `${analytics?.overview?.participatingSuppliers || 0} participating suppliers`, icon: "storefront" },
+        { label: "B2B platform revenue", value: money(analytics?.overview?.platformRevenue), note: `Service margin + ${money(analytics?.financials?.b2b?.platformFeesCollected)} supply fees`, icon: "payments" },
+        { label: "Active B2B transactions", value: analytics?.overview?.activeB2BOrders || 0, note: `${analytics?.overview?.activeBusinessCustomerOrders || 0} business service · ${analytics?.overview?.activeSupplyOrders || 0} supply`, icon: "local_shipping" },
       ]
     : isB2C
       ? [
@@ -285,11 +287,10 @@ export default function Dashboard() {
 
   const lifecycleSteps = isB2B
     ? [
-        { label: "Orders placed", value: analytics?.orderLifecycleB2B?.totalPlaced, color: "bg-blue-500" },
-        { label: "Accepted", value: analytics?.orderLifecycleB2B?.totalAccepted, color: "bg-indigo-500" },
-        { label: "Processing", value: analytics?.orderLifecycleB2B?.inProgress, color: "bg-amber-500" },
-        { label: "Dispatched", value: analytics?.orderLifecycleB2B?.dispatched, color: "bg-purple-500" },
-        { label: "Delivered", value: analytics?.orderLifecycleB2B?.delivered, color: "bg-emerald-500" },
+        { label: "Business service orders", value: analytics?.customerServiceLifecycle?.totalSubmitted, color: "bg-blue-500" },
+        { label: "Accepted by vendor", value: analytics?.customerServiceLifecycle?.totalAccepted, color: "bg-indigo-500" },
+        { label: "In processing", value: analytics?.customerServiceLifecycle?.inProgress, color: "bg-amber-500" },
+        { label: "Ready for dispatch", value: analytics?.customerServiceLifecycle?.readyForDispatch, color: "bg-purple-500" },
       ]
     : [
         { label: "Total submitted", value: analytics?.orderLifecycleB2C?.totalSubmitted, color: "bg-blue-500" },
@@ -300,13 +301,13 @@ export default function Dashboard() {
   const lifecycleBase = Number(lifecycleSteps[0]?.value) || 1;
   const partnerComposition = isB2B
     ? [
+        { name: "Business customers", value: analytics?.customerAnalytics?.businessCount || 0 },
         { name: "Vendors", value: analytics?.vendorPerformance?.totalVendors || 0 },
         { name: "Suppliers", value: analytics?.supplierAnalytics?.totalSuppliers || 0 },
       ]
     : isB2C
       ? [
           { name: "Individual customers", value: analytics?.customerAnalytics?.individualCount || 0 },
-          { name: "Retail customers", value: analytics?.customerAnalytics?.businessCount || 0 },
         ]
       : [
           { name: "Customers", value: analytics?.customerAnalytics?.totalCustomers || 0 },
@@ -315,6 +316,7 @@ export default function Dashboard() {
         ];
   const cohortData = isB2B
     ? [
+        { name: "Ordering businesses", count: analytics?.overview?.orderingCustomers || 0 },
         { name: "Ordering vendors", count: analytics?.overview?.orderingVendors || 0 },
         { name: "Never ordered", count: analytics?.vendorPerformance?.neverOrderedB2B || 0 },
         { name: "Active suppliers", count: analytics?.overview?.participatingSuppliers || 0 },
@@ -593,7 +595,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded">
-                    {isB2B ? "B2B Funnel" : isB2C ? "B2C Funnel" : "Combined view · B2C funnel"}
+                    {isB2B ? "Business Customer Funnel" : isB2C ? "B2C Funnel" : "Combined view · Customer funnel"}
                   </span>
                 </div>
 
@@ -709,8 +711,9 @@ export default function Dashboard() {
                         outerRadius={80}
                         paddingAngle={5}
                         dataKey="value">
-                        <Cell fill="#3b82f6" />
-                        <Cell fill="#10b981" />
+                        {partnerComposition.map((_, idx) => (
+                          <Cell key={idx} fill={DONUT_COLORS[idx % DONUT_COLORS.length]} />
+                        ))}
                       </Pie>
                       <Tooltip />
                       <Legend
@@ -1005,14 +1008,14 @@ export default function Dashboard() {
                     <Line
                       type="monotone"
                       dataKey="TransactionValue"
-                      name={isB2B ? "Supplier Order Value" : "Transaction Value"}
+                      name={isB2B ? "Total B2B Transaction Value" : "Transaction Value"}
                       stroke="#3b82f6"
                       strokeWidth={3}
                     />
                     <Line
                       type="monotone"
                       dataKey="PartnerPayable"
-                      name={isB2B ? "Direct Supplier Payable" : "Partner Payable"}
+                      name={isB2B ? "Vendor + Supplier Payable" : "Partner Payable"}
                       stroke="#f59e0b"
                       strokeWidth={3}
                     />
@@ -1131,9 +1134,9 @@ export default function Dashboard() {
         {activeTab === "catalogs" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
             {/* Service catalog health */}
-            {channel !== "B2B" && <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
+            <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                Service Catalog (B2C)
+                {isB2B ? "Business Customer Service Catalog" : "Service Catalog (B2C)"}
               </h3>
               <div className="h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1172,7 +1175,7 @@ export default function Dashboard() {
               <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-3">
                 Missing price: {analytics?.catalogB2C?.missingPrice || 0} · Missing weight: {analytics?.catalogB2C?.missingWeight || 0}
               </p>
-            </div>}
+            </div>
 
             {/* Product catalog B2B */}
             {channel !== "B2C" && <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
