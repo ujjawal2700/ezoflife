@@ -1,8 +1,8 @@
 /**
  * Order weight: never a made-up number.
  *
- * Source priority: weighed (vendor) > customer (approx from the app) >
- * estimated (per-kg quantities + Master Service avg weight) > null ("—").
+ * Source priority: weighed (vendor) > estimated (quantities multiplied by the
+ * admin-configured Master Service avg weight) > null ("—").
  */
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,7 +11,7 @@ import { startTestEnvironment, api } from '../helpers/testEnvironment.js';
 import { orderPayload, createUser, tokenFor } from '../helpers/factories.js';
 import MasterService from '../../src/models/MasterService.js';
 import Order from '../../src/models/Order.js';
-import { parseWeightKg, isInvalidWeight, resolveOrderWeight } from '../../src/utils/orderWeight.js';
+import { parseWeightKg, isInvalidWeight, resolveOrderWeight, backfillMissingOrderWeights } from '../../src/utils/orderWeight.js';
 
 let env, customer, vendor, otherVendor, shirtId, noWeightId;
 
@@ -58,22 +58,21 @@ describe('weight helpers', () => {
         assert.equal(isInvalidWeight(2), false);
     });
 
-    test('resolveOrderWeight prefers weighed > customer > estimated', () => {
-        assert.deepEqual(resolveOrderWeight({ weighedWeight: 5, customerWeight: 3, estimatedWeight: 2 }), { totalWeight: 5, weightSource: 'weighed' });
-        assert.deepEqual(resolveOrderWeight({ customerWeight: 3, estimatedWeight: 2 }), { totalWeight: 3, weightSource: 'customer' });
+    test('resolveOrderWeight prefers weighed > admin estimate', () => {
+        assert.deepEqual(resolveOrderWeight({ weighedWeight: 5, estimatedWeight: 2 }), { totalWeight: 5, weightSource: 'weighed' });
         assert.deepEqual(resolveOrderWeight({ estimatedWeight: 2 }), { totalWeight: 2, weightSource: 'estimated' });
         assert.deepEqual(resolveOrderWeight({}), { totalWeight: null, weightSource: null });
     });
 });
 
 describe('customer orders', () => {
-    test('customer approx weight is used when given', async () => {
+    test('legacy client approx weight is ignored in favour of admin-configured weights', async () => {
         const res = await placeOrder({ items: [item(shirtId, 4)], approxWeight: 3.5 });
         assert.equal(res.status, 201);
-        assert.equal(res.body.totalWeight, 3.5);
-        assert.equal(res.body.weightSource, 'customer');
-        assert.equal(res.body.customerWeight, 3.5);
-        assert.equal(res.body.estimatedWeight, 1, '4 shirts x 0.25 kg is still kept as the estimate');
+        assert.equal(res.body.totalWeight, 1);
+        assert.equal(res.body.weightSource, 'estimated');
+        assert.equal(res.body.customerWeight, null);
+        assert.equal(res.body.estimatedWeight, 1, '4 shirts x 0.25 kg');
     });
 
     test('without approx weight it is estimated from kg quantities + avg weights', async () => {
@@ -97,10 +96,12 @@ describe('customer orders', () => {
         assert.ok(res.body.items.every(i => i.weight == null));
     });
 
-    test('an invalid approx weight is rejected', async () => {
+    test('legacy invalid approx weight is ignored', async () => {
         for (const approxWeight of [0, -2, 500, 'heavy']) {
-            const res = await placeOrder({ approxWeight });
-            assert.equal(res.status, 400, `approxWeight=${approxWeight}`);
+            const res = await placeOrder({ items: [item(shirtId, 2)], approxWeight });
+            assert.equal(res.status, 201, `approxWeight=${approxWeight}`);
+            assert.equal(res.body.totalWeight, 0.5);
+            assert.equal(res.body.weightSource, 'estimated');
         }
     });
 });
@@ -139,7 +140,7 @@ describe('vendor records the weighed weight', () => {
         api(env.baseUrl, `/api/orders/${id}/weight`, { method: 'PATCH', token, body: { weight } });
 
     before(async () => {
-        const res = await placeOrder({ items: [item(shirtId, 4)], approxWeight: 3 });
+        const res = await placeOrder({ items: [item(shirtId, 4)] });
         orderId = res.body._id;
         await Order.updateOne({ _id: orderId }, { vendor: vendor.id, status: 'ORDER_PLACED' });
     });
@@ -160,12 +161,12 @@ describe('vendor records the weighed weight', () => {
         assert.equal((await record(4, vendor.token, '60000000000000000000000b')).status, 404);
     });
 
-    test('the handling vendor records it; it overrides the customer estimate', async () => {
+    test('the handling vendor records it; it overrides the configured estimate', async () => {
         const res = await record(4.2);
         assert.equal(res.status, 200);
         assert.deepEqual(
             { totalWeight: res.body.weight.totalWeight, weightSource: res.body.weight.weightSource, customerWeight: res.body.weight.customerWeight },
-            { totalWeight: 4.2, weightSource: 'weighed', customerWeight: 3 }
+            { totalWeight: 4.2, weightSource: 'weighed', customerWeight: null }
         );
         const order = await Order.findById(orderId).lean();
         assert.equal(order.totalWeight, 4.2);
@@ -178,5 +179,31 @@ describe('vendor records the weighed weight', () => {
         const res = await record(4.4, tokenFor('Admin'));
         assert.equal(res.status, 200);
         assert.equal(res.body.weight.totalWeight, 4.4);
+    });
+});
+
+// Kept last: the backfill scans every order in the test DB.
+describe('backfilling orders saved without a weight', () => {
+    test('fills the Avg Weight estimate, never overwrites a weighed order, leaves unknowns as null', async () => {
+        const base = { customer: new mongoose.Types.ObjectId(), status: 'DELIVERED', totalAmount: 100, createdAt: new Date() };
+        const { insertedIds } = await Order.collection.insertMany([
+            // legacy order: field missing entirely (created before weights existed)
+            { ...base, orderId: '#BF-1', items: [{ serviceId: shirtId, name: 'Shirt', quantity: 4, unit: 'pc' }] },
+            { ...base, orderId: '#BF-2', items: [{ serviceId: shirtId, name: 'Shirt', quantity: 1, unit: 'pc' }], totalWeight: 7, weightSource: 'weighed' },
+            { ...base, orderId: '#BF-3', items: [{ serviceId: noWeightId, name: 'Mystery', quantity: 1, unit: 'pc' }], totalWeight: null }
+        ]);
+
+        const preview = await backfillMissingOrderWeights(Order, { dryRun: true });
+        assert.ok(preview.updated.some(row => row.orderId === '#BF-1' && row.totalWeight === 1));
+        assert.equal((await Order.findById(insertedIds[0]).lean()).totalWeight, undefined, 'dry run writes nothing');
+
+        const result = await backfillMissingOrderWeights(Order);
+        assert.ok(result.skipped.includes('#BF-3'));
+        const [legacy, weighed, unknown] = await Promise.all(Object.values(insertedIds).map(id => Order.findById(id).lean()));
+        assert.equal(legacy.totalWeight, 1, '4 shirts x 0.25 kg');
+        assert.equal(legacy.weightSource, 'estimated');
+        assert.equal(weighed.totalWeight, 7);
+        assert.equal(weighed.weightSource, 'weighed');
+        assert.equal(unknown.totalWeight, null);
     });
 });

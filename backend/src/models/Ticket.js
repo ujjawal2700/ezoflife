@@ -41,6 +41,12 @@ const ticketSchema = new mongoose.Schema({
         required: false,
         default: null
     },
+    supplier: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false,
+        default: null
+    },
     userType: {
         type: String,
         enum: ['Customer', 'Vendor', 'Supplier'],

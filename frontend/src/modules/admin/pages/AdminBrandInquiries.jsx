@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import * as XLSX from 'xlsx';
+import FilterField from "../components/common/FilterLabel";
 
 
 const AdminBrandInquiries = () => {
@@ -259,7 +260,8 @@ const AdminBrandInquiries = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center flex-wrap gap-2">
+                        <div className="flex items-end flex-wrap gap-2">
+                            <FilterField label="Brand" info="Shows only advertising inquiries from this brand.">
                             <select
                                 value={filters.brandName}
                                 onChange={(e) => handleFilterChange('brandName', e.target.value)}
@@ -270,6 +272,8 @@ const AdminBrandInquiries = () => {
                                     <option key={brand} value={brand}>{brand}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Email" info="Shows only inquiries sent from this email address.">
                             <select
                                 value={filters.email}
                                 onChange={(e) => handleFilterChange('email', e.target.value)}
@@ -280,6 +284,8 @@ const AdminBrandInquiries = () => {
                                     <option key={email} value={email}>{email}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Contact number" info="Shows only inquiries with this phone number.">
                             <select
                                 value={filters.phone}
                                 onChange={(e) => handleFilterChange('phone', e.target.value)}
@@ -290,6 +296,8 @@ const AdminBrandInquiries = () => {
                                     <option key={phone} value={phone}>{phone}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Budget" info="Shows only inquiries that stated exactly this advertising budget.">
                             <select
                                 value={filters.budget}
                                 onChange={(e) => handleFilterChange('budget', e.target.value)}
@@ -300,6 +308,7 @@ const AdminBrandInquiries = () => {
                                     <option key={budget} value={budget}>₹{budget.toLocaleString()}</option>
                                 ))}
                             </select>
+                            </FilterField>
                             {(filters.brandName || filters.email || filters.phone || filters.budget) && (
                                 <button 
                                     onClick={handleResetFilters}

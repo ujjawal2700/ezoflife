@@ -7,6 +7,7 @@ export const createTicket = async (req, res) => {
         const {
             customer,
             vendor,
+            supplier,
             userType = 'Customer', 
             subject, 
             category, 
@@ -18,16 +19,19 @@ export const createTicket = async (req, res) => {
         } = req.body;
 
         const effectiveDescription = description || message || subject || 'Support request';
-        const senderId = userType === 'Vendor' 
-            ? (vendor || req.user?.id || req.user?._id || customer) 
-            : (customer || req.user?.id || req.user?._id);
-        const senderRole = userType === 'Vendor' ? 'Vendor' : 'Customer';
+        const senderId = userType === 'Vendor'
+            ? (vendor || req.user?.id || req.user?._id || customer)
+            : userType === 'Supplier'
+                ? (supplier || req.user?.id || req.user?._id || customer)
+                : (customer || req.user?.id || req.user?._id);
+        const senderRole = ['Vendor', 'Supplier'].includes(userType) ? userType : 'Customer';
         
         const newTicket = new Ticket({
             customer: customer || null,
             vendor: vendor || (userType === 'Vendor' ? senderId : null),
+            supplier: supplier || (userType === 'Supplier' ? senderId : null),
             userType,
-            subject: subject || (userType === 'Vendor' ? 'Vendor Support Ticket' : 'Customer Support Ticket'),
+            subject: subject || `${senderRole} Support Ticket`,
             category: category || 'Others',
             description: effectiveDescription,
             order: orderId || order || null,
@@ -47,7 +51,7 @@ export const createTicket = async (req, res) => {
         if (io) {
             io.emit('new_ticket', {
                 ticketId: newTicket._id,
-                customerName: userType === 'Vendor' ? 'Vendor' : 'Customer',
+                customerName: senderRole,
                 subject: newTicket.subject,
                 userType
             });
@@ -76,6 +80,7 @@ export const getAllTickets = async (req, res) => {
         const tickets = await Ticket.find()
             .populate('customer', 'displayName phone email role')
             .populate('vendor', 'displayName phone email role shopDetails')
+            .populate('supplier', 'displayName phone email role supplierDetails')
             .populate('order', 'totalAmount status createdAt items orderId')
             .sort({ createdAt: -1 });
         res.status(200).json(tickets);

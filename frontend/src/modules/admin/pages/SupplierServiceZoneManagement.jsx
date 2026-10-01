@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const FEE_MODE_LABELS = {
     DEFAULT: 'Global Default',
@@ -418,8 +419,9 @@ const SupplierServiceZoneManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full">
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-2 w-full">
                             <div className="flex items-center w-full sm:w-auto">
+                                <FilterField label="Zone name" info="Finds supplier service zones whose name contains this text.">
                                 <input
                                     type="text"
                                     placeholder="Search Zone Name"
@@ -427,8 +429,10 @@ const SupplierServiceZoneManagement = () => {
                                     onChange={(e) => handleFilterChange('zoneName', e.target.value)}
                                     className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[10px] font-bold text-slate-900 focus:bg-white focus:border-slate-900 transition-all outline-none w-full sm:w-48 placeholder-slate-400 uppercase tracking-wider"
                                 />
+                                </FilterField>
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <FilterField label="Status" info="Active = the zone is used to match vendors with this supplier and apply its fees. Inactive = ignored.">
                                 <select
                                     value={filters.isActive}
                                     onChange={(e) => handleFilterChange('isActive', e.target.value)}
@@ -438,6 +442,7 @@ const SupplierServiceZoneManagement = () => {
                                     <option value="true">Active</option>
                                     <option value="false">Inactive</option>
                                 </select>
+                                </FilterField>
                                 {(filters.zoneName || filters.isActive !== '') && (
                                     <button 
                                         onClick={() => {

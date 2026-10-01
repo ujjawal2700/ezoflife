@@ -8,8 +8,6 @@ import Orders from '../pages/Orders';
 import Vendors from '../pages/Vendors';
 import OnboardingApprovals from '../pages/OnboardingApprovals';
 import Payouts from '../pages/Payouts';
-import Analytics from '../pages/Analytics';
-import Reports from '../pages/Reports';
 import Services from '../pages/Services';
 import Users from '../pages/Users';
 import AdminLogin from '../pages/AdminLogin';
@@ -24,7 +22,6 @@ import FAQManagement from '../pages/FAQManagement';
 import FeedbackManagement from '../pages/FeedbackManagement';
 import MediaConfig from '../pages/MediaConfig';
 import PartnershipInquiries from '../pages/PartnershipInquiries';
-import LaborManagement from '../pages/LaborManagement';
 import NotificationsPage from '../pages/NotificationsPage';
 import CareerModeration from '../pages/CareerModeration';
 import RoleDetails from '../pages/RoleDetails';
@@ -159,14 +156,15 @@ const AdminRoutes = () => {
         <Route path="/faqs" element={<FAQManagement />} />
         <Route path="/media" element={<MediaConfig />} />
         <Route path="/partnerships" element={<PartnershipInquiries />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/reports" element={<Reports />} />
         <Route path="/payments" element={<Payouts />} />
-        <Route path="/labor" element={<LaborManagement />} />
         {/* Older URLs for pages merged into the ones above */}
         <Route path="/payouts" element={<Navigate to="/admin/payments?tab=vendor" replace />} />
         <Route path="/customer-payments" element={<Navigate to="/admin/payments?tab=customer" replace />} />
         <Route path="/b2b-leads" element={<Navigate to="/admin/partnerships" replace />} />
+        {/* Reports & Analytics and Labor Management were removed */}
+        <Route path="/analytics" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/reports" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route path="/labor" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/careers" element={<CareerModeration creatorFilter="Admin" />} />
         <Route path="/careers/admin-posts" element={<CareerModeration creatorFilter="Admin" />} />
         <Route path="/careers/vendor-posts" element={<CareerModeration creatorFilter="Vendor" />} />

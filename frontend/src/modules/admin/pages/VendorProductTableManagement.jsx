@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const VendorProductTableManagement = () => {
     const [supplies, setSupplies] = useState([]);
@@ -545,8 +546,9 @@ const VendorProductTableManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-end w-full sm:w-auto gap-2">
                             <div className="w-full sm:w-auto">
+                                <FilterField label="Category" info="Shows only products in this category and sub category.">
                                 <select
                                     value={filters.categoryId}
                                     onChange={(e) => handleFilterChange('categoryId', e.target.value)}
@@ -559,8 +561,10 @@ const VendorProductTableManagement = () => {
                                         </option>
                                     ))}
                                 </select>
+                                </FilterField>
                             </div>
-                            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2">
+                            <div className="flex w-full sm:w-auto items-end justify-between sm:justify-start gap-2">
+                                <FilterField label="Status" info="Active (Y) = available to vendors. Inactive (N) = hidden from vendors.">
                                 <select
                                     value={filters.isActive}
                                     onChange={(e) => handleFilterChange('isActive', e.target.value)}
@@ -570,6 +574,7 @@ const VendorProductTableManagement = () => {
                                     <option value="y">Active (Y)</option>
                                     <option value="n">Inactive (N)</option>
                                 </select>
+                                </FilterField>
                                 
                                 <div className="flex items-center gap-2">
                                     {(filters.categoryId || filters.isActive !== '') && (

@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import { BASE_URL } from '../../../lib/api';
+import FilterField from "../components/common/FilterLabel";
 
 const MasterPricingRegistry = () => {
     const [pricingData, setPricingData] = useState([]);
@@ -648,8 +649,9 @@ const MasterPricingRegistry = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-end gap-2 flex-wrap">
                             {/* Region Select */}
+                            <FilterField label="Region" info="Shows the price rows for one service area. While an area is selected, Synchronize updates only that area; All regions covers every area.">
                             <select 
                                 value={selectedArea}
                                 onChange={(e) => setSelectedArea(e.target.value)}
@@ -660,8 +662,10 @@ const MasterPricingRegistry = () => {
                                     <option key={area._id} value={area._id}>{area.areaName}</option>
                                 ))}
                             </select>
+                            </FilterField>
 
                             {/* Category Input */}
+                            <FilterField label="Category" info="Finds price rows whose service category contains this text.">
                             <input 
                                 type="text"
                                 value={searchCategory}
@@ -669,8 +673,10 @@ const MasterPricingRegistry = () => {
                                 placeholder="CATEGORY..."
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-28 placeholder:text-slate-300"
                             />
+                            </FilterField>
 
                             {/* Service Input */}
+                            <FilterField label="Service / SKU" info="Finds price rows by service name or SKU code.">
                             <input 
                                 type="text"
                                 value={searchService}
@@ -678,8 +684,10 @@ const MasterPricingRegistry = () => {
                                 placeholder="SERVICE / SKU..."
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-32 placeholder:text-slate-300"
                             />
+                            </FilterField>
 
                             {/* SAC Input */}
+                            <FilterField label="SAC code" info="Finds price rows with this SAC (GST service accounting) code.">
                             <input 
                                 type="text"
                                 value={searchSAC}
@@ -687,6 +695,7 @@ const MasterPricingRegistry = () => {
                                 placeholder="SAC CODE..."
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-24 placeholder:text-slate-300"
                             />
+                            </FilterField>
                         </div>
                     }
                     columns={columns}

@@ -7,6 +7,7 @@ import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import StatusBadge from '../components/common/StatusBadge';
 import MetricRow from '../components/cards/MetricRow';
+import { FilterLabel } from "../components/common/FilterLabel";
 
 export default function Services() {
   const [data, setData] = useState([]);
@@ -592,6 +593,7 @@ export default function Services() {
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         {/* Tabs for Filtering */}
+        <FilterLabel label="Show" className="mb-2" info="All Services lists every service. Pending Approvals lists services vendors have submitted that still need your approval." />
         <div className="flex gap-8 border-b border-slate-200 mb-6 font-bold text-[10px] uppercase tracking-[0.2em]">
             <button 
                 onClick={() => setActiveTab('All')}

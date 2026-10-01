@@ -19,7 +19,6 @@ import {
 } from "@react-google-maps/api";
 import { GOOGLE_MAPS_LOADER_OPTIONS } from "../../../lib/googleMaps";
 import { locationService } from "../../../lib/locationService";
-import { shippingConfigApi } from "../../../lib/shippingApi";
 
 const getAvailableDates = () => {
   const dates = [];
@@ -256,39 +255,25 @@ const WalkInOrderPage = () => {
 
   // Logistic Fee states & config
   const [isCalculatingFee, setIsCalculatingFee] = useState(false);
-  const [baseLogisticsFee, setBaseLogisticsFee] = useState(50);
   const [calculatedLogisticFee, setCalculatedLogisticFee] = useState(0);
 
+  // Rider delivery fee comes from the server (the same figure it will charge).
+  const refreshDeliveryFee = async () => {
+    const { fee } = await orderApi.getWalkInDeliveryFee(isExpress ? "Express" : "Normal");
+    setCalculatedLogisticFee(fee);
+    return fee;
+  };
   useEffect(() => {
-    const fetchShippingConfig = async () => {
-      try {
-        const configs = await shippingConfigApi.getConfig();
-        if (Array.isArray(configs)) {
-          const normalFee = configs.find(
-            (c) => c.key === "normal_logistics_fee",
-          );
-          if (normalFee && !isNaN(Number(normalFee.value))) {
-            setBaseLogisticsFee(Number(normalFee.value));
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching shipping config in WalkIn:", err);
-      }
-    };
-    fetchShippingConfig();
-  }, []);
-
-  // Automatically calculate logistic fee when delivery is toggled or mode changes
-  useEffect(() => {
-    if (enableDelivery) {
-      const fee = Math.round(
-        baseLogisticsFee * (isExpress ? expressMultiplier || 1.5 : 1),
-      );
-      setCalculatedLogisticFee(fee > 0 ? fee : 50);
-    } else {
+    if (!enableDelivery) {
       setCalculatedLogisticFee(0);
+      return;
     }
-  }, [enableDelivery, isExpress, baseLogisticsFee, expressMultiplier]);
+    refreshDeliveryFee().catch((err) => {
+      console.error("Delivery fee quote failed:", err);
+      toast.error(err.message || "Could not calculate the delivery fee");
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enableDelivery, isExpress]);
 
   const isAddressComplete = useMemo(() => {
     return !!(
@@ -1056,7 +1041,7 @@ const WalkInOrderPage = () => {
     return false;
   };
 
-  const handleCollectAndPrint = async (razorpayPaymentId = null) => {
+  const handleCollectAndPrint = async (paymentProof = null) => {
     if (!customerPhone || items.length === 0) return;
     if (!requireWeight()) return;
 
@@ -1114,13 +1099,17 @@ const WalkInOrderPage = () => {
         status: "PROCESSING",
         customerPhotos: uniquePhotos,
         deliveryCharge: enableDelivery ? calculatedLogisticFee : 0,
-        logisticPaymentStatus: enableDelivery ? "Paid Online" : "N/A",
-        logisticPaymentId: razorpayPaymentId,
+        // Verified by the server against Razorpay before the order is created.
+        logisticsPayment: paymentProof,
         discountAmount: discount,
         promoApplied: isPromoApplied ? promoCode : null,
       };
 
       const response = await orderApi.createWalkInOrder(orderData);
+      if (!response?._id) {
+        toast.error(response?.message || "Failed to generate order");
+        return;
+      }
       setCreatedOrder(response);
       setShowReviewModal(false);
 
@@ -1543,17 +1532,13 @@ const WalkInOrderPage = () => {
                   setIsProcessing(true);
                   const rzpToast = toast.loading("Initiating Payment...");
                   try {
+                    // The server sets the delivery fee and opens the checkout.
                     const rzpOrder = await orderApi.createRazorpayOrder({
-                      amount: calculatedLogisticFee,
+                      purpose: "WALKIN_DELIVERY",
+                      deliveryMode: isExpress ? "Express" : "Normal",
                     });
-
                     toast.dismiss(rzpToast);
-
-                    if (!rzpOrder || !rzpOrder.id) {
-                      toast.error("Failed to create payment order");
-                      setIsProcessing(false);
-                      return;
-                    }
+                    setCalculatedLogisticFee(rzpOrder.payable);
 
                     const options = {
                       key: rzpOrder.keyId,
@@ -1564,9 +1549,11 @@ const WalkInOrderPage = () => {
                       order_id: rzpOrder.id,
                       handler: async function (response) {
                         toast.success("Payment Received!");
-                        await handleCollectAndPrint(
-                          response.razorpay_payment_id,
-                        );
+                        await handleCollectAndPrint({
+                          razorpay_order_id: response.razorpay_order_id,
+                          razorpay_payment_id: response.razorpay_payment_id,
+                          razorpay_signature: response.razorpay_signature,
+                        });
                       },
                       prefill: {
                         name: customerName || "",
@@ -1582,9 +1569,9 @@ const WalkInOrderPage = () => {
 
                     const paymentObject = new window.Razorpay(options);
                     paymentObject.open();
-                  } catch {
+                  } catch (err) {
                     toast.dismiss(rzpToast);
-                    toast.error("Payment initiation failed");
+                    toast.error(err.message || "Payment initiation failed");
                     setIsProcessing(false);
                   }
                 }}
@@ -3242,21 +3229,14 @@ const WalkInOrderPage = () => {
                         });
                     }
 
-                    // Mock Logistic Fee API Simulation
                     setIsCalculatingFee(true);
-                    const mockLoadingToast = toast.loading(
-                      "Calculating Logistic Fee...",
-                    );
-
-                    setTimeout(() => {
-                      // Dummy logic: Base 40 + Random up to 50
-                      const dummyFee = Math.floor(40 + Math.random() * 50);
-                      setCalculatedLogisticFee(dummyFee);
-                      setIsCalculatingFee(false);
-                      toast.dismiss(mockLoadingToast);
-                      toast.success(`Fee Calculated: ₹${dummyFee}`);
-                      setShowLocateModal(false);
-                    }, 1500);
+                    refreshDeliveryFee()
+                      .then((fee) => {
+                        toast.success(`Delivery fee: ₹${fee}`);
+                        setShowLocateModal(false);
+                      })
+                      .catch((err) => toast.error(err.message || "Could not calculate the delivery fee"))
+                      .finally(() => setIsCalculatingFee(false));
                   }}
                   className={`w-full py-4 rounded-full text-xs font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl shadow-black/20 ${addressDetails.type && addressDetails.flatNo?.trim() && !isCalculatingFee ? "bg-black text-white" : "bg-slate-300 text-slate-500 cursor-not-allowed"}`}>
                   {isCalculatingFee ? "CALCULATING..." : "Save Address"}

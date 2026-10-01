@@ -1,7 +1,8 @@
 /**
  * How an order's weight is shown. The backend stores the best source it has:
- * "weighed" (vendor scale) > "customer" (customer's approx) > "estimated"
- * (from Master Service avg weights). Orders from before weightSource existed
+ * "weighed" (vendor scale) > "estimated" (from admin-configured Master Service
+ * avg weights). The "customer" label remains for historical orders created before
+ * customer-entered weights were removed. Orders from before weightSource existed
  * are treated as estimates. No weight -> "—", never a made-up number.
  */
 export const WEIGHT_SOURCE_LABELS = {

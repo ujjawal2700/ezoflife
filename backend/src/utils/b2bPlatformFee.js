@@ -8,7 +8,8 @@
  * Where the rule comes from, in priority order:
  *   1. The supplier's Service Zone, when its platformFeeMode is PERCENTAGE, FLAT or WAIVED.
  *   2. The global default in SystemConfig (key: b2b_platform_fee).
- *   3. Nothing configured -> no fee.
+ *   3. Nothing configured -> the ₹40 first-run default. Admin can replace or
+ *      explicitly disable it from Supplier Platform Fee settings.
  *
  * The client never supplies the fee. The server computes it here and the
  * vendor cart mirrors the same formula only for display.
@@ -19,6 +20,14 @@ export const FEE_TYPES = ['PERCENTAGE', 'FLAT'];
 export const ZONE_FEE_MODES = ['DEFAULT', 'PERCENTAGE', 'FLAT', 'WAIVED'];
 
 export const DEFAULT_PLATFORM_FEE_CONFIG = Object.freeze({
+    enabled: true,
+    type: 'FLAT',
+    value: 40,
+    minFee: 0,
+    maxFee: null
+});
+
+const SAFE_DISABLED_PLATFORM_FEE_CONFIG = Object.freeze({
     enabled: false,
     type: 'PERCENTAGE',
     value: 0,
@@ -41,12 +50,20 @@ const toOptionalMax = n => {
 
 /** Coerce whatever is stored in SystemConfig into a well-formed config. */
 export const normalizeGlobalConfig = raw => {
-    const cfg = raw && typeof raw === 'object' ? raw : {};
+    const isMissing = raw === null || raw === undefined;
+    const isObject = raw && typeof raw === 'object' && !Array.isArray(raw);
+    // A genuinely missing first-run record receives the documented default.
+    // Corrupt persisted data fails closed so an invalid admin setting can
+    // never start charging vendors unexpectedly.
+    if (!isMissing && !isObject) return { ...SAFE_DISABLED_PLATFORM_FEE_CONFIG };
+
+    const hasConfig = Boolean(isObject);
+    const cfg = hasConfig ? raw : DEFAULT_PLATFORM_FEE_CONFIG;
     return {
         enabled: cfg.enabled === true,
         type: FEE_TYPES.includes(cfg.type) ? cfg.type : DEFAULT_PLATFORM_FEE_CONFIG.type,
-        value: toNonNegative(cfg.value),
-        minFee: toNonNegative(cfg.minFee),
+        value: toNonNegative(cfg.value, hasConfig ? 0 : DEFAULT_PLATFORM_FEE_CONFIG.value),
+        minFee: toNonNegative(cfg.minFee, DEFAULT_PLATFORM_FEE_CONFIG.minFee),
         maxFee: toOptionalMax(cfg.maxFee)
     };
 };

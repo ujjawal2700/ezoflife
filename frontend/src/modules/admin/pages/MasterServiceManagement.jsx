@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const MasterServiceManagement = () => {
     const location = useLocation();
@@ -409,7 +410,8 @@ const MasterServiceManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center flex-wrap gap-2 w-full">
+                        <div className="flex items-end flex-wrap gap-2 w-full">
+                            <FilterField label="Category ID" info="Shows only services in this category (by category ID).">
                             <select 
                                 value={filterCatId}
                                 onChange={e => setFilterCatId(e.target.value)}
@@ -418,7 +420,9 @@ const MasterServiceManagement = () => {
                                 <option value="">All Cat IDs</option>
                                 {catIdList.map(id => <option key={id} value={id}>{id}</option>)}
                             </select>
+                            </FilterField>
 
+                            <FilterField label="Item" info="Shows only the service with this item name.">
                             <select 
                                 value={filterItemName}
                                 onChange={e => setFilterItemName(e.target.value)}
@@ -427,7 +431,9 @@ const MasterServiceManagement = () => {
                                 <option value="">All Items</option>
                                 {itemNameList.map(name => <option key={name} value={name}>{name}</option>)}
                             </select>
+                            </FilterField>
 
+                            <FilterField label="SKU ID" info="Shows only the service with this SKU code.">
                             <select 
                                 value={filterSkuId}
                                 onChange={e => setFilterSkuId(e.target.value)}
@@ -436,7 +442,9 @@ const MasterServiceManagement = () => {
                                 <option value="">All SKU IDs</option>
                                 {skuIdList.map(sku => <option key={sku} value={sku}>{sku}</option>)}
                             </select>
+                            </FilterField>
 
+                            <FilterField label="Current (Y/N)" info="Y = services currently offered to customers. N = services switched off (kept for history).">
                             <select 
                                 value={filterCurrInd}
                                 onChange={e => setFilterCurrInd(e.target.value)}
@@ -446,6 +454,7 @@ const MasterServiceManagement = () => {
                                 <option value="y">Y</option>
                                 <option value="n">N</option>
                             </select>
+                            </FilterField>
 
                             <button 
                                 onClick={handleDownload}

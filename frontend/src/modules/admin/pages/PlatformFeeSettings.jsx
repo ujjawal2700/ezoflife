@@ -9,7 +9,7 @@ import PageHeader from '../components/common/PageHeader';
 const inputCls = 'w-full px-4 py-3 bg-white border border-slate-200 hover:border-slate-300 rounded-sm text-[11px] font-bold text-slate-900 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-all outline-none disabled:bg-slate-50 disabled:text-slate-400';
 const labelCls = 'text-[9px] font-black text-slate-800 uppercase tracking-widest block ml-1 mb-1.5';
 
-const EMPTY = { enabled: false, type: 'PERCENTAGE', value: '0', minFee: '0', maxFee: '' };
+const EMPTY = { enabled: true, type: 'FLAT', value: '40', minFee: '0', maxFee: '' };
 
 const toForm = (cfg) => ({
     enabled: cfg.enabled === true,

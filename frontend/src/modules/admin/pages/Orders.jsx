@@ -22,6 +22,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import PageHeader from "../components/common/PageHeader";
+import FilterField from "../components/common/FilterLabel";
 import DataGrid from "../components/tables/DataGrid";
 import StatusBadge from "../components/common/StatusBadge";
 import { orderApi, adminApi, supplierServiceZoneApi } from "../../../lib/api";
@@ -1613,14 +1614,15 @@ export default function Orders() {
 
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         {/* Dropdown Filters Row */}
-        <div className="flex justify-between items-center gap-4 flex-wrap bg-white p-3 rounded-md border border-slate-200/60 shadow-sm">
+        <div className="flex justify-between items-end gap-4 flex-wrap bg-white p-3 rounded-md border border-slate-200/60 shadow-sm">
           {/* Left Filters (Date Range only) */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                From:
-              </span>
+          <div className="flex items-end gap-2">
+            <FilterField
+              label="Placed from"
+              htmlFor="orders-from"
+              info="Shows only orders placed on or after this date. Leave empty for no start limit.">
               <input
+                id="orders-from"
                 type="date"
                 value={startDate}
                 onChange={(e) => {
@@ -1629,12 +1631,13 @@ export default function Orders() {
                 }}
                 className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
               />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                To:
-              </span>
+            </FilterField>
+            <FilterField
+              label="Placed to"
+              htmlFor="orders-to"
+              info="Shows only orders placed on or before this date (the whole day is included). Leave empty for no end limit.">
               <input
+                id="orders-to"
                 type="date"
                 value={endDate}
                 onChange={(e) => {
@@ -1643,7 +1646,7 @@ export default function Orders() {
                 }}
                 className="bg-slate-50 border border-slate-200/80 rounded-md px-2.5 py-1.5 text-[9px] font-bold text-slate-800 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer"
               />
-            </div>
+            </FilterField>
             {(startDate || endDate) && (
               <button
                 onClick={() => {
@@ -1658,17 +1661,19 @@ export default function Orders() {
           </div>
 
           {/* Right Filters (Zone, Customer, Status) */}
-          <div className="flex items-center gap-3 flex-wrap justify-end">
+          <div className="flex items-end gap-3 flex-wrap justify-end">
             {/* Zone Filter */}
+            <FilterField label="Zone" htmlFor="orders-zone" info="Shows only orders whose pickup address (or, for walk-ins, the vendor's shop) lies inside this service area.">
             <div className="relative flex items-center">
               <select
+                id="orders-zone"
                 value={selectedZone}
                 onChange={(e) => {
                   setSelectedZone(e.target.value);
                   setPage(1);
                 }}
                 className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all">
-                <option value="">Zone</option>
+                <option value="">All zones</option>
                 {uniqueZonesList.map((z, idx) => (
                   <option key={z._id || idx} value={z.zoneName}>
                     {z.zoneName}
@@ -1680,17 +1685,20 @@ export default function Orders() {
                 className="absolute right-3 pointer-events-none text-slate-500"
               />
             </div>
+            </FilterField>
 
             {/* Customer Filter */}
+            <FilterField label="Customer" htmlFor="orders-customer" info="Shows only orders placed by this customer.">
             <div className="relative flex items-center">
               <select
+                id="orders-customer"
                 value={selectedCustomer}
                 onChange={(e) => {
                   setSelectedCustomer(e.target.value);
                   setPage(1);
                 }}
                 className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all">
-                <option value="">Customer</option>
+                <option value="">All customers</option>
                 {uniqueCustomersList.map((name, idx) => (
                   <option key={idx} value={name}>
                     {name}
@@ -1702,17 +1710,20 @@ export default function Orders() {
                 className="absolute right-3 pointer-events-none text-slate-500"
               />
             </div>
+            </FilterField>
 
             {/* Status Filter */}
+            <FilterField label="Order status" htmlFor="orders-status" info="Shows only orders currently at this stage, e.g. Out for delivery.">
             <div className="relative flex items-center">
               <select
+                id="orders-status"
                 value={selectedStatus}
                 onChange={(e) => {
                   setSelectedStatus(e.target.value);
                   setPage(1);
                 }}
                 className="appearance-none bg-slate-50 border border-slate-200/80 rounded-md pl-4 pr-10 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-400 focus:ring-0 outline-none cursor-pointer transition-all">
-                <option value="">Status</option>
+                <option value="">All statuses</option>
                 {statusesList.map((status, idx) => (
                   <option key={idx} value={status}>
                     {status.replace(/_/g, " ")}
@@ -1724,6 +1735,7 @@ export default function Orders() {
                 className="absolute right-3 pointer-events-none text-slate-500"
               />
             </div>
+            </FilterField>
           </div>
         </div>
 

@@ -66,10 +66,6 @@ const CartPage = () => {
   });
 
   const [clothCounts, setClothCounts] = useState({});
-  // Optional approximate weight (kg) of the clothes being sent
-  const [approxWeight, setApproxWeight] = useState('');
-  const approxWeightNum = Number(approxWeight);
-  const approxWeightInvalid = approxWeight !== '' && !(approxWeightNum > 0 && approxWeightNum <= 200);
 
   const cartItems = useMemo(() => {
     if (services.length === 0) return [];
@@ -203,6 +199,29 @@ const CartPage = () => {
       setBillingUnits(u);
     }
   }, [cartItems]);
+
+  const configuredWeight = useMemo(() => {
+    if (cartItems.length === 0) return null;
+
+    let total = 0;
+    for (const item of cartItems) {
+      const itemId = item._id || item.id;
+      const quantity = Number(quantities[itemId]) || 0;
+      if (quantity <= 0) continue;
+
+      const unit = billingUnits[itemId] || item.unit || '';
+      if (/kg/i.test(unit)) {
+        total += quantity;
+        continue;
+      }
+
+      const itemWeight = Number(item.avgWeight);
+      if (!Number.isFinite(itemWeight) || itemWeight <= 0) return null;
+      total += itemWeight * quantity;
+    }
+
+    return total > 0 ? Math.round(total * 100) / 100 : null;
+  }, [billingUnits, cartItems, quantities]);
   
   useEffect(() => {
     localStorage.setItem('cart_quantities', JSON.stringify(quantities));
@@ -214,7 +233,7 @@ const CartPage = () => {
     }
   }, [loading, cartItems, navigate]);
   
-  const [expressMultiplier, setExpressMultiplier] = useState(1);
+  const [expressMultiplier, setExpressMultiplier] = useState(1.5); // same default as the server
   const [platformMultiplier, setPlatformMultiplier] = useState(1);
   const [gstPercent, setGstPercent] = useState(18);
   const [normalLogisticsConfig, setNormalLogisticsConfig] = useState(0);
@@ -548,7 +567,7 @@ const CartPage = () => {
   
   const discount = useMemo(() => {
       if (!isPromoApplied || !appliedPromoData) return 0;
-      if (appliedPromoData.discountType === 'Flat') return Math.min(appliedPromoData.discountValue, grandTotal);
+      if (['Flat', 'FLAT_AMOUNT'].includes(appliedPromoData.discountType)) return Math.min(appliedPromoData.discountValue, grandTotal);
       return (grandTotal * appliedPromoData.discountValue) / 100;
   }, [isPromoApplied, appliedPromoData, grandTotal]);
 
@@ -628,11 +647,6 @@ const CartPage = () => {
   const [specialInstructions, setSpecialInstructions] = useState(() => localStorage.getItem('order_notes') || '');
 
   const handlePlaceOrder = async () => {
-    if (approxWeightInvalid) {
-      toast.error('Approximate weight must be between 0.1 and 200 kg');
-      document.getElementById('approx-weight')?.focus();
-      return;
-    }
     try {
       const userData = JSON.parse(localStorage.getItem('user') || '{}');
       const userId = userData._id || userData.id; 
@@ -668,16 +682,34 @@ const CartPage = () => {
           return;
         }
 
-        const rzpOrder = await orderApi.createRazorpayOrder({
-          amount: amountToPay
-        });
-
-        console.log('📦 [CART] Razorpay Order received from backend:', rzpOrder);
-
-        if (!rzpOrder || !rzpOrder.id) {
-          console.error('❌ [CART] Razorpay order creation failed:', rzpOrder);
-          alert('Failed to create Razorpay order. Check your backend configuration.');
+        // The server prices the cart itself and opens the checkout for that
+        // amount; the amount shown here is never what decides the charge.
+        let rzpOrder;
+        try {
+          rzpOrder = await orderApi.createRazorpayOrder({
+            purpose: 'CUSTOMER_ORDER',
+            order: {
+              items: cartItems.map(item => {
+                const itemId = item._id || item.id;
+                return { serviceId: itemId, quantity: quantities[itemId] };
+              }),
+              pickupLocation: selectedPickupAddress?.location || defaultCenter,
+              deliveryMode: isExpress ? 'Express' : 'Normal',
+              selectedTier,
+              promoApplied: isPromoApplied ? appliedPromoData?._id : null,
+              useWallet
+            }
+          });
+        } catch (err) {
+          toast.error(err.message || 'Could not start the payment');
           return;
+        }
+
+        if (Math.abs((rzpOrder.payable || 0) - amountToPay) > 1) {
+          const proceed = window.confirm(
+            `The final amount for this order is ₹${rzpOrder.payable} (the cart showed ₹${amountToPay}). Continue and pay ₹${rzpOrder.payable}?`
+          );
+          if (!proceed) return;
         }
 
         const options = {
@@ -697,10 +729,16 @@ const CartPage = () => {
             email: userData.email || '',
             contact: userData.phone || ''
           },
-          theme: { color: '#000000' }
+          theme: { color: '#000000' },
+          modal: {
+            ondismiss: () => toast('Payment cancelled. Your cart is saved.')
+          }
         };
 
         const paymentObject = new window.Razorpay(options);
+        paymentObject.on('payment.failed', (response) => {
+          toast.error(response?.error?.description || 'Payment failed. No money was taken for this attempt.');
+        });
         paymentObject.open();
       } else {
         const actualMethod = amountToPay === 0 ? 'Online' : 'COD';
@@ -738,8 +776,6 @@ const CartPage = () => {
             photos: itemPhotos[itemId] || []
           };
         }),
-        // Customer's optional estimate; the server otherwise estimates from each service's Avg Weight
-        approxWeight: approxWeight === '' ? undefined : approxWeightNum,
         pickupSlot: { date: selectedPickup, time: pickupTime },
         deliverySlot: { date: selectedDelivery, time: deliveryTime },
         pickupAddress: selectedPickupAddress?.address || '',
@@ -1123,32 +1159,18 @@ const CartPage = () => {
               </div>
             </div>
           </div>
-            
-            {/* Approximate weight (optional) */}
+
+            {/* Read-only estimate from admin-configured service weights */}
             <div className="bg-slate-950 text-white px-6 pt-5 pb-1">
-              <label htmlFor="approx-weight" className="block text-[8px] font-black text-white/40 uppercase tracking-widest mb-2">
-                Approx. weight of clothes <span className="text-white/25">· optional</span>
-              </label>
-              <div className={`flex items-center rounded-xl bg-white/5 border ${approxWeightInvalid ? 'border-rose-400/70' : 'border-white/10'} focus-within:border-white/40 transition-colors`}>
-                <input
-                  id="approx-weight"
-                  type="number"
-                  inputMode="decimal"
-                  min="0.1"
-                  max="200"
-                  step="0.1"
-                  placeholder="e.g. 3.5"
-                  value={approxWeight}
-                  onChange={(e) => setApproxWeight(e.target.value)}
-                  aria-invalid={approxWeightInvalid}
-                  aria-describedby="approx-weight-hint"
-                  className="flex-1 bg-transparent px-4 py-3 text-sm font-bold text-white placeholder:text-white/25 outline-none min-w-0"
-                />
-                <span className="pr-4 text-[10px] font-black text-white/40 uppercase">kg</span>
+              <div className="flex items-center justify-between gap-4 rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+                <div>
+                  <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Estimated total weight</p>
+                  <p className="mt-1 text-[9px] font-semibold text-white/35">Calculated automatically from the selected items</p>
+                </div>
+                <span className="text-sm font-black text-white tabular-nums whitespace-nowrap">
+                  {configuredWeight === null ? '—' : `~${configuredWeight} kg`}
+                </span>
               </div>
-              <p id="approx-weight-hint" className={`mt-1.5 text-[9px] font-semibold ${approxWeightInvalid ? 'text-rose-300' : 'text-white/35'}`}>
-                {approxWeightInvalid ? 'Enter a weight between 0.1 and 200 kg' : 'Your estimate helps the vendor plan. They weigh the clothes on arrival.'}
-              </p>
             </div>
 
             {/* 2. PRICE BREAKDOWN / PAYMENT BOX */}

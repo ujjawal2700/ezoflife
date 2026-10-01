@@ -9,11 +9,13 @@ import { getIO } from '../socket.js';
 import { sendWalkInWhatsApp } from '../utils/whatsappHelper.js';
 import { sendSMSMessage, sendWhatsAppMessage } from '../utils/communicationHelper.js';
 import { dispatchReturn } from '../services/logistics/dispatch.js';
-import Razorpay from 'razorpay';
+import PaymentTransaction from '../models/PaymentTransaction.js';
+import { getRazorpay } from '../utils/razorpayClient.js';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
-import { verifyRazorpayPayment } from '../utils/paymentVerification.js';
+import { priceCustomerOrder, PricingError } from '../utils/customerOrderPricing.js';
+import { openCheckout, claimPayment, linkPayment, refundConsumed, PaymentError } from '../services/paymentLedger.js';
 import { sendError } from '../utils/errorResponse.js';
-import { estimateWeightFromItems, isInvalidWeight, MAX_WEIGHT_KG, parseWeightKg, resolveOrderWeight } from '../utils/orderWeight.js';
+import { estimateWeightFromItems, MAX_WEIGHT_KG, parseWeightKg, resolveOrderWeight } from '../utils/orderWeight.js';
 import { resolveActorId, isOwnerOrAdmin } from '../middleware/authMiddleware.js';
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
@@ -210,44 +212,115 @@ const assignVendor = async (customerLat, customerLng) => {
 
 // getNearbyRiders removed (obsolete custom local rider flow)
 
+/**
+ * Rider-delivery fee for a vendor's walk-in order: the admin-configured
+ * normal_logistics_fee, times the express multiplier of the vendor's service
+ * area for Express. Same rule the walk-in screen shows; the server is the source.
+ */
+const quoteWalkInDeliveryFee = async (vendor, deliveryMode) => {
+    const SystemConfig = (await import('../models/SystemConfig.js')).default;
+    const config = await SystemConfig.findOne({ key: 'normal_logistics_fee' }).lean();
+    const baseFee = Number(config?.value) || 0;
+    let expressMultiplier = 1;
+    if (deliveryMode === 'Express') {
+        const lat = Number(vendor?.location?.lat) || 22.7196;
+        const lng = Number(vendor?.location?.lng) || 75.8577;
+        const area = await ServiceArea.findOne({
+            isActive: true,
+            boundary: { $geoIntersects: { $geometry: { type: 'Point', coordinates: [lng, lat] } } }
+        }).lean();
+        expressMultiplier = Number(area?.dynamicSurgeMultiplier) || 1.5;
+    }
+    const fee = Math.round(baseFee * expressMultiplier);
+    return fee > 0 ? fee : 50;
+};
+
+const sendPaymentOrPricingError = (res, error, fallback) => {
+    if (error instanceof PricingError || error instanceof PaymentError) {
+        return res.status(error.status).json({ message: error.message });
+    }
+    if (error?.statusCode === 503) return res.status(503).json({ message: 'Online payment is not available right now' });
+    console.error(`❌ [RAZORPAY] ${fallback}:`, error?.error?.description || error.message);
+    return res.status(500).json({ message: fallback });
+};
+
+/**
+ * Opens a Razorpay checkout. The amount is always calculated here, from the
+ * purpose and its inputs; an amount sent by the app is ignored.
+ *
+ *   { purpose: 'CUSTOMER_ORDER', order: { items, pickupLocation, deliveryMode, selectedTier, promoApplied, useWallet } }
+ *   { purpose: 'WALKIN_DELIVERY', deliveryMode }
+ */
 export const createRazorpayOrder = async (req, res) => {
     try {
-        const { amount, currency = 'INR' } = req.body;
-        console.log('💳 [RAZORPAY] Received request for amount:', amount);
+        const { purpose } = req.body || {};
 
-        // A missing or nonsensical amount is bad input, not a server fault.
-        // Razorpay would otherwise reject it and the error would surface as a 500.
-        if (amount === undefined || amount === null || Number.isNaN(Number(amount)) || Number(amount) <= 0) {
-            return res.status(400).json({ message: 'A positive amount is required' });
+        if (purpose === 'CUSTOMER_ORDER') {
+            const customerId = resolveActorId(req, 'customerId');
+            if (!mongoose.isValidObjectId(customerId)) return res.status(400).json({ message: 'Invalid Customer ID' });
+            const customer = await User.findById(customerId);
+            if (!customer) return res.status(404).json({ message: 'Customer user not found' });
+
+            const quote = await priceCustomerOrder({ ...(req.body.order || {}), customer });
+            if (quote.payableOnline < 1) {
+                return res.status(400).json({ message: 'Nothing to pay online for this order', quote: { payable: 0 } });
+            }
+            const checkout = await openCheckout({
+                purpose,
+                payerId: customer._id,
+                amount: quote.payableOnline,
+                quote: { breakdown: quote.priceBreakdown, discount: quote.discount, wallet: quote.walletDeduction, finalTotal: quote.finalTotal }
+            });
+            return res.status(200).json({ ...checkout, payable: quote.payableOnline, finalTotal: quote.finalTotal });
         }
 
-        if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
-            console.error('❌ [RAZORPAY] Keys are missing in .env');
-            return res.status(500).json({ message: 'Razorpay keys not configured on server' });
+        if (purpose === 'WALKIN_DELIVERY') {
+            if (!['Vendor', 'Admin'].includes(req.user?.role)) {
+                return res.status(403).json({ message: 'Only vendors pay walk-in delivery fees' });
+            }
+            const vendor = await User.findById(req.user.id).select('location role');
+            const fee = await quoteWalkInDeliveryFee(vendor, req.body.deliveryMode);
+            const checkout = await openCheckout({
+                purpose,
+                payerId: req.user.id,
+                amount: fee,
+                quote: { deliveryMode: req.body.deliveryMode === 'Express' ? 'Express' : 'Normal', fee }
+            });
+            return res.status(200).json({ ...checkout, payable: fee });
         }
-        
-        const instance = new Razorpay({
-            key_id: process.env.RAZORPAY_KEY_ID,
-            key_secret: process.env.RAZORPAY_KEY_SECRET
-        });
 
-        const options = {
-            amount: Math.round(amount * 100), // Razorpay expects amount in paise
-            currency: currency,
-            receipt: `receipt_${Date.now()}`
-        };
-
-        console.log('💳 [RAZORPAY] Creating order with options:', options);
-        const order = await instance.orders.create(options);
-        console.log('💳 [RAZORPAY] Order created successfully:', order.id);
-        
-        res.status(200).json({
-            ...order,
-            keyId: process.env.RAZORPAY_KEY_ID
-        });
+        return res.status(400).json({ message: 'purpose must be CUSTOMER_ORDER or WALKIN_DELIVERY' });
     } catch (error) {
-        console.error('❌ [RAZORPAY] Error:', error);
-        res.status(500).json({ message: 'Error creating Razorpay order', error: error.message });
+        return sendPaymentOrPricingError(res, error, 'Could not start the payment');
+    }
+};
+
+/** The server's price for a cart, so the app shows exactly what will be charged. */
+export const quoteCustomerOrder = async (req, res) => {
+    try {
+        const customerId = resolveActorId(req, 'customerId');
+        if (!mongoose.isValidObjectId(customerId)) return res.status(400).json({ message: 'Invalid Customer ID' });
+        const customer = await User.findById(customerId);
+        if (!customer) return res.status(404).json({ message: 'Customer user not found' });
+        const quote = await priceCustomerOrder({ ...req.body, customer });
+        const { promo, ...rest } = quote;
+        res.json({ ...rest, promo: promo ? { _id: promo._id, code: promo.code } : null });
+    } catch (error) {
+        return sendPaymentOrPricingError(res, error, 'Could not price this order');
+    }
+};
+
+/** Walk-in rider delivery fee, as the server will charge it. */
+export const getWalkInDeliveryFee = async (req, res) => {
+    try {
+        if (!['Vendor', 'Admin'].includes(req.user?.role)) {
+            return res.status(403).json({ message: 'Only vendors can quote walk-in delivery' });
+        }
+        const vendor = await User.findById(req.user.id).select('location');
+        const fee = await quoteWalkInDeliveryFee(vendor, req.query.deliveryMode);
+        res.json({ fee, deliveryMode: req.query.deliveryMode === 'Express' ? 'Express' : 'Normal' });
+    } catch (error) {
+        return sendPaymentOrPricingError(res, error, 'Could not calculate the delivery fee');
     }
 };
 
@@ -273,11 +346,6 @@ export const createOrder = async (req, res) => {
         const customerId = resolveActorId(req, 'customerId');
 
         if (!customerId) return res.status(400).json({ message: 'Customer ID required' });
-        // Optional approximate weight from the customer; checked before any payment work
-        if (isInvalidWeight(req.body.approxWeight)) {
-            return res.status(400).json({ message: `Approximate weight must be between 0.1 and ${MAX_WEIGHT_KG} kg` });
-        }
-
         // Reject a malformed id up front. Without this, findById throws a CastError
         // that surfaces as a 500 — bad client input should never read as a server fault.
         if (!mongoose.Types.ObjectId.isValid(customerId)) {
@@ -288,80 +356,25 @@ export const createOrder = async (req, res) => {
         if (!customerUser) return res.status(404).json({ message: 'Customer user not found' });
         const isCustomerRD = checkCustomerRD(customerUser);
 
-        // 1. Fetch pricing multipliers from SystemConfig
-        const SystemConfig = (await import('../models/SystemConfig.js')).default;
-        const [
-            expressMult,
-            platformMult,
-            gstPerc,
-            advanceConfig
-        ] = await Promise.all([
-            SystemConfig.findOne({ key: 'express_multiplier' }),
-            SystemConfig.findOne({ key: 'platform_multiplier' }),
-            SystemConfig.findOne({ key: 'gst_percent' }),
-            SystemConfig.findOne({ key: 'advance_percentage' })
-        ]);
-
-        const rawExpressMultiplier = req.body.expressMultiplier !== undefined ? Number(req.body.expressMultiplier) : null;
-        const normalizedExpressMultiplier = rawExpressMultiplier !== null 
-            ? (deliveryMode === 'Express' ? rawExpressMultiplier : 1) 
-            : (deliveryMode === 'Express' ? (Number(expressMult?.value) || 1.5) : 1);
-
-        const rawPlatformMultiplier = req.body.platformMultiplier !== undefined ? Number(req.body.platformMultiplier) : null;
-        const normalizedPlatformMultiplier = rawPlatformMultiplier !== null ? (1 + rawPlatformMultiplier) : (Number(platformMult?.value) || 1.1);
-
-        const multipliers = {
-            expressMultiplier: normalizedExpressMultiplier,
-            platformMultiplier: normalizedPlatformMultiplier,
-            gstPercent: Number(gstPerc?.value) || 18,
-            advancePerc: Number(advanceConfig?.value) || 100,
-            areaMultiplier: req.body.areaMultiplier || 1 // Should be passed from frontend based on location
-        };
-
-        // 2. Calculate Pricing for each item and overall
-        let totalCalculatedV = 0;
-        let totalGstAmount = 0;
-        let finalPriceBreakdown = {
-            baseWithArea: 0,
-            expressSurcharge: 0,
-            platformFee: 0,
-            logisticsFee: Number(deliveryCharge) || 0,
-            gstAmount: 0
-        };
-
-        const processedItems = items.map(item => {
-            const pricing = calculateOrderPrice({
-                baseRate: item.price * item.quantity,
-                areaMultiplier: multipliers.areaMultiplier,
-                expressMultiplier: multipliers.expressMultiplier,
-                platformMultiplier: multipliers.platformMultiplier,
-                logisticsFee: 0, // Logistics is added once at the end
-                gstPercent: multipliers.gstPercent
+        // 1. Price the order on the server. Prices, multipliers, fees and discounts
+        // sent by the app are ignored; see utils/customerOrderPricing.js.
+        let quote;
+        try {
+            quote = await priceCustomerOrder({
+                items,
+                pickupLocation,
+                deliveryMode,
+                selectedTier: req.body.selectedTier,
+                promoApplied: req.body.promoApplied,
+                useWallet: req.body.useWallet,
+                customer: customerUser
             });
-
-            // Aggregate breakdown
-            finalPriceBreakdown.baseWithArea += pricing.breakdown.baseWithArea;
-            finalPriceBreakdown.expressSurcharge += pricing.breakdown.expressSurcharge;
-            finalPriceBreakdown.platformFee += pricing.breakdown.platformFee;
-            
-            totalCalculatedV += pricing.V;
-            return { ...item, pricing };
-        });
-
-        const activeMinPlatformFee = req.body.minPlatformFee || 0;
-        const activeMaxPlatformFee = req.body.maxPlatformFee || null;
-
-        if (activeMinPlatformFee > 0 && finalPriceBreakdown.platformFee < activeMinPlatformFee) {
-            const diff = activeMinPlatformFee - finalPriceBreakdown.platformFee;
-            finalPriceBreakdown.platformFee = activeMinPlatformFee;
-            totalCalculatedV += diff;
+        } catch (error) {
+            if (error instanceof PricingError) return res.status(error.status).json({ message: error.message });
+            throw error;
         }
-
-        if (activeMaxPlatformFee !== null && activeMaxPlatformFee > 0 && finalPriceBreakdown.platformFee > activeMaxPlatformFee) {
-            const diff = finalPriceBreakdown.platformFee - activeMaxPlatformFee;
-            finalPriceBreakdown.platformFee = activeMaxPlatformFee;
-            totalCalculatedV -= diff;
-        }
+        const finalPriceBreakdown = { ...quote.priceBreakdown };
+        const multipliers = { advancePerc: quote.advancePercent };
 
         // --- DROP-OFF CALCULATION ---
         const itemIds = items.map(i => i.serviceId);
@@ -400,46 +413,9 @@ export const createOrder = async (req, res) => {
 
         const triggerTime = calculateTriggerTime(pickupSlot?.date, pickupSlot?.time);
 
-        // Add logistics to V once
-        // Build a map of service DB details
-        const serviceDetailsMap = {};
-        allSvcs.forEach(s => {
-            if (s && s._id) {
-                serviceDetailsMap[s._id.toString()] = s;
-            }
-        });
-
-        // Compute dynamic item-specific GST on backend
-        let itemsGstTotal = 0;
-        processedItems.forEach(item => {
-            const dbSvc = serviceDetailsMap[item.serviceId?.toString()];
-            const dbGst = dbSvc ? dbSvc.gst : null;
-            const itemTier = dbSvc ? dbSvc.tier : 'Essential';
-            const activeTier = req.body.selectedTier || itemTier || 'Essential';
-            
-            const itemGstPercent = activeTier === 'Heritage' 
-              ? (dbSvc?.heritageGst !== undefined && dbSvc?.heritageGst !== null ? dbSvc.heritageGst : 18)
-              : (dbGst !== undefined && dbGst !== null ? dbGst : 5);
-              
-            const itemBase = item.pricing ? item.pricing.breakdown.baseWithArea : (item.price * item.quantity);
-            const expressSurcharge = item.pricing ? item.pricing.breakdown.expressSurcharge : 0;
-            const taxableValue = itemBase + expressSurcharge;
-            itemsGstTotal += taxableValue * (itemGstPercent / 100);
-        });
-
-        const finalV = totalCalculatedV + finalPriceBreakdown.logisticsFee;
-        const finalGst = itemsGstTotal;
-        finalPriceBreakdown.gstAmount = finalGst;
-
-        const finalTotal = finalV + finalGst;
-        
-        // Wallet is only calculated here. The balance is not debited until payment
-        // has been confirmed below, so a failed or forged payment can never consume
-        // the customer's credit.
-        let walletDeduction = 0;
-        if (req.body.useWallet && customerUser.walletBalance > 0) {
-            walletDeduction = Math.min(customerUser.walletBalance, finalTotal);
-        }
+        // Totals from the server quote (pre-discount total is stored as totalAmount).
+        const finalTotal = quote.grandTotal;
+        const walletDeduction = quote.walletDeduction;
 
         // B2B Promotions priority discovery & matching
         const serviceArea = await ServiceArea.findOne({
@@ -501,10 +477,10 @@ export const createOrder = async (req, res) => {
             promoOwnerType: 'NONE'
         };
 
-        if (req.body.promoApplied) {
-            appliedPromo = await Promotion.findById(req.body.promoApplied);
-            if (appliedPromo && appliedPromo.owner_type === 'PLATFORM') {
-                const promoValue = req.body.discountAmount || 0;
+        if (quote.promo) {
+            appliedPromo = quote.promo;
+            if (appliedPromo.owner_type === 'PLATFORM') {
+                const promoValue = quote.discount;
                 const retailValue = finalTotal + promoValue;
                 const standardFee = retailValue * 0.10;
                 finalLedger = {
@@ -519,67 +495,81 @@ export const createOrder = async (req, res) => {
         }
 
         // --- Payment resolution (server-authoritative) ---
-        // The paymentStatus reported by the client is deliberately ignored. The server
-        // recalculates what is owed and an order only reaches a Paid state once Razorpay
-        // itself confirms the payment.
-
-        // A claimed discount is capped at what the promotion is actually configured to
-        // give, so the payable amount cannot be shrunk by editing the request body.
-        let validatedDiscount = 0;
-        if (appliedPromo) {
-            const isPercentage = ['Percentage', 'PERCENTAGE'].includes(appliedPromo.discountType);
-            const maxDiscount = isPercentage
-                ? finalTotal * (Number(appliedPromo.discountValue) || 0) / 100
-                : Number(appliedPromo.discountValue) || 0;
-            validatedDiscount = Math.max(0, Math.min(Number(req.body.discountAmount) || 0, maxDiscount));
-        }
-
-        const payableTotal = Math.max(0, finalTotal - validatedDiscount);
-        const remainingTotal = Math.max(0, payableTotal - walletDeduction);
+        // The paymentStatus reported by the client is ignored. An online order is
+        // only Paid once its Razorpay checkout (opened by the server for this exact
+        // amount) is verified and consumed; a payment can be consumed only once.
+        const validatedDiscount = quote.discount;
+        const remainingTotal = quote.remaining;
         const calculatedAdvance = (remainingTotal * (multipliers.advancePerc / 100));
         const calculatedDue = remainingTotal - calculatedAdvance;
 
         let resolvedPaymentStatus = 'Pending';
         let resolvedPaymentMethod = 'COD';
-        let verifiedPaymentId = null;
+        let paymentTxn = null;
 
         if (remainingTotal <= 0) {
             // Fully covered by wallet credit — there is nothing left to collect.
             resolvedPaymentStatus = 'Paid';
             resolvedPaymentMethod = 'Wallet';
         } else if (req.body.paymentMethod === 'Online') {
-            const verification = await verifyRazorpayPayment({
-                razorpay_order_id: req.body.razorpayOrderId,
-                razorpay_payment_id: req.body.razorpayPaymentId,
-                razorpay_signature: req.body.razorpaySignature,
-                expectedAmount: remainingTotal
-            });
-
-            if (!verification.ok) {
-                console.warn(`🚫 [PAYMENT] Rejected order for customer ${customerId}: ${verification.reason}`);
-                return res.status(400).json({
-                    message: `Payment could not be verified. ${verification.reason}`
+            try {
+                paymentTxn = await claimPayment({
+                    purpose: 'CUSTOMER_ORDER',
+                    payerId: customerUser._id,
+                    razorpay_order_id: req.body.razorpayOrderId,
+                    razorpay_payment_id: req.body.razorpayPaymentId,
+                    razorpay_signature: req.body.razorpaySignature,
+                    expectedAmount: quote.payableOnline
                 });
+            } catch (error) {
+                if (error instanceof PaymentError) {
+                    console.warn(`🚫 [PAYMENT] Rejected order for customer ${customerId}: ${error.message}`);
+                    return res.status(error.status).json({ message: error.message, refunded: Boolean(error.refunded) });
+                }
+                throw error;
             }
-
             resolvedPaymentStatus = 'Paid';
             resolvedPaymentMethod = 'Online';
-            verifiedPaymentId = verification.paymentId;
         }
 
-        // Payment is settled, so the wallet can now safely be debited.
+        // Payment is settled, so the wallet can now be debited — atomically, so two
+        // simultaneous orders can never spend the same balance.
         if (walletDeduction > 0) {
-            customerUser.walletBalance = Math.max(0, customerUser.walletBalance - walletDeduction);
-            await customerUser.save();
+            const debited = await User.updateOne(
+                { _id: customerUser._id, walletBalance: { $gte: walletDeduction } },
+                { $inc: { walletBalance: -walletDeduction } }
+            );
+            if (debited.modifiedCount !== 1) {
+                if (paymentTxn) await refundConsumed(paymentTxn, 'Wallet balance changed before the order was placed');
+                return res.status(409).json({
+                    message: 'Your wallet balance changed. Please review your cart and try again.',
+                    refunded: Boolean(paymentTxn)
+                });
+            }
             console.log(`💸 [WALLET] Deducted ₹${walletDeduction} from customer ${customerUser.phone} for order`);
         }
+        const undoCharges = async (reason) => {
+            if (walletDeduction > 0) await User.updateOne({ _id: customerUser._id }, { $inc: { walletBalance: walletDeduction } });
+            if (paymentTxn) await refundConsumed(paymentTxn, reason);
+        };
 
-        // Weight: customer's approximate weight if given, otherwise an estimate from
-        // the services' Avg Weight. Client-sent per-item weights are not trusted.
-        const customerWeight = parseWeightKg(req.body.approxWeight);
-        const estimatedWeight = await estimateWeightFromItems(items);
-        const orderWeight = resolveOrderWeight({ customerWeight, estimatedWeight });
-        const itemsForOrder = (items || []).map(({ weight, ...rest }) => rest);
+        // Weight is calculated only from quantities and the Avg Weight configured by
+        // Admin for each Master Service. Legacy client-sent estimates and per-item
+        // weights are deliberately ignored.
+        // Stored items carry the server price; only display extras come from the app.
+        const itemsForOrder = quote.items.map((priced, i) => ({
+            serviceId: priced.serviceId,
+            name: priced.name,
+            quantity: priced.quantity,
+            price: priced.price,
+            unit: items[i]?.unit || priced.unit,
+            photos: Array.isArray(items[i]?.photos) ? items[i].photos : []
+        }));
+        const estimatedWeight = await estimateWeightFromItems(itemsForOrder);
+        const orderWeight = resolveOrderWeight({ estimatedWeight });
+        const analyticsAddress = (customerUser.addresses || []).find(address => address.isDefault)
+            || (customerUser.addresses || [])[0]
+            || {};
 
         const newOrder = new Order({
             customer: customerId,
@@ -590,15 +580,22 @@ export const createOrder = async (req, res) => {
             pickupLocation,
             dropAddress,
             dropLocation,
+            analyticsLocation: {
+                state: analyticsAddress.state || '',
+                city: analyticsAddress.city || '',
+                pincode: analyticsAddress.pincode || '',
+                geofence: serviceArea?.areaName || ''
+            },
             totalAmount: Math.round(finalTotal),
             advanceAmount: Math.round(calculatedAdvance),
             dueAmount: Math.round(calculatedDue),
             paymentStatus: resolvedPaymentStatus,
             paymentMethod: resolvedPaymentMethod,
-            razorpayPaymentId: verifiedPaymentId,
-            deliveryMode: deliveryMode || 'Normal',
-            tier: req.body.selectedTier || 'Essential',
-            deliveryCharge: Number(deliveryCharge) || 0,
+            razorpayPaymentId: paymentTxn?.razorpayPaymentId || null,
+            razorpayOrderId: paymentTxn?.razorpayOrderId || null,
+            deliveryMode: deliveryMode === 'Express' ? 'Express' : 'Normal',
+            tier: quote.multipliers.tier,
+            deliveryCharge: quote.priceBreakdown.logisticsFee,
             promoApplied: req.body.promoApplied || null,
             discountAmount: validatedDiscount,
             walletAmountDeducted: Math.round(walletDeduction),
@@ -617,7 +614,6 @@ export const createOrder = async (req, res) => {
             isCustomerRD: isCustomerRD,
             totalWeight: orderWeight.totalWeight,
             weightSource: orderWeight.weightSource,
-            customerWeight,
             estimatedWeight,
             customerSnapshot: {
                 displayName: customerUser.displayName || null,
@@ -630,7 +626,13 @@ export const createOrder = async (req, res) => {
             ledger: finalLedger
         });
 
-        await newOrder.save();
+        try {
+            await newOrder.save();
+        } catch (saveError) {
+            await undoCharges('Order could not be saved');
+            throw saveError;
+        }
+        if (paymentTxn) await linkPayment(paymentTxn, 'Order', [newOrder._id]);
 
         // Clear customer draftCart so it is removed from cart permanently
         try {
@@ -1874,7 +1876,9 @@ const parseWalkInDeliveryTime = (deliveryTime) => {
 
 export const createWalkInOrder = async (req, res) => {
     try {
-        const { customerPhone, customerName, items, totalAmount, vendorId, riderDropOff, dropAddress, deliveryTime } = req.body;
+        const { customerPhone, customerName, items, totalAmount, riderDropOff, dropAddress, deliveryTime } = req.body;
+        // The vendor is whoever is logged in; only an Admin may raise one for a vendor.
+        const vendorId = resolveActorId(req, 'vendorId');
 
         if (!customerPhone || !items || !vendorId) {
             return res.status(400).json({ message: 'Missing required fields for walk-in order' });
@@ -1884,6 +1888,33 @@ export const createWalkInOrder = async (req, res) => {
         const weighedWeight = parseWeightKg(req.body.weight);
         if (!weighedWeight) {
             return res.status(400).json({ message: `Enter the weight of the clothes (0.1–${MAX_WEIGHT_KG} kg)` });
+        }
+
+        // Rider delivery must be paid for (by the vendor, through Razorpay) before
+        // anything is created. The fee is the server's quote, never the request's.
+        let deliveryTxn = null;
+        if (riderDropOff) {
+            const payingVendor = await User.findById(vendorId).select('location');
+            const fee = await quoteWalkInDeliveryFee(payingVendor, req.body.deliveryMode);
+            const proof = req.body.logisticsPayment || {};
+            try {
+                deliveryTxn = await claimPayment({
+                    purpose: 'WALKIN_DELIVERY',
+                    payerId: req.user.id,
+                    razorpay_order_id: proof.razorpay_order_id,
+                    razorpay_payment_id: proof.razorpay_payment_id,
+                    razorpay_signature: proof.razorpay_signature,
+                    expectedAmount: fee
+                });
+            } catch (error) {
+                if (error instanceof PaymentError) {
+                    return res.status(error.status === 400 ? 402 : error.status).json({
+                        message: `Rider delivery needs the delivery fee to be paid first. ${error.message}`,
+                        refunded: Boolean(error.refunded)
+                    });
+                }
+                throw error;
+            }
         }
 
         // 1. Find or create a shadow user for this walk-in customer
@@ -1939,7 +1970,7 @@ export const createWalkInOrder = async (req, res) => {
         const vendorUser = await User.findById(vendorId);
         const isCustRD = checkCustomerRD(customer);
         const itemsTotal = items.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
-        const deliveryChargeVal = riderDropOff ? (Number(req.body.deliveryCharge) || 0) : 0;
+        const deliveryChargeVal = deliveryTxn ? deliveryTxn.amountPaid : 0;
         
         const priceBreakdown = {
             baseWithArea: itemsTotal,
@@ -2002,7 +2033,15 @@ export const createWalkInOrder = async (req, res) => {
                 platformInvoice: invoiceData.platformInvoice
             },
             ledger: invoiceData.ledger,
-            riderDropOff: riderDropOff || false,
+            riderDropOff: Boolean(deliveryTxn),
+            logisticsPayment: deliveryTxn
+                ? {
+                    razorpayOrderId: deliveryTxn.razorpayOrderId,
+                    razorpayPaymentId: deliveryTxn.razorpayPaymentId,
+                    amount: deliveryTxn.amountPaid,
+                    status: 'PAID'
+                }
+                : { status: 'NOT_APPLICABLE' },
             pickupStatus: 'picked',
             pickupExpectedDate: new Date(),
             pickupSlot: {
@@ -2016,7 +2055,13 @@ export const createWalkInOrder = async (req, res) => {
             dropLocation: { lat: 0, lng: 0 }
         });
 
-        await newOrder.save();
+        try {
+            await newOrder.save();
+        } catch (saveError) {
+            if (deliveryTxn) await refundConsumed(deliveryTxn, 'Walk-in order could not be saved');
+            throw saveError;
+        }
+        if (deliveryTxn) await linkPayment(deliveryTxn, 'Order', [newOrder._id]);
         
         // Send automated welcome SMS + WhatsApp message containing the Spinzyt app download link
         const welcomeMsg = `Thank u for taking our service if u have to see your service status plz download our app\nhttps://spinzyt.com/app`;
@@ -2072,33 +2117,25 @@ export const cancelOrder = async (req, res) => {
         let walletRefunded = 0;
         let onlineRefunded = 0;
 
-        // 3. Process Wallet Refund
-        if (order.walletAmountDeducted && order.walletAmountDeducted > 0) {
-            const customer = await User.findById(order.customer);
-            if (customer) {
-                customer.walletBalance = (customer.walletBalance || 0) + order.walletAmountDeducted;
-                await customer.save();
-                walletRefunded = order.walletAmountDeducted;
-                refundLog += `Refunded ₹${walletRefunded} to customer wallet. `;
-                console.log(`💸 [WALLET REFUND] Restored ₹${walletRefunded} to customer ${customer.phone}`);
-            }
-        }
-
-        // 4. Process Razorpay Refund
-        const refundAmount = order.totalAmount - (order.walletAmountDeducted || 0);
+        // 3. Online refund first: if Razorpay refuses, nothing else has changed and
+        // the cancellation can simply be retried. Refund exactly what was captured
+        // (the ledger's figure; older orders: total − discount − wallet).
+        const paymentTxn = order.razorpayPaymentId
+            ? await PaymentTransaction.findOne({ razorpayPaymentId: order.razorpayPaymentId })
+            : null;
+        const refundAmount = paymentTxn?.amountPaid
+            ?? Math.max(0, (order.totalAmount || 0) - (order.discountAmount || 0) - (order.walletAmountDeducted || 0));
         if (order.paymentMethod === 'Online' && order.paymentStatus === 'Paid' && order.razorpayPaymentId && refundAmount > 0) {
-            if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+            let razorpay;
+            try {
+                razorpay = getRazorpay();
+            } catch {
                 console.error('❌ [REFUND] Razorpay keys not configured on server');
-                return res.status(500).json({ message: 'Razorpay keys not configured on server. Cannot process online refund.' });
+                return res.status(503).json({ message: 'Online refunds are not available right now. Please try again later.' });
             }
-
-            const razorpayInstance = new Razorpay({
-                key_id: process.env.RAZORPAY_KEY_ID,
-                key_secret: process.env.RAZORPAY_KEY_SECRET
-            });
 
             console.log(`💳 [REFUND] Initiating Razorpay refund for payment ${order.razorpayPaymentId} of amount ₹${refundAmount}`);
-            const refundResult = await razorpayInstance.payments.refund(order.razorpayPaymentId, {
+            const refundResult = await razorpay.payments.refund(order.razorpayPaymentId, {
                 amount: Math.round(refundAmount * 100), // paise
                 speed: 'normal',
                 notes: {
@@ -2109,13 +2146,38 @@ export const cancelOrder = async (req, res) => {
             console.log(`💳 [REFUND] Razorpay refund success:`, refundResult.id);
             onlineRefunded = refundAmount;
             refundLog += `Refunded ₹${onlineRefunded} via Razorpay (Refund ID: ${refundResult.id}). `;
+            if (paymentTxn) {
+                await PaymentTransaction.updateOne(
+                    { _id: paymentTxn._id },
+                    { status: 'refunded', refundId: refundResult.id, refundedAt: new Date(), failureReason: 'Order cancelled' }
+                );
+            }
+        }
+
+        // 4. Wallet refund (atomic increment)
+        if (order.walletAmountDeducted && order.walletAmountDeducted > 0) {
+            const credited = await User.findByIdAndUpdate(
+                order.customer,
+                { $inc: { walletBalance: order.walletAmountDeducted } },
+                { new: true }
+            );
+            if (credited) {
+                walletRefunded = order.walletAmountDeducted;
+                refundLog += `Refunded ₹${walletRefunded} to customer wallet. `;
+                console.log(`💸 [WALLET REFUND] Restored ₹${walletRefunded} to customer ${credited.phone}`);
+            }
         }
 
         // 5. Update order status
         order.status = 'CANCELLED';
-        if (order.paymentStatus === 'Paid') {
+        const totalRefunded = onlineRefunded + walletRefunded;
+        if (order.paymentStatus === 'Paid' || totalRefunded > 0) {
             order.paymentStatus = 'Refunded';
         }
+        order.onlineRefundAmount = onlineRefunded;
+        order.walletRefundAmount = walletRefunded;
+        order.refundAmount = totalRefunded;
+        if (totalRefunded > 0) order.refundedAt = new Date();
         await order.save();
 
         const updatedOrder = await Order.findById(id)
@@ -2246,7 +2308,7 @@ export const getOrderInvoices = async (req, res) => {
 };
 
 // Vendor records the measured weight once the clothes are with them.
-// It replaces the customer's estimate / the Avg Weight estimate.
+// It replaces the admin-configured Avg Weight estimate.
 const WEIGHABLE_STATUSES = ['RECEIVED_BY_VENDOR', 'PROCESSING', 'READY_FOR_DISPATCH'];
 export const recordOrderWeight = async (req, res) => {
     try {

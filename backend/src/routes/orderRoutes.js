@@ -14,6 +14,8 @@ import {
     verifyHandshake,
     handleGetNearbyVendors,
     createRazorpayOrder,
+    quoteCustomerOrder,
+    getWalkInDeliveryFee,
     cancelOrder,
     getOrderInvoices,
     recordOrderWeight
@@ -34,6 +36,7 @@ router.get('/vendor', verifyUser, getVendorOrders);
 router.get('/vendor/insights', verifyUser, getVendorInsights);
 router.get('/my', verifyUser, getMyOrders);
 router.get('/nearby-vendors', verifyUser, handleGetNearbyVendors);
+router.get('/walk-in/delivery-fee', verifyAdminOrVendor, getWalkInDeliveryFee);
 
 // ─── Writes ───────────────────────────────────────────────────────────────────
 // Every mutation requires a token. Identity is taken from that token inside the
@@ -42,7 +45,8 @@ router.post('/vendor-accept/:id', verifyUser, vendorAcceptOrder);
 
 router.post('/', verifyUser, createOrder);
 router.post('/walk-in', verifyAdminOrVendor, createWalkInOrder);   // raised at the counter
-router.post('/razorpay', verifyUser, createRazorpayOrder);
+router.post('/razorpay', verifyUser, createRazorpayOrder);   // server-priced checkout
+router.post('/quote', verifyUser, quoteCustomerOrder);          // what the cart will cost
 
 router.patch('/status/:id', verifyUser, updateOrderStatus);
 router.post('/mark-ready/:id', verifyUser, markOrderReady);

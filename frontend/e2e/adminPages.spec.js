@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import jwt from 'jsonwebtoken';
 
 /**
- * Admin pages connected to the panel (Analytics, Reports, Payments, Labor)
+ * Admin pages connected to the panel (Dashboard, Payments, Vendors, Settings)
  * and the pages whose mock data was removed. Each must load its data from the
  * API, render without uncaught errors, and show none of the old fake values.
  */
@@ -24,16 +24,10 @@ const signInAsAdmin = async (page) => {
 const FAKE_VALUES = ['99.9%', '1.2K', '12:45 PM', 'pay_rzp_', 'PAY-VND-', 'SBI ····', 'Main Hub', 'Gurgaon (HQ)', 'EzOfLife Corporate'];
 
 const PAGES = [
-    { path: '/admin/analytics', api: '/api/admin/dashboard-analytics', heading: 'Analytics' },
-    { path: '/admin/reports?type=tat', api: '/api/admin/reports/tat', heading: 'Vendor TAT Report' },
-    { path: '/admin/reports?type=heatmap', api: '/api/admin/reports/heatmap', heading: 'Geospatial Heatmap' },
-    { path: '/admin/reports?type=leakage', api: '/api/admin/reports/leakage', heading: 'Revenue Leakage Analysis' },
-    { path: '/admin/reports?type=customers', api: '/api/admin/reports/customers', heading: 'Repeat Customers Analysis' },
     { path: '/admin/payments?tab=customer', api: '/api/admin/customer-payments', heading: 'Payments' },
     { path: '/admin/payments?tab=vendor', api: '/api/admin/vendor-payments', heading: 'Payments' },
     { path: '/admin/payments?tab=supplier', api: '/api/b2b-orders/admin/escrow', heading: 'Payments' },
     { path: '/admin/payments?tab=refunds', api: '/api/admin/refunds', heading: 'Payments' },
-    { path: '/admin/labor', api: '/api/labor/all', heading: 'Labor Management' },
     { path: '/admin/vendors', api: '/api/admin/vendors' },
     { path: '/admin/settings', api: '/api/admin/config' },
     { path: '/admin/dashboard', api: '/api/admin/dashboard-analytics' }
@@ -69,35 +63,11 @@ test.describe('Admin pages load real data', () => {
         await signInAsAdmin(page);
         await page.goto('/admin/dashboard');
         await page.waitForLoadState('networkidle');
-        for (const label of ['Reports & Analytics', 'Payments', 'Labor Management']) {
-            await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+        await expect(page.getByText('Payments', { exact: true }).first()).toBeVisible();
+        // Removed sections must not come back
+        for (const label of ['Reports & Analytics', 'Labor Management']) {
+            await expect(page.getByText(label, { exact: true })).toHaveCount(0);
         }
-    });
-
-    test('switching between report types in place does not crash', async ({ page }) => {
-        // Regression: the page stays mounted when only ?type= changes, and the
-        // previous report's data used to be rendered with the new report's layout.
-        const errors = [];
-        page.on('pageerror', e => errors.push(e.message));
-        await signInAsAdmin(page);
-        await page.goto('/admin/reports?type=tat');
-        await page.waitForLoadState('networkidle');
-
-        const order = ['heatmap', 'leakage', 'customers', 'tat', 'customers', 'heatmap'];
-        for (const type of order) {
-            const loaded = page.waitForResponse(r => r.url().includes(`/api/admin/reports/${type}`));
-            // Client-side navigation, exactly like clicking a sidebar link
-            await page.evaluate((t) => {
-                window.history.pushState({}, '', `/admin/reports?type=${t}`);
-                window.dispatchEvent(new PopStateEvent('popstate'));
-            }, type);
-            await loaded;
-            await page.waitForTimeout(300);
-        }
-
-        expect(errors, `errors while switching reports:\n${errors.join('\n')}`).toHaveLength(0);
-        await expect(page.getByRole('heading', { name: 'Geospatial Heatmap', exact: true })).toBeVisible();
-        await expect(page.getByText('Application Error Caught')).toHaveCount(0);
     });
 
     test('old URLs of merged pages redirect to the full pages', async ({ page }) => {
@@ -106,5 +76,9 @@ test.describe('Admin pages load real data', () => {
         await page.waitForURL(/\/admin\/payments\?tab=customer/);
         await page.goto('/admin/b2b-leads');
         await page.waitForURL(/\/admin\/partnerships/);
+        for (const removed of ['/admin/analytics', '/admin/reports?type=tat', '/admin/labor']) {
+            await page.goto(removed);
+            await page.waitForURL(/\/admin\/dashboard/);
+        }
     });
 });

@@ -27,6 +27,7 @@ import {
 import { adminApi } from '../../../lib/api';
 import * as XLSX from 'xlsx';
 import PageHeader from '../components/common/PageHeader';
+import FilterField from "../components/common/FilterLabel";
 
 export default function OnboardingApprovals() {
   const location = useLocation();
@@ -337,9 +338,10 @@ export default function OnboardingApprovals() {
         {/* Table Container */}
         <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
             {/* Grid Header Strip with Filters on the Right */}
-            <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+            <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between bg-white gap-4">
                 {/* Date & Text Search Filters on the Left */}
                 <div className="flex flex-wrap items-center gap-2">
+                  <FilterField label="Search" info="Finds applicants whose name, phone number, address or shop name contains this text.">
                   <div className="relative">
                     <input 
                       type="text"
@@ -355,10 +357,12 @@ export default function OnboardingApprovals() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
+                  </FilterField>
                 </div>
 
                 {/* Dropdown Filters on the Right */}
-                <div className="flex flex-wrap items-center gap-2 justify-end">
+                <div className="flex flex-wrap items-end gap-2 justify-end">
+                    <FilterField label="Applicant" info="Shows only the application from this person.">
                     <select
                         value={selectedVendor}
                         onChange={(e) => setSelectedVendor(e.target.value)}
@@ -369,6 +373,8 @@ export default function OnboardingApprovals() {
                             <option key={name} value={name}>{name}</option>
                         ))}
                     </select>
+                    </FilterField>
+                    <FilterField label="Business" info="Shows only the application for this business / shop name.">
                     <select
                         value={selectedBusiness}
                         onChange={(e) => setSelectedBusiness(e.target.value)}
@@ -379,6 +385,8 @@ export default function OnboardingApprovals() {
                             <option key={name} value={name}>{name}</option>
                         ))}
                     </select>
+                    </FilterField>
+                    <FilterField label="Phone number" info="Shows only the application with this phone number.">
                     <select
                         value={selectedPhone}
                         onChange={(e) => setSelectedPhone(e.target.value)}
@@ -389,6 +397,8 @@ export default function OnboardingApprovals() {
                             <option key={phone} value={phone}>{phone}</option>
                         ))}
                     </select>
+                    </FilterField>
+                    <FilterField label="Verification" info="Pending = waiting for your review. Approved = accepted. Rejected = declined or sent back for changes.">
                     <select
                         value={selectedStatus}
                         onChange={(e) => {
@@ -402,6 +412,7 @@ export default function OnboardingApprovals() {
                         <option value="approved">Approved</option>
                         <option value="rejected">Rejected</option>
                     </select>
+                    </FilterField>
                     {(selectedVendor || selectedBusiness || selectedPhone || searchQuery || selectedStatus) && (
                         <button
                             onClick={() => {

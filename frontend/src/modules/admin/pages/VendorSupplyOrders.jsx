@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react';
 import { b2bOrderApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const inr = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
@@ -154,6 +155,7 @@ export default function VendorSupplyOrders() {
                     loading={loading}
                     showFilter={false}
                     actions={
+                        <FilterField label="Platform fee" info="Fee Paid = the vendor paid Spinzyt's platform fee. Fee Unpaid = awaiting the fee payment. No Fee = no platform fee applied to the order.">
                         <select
                             value={feeFilter}
                             onChange={e => setFeeFilter(e.target.value)}
@@ -165,6 +167,7 @@ export default function VendorSupplyOrders() {
                             <option value="PENDING">Fee Unpaid</option>
                             <option value="NOT_APPLICABLE">No Fee</option>
                         </select>
+                        </FilterField>
                     }
                 />
             </div>

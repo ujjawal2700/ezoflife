@@ -105,6 +105,11 @@ describe('admin dashboard: revenue', () => {
         assert.equal(d.financials.grossRevenue, 1500 + 800);
         assert.equal(d.financials.b2bRevenue, 800);
         assert.equal(d.financials.netProfit, 100 + 40);
+        assert.equal(d.financials.b2b.supplierOrderValue, 800);
+        assert.equal(d.financials.b2b.directSupplierPayable, 800);
+        assert.equal(d.financials.b2b.platformFeesRaised, 90);
+        assert.equal(d.financials.b2b.platformFeesCollected, 40);
+        assert.equal(d.financials.b2b.platformFeesPending, 50);
     });
 
     test('trend compares with the previous period of equal length', async () => {
@@ -115,6 +120,19 @@ describe('admin dashboard: revenue', () => {
     test('channel filter', async () => {
         assert.equal((await analytics('&channel=B2C')).financials.grossRevenue, 1500);
         assert.equal((await analytics('&channel=B2B')).financials.grossRevenue, 800);
+    });
+
+    test('overview separates active B2C, active B2B and fee-pending orders', async () => {
+        const d = await analytics();
+        assert.equal(d.overview.activeB2COrders, 2);
+        assert.equal(d.overview.activeB2BOrders, 1);
+        assert.equal(d.overview.awaitingB2BPlatformFee, 1);
+    });
+
+    test('financial trend uses the selected period instead of a fixed six-month window', async () => {
+        const res = await api(env.baseUrl, '/api/admin/dashboard-analytics?timeRange=Today', { token: admin });
+        assert.equal(res.status, 200, JSON.stringify(res.body));
+        assert.equal(res.body.data.monthlyTrend.length, 1);
     });
 });
 
@@ -150,12 +168,13 @@ describe('admin dashboard: catalog counts use real schema fields', () => {
     before(async () => { d = await analytics(); });
 
     test('services active / inactive', () => {
-        assert.equal(d.catalogB2C.totalServices, 2);
+        // 2 seeded here + the active fixture service every test environment has
+        assert.equal(d.catalogB2C.totalServices, 3);
         assert.equal(d.catalogB2C.inactiveServices, 1);
     });
     test('supply products active / inactive / pending review', () => {
         assert.equal(d.catalogB2B.totalProducts, 1);
-        assert.equal(d.catalogB2B.inactiveProducts, 1);
+        assert.equal(d.catalogB2B.inactiveProducts, 0, 'pending products are reviews, not inactive approved SKUs');
         assert.equal(d.catalogB2B.pendingReviews, 1);
     });
 });

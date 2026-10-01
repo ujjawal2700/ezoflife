@@ -618,21 +618,18 @@ const MaterialRequestPage = () => {
                           <motion.div
                             key={item._id}
                             layout
-                            className="bg-white rounded-3xl border border-slate-150 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col overflow-hidden group">
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setDetailModal({ isOpen: true, item })}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                setDetailModal({ isOpen: true, item });
+                              }
+                            }}
+                            className="bg-white rounded-3xl border border-slate-150 shadow-xs hover:shadow-md hover:border-slate-300 transition-all flex flex-col overflow-hidden group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30">
                             {/* Product Image Header */}
                             <div
-                              onClick={() =>
-                                navigate("/vendor/product-images", {
-                                  state: {
-                                    images: item.images?.length
-                                      ? item.images
-                                      : item.image
-                                        ? [item.image]
-                                        : [],
-                                    name: item.name,
-                                  },
-                                })
-                              }
+                              onClick={() => setDetailModal({ isOpen: true, item })}
                               className="relative aspect-[16/10] w-full bg-slate-50 overflow-hidden cursor-pointer flex items-center justify-center">
                               <AnimatePresence initial={false}>
                                 {displayImage ? (
@@ -744,13 +741,13 @@ const MaterialRequestPage = () => {
                               </div>
 
                               {/* Footer: Price + Stepper & Details Button */}
-                              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                              <div onClick={(event) => event.stopPropagation()} className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                                 <div>
                                   <div className="text-base font-black text-slate-900">
                                     ₹{item.price}
                                   </div>
                                   <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block">
-                                    incl. 18% GST
+                                    incl. {item.gst ?? 18}% GST
                                   </span>
                                 </div>
 
@@ -1382,6 +1379,14 @@ const MaterialRequestPage = () => {
                     </span>
                   )}
                 </div>
+                {detailModal.item.images?.length > 1 && (
+                  <button
+                    onClick={() => navigate("/vendor/product-images", { state: { images: detailModal.item.images, name: detailModal.item.name } })}
+                    className="w-full py-3 rounded-xl border border-slate-200 bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-700 hover:bg-slate-100 transition-colors"
+                  >
+                    View all {detailModal.item.images.length} product images
+                  </button>
+                )}
 
                 {/* General Details */}
                 <div className="space-y-4">
@@ -1400,6 +1405,22 @@ const MaterialRequestPage = () => {
                         {detailModal.item.brand}
                       </span>
                     )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      ["SKU", detailModal.item.skuId],
+                      ["HSN Code", detailModal.item.hsnCode],
+                      ["GST", `${detailModal.item.gst ?? 18}%`],
+                      ["Selling Price", `₹${detailModal.item.price ?? 0}`],
+                      ["Delivery Cycle", detailModal.item.deliveryFrequency],
+                      ["Platform Fee", detailModal.item.platformFeeLabel]
+                    ].map(([label, value]) => (
+                      <div key={label} className="bg-white border border-slate-100 rounded-xl p-3">
+                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+                        <p className="text-xs font-black text-slate-900 mt-1 break-words">{value || "—"}</p>
+                      </div>
+                    ))}
                   </div>
 
                   {/* Description */}
@@ -1458,6 +1479,17 @@ const MaterialRequestPage = () => {
                   </div>
                 )}
 
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50/60 p-4 rounded-[1.4rem] border border-blue-100">
+                    <h5 className="text-[9px] font-black text-blue-500 uppercase tracking-widest">Free Delivery Above</h5>
+                    <p className="text-base font-black text-blue-900 mt-1">{Number(detailModal.item.movFreeDelivery) > 0 ? `₹${detailModal.item.movFreeDelivery}` : "No minimum"}</p>
+                  </div>
+                  <div className="bg-amber-50/60 p-4 rounded-[1.4rem] border border-amber-100">
+                    <h5 className="text-[9px] font-black text-amber-600 uppercase tracking-widest">Delivery Charge</h5>
+                    <p className="text-base font-black text-amber-900 mt-1">{Number(detailModal.item.deliveryCharges) > 0 ? `₹${detailModal.item.deliveryCharges}` : "Free"}</p>
+                  </div>
+                </div>
+
                 {/* Supplier Contact */}
                 {(() => {
                   const { name, phone } = parseSupplierInfo(
@@ -1498,6 +1530,12 @@ const MaterialRequestPage = () => {
                             </span>
                           </div>
                         )}
+                        <div className="flex items-center gap-2.5 text-slate-600">
+                          <span className="material-symbols-outlined text-[18px]">badge</span>
+                          <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                            Supplier ID: {detailModal.item.supplierId || "—"}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );

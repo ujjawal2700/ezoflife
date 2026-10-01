@@ -6,6 +6,7 @@ import DataGrid from '../components/tables/DataGrid';
 import MetricRow from '../components/cards/MetricRow';
 import { adminApi, b2bOrderApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
+import FilterField from "../components/common/FilterLabel";
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
@@ -47,6 +48,19 @@ const downloadCsv = (filename, header, rows) => {
  *   Supplier Payouts   -> paid supply orders held in escrow (/b2b-orders/admin/escrow)
  *   Refunds            -> /admin/refunds
  */
+// What the date range and status filters mean on each Payments tab.
+const DATE_FILTER_HELP = {
+  customer: { name: 'Last order', field: "customer's most recent order date" },
+  vendor: { name: 'Last payout', field: "vendor's most recent payout date" },
+  supplier: { name: 'Updated', field: 'supply order last-updated date' },
+  refunds: { name: 'Refunded', field: 'refund date' }
+};
+const STATUS_FILTER_HELP = {
+  customer: 'Outstanding = the customer still owes money on their orders. Settled = nothing left to pay.',
+  vendor: 'Pending = the vendor is owed money not yet paid out. Settled = fully paid out.',
+  supplier: 'Held = paid by the vendor and held by Spinzyt, not yet released to the supplier. Released = paid out to the supplier.'
+};
+
 export default function Payments() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -375,12 +389,15 @@ export default function Payments() {
           data={filteredRows}
           loading={loading}
           leftContent={
-            <div className="flex items-center gap-2 flex-wrap">
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label="From date"
-                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase text-slate-800 outline-none" />
-              <span className="text-[9px] font-black text-slate-400 uppercase">to</span>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label="To date"
-                className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase text-slate-800 outline-none" />
+            <div className="flex items-end gap-2 flex-wrap">
+              <FilterField label={`${DATE_FILTER_HELP[tabKey].name} from`} info={`Shows only rows whose ${DATE_FILTER_HELP[tabKey].field} is on or after this date.`}>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label={`${DATE_FILTER_HELP[tabKey].name} from`}
+                  className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase text-slate-800 outline-none" />
+              </FilterField>
+              <FilterField label={`${DATE_FILTER_HELP[tabKey].name} to`} info={`Shows only rows whose ${DATE_FILTER_HELP[tabKey].field} is on or before this date (whole day included).`}>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} aria-label={`${DATE_FILTER_HELP[tabKey].name} to`}
+                  className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase text-slate-800 outline-none" />
+              </FilterField>
               {(startDate || endDate) && (
                 <button onClick={() => { setStartDate(''); setEndDate(''); }}
                   className="px-3 py-1.5 bg-rose-50 border border-rose-100 text-rose-500 rounded-sm text-[9px] font-black uppercase">
@@ -390,8 +407,9 @@ export default function Payments() {
             </div>
           }
           actions={
-            <div className="flex items-center gap-3 justify-end">
+            <div className="flex items-end gap-3 justify-end">
               {statusOptions.length > 0 && (
+                <FilterField label="Status" info={STATUS_FILTER_HELP[tabKey]}>
                 <div className="relative flex items-center w-[150px]">
                   <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} aria-label="Status"
                     className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase text-slate-800 outline-none cursor-pointer">
@@ -400,8 +418,10 @@ export default function Payments() {
                   </select>
                   <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
                 </div>
+                </FilterField>
               )}
               {tabKey === 'vendor' && (
+                <FilterField label="Settlement cycle (setting)" info="Not a filter: this changes how often vendors are paid (it is saved immediately) and is used to show each vendor's next settlement date.">
                 <div className="relative flex items-center w-[180px]">
                   <select value={settlementCycle} onChange={(e) => saveSettlementCycle(e.target.value)} aria-label="Settlement cycle"
                     className="w-full appearance-none bg-slate-50 border border-slate-200/80 rounded-sm pl-4 pr-10 py-1.5 text-[10px] font-bold uppercase text-slate-800 outline-none cursor-pointer">
@@ -409,6 +429,7 @@ export default function Payments() {
                   </select>
                   <ChevronDown size={12} className="absolute right-3 pointer-events-none text-slate-400" />
                 </div>
+                </FilterField>
               )}
             </div>
           }

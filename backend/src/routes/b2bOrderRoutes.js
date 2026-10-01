@@ -3,6 +3,7 @@ const router = express.Router();
 import * as b2bController from '../controllers/b2bOrderController.js';
 
 import { verifyAdmin, verifyUser } from '../middleware/authMiddleware.js';
+import { getSupplierInsights } from '../controllers/supplierInsightsController.js';
 
 // Literal paths MUST be declared before the '/:id' wildcard. Express matches in
 // declaration order, so '/timeline' and '/admin/escrow' were previously captured
@@ -13,6 +14,7 @@ router.get('/admin/escrow', verifyAdmin, b2bController.getAdminEscrowOrders);
 router.get('/admin/all', verifyAdmin, b2bController.getAdminB2BOrders);
 router.get('/admin/platform-fee-config', verifyAdmin, b2bController.getPlatformFeeConfig);
 router.put('/admin/platform-fee-config', verifyAdmin, b2bController.updatePlatformFeeConfig);
+router.get('/supplier/insights', verifyUser, getSupplierInsights);
 router.get('/supplier/:supplierId', b2bController.getSupplierOrders);
 router.get('/vendor/:vendorId', b2bController.getVendorOrders);
 
@@ -20,8 +22,6 @@ router.post('/quote', verifyUser, b2bController.quotePlatformFee);
 router.post('/place', verifyUser, b2bController.placeB2BOrder);
 router.post('/bulk-status-update', verifyAdmin, b2bController.bulkUpdateB2BStatus);
 router.post('/verify-platform-fee', verifyUser, b2bController.verifyPlatformFeePayment);
-router.post('/initiate-payment', verifyUser, b2bController.initiateB2BPayment);
-router.post('/verify-payment', verifyUser, b2bController.verifyB2BPayment);
 
 // Wildcard routes last.
 router.get('/:id', b2bController.getB2BOrderById);

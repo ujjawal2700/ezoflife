@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import { vendorMasterSupplyApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
+import FilterField from "../components/common/FilterLabel";
 
 export default function SupplierProductRequests() {
   const [requests, setRequests] = useState([]);
@@ -258,9 +259,10 @@ export default function SupplierProductRequests() {
         <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
           
           {/* Header Bar with Filters */}
-          <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+          <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between bg-white gap-4">
             {/* Date Filters on the Left */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-end gap-2">
+              <FilterField label="Submitted from" info="Shows only product requests submitted on or after this date.">
               <input 
                 type="date"
                 value={startDate}
@@ -270,7 +272,8 @@ export default function SupplierProductRequests() {
                 }}
                 className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
               />
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
+              </FilterField>
+              <FilterField label="Submitted to" info="Shows only product requests submitted on or before this date (whole day included).">
               <input 
                 type="date"
                 value={endDate}
@@ -280,6 +283,7 @@ export default function SupplierProductRequests() {
                 }}
                 className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all"
               />
+              </FilterField>
               {(startDate || endDate) && (
                 <button
                   onClick={() => {
@@ -294,8 +298,9 @@ export default function SupplierProductRequests() {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 justify-end text-[10px]">
+            <div className="flex flex-wrap items-end gap-3 justify-end text-[10px]">
               {/* Supplier Name Filter */}
+              <FilterField label="Supplier" info="Shows only products submitted by this supplier.">
               <select
                 value={selectedSupplierName}
                 onChange={e => setSelectedSupplierName(e.target.value)}
@@ -306,8 +311,10 @@ export default function SupplierProductRequests() {
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>
+              </FilterField>
 
               {/* Category Filter */}
+              <FilterField label="Category" info="Shows only products in this category.">
               <select
                 value={selectedCategory}
                 onChange={e => setSelectedCategory(e.target.value)}
@@ -318,8 +325,10 @@ export default function SupplierProductRequests() {
                   <option key={name} value={name}>{name}</option>
                 ))}
               </select>
+              </FilterField>
 
               {/* Price Filter */}
+              <FilterField label="Wholesale rate" info="Shows only products with exactly this wholesale price per unit (before GST).">
               <select
                 value={selectedPrice}
                 onChange={e => setSelectedPrice(e.target.value)}
@@ -330,6 +339,7 @@ export default function SupplierProductRequests() {
                   <option key={price} value={String(price)}>₹{price}</option>
                 ))}
               </select>
+              </FilterField>
 
               {/* Reset Button */}
               {(selectedSupplierName || selectedCategory || selectedPrice || startDate || endDate) && (

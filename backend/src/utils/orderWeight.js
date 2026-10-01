@@ -4,8 +4,7 @@ import MasterService from '../models/MasterService.js';
 /**
  * Order weight, from the most reliable source available:
  *   1. weighed   — measured by the vendor (walk-in counter, or on receipt)
- *   2. customer  — the customer's approximate weight from the app
- *   3. estimated — per-kg quantities + each service's "Avg Weight" (Master Services)
+ *   2. estimated — per-kg quantities + each service's admin-configured "Avg Weight"
  * If none is known, the weight is null and shown as "—" (never a made-up number).
  */
 
@@ -57,9 +56,37 @@ export const estimateWeightFromItems = async (items = []) => {
 };
 
 /** Pick the best available weight. */
-export const resolveOrderWeight = ({ weighedWeight, customerWeight, estimatedWeight }) => {
+export const resolveOrderWeight = ({ weighedWeight, estimatedWeight }) => {
     if (weighedWeight) return { totalWeight: weighedWeight, weightSource: 'weighed' };
-    if (customerWeight) return { totalWeight: customerWeight, weightSource: 'customer' };
     if (estimatedWeight) return { totalWeight: estimatedWeight, weightSource: 'estimated' };
     return { totalWeight: null, weightSource: null };
+};
+
+/**
+ * Fill in the estimate for orders saved without any weight (e.g. placed before
+ * weight estimation existed). Orders that already have a weight — especially a
+ * vendor-weighed one — are never touched. Returns what was (or would be) updated.
+ */
+export const backfillMissingOrderWeights = async (Order, { dryRun = false } = {}) => {
+    const orders = await Order.find({
+        $or: [{ totalWeight: { $exists: false } }, { totalWeight: null }, { totalWeight: { $lte: 0 } }]
+    }).select('orderId items').lean();
+
+    const updated = [];
+    const skipped = [];
+    for (const order of orders) {
+        const estimatedWeight = await estimateWeightFromItems(order.items);
+        if (!estimatedWeight) {
+            skipped.push(order.orderId || String(order._id));
+            continue;
+        }
+        if (!dryRun) {
+            await Order.updateOne(
+                { _id: order._id, $or: [{ totalWeight: { $exists: false } }, { totalWeight: null }, { totalWeight: { $lte: 0 } }] },
+                { $set: { totalWeight: estimatedWeight, weightSource: 'estimated', estimatedWeight } }
+            );
+        }
+        updated.push({ orderId: order.orderId || String(order._id), totalWeight: estimatedWeight });
+    }
+    return { updated, skipped };
 };

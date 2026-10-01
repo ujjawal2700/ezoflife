@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const VendorMasterSupplyManagement = () => {
     const [supplies, setSupplies] = useState([]);
@@ -657,8 +658,9 @@ const VendorMasterSupplyManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex flex-col md:flex-row gap-2 w-full ml-auto flex-wrap justify-end">
+                        <div className="flex flex-col md:flex-row md:items-end gap-2 w-full ml-auto flex-wrap justify-end">
                             <div className="flex items-center w-full md:w-auto">
+                                <FilterField label="Category" info="Shows only supply products in this category (main category — sub category).">
                                 <select
                                     value={filters.categoryId}
                                     onChange={(e) => handleFilterChange('categoryId', e.target.value)}
@@ -671,8 +673,10 @@ const VendorMasterSupplyManagement = () => {
                                         </option>
                                     ))}
                                 </select>
+                                </FilterField>
                             </div>
                             <div className="flex items-center w-full md:w-auto">
+                                <FilterField label="Supplier" info="Shows only products listed by this supplier (supplier code, e.g. SUP-1234).">
                                 <select
                                     value={filters.supplierId}
                                     onChange={(e) => handleFilterChange('supplierId', e.target.value)}
@@ -683,8 +687,10 @@ const VendorMasterSupplyManagement = () => {
                                         <option key={sup} value={sup}>{sup}</option>
                                     ))}
                                 </select>
+                                </FilterField>
                             </div>
                             <div className="flex items-center w-full md:w-auto">
+                                <FilterField label="Delivery frequency" info="Shows only products the supplier delivers on this schedule (e.g. Daily, Weekly, On-Demand).">
                                 <select
                                     value={filters.deliveryFrequency}
                                     onChange={(e) => handleFilterChange('deliveryFrequency', e.target.value)}
@@ -695,8 +701,10 @@ const VendorMasterSupplyManagement = () => {
                                         <option key={freq} value={freq}>{freq}</option>
                                     ))}
                                 </select>
+                                </FilterField>
                             </div>
                             <div className="flex items-center w-full md:w-auto">
+                                <FilterField label="Wholesale rate" info="Shows only products whose wholesale price per unit (before GST) is in this range.">
                                 <select
                                     value={filters.wholesaleRate}
                                     onChange={(e) => handleFilterChange('wholesaleRate', e.target.value)}
@@ -708,8 +716,10 @@ const VendorMasterSupplyManagement = () => {
                                     <option value="1000-5000">₹1000 - ₹5000</option>
                                     <option value="5000+">₹5000+</option>
                                 </select>
+                                </FilterField>
                             </div>
                             <div className="flex items-center gap-2 w-full md:w-auto">
+                                <FilterField label="Status" info="Active = visible to vendors for ordering. Inactive = hidden from the vendor catalog.">
                                 <select
                                     value={filters.isActive}
                                     onChange={(e) => handleFilterChange('isActive', e.target.value)}
@@ -719,6 +729,7 @@ const VendorMasterSupplyManagement = () => {
                                     <option value="y">Active (Y)</option>
                                     <option value="n">Inactive (N)</option>
                                 </select>
+                                </FilterField>
                                 {(filters.categoryId || filters.isActive !== '' || filters.supplierId !== '' || filters.deliveryFrequency !== '' || filters.wholesaleRate !== '') && (
                                     <button 
                                         onClick={() => {

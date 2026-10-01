@@ -12,6 +12,10 @@
  *   await env.stop();
  */
 import { spawn } from 'node:child_process';
+import mongoose from 'mongoose';
+
+/** The Master Service that factories.orderPayload orders. */
+export const FIXTURE_SERVICE_ID = '000000000000000000000001';
 import { mkdtempSync, rmSync, createWriteStream } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -75,6 +79,24 @@ export const startTestEnvironment = async ({ silent = true, env: extraEnv = {} }
         }),
         { label: 'mongod to accept connections' }
     );
+
+    // ---- 1b. fixtures every order test relies on ----
+    // Orders are priced from the database, so the service used by
+    // factories.orderPayload must exist (₹100, 5% GST, active).
+    const seed = await mongoose.createConnection(mongoUri).asPromise();
+    await seed.collection('masterservices').insertOne({
+        _id: new mongoose.Types.ObjectId(FIXTURE_SERVICE_ID),
+        itemName: 'Wash & Fold',
+        categoryId: new mongoose.Types.ObjectId(),
+        basePrice: 100,
+        discountedPrice: 100,
+        gst: 5,
+        unit: 'per_item',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    });
+    await seed.close();
 
     // ---- 2. the real server, pointed at the throwaway db ----
     const server = spawn('node', ['server.js'], {

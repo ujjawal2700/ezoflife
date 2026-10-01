@@ -5,6 +5,7 @@ import io from 'socket.io-client';
 import PageHeader from '../components/common/PageHeader';
 import { ticketApi, adminApi } from '../../../lib/api';
 import toast from 'react-hot-toast';
+import { FilterLabel } from "../components/common/FilterLabel";
 
 export default function HelpDesk() {
   const [tickets, setTickets] = useState([]);
@@ -283,6 +284,7 @@ export default function HelpDesk() {
         {/* Ticket List Sidebar */}
         <div className={`w-full lg:w-[450px] flex flex-col bg-white overflow-hidden ${isMobileChatOpen ? 'hidden lg:flex' : 'flex'}`}>
           {/* Issue Type Tabs */}
+          <FilterLabel label="Raised by" className="px-3 pt-2 bg-slate-50/70" info="Switches between tickets raised by customers, vendors and suppliers. The number is how many tickets each group has." />
           <div className="flex border-b border-slate-200 bg-slate-50/70 p-2 gap-1.5">
             {[
               { id: 'Customer', label: 'Customer Issues', count: customerCount },
@@ -311,7 +313,7 @@ export default function HelpDesk() {
           <div className="p-6 border-b border-slate-100">
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Name</label>
+                <FilterLabel label="Name" className="mb-1 ml-1" info="Shows only tickets from this person." />
                 <select
                   value={nameFilter}
                   onChange={(e) => setNameFilter(e.target.value)}
@@ -326,7 +328,7 @@ export default function HelpDesk() {
               </div>
 
               <div>
-                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Chat ID</label>
+                <FilterLabel label="Chat ID" className="mb-1 ml-1" info="Shows only one ticket conversation, by its ID (last 6 characters shown)." />
                 <select
                   value={chatIdFilter}
                   onChange={(e) => setChatIdFilter(e.target.value)}
@@ -341,7 +343,7 @@ export default function HelpDesk() {
               </div>
 
               <div>
-                <label className="block text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">Time</label>
+                <FilterLabel label="Last activity" className="mb-1 ml-1" info="Shows tickets by when they were last updated (or created, if never updated): today, yesterday or the last 7 days." />
                 <select
                   value={timeFilter}
                   onChange={(e) => setTimeFilter(e.target.value)}

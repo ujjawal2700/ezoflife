@@ -6,6 +6,7 @@ import ServiceArea from '../models/ServiceArea.js';
 import fs from 'fs';
 import { httpStatusForError } from '../utils/errorResponse.js';
 import SystemConfig from '../models/SystemConfig.js';
+import User from '../models/User.js';
 import { describeFeeRule, loadGlobalFeeConfig, resolveFeeRule } from '../utils/b2bPlatformFee.js';
 
 const logToFile = (msg) => {
@@ -106,12 +107,24 @@ const populateDeliveryFrequencies = async (supplies) => {
     return transformed;
 };
 
+/**
+ * Admins manage every product; a supplier only the products listed under their
+ * own code (SUP-<last 4 phone digits>, the same code My Supplies files them under).
+ */
+const canManageSupply = async (req, supply) => {
+    if (req.user?.role === 'Admin') return true;
+    if (req.user?.role !== 'Supplier') return false;
+    const supplier = await User.findById(req.user.id).select('phone').lean();
+    const phone = String(supplier?.phone || '');
+    return Boolean(phone) && supply.supplierId === `SUP-${phone.slice(-4)}`;
+};
+
 export const vendorMasterSupplyController = {
     create: async (req, res) => {
         try {
             const { 
                 materialName, categoryId, categoryName, subCategoryName, hsnCode, gst, brand, quantity, 
-                wholesaleRate, bulkDiscount, bulkThreshold, isActive, 
+                wholesaleRate, costPrice, bulkDiscount, bulkThreshold, isActive,
                 deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName,
                 description, images
             } = req.body;
@@ -162,6 +175,7 @@ export const vendorMasterSupplyController = {
                 materialName,
                 quantity,
                 wholesaleRate,
+                costPrice: Number(costPrice) || 0,
                 bulkDiscount,
                 bulkThreshold,
                 isActive: isActive || 'y',
@@ -296,12 +310,31 @@ export const vendorMasterSupplyController = {
         }
     },
 
+    getMyCosts: async (req, res) => {
+        try {
+            if (!['Supplier', 'Admin'].includes(req.user?.role)) {
+                return res.status(403).json({ message: 'Only suppliers can view product costs' });
+            }
+            let supplierCode = req.query.supplierId;
+            if (req.user.role === 'Supplier') {
+                const supplier = await User.findById(req.user.id).select('phone role');
+                if (!supplier) return res.status(404).json({ message: 'Supplier not found' });
+                supplierCode = `SUP-${String(supplier.phone || '').slice(-4)}`;
+            }
+            if (!supplierCode || supplierCode === '-') return res.json([]);
+            const rows = await VendorMasterSupply.find({ supplierId: supplierCode }).select('+costPrice').lean();
+            res.json(rows.map(row => ({ _id: row._id, costPrice: Number(row.costPrice) || 0 })));
+        } catch (error) {
+            res.status(httpStatusForError(error)).json({ message: error.message });
+        }
+    },
+
     update: async (req, res) => {
         try {
             const { id } = req.params;
             const { 
                 materialName, categoryId, hsnCode, gst, brand, quantity, 
-                wholesaleRate, bulkDiscount, bulkThreshold, isActive, 
+                wholesaleRate, costPrice, bulkDiscount, bulkThreshold, isActive,
                 approvalStatus, adminMessage,
                 deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName,
                 description, images
@@ -311,14 +344,23 @@ export const vendorMasterSupplyController = {
             if (!existing) {
                 return res.status(404).json({ message: 'Supply item not found' });
             }
+            if (!(await canManageSupply(req, existing))) {
+                return res.status(403).json({ message: 'You can only edit your own products' });
+            }
 
             const updates = { 
                 materialName, hsnCode, gst, brand, quantity, 
-                wholesaleRate, bulkDiscount, bulkThreshold, isActive, 
+                wholesaleRate, costPrice, bulkDiscount, bulkThreshold, isActive,
                 approvalStatus, adminMessage,
                 deliveryFrequency, movFreeDelivery, supplierId, supplierFacilityName,
                 description, images
             };
+            if (req.user?.role !== 'Admin') {
+                // Suppliers can't approve their own edits or hand the product to someone else.
+                updates.approvalStatus = 'Pending';
+                delete updates.adminMessage;
+                delete updates.supplierId;
+            }
 
             // If category changed, update skuId
             if (categoryId && categoryId !== String(existing.categoryId)) {
@@ -340,6 +382,13 @@ export const vendorMasterSupplyController = {
     delete: async (req, res) => {
         try {
             const { id } = req.params;
+            const existing = await VendorMasterSupply.findById(id);
+            if (!existing) {
+                return res.status(404).json({ message: 'Supply item not found' });
+            }
+            if (!(await canManageSupply(req, existing))) {
+                return res.status(403).json({ message: 'You can only delete your own products' });
+            }
             await VendorMasterSupply.findByIdAndDelete(id);
             res.json({ message: 'Supply item deleted successfully' });
         } catch (error) {
@@ -583,6 +632,8 @@ export const vendorMasterSupplyController = {
                 
                 return {
                     _id: item._id,
+                    skuId: item.skuId,
+                    hsnCode: item.hsnCode,
                     name: item.materialName,
                     price: basePrice,
                     basePrice: basePrice,
@@ -612,7 +663,9 @@ export const vendorMasterSupplyController = {
                             ? Number(item.deliveryCharges)
                             : (Number(item.movFreeDelivery) > 0 ? 50 : 0)),
                     bulkDiscount: item.bulkDiscount || 0,
-                    bulkThreshold: item.bulkThreshold || 0
+                    bulkThreshold: item.bulkThreshold || 0,
+                    createdAt: item.createdAt,
+                    updatedAt: item.updatedAt
                 };
             });
 

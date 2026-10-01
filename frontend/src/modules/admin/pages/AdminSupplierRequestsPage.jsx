@@ -16,6 +16,7 @@ import {
 import * as XLSX from 'xlsx';
 import { BASE_URL } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
+import FilterField from "../components/common/FilterLabel";
 
 const AdminSupplierRequestsPage = () => {
     const navigate = useNavigate();
@@ -254,9 +255,10 @@ const AdminSupplierRequestsPage = () => {
                 {/* Table Container */}
                 <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
                     {/* Grid Header Strip with Filters on the Right */}
-                    <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between bg-white gap-4">
+                    <div className="px-8 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-end justify-between bg-white gap-4">
                         {/* Date & Text Search Filters on the Left */}
                         <div className="flex flex-wrap items-center gap-2">
+                          <FilterField label="Search" info="Finds supplier applications whose contact name, phone, business name, warehouse address or city contains this text.">
                           <div className="relative">
                             <input 
                               type="text"
@@ -272,10 +274,12 @@ const AdminSupplierRequestsPage = () => {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                           </div>
+                          </FilterField>
                         </div>
 
                         {/* Dropdown Filters on the Right */}
-                        <div className="flex flex-wrap items-center gap-2 justify-end">
+                        <div className="flex flex-wrap items-end gap-2 justify-end">
+                            <FilterField label="Supplier" info="Shows only the application from this contact person.">
                             <select
                                 value={selectedSupplier}
                                 onChange={(e) => setSelectedSupplier(e.target.value)}
@@ -286,6 +290,8 @@ const AdminSupplierRequestsPage = () => {
                                     <option key={name} value={name}>{name}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Business" info="Shows only the application for this registered business name.">
                             <select
                                 value={selectedBusiness}
                                 onChange={(e) => setSelectedBusiness(e.target.value)}
@@ -296,6 +302,8 @@ const AdminSupplierRequestsPage = () => {
                                     <option key={name} value={name}>{name}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Phone number" info="Shows only the application with this phone number.">
                             <select
                                 value={selectedPhone}
                                 onChange={(e) => setSelectedPhone(e.target.value)}
@@ -306,6 +314,7 @@ const AdminSupplierRequestsPage = () => {
                                     <option key={phone} value={phone}>{phone}</option>
                                 ))}
                             </select>
+                            </FilterField>
                             {(selectedSupplier || selectedBusiness || selectedPhone || searchQuery) && (
                                 <button
                                     onClick={() => {

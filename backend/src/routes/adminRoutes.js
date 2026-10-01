@@ -35,7 +35,7 @@ import {
 } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
 import { inviteSubAdmin } from '../controllers/authController.js';
-import { getAdminReport, getRefundLedger } from '../controllers/adminReportsController.js';
+import { getRefundLedger } from '../controllers/refundLedgerController.js';
 
 const router = express.Router();
 
@@ -66,7 +66,6 @@ router.post('/orders-clear-all', clearAllOrders);
 router.get('/customer-payments', getCustomerPaymentSummary);
 router.get('/vendor-payments', getVendorPaymentSummary);
 router.get('/refunds', getRefundLedger);
-router.get('/reports/:type', getAdminReport);
 router.post('/record-vendor-payout', recordVendorPayout);
 router.get('/vendor-payouts/:vendorId', getVendorPayoutHistory);
 router.get('/vendor-request/:id', getVendorById);

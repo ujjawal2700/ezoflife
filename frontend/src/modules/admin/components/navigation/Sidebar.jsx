@@ -7,7 +7,6 @@ import {
   Store,
   Truck,
   Monitor,
-  BarChart3,
   Settings,
   LogOut,
   ChevronLeft,
@@ -47,18 +46,6 @@ const navItems = [
     group: "Operations",
     items: [
       { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
-      {
-        icon: BarChart3,
-        label: "Reports & Analytics",
-        path: "/admin/analytics",
-        subItems: [
-          { label: "Platform Analytics", path: "/admin/analytics" },
-          { label: "Vendor TAT Report", path: "/admin/reports?type=tat" },
-          { label: "Geospatial Heatmap", path: "/admin/reports?type=heatmap" },
-          { label: "Revenue Leakage", path: "/admin/reports?type=leakage" },
-          { label: "Repeat Customers", path: "/admin/reports?type=customers" },
-        ],
-      },
       {
         icon: Users,
         label: "User Management",
@@ -141,8 +128,6 @@ const navItems = [
           { label: "Refunds", path: "/admin/payments?tab=refunds" },
         ],
       },
-      { icon: Briefcase, label: "Labor Management", path: "/admin/labor" },
-
       {
         icon: Layers,
         label: "Services & Pricing",

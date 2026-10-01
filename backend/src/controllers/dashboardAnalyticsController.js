@@ -3,6 +3,7 @@ import Order from '../models/Order.js';
 import B2BOrder from '../models/B2BOrder.js';
 import Ticket from '../models/Ticket.js';
 import JobApplication from '../models/JobApplication.js';
+import Job from '../models/Job.js';
 import Feedback from '../models/Feedback.js';
 import MasterService from '../models/MasterService.js';
 import VendorMasterSupply from '../models/VendorMasterSupply.js';
@@ -134,7 +135,16 @@ export const getDashboardAnalytics = async (req, res) => {
                 return q;
             }
             if (hasGeoFilter) {
-                q.customer = { $in: await userIdsInLocation(['Customer']) };
+                const legacyCustomerIds = await userIdsInLocation(['Customer']);
+                const snapshot = {};
+                if (state) snapshot['analyticsLocation.state'] = { $regex: new RegExp(state, 'i') };
+                if (city) snapshot['analyticsLocation.city'] = { $regex: new RegExp(city, 'i') };
+                if (pincode) snapshot['analyticsLocation.pincode'] = pincode;
+                if (geofence) snapshot['analyticsLocation.geofence'] = { $regex: new RegExp(`^${geofence}$`, 'i') };
+                q.$and = [
+                    ...(q.$and || []),
+                    { $or: [{ customer: { $in: legacyCustomerIds } }, snapshot] }
+                ];
             }
             return q;
         };
@@ -153,7 +163,13 @@ export const getDashboardAnalytics = async (req, res) => {
                 else q._id = null;
             }
             if (state) {
-                q.vendor = { $in: await userIdsInLocation(['Vendor']) };
+                q.$and = [
+                    ...(q.$and || []),
+                    { $or: [
+                        { state: { $regex: new RegExp(state, 'i') } },
+                        { vendor: { $in: await userIdsInLocation(['Vendor']) } }
+                    ] }
+                ];
             }
             return q;
         };
@@ -161,9 +177,11 @@ export const getDashboardAnalytics = async (req, res) => {
         // Tickets raised by customers or vendors in the location
         const buildTicketQuery = async (extra = {}) => {
             const q = withPeriod(extra);
+            if (channel === 'B2C') q.userType = 'Customer';
+            if (channel === 'B2B') q.userType = { $in: ['Vendor', 'Supplier'] };
             if (hasGeoFilter) {
                 const ids = await userIdsInLocation(['Customer', 'Vendor']);
-                q.$or = [{ customer: { $in: ids } }, { vendor: { $in: ids } }];
+                q.$or = [{ customer: { $in: ids } }, { vendor: { $in: ids } }, { supplier: { $in: ids } }];
             }
             return q;
         };
@@ -184,6 +202,7 @@ export const getDashboardAnalytics = async (req, res) => {
         // Feedback from customers in the location
         const buildFeedbackQuery = async (extra = {}) => {
             const q = withPeriod(extra);
+            if (channel === 'B2B') q._id = null;
             if (hasGeoFilter) {
                 q.user = { $in: await userIdsInLocation(['Customer']) };
             }
@@ -311,26 +330,66 @@ export const getDashboardAnalytics = async (req, res) => {
         const wholesalerQuery = buildUserQuery('Supplier', { 'supplierDetails.businessName': { $regex: /wholesaler|distributor/i } });
         const orderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' } });
         const b2bOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE } });
+        const b2bFeeQ = await buildB2BOrderQuery({ status: { $nin: ['CART', 'CANCELLED', 'Cancelled', 'REJECTED'] } });
         const priorOrderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' }, createdAt: { $gte: priorStart, $lt: priorEnd } });
         const priorB2BOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE }, createdAt: { $gte: priorStart, $lt: priorEnd } });
         const refundOrderQ = await buildOrderQuery({ paymentStatus: 'Refunded' });
+        // Refunds belong to the period in which money was returned, not the
+        // period in which the original order was created. Older rows do not
+        // have `refundedAt`, so their last update is the best safe fallback.
+        delete refundOrderQ.createdAt;
+        refundOrderQ.$and = [
+            ...(refundOrderQ.$and || []),
+            { $or: [
+                { refundedAt: { $gte: start, $lte: end } },
+                { refundedAt: null, updatedAt: { $gte: start, $lte: end } },
+                { refundedAt: { $exists: false }, updatedAt: { $gte: start, $lte: end } }
+            ] }
+        ];
         const refundB2BOrderQ = await buildB2BOrderQuery({ escrowStatus: 'Refunded' });
+        const supplierDeliveriesQ = await buildB2BOrderQuery({ status: { $in: ['DELIVERED', 'Delivered', 'SETTLED', 'Settled'] } });
 
-        // Past 6 months for the monthly trend, with the same channel/location filters
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-        sixMonthsAgo.setDate(1);
-        sixMonthsAgo.setHours(0, 0, 0, 0);
-        const monthlyOrderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' }, createdAt: { $gte: sixMonthsAgo } });
-        const monthlyB2BOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE }, createdAt: { $gte: sixMonthsAgo } });
+        // Financial trend uses the selected period instead of silently switching
+        // to a fixed six-month window.
+        const monthlyOrderQ = await buildOrderQuery({ status: { $ne: 'CANCELLED' }, createdAt: { $gte: start, $lte: end } });
+        const monthlyB2BOrderQ = await buildB2BOrderQuery({ status: { $nin: B2B_NOT_REVENUE }, createdAt: { $gte: start, $lte: end } });
 
         const b2bPlatformFeeExpr = { $sum: '$platformFee' };
+        const b2cPlatformRevenueExpr = {
+            $sum: {
+                $cond: [
+                    { $gt: [{ $ifNull: ['$ledger.spinzytCombinedRevenue', 0] }, 0] },
+                    '$ledger.spinzytCombinedRevenue',
+                    { $ifNull: ['$priceBreakdown.platformFee', 0] }
+                ]
+            }
+        };
+        const b2cVendorPayableExpr = {
+            $sum: {
+                $cond: [
+                    { $gt: [{ $ifNull: ['$ledger.vendorNetPayout', 0] }, 0] },
+                    '$ledger.vendorNetPayout',
+                    {
+                        $max: [0, {
+                            $subtract: [
+                                '$totalAmount',
+                                { $add: [
+                                    { $ifNull: ['$priceBreakdown.platformFee', 0] },
+                                    { $ifNull: ['$priceBreakdown.logisticsFee', 0] }
+                                ] }
+                            ]
+                        }]
+                    }
+                ]
+            }
+        };
 
         const [
             totalSuppliers,
             wholesalersCount,
             b2cRevenues,
             b2bRevenues,
+            b2bFeeAgg,
             priorB2CRevenues,
             priorB2BRevenues,
             walletAgg,
@@ -345,11 +404,54 @@ export const getDashboardAnalytics = async (req, res) => {
             User.countDocuments(wholesalerQuery),
             Order.aggregate([
                 { $match: orderQ },
-                { $group: { _id: null, total: { $sum: '$totalAmount' }, platform: { $sum: '$priceBreakdown.platformFee' }, logistics: { $sum: '$priceBreakdown.logisticsFee' } } }
+                { $group: {
+                    _id: null,
+                    total: { $sum: '$totalAmount' },
+                    paid: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'Paid'] }, '$totalAmount', 0] } },
+                    pending: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'Pending'] }, '$totalAmount', 0] } },
+                    platform: b2cPlatformRevenueExpr,
+                    vendorPayable: b2cVendorPayableExpr,
+                    logistics: { $sum: { $ifNull: ['$priceBreakdown.logisticsFee', 0] } }
+                } }
             ]),
             B2BOrder.aggregate([
                 { $match: b2bOrderQ },
-                { $group: { _id: null, total: { $sum: '$totalAmount' }, platform: b2bPlatformFeeExpr } }
+                { $group: {
+                    _id: null,
+                    total: { $sum: '$totalAmount' },
+                    platform: b2bPlatformFeeExpr,
+                    platformCollected: { $sum: { $cond: [
+                        { $or: [
+                            { $eq: ['$platformFeeStatus', 'PAID'] },
+                            { $eq: [{ $type: '$platformFeeStatus' }, 'missing'] }
+                        ] },
+                        '$platformFee',
+                        0
+                    ] } },
+                    platformPending: { $sum: { $cond: [{ $eq: ['$platformFeeStatus', 'PENDING'] }, '$platformFee', 0] } }
+                } }
+            ]),
+            B2BOrder.aggregate([
+                { $match: b2bFeeQ },
+                { $group: {
+                    _id: null,
+                    raised: { $sum: '$platformFee' },
+                    collected: { $sum: { $cond: [
+                        { $and: [
+                            { $ne: ['$status', 'PENDING_PAYMENT'] },
+                            { $or: [
+                                { $eq: ['$platformFeeStatus', 'PAID'] },
+                                { $eq: [{ $type: '$platformFeeStatus' }, 'missing'] }
+                            ] }
+                        ] }, '$platformFee', 0
+                    ] } },
+                    pending: { $sum: { $cond: [
+                        { $or: [
+                            { $eq: ['$platformFeeStatus', 'PENDING'] },
+                            { $eq: ['$status', 'PENDING_PAYMENT'] }
+                        ] }, '$platformFee', 0
+                    ] } }
+                } }
             ]),
             Order.aggregate([
                 { $match: priorOrderQ },
@@ -369,7 +471,7 @@ export const getDashboardAnalytics = async (req, res) => {
                 { $group: {
                     _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
                     revenue: { $sum: '$totalAmount' },
-                    platform: { $sum: '$priceBreakdown.platformFee' },
+                    platform: b2cPlatformRevenueExpr,
                     logistics: { $sum: '$priceBreakdown.logisticsFee' }
                 }},
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
@@ -379,23 +481,39 @@ export const getDashboardAnalytics = async (req, res) => {
                 { $group: {
                     _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
                     revenue: { $sum: '$totalAmount' },
-                    platform: b2bPlatformFeeExpr
+                    platform: { $sum: { $cond: [
+                        { $or: [
+                            { $eq: ['$platformFeeStatus', 'PAID'] },
+                            { $eq: [{ $type: '$platformFeeStatus' }, 'missing'] }
+                        ] },
+                        '$platformFee',
+                        0
+                    ] } }
                 }},
                 { $sort: { '_id.year': 1, '_id.month': 1 } }
             ]),
             Order.aggregate([
                 { $match: refundOrderQ },
-                { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+                { $group: {
+                    _id: null,
+                    total: { $sum: {
+                        $cond: [
+                            { $gt: [{ $ifNull: ['$refundAmount', 0] }, 0] },
+                            '$refundAmount',
+                            '$totalAmount'
+                        ]
+                    } }
+                } }
             ]),
             B2BOrder.aggregate([
                 { $match: refundB2BOrderQ },
                 { $group: { _id: null, total: { $sum: '$totalAmount' } } }
             ]),
             B2BOrder.aggregate([
-                { $match: { status: { $in: ['DELIVERED', 'Delivered', 'SETTLED', 'Settled'] } } },
+                { $match: supplierDeliveriesQ },
                 { $group: { _id: '$supplier', count: { $sum: 1 } } }
             ]),
-            User.find(supplierQuery).select('_id supplierDetails').lean()
+            User.find(supplierQuery).select('_id displayName supplierDetails').lean()
         ]);
 
         const manufacturersCount = Math.max(0, totalSuppliers - wholesalersCount);
@@ -404,11 +522,15 @@ export const getDashboardAnalytics = async (req, res) => {
         const grossRevenue = (channel === 'B2B') ? b2bRev : (channel === 'B2C') ? b2cRev : (b2cRev + b2bRev);
 
         const b2cPlatform = b2cRevenues[0]?.platform || 0;
-        const b2bPlatform = b2bRevenues[0]?.platform || 0;
+        const b2bPlatformRaised = b2bFeeAgg[0]?.raised || 0;
+        const b2bPlatform = b2bFeeAgg[0]?.collected || 0;
+        const b2bPlatformPending = b2bFeeAgg[0]?.pending || 0;
         const netProfit = (channel === 'B2B') ? b2bPlatform : (channel === 'B2C') ? b2cPlatform : (b2cPlatform + b2bPlatform);
 
         const logisticsFee = (channel === 'B2B') ? 0 : (b2cRevenues[0]?.logistics || 0);
-        const vendorPayouts = Math.max(0, grossRevenue - netProfit - logisticsFee);
+        const b2cVendorPayable = b2cRevenues[0]?.vendorPayable || 0;
+        const directSupplierPayable = b2bRev;
+        const vendorPayouts = channel === 'B2B' ? 0 : b2cVendorPayable;
         const walletLiability = walletAgg[0]?.total || 0;
 
         const b2cRefunds = b2cRefundAgg[0]?.total || 0;
@@ -418,12 +540,13 @@ export const getDashboardAnalytics = async (req, res) => {
         // Merge real monthly aggregations
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const dynamicMonthlyTrend = [];
-        for (let i = 5; i >= 0; i--) {
-            const d = new Date();
-            d.setMonth(d.getMonth() - i);
+        const trendCursor = new Date(start.getFullYear(), start.getMonth(), 1);
+        const trendEnd = new Date(end.getFullYear(), end.getMonth(), 1);
+        while (trendCursor <= trendEnd) {
+            const d = new Date(trendCursor);
             const y = d.getFullYear();
             const m = d.getMonth() + 1;
-            const label = monthNames[d.getMonth()];
+            const label = `${monthNames[d.getMonth()]} ${String(y).slice(-2)}`;
 
             const b2cItem = monthlyB2CAgg.find(item => item._id.year === y && item._id.month === m);
             const b2bItem = monthlyB2BAgg.find(item => item._id.year === y && item._id.month === m);
@@ -436,15 +559,21 @@ export const getDashboardAnalytics = async (req, res) => {
 
             const revM = (channel === 'B2B') ? b2bMRev : (channel === 'B2C') ? b2cMRev : (b2cMRev + b2bMRev);
             const profM = (channel === 'B2B') ? b2bMPlat : (channel === 'B2C') ? b2cMPlat : (b2cMPlat + b2bMPlat);
-            const payM = Math.max(0, revM - profM - logM);
+            const b2cPayableM = Math.max(0, b2cMRev - b2cMPlat - logM);
+            const payM = (channel === 'B2B') ? b2bMRev : (channel === 'B2C') ? b2cPayableM : (b2cPayableM + b2bMRev);
 
             dynamicMonthlyTrend.push({
                 month: label,
                 Revenue: Math.round(revM),
                 Payouts: Math.round(payM),
                 Logistics: Math.round(logM),
-                Profit: Math.round(profM)
+                Profit: Math.round(profM),
+                TransactionValue: Math.round(revM),
+                PartnerPayable: Math.round(payM),
+                LogisticsCharges: Math.round(logM),
+                PlatformRevenue: Math.round(profM)
             });
+            trendCursor.setMonth(trendCursor.getMonth() + 1);
         }
 
         // Revenue change vs the previous period of equal length, same filters
@@ -467,10 +596,15 @@ export const getDashboardAnalytics = async (req, res) => {
         // Ratings come from vendors rating delivered supply orders; unrated suppliers stay null.
         const supplierRatings = await getSupplierRatings(allSuppliersList.map(s => s._id));
         const dynamicSupplierScatter = allSuppliersList.map(s => ({
+            id: s._id,
+            name: s.supplierDetails?.businessName || s.displayName || 'Supplier',
             deliveries: supplierDeliveriesMap[s._id.toString()] || 0,
             rating: supplierRatings.get(s._id.toString())?.avgRating ?? null,
             ratingCount: supplierRatings.get(s._id.toString())?.ratingCount || 0
         }));
+        const ratedSuppliers = dynamicSupplierScatter
+            .filter(s => s.rating !== null)
+            .sort((a, b) => b.rating - a.rating);
 
         // ----------------------------------------------------
         // MODULE 2.5 & 2.6: CATALOGS (Parallelized)
@@ -478,21 +612,35 @@ export const getDashboardAnalytics = async (req, res) => {
         const [
             totalServices,
             inactiveServices,
-            pendingCatalogReviews,
+            pendingCatalogReviewAgg,
             totalB2BProducts,
             inactiveB2BProducts,
-            pendingMaterialReviews
+            pendingMaterialReviews,
+            servicesWithoutPrice,
+            servicesWithoutWeight,
+            productsWithoutStock,
+            productsWithoutCost
         ] = await Promise.all([
             // Schema field is `isActive` (Boolean); `active` never existed, so these were always 0.
             MasterService.countDocuments({ isActive: true }),
             MasterService.countDocuments({ isActive: false }),
-            User.countDocuments(buildUserQuery('Vendor', { 'shopDetails.services.status': 'pending' })),
+            User.aggregate([
+                { $match: buildUserQuery('Vendor') },
+                { $unwind: '$shopDetails.services' },
+                { $match: { 'shopDetails.services.status': 'pending' } },
+                { $count: 'count' }
+            ]),
             // Supply products use isActive: 'y' | 'n'
-            VendorMasterSupply.countDocuments({ isActive: 'y' }),
-            VendorMasterSupply.countDocuments({ isActive: 'n' }),
+            VendorMasterSupply.countDocuments({ isActive: 'y', approvalStatus: 'Approved' }),
+            VendorMasterSupply.countDocuments({ isActive: 'n', approvalStatus: 'Approved' }),
             // Supplier-submitted products awaiting admin approval
-            VendorMasterSupply.countDocuments({ approvalStatus: 'Pending' })
+            VendorMasterSupply.countDocuments({ approvalStatus: 'Pending' }),
+            MasterService.countDocuments({ isActive: true, basePrice: { $lte: 0 } }),
+            MasterService.countDocuments({ isActive: true, $or: [{ avgWeight: { $in: ['', '0', null] } }, { avgWeight: { $exists: false } }] }),
+            VendorMasterSupply.countDocuments({ isActive: 'y', approvalStatus: 'Approved', quantity: { $in: ['', '-', '0', '0 kg', '0 pcs'] } }),
+            VendorMasterSupply.countDocuments({ isActive: 'y', approvalStatus: 'Approved', costPrice: { $lte: 0 } })
         ]);
+        const pendingCatalogReviews = pendingCatalogReviewAgg[0]?.count || 0;
 
         // ----------------------------------------------------
         // MODULE 2.7: B2C ORDER LIFECYCLE (Parallelized)
@@ -506,12 +654,18 @@ export const getDashboardAnalytics = async (req, res) => {
         const readyForDispatchQ = await buildOrderQuery({ status: 'READY_FOR_DISPATCH' });
         const outboundLogisticsQ = await buildOrderQuery({ status: 'IN_TRANSIT' });
         const reverseLogisticsQ = await buildOrderQuery({ status: 'OUT_FOR_DELIVERY' });
+        const activeB2CQ = await buildOrderQuery({
+            status: { $nin: ['DELIVERED', 'CANCELLED'] }
+        });
 
         const pickupViolationsQ = await buildOrderQuery({ pickupStatus: { $in: ['failed', 'rescheduled'] } });
         const dropoffViolationsQ = await buildOrderQuery({ deliveryStatus: 'failed' });
         const vendorSlaViolationsQ = await buildOrderQuery({ 
             status: 'PROCESSING', 
-            updatedAt: { $lt: new Date(Date.now() - 48 * 60 * 60 * 1000) } 
+            $or: [
+                { processingStartedAt: { $lt: new Date(Date.now() - 48 * 60 * 60 * 1000) } },
+                { processingStartedAt: null, updatedAt: { $lt: new Date(Date.now() - 48 * 60 * 60 * 1000) } }
+            ]
         });
 
         const [
@@ -526,7 +680,9 @@ export const getDashboardAnalytics = async (req, res) => {
             reverseLogistics,
             pickupViolations,
             dropoffViolations,
-            vendorSlaViolations
+            vendorSlaViolations,
+            activeB2COrders,
+            orderingCustomerIds
         ] = await Promise.all([
             Order.countDocuments(mainOrderQuery),
             Order.countDocuments(acceptedOrderQuery),
@@ -539,7 +695,9 @@ export const getDashboardAnalytics = async (req, res) => {
             Order.countDocuments(reverseLogisticsQ),
             Order.countDocuments(pickupViolationsQ),
             Order.countDocuments(dropoffViolationsQ),
-            Order.countDocuments(vendorSlaViolationsQ)
+            Order.countDocuments(vendorSlaViolationsQ),
+            Order.countDocuments(activeB2CQ),
+            Order.distinct('customer', mainOrderQuery)
         ]);
 
         // ----------------------------------------------------
@@ -574,10 +732,14 @@ export const getDashboardAnalytics = async (req, res) => {
         // Delivered on or before the promised date (last update = delivery)
         const b2bOnTimeQ = await buildB2BOrderQuery({
             status: { $in: B2B_DELIVERED },
-            $expr: { $lte: ['$updatedAt', '$deliveryDate'] }
+            $expr: { $lte: [{ $ifNull: ['$deliveredAt', '$updatedAt'] }, '$deliveryDate'] }
         });
         const b2bCancelledSupplierQ = await buildB2BOrderQuery({ status: { $in: ['REJECTED', 'Rejected'] } });
         const b2bCancelledVendorQ = await buildB2BOrderQuery({ status: { $in: ['CANCELLED', 'Cancelled'] } });
+        const b2bActiveQ = await buildB2BOrderQuery({
+            status: { $in: ['SUBMITTED', 'Submitted', 'ACCEPTED', 'Confirmed', 'PROCESSING', 'DISPATCHED', 'Out for Delivery'] }
+        });
+        const b2bAwaitingFeeQ = await buildB2BOrderQuery({ status: 'PENDING_PAYMENT' });
 
         const [
             b2bPlaced,
@@ -591,7 +753,11 @@ export const getDashboardAnalytics = async (req, res) => {
             b2bLate,
             b2bOnTime,
             b2bCancelledSupplier,
-            b2bCancelledVendor
+            b2bCancelledVendor,
+            b2bActive,
+            b2bAwaitingFee,
+            orderingVendorIds,
+            participatingSupplierIds
         ] = await Promise.all([
             B2BOrder.countDocuments(b2bTotalPlacedQ),
             B2BOrder.countDocuments(b2bAcceptedQ),
@@ -604,7 +770,11 @@ export const getDashboardAnalytics = async (req, res) => {
             B2BOrder.countDocuments(b2bLateQ),
             B2BOrder.countDocuments(b2bOnTimeQ),
             B2BOrder.countDocuments(b2bCancelledSupplierQ),
-            B2BOrder.countDocuments(b2bCancelledVendorQ)
+            B2BOrder.countDocuments(b2bCancelledVendorQ),
+            B2BOrder.countDocuments(b2bActiveQ),
+            B2BOrder.countDocuments(b2bAwaitingFeeQ),
+            B2BOrder.distinct('vendor', b2bTotalPlacedQ),
+            B2BOrder.distinct('supplier', b2bTotalPlacedQ)
         ]);
 
 
@@ -616,6 +786,9 @@ export const getDashboardAnalytics = async (req, res) => {
         });
 
         const [
+            adminJobs,
+            vendorJobs,
+            supplierJobs,
             adminApplicants,
             vendorApplicants,
             supplierApplicants,
@@ -625,6 +798,9 @@ export const getDashboardAnalytics = async (req, res) => {
             closedTickets,
             priorFeedbacks
         ] = await Promise.all([
+            Job.countDocuments({ creatorRole: 'Admin', status: { $in: ['Active', 'Open', 'Published'] }, createdAt: { $gte: start, $lte: end } }),
+            Job.countDocuments({ creatorRole: 'Vendor', status: { $in: ['Active', 'Open', 'Published'] }, createdAt: { $gte: start, $lte: end }, ...(city ? { city: new RegExp(city, 'i') } : {}), ...(pincode ? { pincode } : {}) }),
+            Job.countDocuments({ creatorRole: 'Supplier', status: { $in: ['Active', 'Open', 'Published'] }, createdAt: { $gte: start, $lte: end }, ...(city ? { city: new RegExp(city, 'i') } : {}), ...(pincode ? { pincode } : {}) }),
             JobApplication.countDocuments(await buildJobApplicationQuery({ creatorRole: 'Admin' })),
             JobApplication.countDocuments(await buildJobApplicationQuery({ creatorRole: 'Vendor' })),
             JobApplication.countDocuments(await buildJobApplicationQuery({ creatorRole: 'Supplier' })),
@@ -635,11 +811,25 @@ export const getDashboardAnalytics = async (req, res) => {
             Feedback.find(priorFeedbackQ).select('rating').lean()
         ]);
 
+        const supplierRatingOrders = channel === 'B2C'
+            ? []
+            : await B2BOrder.find(await buildB2BOrderQuery({ 'supplierRating.rating': { $ne: null } }))
+                .select('supplierRating').lean();
+        const supplierFeedbacks = supplierRatingOrders.map(order => ({
+            rating: order.supplierRating?.rating || 0,
+            comment: order.supplierRating?.comment || ''
+        }));
+        const sentimentFeedbacks = channel === 'B2B'
+            ? supplierFeedbacks
+            : channel === 'B2C'
+                ? feedbacks
+                : [...feedbacks, ...supplierFeedbacks];
+
         let avgRating = 0;
-        if (feedbacks.length > 0) {
+        if (sentimentFeedbacks.length > 0) {
             let totalRating = 0;
-            feedbacks.forEach(f => { totalRating += f.rating; });
-            avgRating = Number((totalRating / feedbacks.length).toFixed(1));
+            sentimentFeedbacks.forEach(f => { totalRating += f.rating; });
+            avgRating = Number((totalRating / sentimentFeedbacks.length).toFixed(1));
         }
 
         let feedbackTrendMoM = '0.0';
@@ -650,7 +840,7 @@ export const getDashboardAnalytics = async (req, res) => {
         }
 
         // Feedback tags from real customer submissions
-        const { positive: dynamicPositiveKeywords, critical: dynamicCriticalKeywords } = extractFeedbackTags(feedbacks);
+        const { positive: dynamicPositiveKeywords, critical: dynamicCriticalKeywords } = extractFeedbackTags(sentimentFeedbacks);
 
         // ----------------------------------------------------
         // MODULE 2.10: PENDING PARTNER VERIFICATIONS
@@ -681,6 +871,25 @@ export const getDashboardAnalytics = async (req, res) => {
             success: true,
             data: {
                 channel: channel || 'All',
+                metricScope: {
+                    period: { start, end },
+                    note: 'Order, finance, support and hiring metrics use this period. Partner and catalog inventories are current snapshots.'
+                },
+                overview: {
+                    transactionValue: grossRevenue,
+                    platformRevenue: netProfit,
+                    activeB2COrders,
+                    activeB2BOrders: b2bActive,
+                    awaitingB2BPlatformFee: b2bAwaitingFee,
+                    totalCustomers,
+                    orderingCustomers: orderingCustomerIds.filter(Boolean).length,
+                    totalVendors,
+                    orderingVendors: orderingVendorIds.filter(Boolean).length,
+                    totalSuppliers,
+                    participatingSuppliers: participatingSupplierIds.filter(Boolean).length,
+                    openTickets,
+                    inProgressTickets: progressTickets
+                },
                 pendingVerifications: {
                     total: pendingVendorCount + pendingSupplierCount,
                     vendors: pendingVendorCount,
@@ -715,7 +924,9 @@ export const getDashboardAnalytics = async (req, res) => {
                     totalSuppliers: totalSuppliers,
                     wholesalers: wholesalersCount,
                     manufacturers: manufacturersCount,
-                    scatterData: dynamicSupplierScatter
+                    scatterData: dynamicSupplierScatter,
+                    topSuppliers: ratedSuppliers.slice(0, 5),
+                    bottomSuppliers: [...ratedSuppliers].reverse().slice(0, 5)
                 },
                 financials: {
                     grossRevenue: grossRevenue,
@@ -726,20 +937,43 @@ export const getDashboardAnalytics = async (req, res) => {
                     netProfit: netProfit,
                     refunds: totalRefunds,
                     walletLiability: walletLiability,
-                    trendMoM: revenueTrendMoM
+                    trendMoM: revenueTrendMoM,
+                    b2c: {
+                        orderValue: b2cRev,
+                        paidOrderValue: b2cRevenues[0]?.paid || 0,
+                        pendingCollection: b2cRevenues[0]?.pending || 0,
+                        platformRevenue: b2cPlatform,
+                        vendorPayable: b2cVendorPayable,
+                        logisticsCharges: b2cRevenues[0]?.logistics || 0,
+                        refunds: b2cRefunds,
+                        walletLiability
+                    },
+                    b2b: {
+                        supplierOrderValue: b2bRev,
+                        directSupplierPayable,
+                        platformFeesRaised: b2bPlatformRaised,
+                        platformFeesCollected: b2bPlatform,
+                        platformFeesPending: b2bPlatformPending,
+                        refunds: b2bRefunds
+                    }
                 },
                 catalogB2C: {
                     totalServices: totalServices,
                     inactiveServices: inactiveServices,
-                    pendingReviews: pendingCatalogReviews
+                    pendingReviews: pendingCatalogReviews,
+                    missingPrice: servicesWithoutPrice,
+                    missingWeight: servicesWithoutWeight
                 },
                 catalogB2B: {
                     totalProducts: totalB2BProducts,
                     inactiveProducts: inactiveB2BProducts,
-                    pendingReviews: pendingMaterialReviews
+                    pendingReviews: pendingMaterialReviews,
+                    missingStock: productsWithoutStock,
+                    missingCost: productsWithoutCost
                 },
                 orderLifecycleB2C: {
                     totalSubmitted: totalSubmitted,
+                    active: activeB2COrders,
                     totalAccepted: totalAccepted,
                     logisticsBounces: logisticsBounces,
                     immediateTimeouts: immediateTimeouts,
@@ -756,6 +990,8 @@ export const getDashboardAnalytics = async (req, res) => {
                 },
                 orderLifecycleB2B: {
                     totalPlaced: b2bPlaced,
+                    active: b2bActive,
+                    awaitingPlatformFee: b2bAwaitingFee,
                     totalAccepted: b2bAccepted,
                     inProgress: b2bProcessing,
                     dispatched: b2bDispatched,
@@ -768,9 +1004,12 @@ export const getDashboardAnalytics = async (req, res) => {
                     cancellations: { supplier: b2bCancelledSupplier, vendor: b2bCancelledVendor }
                 },
                 atsLaborExchange: {
-                    admin: adminApplicants,
-                    vendor: vendorApplicants,
-                    supplier: supplierApplicants
+                    activeJobs: { admin: adminJobs, vendor: vendorJobs, supplier: supplierJobs },
+                    applications: { admin: adminApplicants, vendor: vendorApplicants, supplier: supplierApplicants },
+                    // Compatibility fields for older clients.
+                    admin: adminJobs,
+                    vendor: vendorJobs,
+                    supplier: supplierJobs
                 },
                 helpdesk: {
                     open: openTickets,

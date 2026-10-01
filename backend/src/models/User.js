@@ -60,6 +60,7 @@ const userSchema = new mongoose.Schema({
         address: { type: String, default: '' },
         pincode: { type: String, default: '' },
         city: { type: String, default: '' },
+        state: { type: String, default: '' },
         gst: { type: String, default: '' },
         services: [{
             id: { type: String },
@@ -91,6 +92,7 @@ const userSchema = new mongoose.Schema({
         businessName: { type: String, default: '' },
         address: { type: String, default: '' },
         city: { type: String, default: '' },
+        state: { type: String, default: '' },
         pincode: { type: String, default: '' },
         gst: { type: String, default: '' },
         supplyCategories: [{ type: String }],
@@ -111,9 +113,14 @@ const userSchema = new mongoose.Schema({
         ifscCode: { type: String, default: '' },
         bankName: { type: String, default: '' }
     },
+    // RazorpayX Fund Account Validation result (see supplierController).
     bankVerification: {
-        amount: { type: Number, default: 0 },
+        validationId: { type: String, default: null },
+        status: { type: String, enum: ['none', 'pending', 'verified', 'failed'], default: 'none' },
         isVerified: { type: Boolean, default: false },
+        registeredName: { type: String, default: '' },
+        accountLast4: { type: String, default: '' },
+        ifsc: { type: String, default: '' },
         lastRequested: { type: Date }
     },
     isVerifiedSupplier: { type: Boolean, default: false },

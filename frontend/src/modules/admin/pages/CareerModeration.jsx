@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import PageHeader from "../components/common/PageHeader";
 import DataGrid from "../components/tables/DataGrid";
+import FilterField from "../components/common/FilterLabel";
 
 const CareerModeration = ({ creatorFilter = "Admin" }) => {
   const [jobs, setJobs] = useState([]);
@@ -664,6 +665,7 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
       {/* Main Content Area */}
       <div className="p-6 space-y-6 max-w-[1600px] mx-auto w-full">
         {/* Switch Tabs */}
+        <FilterField label="Show" info="Jobs lists the career posts. Applications lists the candidates who applied to them. The numbers are how many match the current filters.">
         <div className="flex items-center justify-between border-b border-slate-200 pb-3">
           <div className="bg-slate-100/80 p-1 rounded-xl flex items-center shadow-sm w-fit border border-slate-200/50">
             <button
@@ -697,6 +699,7 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
+        </FilterField>
 
         {/* Render Table views */}
         {viewMode === "Jobs" ? (
@@ -709,8 +712,9 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
             showSearch={false}
             onDownload={handleDownloadJobs}
             actions={
-              <div className="flex items-center gap-2">
+              <div className="flex items-end gap-2">
                 {/* Role Filter */}
+                <FilterField label="Role" info="Shows only job posts for this role (e.g. Ironing Specialist).">
                 <select
                   value={jobFilterRole}
                   onChange={(e) => setJobFilterRole(e.target.value)}
@@ -722,6 +726,7 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
                     </option>
                   ))}
                 </select>
+                </FilterField>
               </div>
             }
           />
@@ -735,7 +740,7 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
             showSearch={false}
             onDownload={handleDownloadApps}
             actions={
-              <div className="flex items-center gap-2">
+              <div className="flex items-end gap-2">
                 {selectedJobIdForApps && (
                   <div className="flex items-center gap-1.5 bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-1 rounded-sm text-[9px] font-black uppercase tracking-wider">
                     <span>
@@ -753,6 +758,7 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
                   </div>
                 )}
                 {/* Job Title Filter */}
+                <FilterField label="Position" info="Shows only applications made for this job position.">
                 <select
                   value={appFilterRole}
                   onChange={(e) => setAppFilterRole(e.target.value)}
@@ -764,8 +770,10 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
                     </option>
                   ))}
                 </select>
+                </FilterField>
 
                 {/* Candidate Status Filter */}
+                <FilterField label="Candidate status" info="Shows only applicants at this hiring stage, from Submitted through Offer Extended, or Rejected / Withdrew.">
                 <select
                   value={appFilterStatus}
                   onChange={(e) => setAppFilterStatus(e.target.value)}
@@ -786,6 +794,7 @@ const CareerModeration = ({ creatorFilter = "Admin" }) => {
                   <option value="Rejected">Rejected</option>
                   <option value="Candidate Withdrew">Candidate Withdrew</option>
                 </select>
+                </FilterField>
               </div>
             }
           />

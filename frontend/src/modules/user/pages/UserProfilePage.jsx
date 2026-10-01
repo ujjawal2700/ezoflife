@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { authApi, geofenceApi } from '../../../lib/api';
 import { useLocationStore } from '../../../shared/stores/locationStore';
@@ -286,7 +286,14 @@ const UserProfilePage = () => {
                 <span className="material-symbols-outlined text-slate-400 text-lg">location_on</span>
                 <h3 className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Saved Addresses</h3>
               </div>
-              <button onClick={() => navigate('/user/profile/addresses')} className="text-[8px] font-black text-slate-400 uppercase border border-slate-100 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-all">MANAGE ADDRESS</button>
+              {isEditing && (
+                <button
+                  onClick={() => navigate('/user/profile/addresses')}
+                  className="text-[8px] font-black text-white uppercase border border-slate-950 bg-slate-950 px-3 py-1.5 rounded-lg hover:bg-slate-800 transition-all"
+                >
+                  ADD / EDIT
+                </button>
+              )}
             </div>
             <div className="space-y-2.5">
               {(user.addresses && user.addresses.length > 0) ? (
@@ -310,7 +317,7 @@ const UserProfilePage = () => {
                         </p>
                       </div>
                     </div>
-                    {!addr.isDefault && (
+                    {isEditing && !addr.isDefault && (
                       <button
                         onClick={() => handleSetDefault(addr._id || addr.id)}
                         disabled={loading}

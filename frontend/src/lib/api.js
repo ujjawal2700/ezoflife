@@ -86,9 +86,7 @@ window.fetch = async (input, init) => {
                                 (urlLower.includes('/geofence') && !urlLower.includes('/check-availability') && !urlLower.includes('/public/')) || 
                                 urlLower.includes('/area-overrides') || 
                                 (urlLower.includes('/master-pricing') && !urlLower.includes('fenceid=')) ||
-                                urlLower.includes('/supplier/requests') ||
-                                urlLower.includes('/labor/active-requests') ||
-                                urlLower.includes('/labor/add');
+                                urlLower.includes('/supplier/requests');
         if (isAdminEndpoint) {
             console.warn('🔑 Admin Session expired or unauthorized. Redirecting to login...');
             localStorage.removeItem('adminAuth');
@@ -103,19 +101,26 @@ window.fetch = async (input, init) => {
 };
 
 // ─── Admin Auth Helpers ───────────────────────────────────────────────────────
-// These are used by every admin API call to attach the JWT token.
-export const getAdminToken = () => localStorage.getItem('adminToken') || localStorage.getItem('token');
+// These are used by every admin API call to attach the JWT token. Several of
+// these APIs (e.g. vendorMasterSupplyApi) are shared with the vendor/supplier
+// portals, so pick the current portal's token — on /admin this is still
+// adminToken || token. A hard-coded adminToken sent "Bearer null" (or a stale
+// admin/customer token) from the supplier portal.
+export const getAdminToken = () => getSessionToken();
+
+const authorizationHeader = () => {
+    const token = getAdminToken();
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+};
 
 export const adminAuthHeaders = (extra = {}) => ({
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${getAdminToken()}`,
+    ...authorizationHeader(),
     ...extra
 });
 
 // For FormData calls (no Content-Type, browser sets it with boundary)
-export const adminAuthHeadersFormData = () => ({
-    'Authorization': `Bearer ${getAdminToken()}`
-});
+export const adminAuthHeadersFormData = () => authorizationHeader();
 
 export const categoryApi = {
     getAll: async () => {
@@ -267,6 +272,12 @@ export const vendorMasterSupplyApi = {
     getUniqueFilters: async () => {
         const res = await fetch(`${BASE_URL}/vendor-master-supplies/unique-filters`);
         return res.json();
+    },
+    getMyCosts: async () => {
+        const res = await fetch(`${BASE_URL}/vendor-master-supplies/costs`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to load product costs');
+        return data;
     },
     getPaginated: async (page = 1, limit = 10, filters = {}) => {
         const queryParams = new URLSearchParams({
@@ -715,6 +726,13 @@ export const b2bOrderApi = {
             throw error;
         }
     },
+    getSupplierInsights: async ({ from, to }) => {
+        const query = new URLSearchParams({ from, to }).toString();
+        const response = await fetch(`${BASE_URL}/b2b-orders/supplier/insights?${query}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Failed to load supplier insights');
+        return data;
+    },
     getVendorOrders: async (vendorId) => {
         try {
             const response = await fetch(`${BASE_URL}/b2b-orders/vendor/${vendorId}`);
@@ -777,32 +795,6 @@ export const b2bOrderApi = {
             return await response.json();
         } catch (error) {
             console.error('Bulk Update B2B Status Error:', error);
-            throw error;
-        }
-    },
-    initiateB2BPayment: async (orderId) => {
-        try {
-            const response = await fetch(`${BASE_URL}/b2b-orders/initiate-payment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId })
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Initiate B2B Payment Error:', error);
-            throw error;
-        }
-    },
-    verifyB2BPayment: async (paymentData) => {
-        try {
-            const response = await fetch(`${BASE_URL}/b2b-orders/verify-payment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(paymentData)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Verify B2B Payment Error:', error);
             throw error;
         }
     },
@@ -907,16 +899,6 @@ export const b2bOrderApi = {
 
 
 export const adminApi = {
-    // Business reports: 'tat' | 'heatmap' | 'leakage' | 'customers'
-    getReport: async (type, { from, to } = {}) => {
-        const qs = new URLSearchParams(Object.entries({ from, to }).filter(([, v]) => v)).toString();
-        const response = await fetch(`${BASE_URL}/admin/reports/${type}${qs ? `?${qs}` : ''}`, {
-            headers: adminAuthHeaders()
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'Failed to load report');
-        return data;
-    },
     getVendorPayoutHistoryAdmin: async (vendorId) => {
         const response = await fetch(`${BASE_URL}/admin/vendor-payouts/${vendorId}`, { headers: adminAuthHeaders() });
         const data = await response.json();
@@ -1323,18 +1305,38 @@ export const orderApi = {
             throw error;
         }
     },
+    /**
+     * Open a Razorpay checkout. The server calculates the amount from the purpose:
+     *   { purpose: 'CUSTOMER_ORDER', order: { items, pickupLocation, deliveryMode, selectedTier, promoApplied, useWallet } }
+     *   { purpose: 'WALKIN_DELIVERY', deliveryMode }
+     * Resolves to { id, amount (paise), currency, keyId, payable (₹) }.
+     */
     createRazorpayOrder: async (data) => {
-        try {
-            const response = await fetch(`${BASE_URL}/orders/razorpay`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Create Razorpay Order Error:', error);
-            throw error;
-        }
+        const response = await fetch(`${BASE_URL}/orders/razorpay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || 'Could not start the payment');
+        return body;
+    },
+    /** The server's price for a cart (what will actually be charged). */
+    quoteOrder: async (order) => {
+        const response = await fetch(`${BASE_URL}/orders/quote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(order)
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || 'Could not price this order');
+        return body;
+    },
+    getWalkInDeliveryFee: async (deliveryMode = 'Normal') => {
+        const response = await fetch(`${BASE_URL}/orders/walk-in/delivery-fee?deliveryMode=${encodeURIComponent(deliveryMode)}`);
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.message || 'Could not calculate the delivery fee');
+        return body;
     },
     createWalkInOrder: async (orderData) => {
         try {
@@ -2185,79 +2187,6 @@ export const partnershipApi = {
     }
 };
 
-export const laborApi = {
-    add: async (data) => {
-        try {
-            const response = await fetch(`${BASE_URL}/labor/add`, {
-                method: 'POST',
-                headers: adminAuthHeaders(),
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Add Labor Error:', error);
-            throw error;
-        }
-    },
-    getAll: async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/labor/all`);
-            return await response.json();
-        } catch (error) {
-            console.error('Get Labor Error:', error);
-            throw error;
-        }
-    },
-    delete: async (id) => {
-        try {
-            const response = await fetch(`${BASE_URL}/labor/${id}`, {
-                method: 'DELETE',
-                headers: adminAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Delete Labor Error:', error);
-            throw error;
-        }
-    },
-    createRequisition: async (data) => {
-        try {
-            const response = await fetch(`${BASE_URL}/labor/place-request`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Create Requisition Error:', error);
-            throw error;
-        }
-    },
-    getAllRequisitions: async () => {
-        try {
-            const response = await fetch(`${BASE_URL}/labor/active-requests`, {
-                headers: adminAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Get Requests Error:', error);
-            throw error;
-        }
-    },
-    assignRequisition: async (id) => {
-        try {
-            const response = await fetch(`${BASE_URL}/labor/place-request/${id}/assign`, {
-                method: 'PATCH',
-                headers: adminAuthHeaders()
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Assign Requisition Error:', error);
-            throw error;
-        }
-    }
-};
-
 export const promotionApi = {
     create: async (data) => {
         try {
@@ -2776,5 +2705,3 @@ export const referralApi = {
         }
     }
 };
-
-

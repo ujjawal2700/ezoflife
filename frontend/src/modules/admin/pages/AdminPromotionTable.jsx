@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const AdminPromotionTable = () => {
     const [promotions, setPromotions] = useState([]);
@@ -435,7 +436,8 @@ const AdminPromotionTable = () => {
                     showSearch={false}
                     actions={
                         <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
-                            <div className="flex w-full sm:w-auto items-center justify-between sm:justify-start gap-2">
+                            <div className="flex w-full sm:w-auto items-end justify-between sm:justify-start gap-2">
+                                <FilterField label="Promotion status" info="Active = the promotion is currently offered. Inactive = paused, so customers can't use it.">
                                 <select
                                     value={filters.status}
                                     onChange={(e) => handleFilterChange('status', e.target.value)}
@@ -445,6 +447,7 @@ const AdminPromotionTable = () => {
                                     <option value="Active">Active</option>
                                     <option value="Paused">Inactive</option>
                                 </select>
+                                </FilterField>
                                 
                                 <div className="flex items-center gap-2">
                                     {filters.status && (

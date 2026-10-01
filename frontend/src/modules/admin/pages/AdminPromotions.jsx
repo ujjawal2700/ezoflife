@@ -6,6 +6,7 @@ import { promotionApi, masterServiceApi, serviceApi } from '../../../lib/api';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
 import toast from 'react-hot-toast';
+import FilterField from "../components/common/FilterLabel";
 
 const AdminPromotions = () => {
     const [promotions, setPromotions] = useState([]);
@@ -401,7 +402,8 @@ const AdminPromotions = () => {
                     title=""
                     showTotalEntities={false}
                     leftContent={
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-end gap-2">
+                            <FilterField label="Created from" info="Shows only promotions created on or after this date.">
                             <input 
                                 type="date"
                                 value={startDate}
@@ -411,7 +413,8 @@ const AdminPromotions = () => {
                                 }}
                                 className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all h-[32px]"
                             />
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">to</span>
+                            </FilterField>
+                            <FilterField label="Created to" info="Shows only promotions created on or before this date (whole day included).">
                             <input 
                                 type="date"
                                 value={endDate}
@@ -421,6 +424,7 @@ const AdminPromotions = () => {
                                 }}
                                 className="bg-slate-50 border border-slate-200/80 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 hover:bg-slate-100/50 focus:border-slate-300 outline-none cursor-pointer transition-all h-[32px]"
                             />
+                            </FilterField>
                             {(startDate || endDate) && (
                                 <button
                                     onClick={() => {

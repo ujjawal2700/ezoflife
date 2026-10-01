@@ -2,8 +2,7 @@
  * B2B platform fee: vendor ordering supplies from suppliers.
  *
  * Verifies that:
- * 1. With no fee configured (the shipped default) the existing flow is unchanged:
- *    orders are SUBMITTED + Paid immediately, stock is decreased, fee is 0.
+ * 1. The first-run default is a ₹40 flat fee; admins can explicitly disable it.
  * 2. A client-supplied totalPlatformFee is ignored in both directions.
  * 3. The fee is computed server-side from DB wholesale rates, per supplier, and
  *    honours the global default, zone overrides, min/max and bulk discounts.
@@ -89,14 +88,17 @@ const place = (items, extra = {}) =>
 
 const groupFor = (res, supplierId) => res.body.groups.find(g => g.supplierId === supplierId);
 
-describe('default: no platform fee configured (existing flow unchanged)', () => {
-    test('global config defaults to disabled', async () => {
+describe('first-run fee and explicit fee waiver', () => {
+    test('global config defaults to a ₹40 flat fee', async () => {
         const res = await api(env.baseUrl, '/api/b2b-orders/admin/platform-fee-config', { token: admin.token });
         assert.equal(res.status, 200);
-        assert.equal(res.body.enabled, false);
+        assert.equal(res.body.enabled, true);
+        assert.equal(res.body.type, 'FLAT');
+        assert.equal(res.body.value, 40);
     });
 
-    test('order is confirmed immediately with zero fee, even if the client claims a fee', async () => {
+    test('an explicitly disabled fee submits immediately and keeps supplier payment direct', async () => {
+        await setGlobalFee({ enabled: false, type: 'FLAT', value: 40 });
         const res = await place([line('A100', 2)], { totalPlatformFee: 999 });
         assert.equal(res.status, 201, JSON.stringify(res.body));
         assert.equal(res.body.razorpayOrderId, null);
@@ -105,7 +107,8 @@ describe('default: no platform fee configured (existing flow unchanged)', () => 
 
         const order = await B2BOrder.findById(res.body.orders[0]._id).lean();
         assert.equal(order.status, 'SUBMITTED');
-        assert.equal(order.paymentStatus, 'Paid');
+        assert.equal(order.paymentStatus, 'Direct');
+        assert.equal(order.escrowStatus, 'Not Applicable');
         assert.equal(order.platformFee, 0);
         assert.equal(order.platformFeeStatus, 'NOT_APPLICABLE');
         assert.equal(order.stockDecreased, true);
@@ -323,7 +326,7 @@ describe('verifying the platform fee payment', () => {
         const order = await B2BOrder.findById(orderId).lean();
         assert.equal(order.status, 'PENDING_PAYMENT');
         assert.equal(order.platformFeeStatus, 'PENDING');
-        assert.equal(order.paymentStatus, 'Pending');
+        assert.equal(order.paymentStatus, 'Direct');
     });
 });
 
@@ -358,6 +361,6 @@ describe('turning the fee off restores the zero-fee flow', () => {
         assert.equal(res.status, 201, JSON.stringify(res.body));
         assert.equal(res.body.platformFeeAmount, 0);
         assert.equal(res.body.orders[0].status, 'SUBMITTED');
-        assert.equal(res.body.orders[0].paymentStatus, 'Paid');
+        assert.equal(res.body.orders[0].paymentStatus, 'Direct');
     });
 });

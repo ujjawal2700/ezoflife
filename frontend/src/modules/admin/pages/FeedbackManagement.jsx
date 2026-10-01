@@ -5,6 +5,7 @@ import DataGrid from '../components/tables/DataGrid';
 import { Trash2, Star, User } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as XLSX from 'xlsx';
+import FilterField from "../components/common/FilterLabel";
 
 const FeedbackManagement = () => {
     const [feedbacks, setFeedbacks] = useState([]);
@@ -196,7 +197,8 @@ const FeedbackManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-end gap-2 flex-wrap">
+                            <FilterField label="Customer" info="Shows only feedback from this customer.">
                             <select
                                 value={filters.userName}
                                 onChange={(e) => handleFilterChange('userName', e.target.value)}
@@ -207,6 +209,8 @@ const FeedbackManagement = () => {
                                     <option key={name} value={name}>{name}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Email" info="Shows only feedback sent from this email address.">
                             <select
                                 value={filters.email}
                                 onChange={(e) => handleFilterChange('email', e.target.value)}
@@ -217,6 +221,8 @@ const FeedbackManagement = () => {
                                     <option key={email} value={email}>{email}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Category" info="Shows only feedback of this type (the topic the customer picked).">
                             <select
                                 value={filters.category}
                                 onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -227,6 +233,8 @@ const FeedbackManagement = () => {
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Rating" info="Shows only feedback with exactly this star rating.">
                             <select
                                 value={filters.rating}
                                 onChange={(e) => handleFilterChange('rating', e.target.value)}
@@ -237,6 +245,8 @@ const FeedbackManagement = () => {
                                     <option key={rating} value={rating}>{rating} Star{rating > 1 ? 's' : ''}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Submitted on" info="Shows only feedback submitted on this date.">
                             <select
                                 value={filters.submitted}
                                 onChange={(e) => handleFilterChange('submitted', e.target.value)}
@@ -247,6 +257,7 @@ const FeedbackManagement = () => {
                                     <option key={date} value={date}>{new Date(date).toLocaleDateString('en-GB')}</option>
                                 ))}
                             </select>
+                            </FilterField>
                             {(filters.userName || filters.email || filters.category || filters.rating || filters.submitted) && (
                                 <button 
                                     onClick={handleResetFilters}

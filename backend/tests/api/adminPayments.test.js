@@ -1,5 +1,5 @@
 /**
- * Admin reports, payments and supplier ratings: every figure is computed from
+ * Admin payments and supplier ratings: every figure is computed from
  * seeded database records, and actions that move money or identity are guarded.
  */
 import { test, describe, before, after } from 'node:test';
@@ -78,63 +78,6 @@ before(async () => {
 after(async () => {
     await mongoose.disconnect().catch(() => {});
     if (env) await env.stop();
-});
-
-const range = `from=${ymd(ago(30 * DAY))}&to=${ymd(new Date())}`;
-const report = async (type, qs = range) => {
-    const res = await api(env.baseUrl, `/api/admin/reports/${type}?${qs}`, { token: admin });
-    assert.equal(res.status, 200, JSON.stringify(res.body));
-    return res.body;
-};
-
-describe('reports are computed from real orders', () => {
-    test('vendor TAT uses recorded status timestamps', async () => {
-        const r = await report('tat');
-        assert.equal(r.summary.deliveredOrders, 3);
-        assert.equal(r.summary.measuredOrders, 1);
-        assert.equal(r.summary.ordersWithoutTimeline, 2);
-        assert.equal(r.summary.avgTotalHours, 30);
-        assert.equal(r.vendors[0].avgProcessingHours, 8);
-        assert.equal(r.distribution.find(d => d.name === '24–48h').value, 1);
-    });
-
-    test('heatmap groups real pickup coordinates and pincodes', async () => {
-        const r = await report('heatmap');
-        const busiest = r.cells[0];
-        assert.equal(busiest.lat, 22.72);
-        assert.equal(busiest.orders, 2);
-        assert.equal(busiest.revenue, 800);
-        assert.equal(r.summary.ordersWithoutLocation, 2); // the two discounted orders have no location
-        assert.deepEqual(r.pincodes.map(p => [p.pincode, p.orders]), [['452001', 2], ['452010', 1]]);
-    });
-
-    test('revenue leakage separates platform losses from context', async () => {
-        const r = await report('leakage');
-        const by = Object.fromEntries(r.categories.map(c => [c.key, c.amount]));
-        assert.equal(by.cancelled, 500);
-        assert.equal(by.refunds, 200);
-        assert.equal(by.unpaidDelivered, 150);
-        assert.equal(by.platformDiscounts, 50);
-        assert.equal(by.vendorDiscounts, 20);
-        assert.equal(by.b2bUnpaidFees, 25);
-        assert.equal(r.summary.billed, 1450);
-        assert.equal(r.summary.totalLeakage, 425); // refunds + unpaid + platform discounts + unpaid fees
-        assert.equal(r.unpaidDelivered[0].amount, 150);
-    });
-
-    test('repeat customers', async () => {
-        const r = await report('customers');
-        assert.equal(r.summary.customers, 3);        // cancelled-only customers aside, c1..c3 ordered
-        assert.equal(r.summary.repeatCustomers, 1);  // c1 has 3 live orders
-        assert.equal(r.summary.repeatRate, 33.3);
-        assert.equal(r.topCustomers[0].name, 'Asha');
-        assert.equal(r.topCustomers[0].orders, 3);
-    });
-
-    test('rejects unknown report types and non-admins', async () => {
-        assert.equal((await api(env.baseUrl, '/api/admin/reports/nope', { token: admin })).status, 400);
-        assert.equal((await api(env.baseUrl, '/api/admin/reports/tat', { token: tokenFor('Vendor', ids.v.toString()) })).status, 403);
-    });
 });
 
 describe('payments use real records', () => {
@@ -226,25 +169,5 @@ describe('supplier ratings come from vendors who received the goods', () => {
         const acme = users.body.find(u => u.phone === '9500000021');
         assert.equal(acme.avgRating, 4.5);
         assert.equal(acme.ratingCount, 2);
-    });
-});
-
-describe('labor requests are tied to the logged-in vendor', () => {
-    const body = { vendorId: ids.v2?.toString(), vendorName: 'Spoofed', items: [{ name: 'Tailor' }], totalAmount: 800 };
-
-    test('require login and a vendor account', async () => {
-        assert.equal((await api(env.baseUrl, '/api/labor/place-request', { method: 'POST', body })).status, 401);
-        assert.equal((await api(env.baseUrl, '/api/labor/place-request', { method: 'POST', token: tokenFor('Customer', ids.c1.toString()), body })).status, 403);
-    });
-
-    test('identity comes from the token, not the body', async () => {
-        const res = await api(env.baseUrl, '/api/labor/place-request', {
-            method: 'POST', token: tokenFor('Vendor', ids.v.toString()),
-            body: { vendorId: ids.v2.toString(), vendorName: 'Spoofed', items: [{ name: 'Tailor' }], totalAmount: 800 }
-        });
-        assert.ok(res.status < 300, JSON.stringify(res.body));
-        const saved = await db.collection('laborrequisitions').findOne({}, { sort: { _id: -1 } });
-        assert.equal(saved.vendorId, ids.v.toString());
-        assert.equal(saved.vendorName, 'Fresh Wash');
     });
 });

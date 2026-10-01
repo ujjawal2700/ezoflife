@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const ServiceGeofenceTable = () => {
     const [areas, setAreas] = useState([]);
@@ -374,8 +375,9 @@ const ServiceGeofenceTable = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center gap-1.5 flex-nowrap overflow-x-auto max-w-[280px] sm:max-w-[380px] md:max-w-[520px] lg:max-w-[650px] xl:max-w-[850px] 2xl:max-w-[1100px] py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="flex items-end gap-1.5 flex-nowrap overflow-x-auto max-w-[280px] sm:max-w-[380px] md:max-w-[520px] lg:max-w-[650px] xl:max-w-[850px] 2xl:max-w-[1100px] py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                             {/* Area Name Dropdown */}
+                            <FilterField label="Area" info="Shows only this service area. Choosing one clears the typed search next to it.">
                             <select
                                 value={selectedAreaName}
                                 onChange={(e) => {
@@ -386,13 +388,15 @@ const ServiceGeofenceTable = () => {
                                 }}
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 shrink-0 min-w-[120px]"
                             >
-                                <option value="">SELECT AREA NAME</option>
+                                <option value="">ALL AREAS</option>
                                 {uniqueAreaNames.map(name => (
                                     <option key={name} value={name}>{name}</option>
                                 ))}
                             </select>
+                            </FilterField>
 
                             {/* Area Name Input */}
+                            <FilterField label="Search area name" info="Finds service areas by name as you type. Typing clears the Area dropdown.">
                             <input
                                 type="text"
                                 value={searchAreaNameInput}
@@ -405,54 +409,63 @@ const ServiceGeofenceTable = () => {
                                 placeholder="TYPE AREA NAME..."
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-wider outline-none focus:bg-white focus:border-slate-300 transition-all w-28 placeholder:text-slate-300 shrink-0"
                             />
+                            </FilterField>
 
                             {/* Base Multiplier Dropdown */}
+                            <FilterField label="Base multiplier" info="Shows only areas whose service prices are multiplied by this factor (1x = standard price).">
                             <select
                                 value={searchBaseMultiplier}
                                 onChange={(e) => setSearchBaseMultiplier(e.target.value)}
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-28 shrink-0"
                             >
-                                <option value="">BASE MULTIPLIER</option>
+                                <option value="">ANY</option>
                                 {uniqueBaseMultipliers.map(mult => (
                                     <option key={mult} value={String(mult)}>{mult}x</option>
                                 ))}
                             </select>
+                            </FilterField>
 
                             {/* Express Multiplier Dropdown */}
+                            <FilterField label="Express multiplier" info="Shows only areas with this express-delivery price factor.">
                             <select
                                 value={searchExpressMultiplier}
                                 onChange={(e) => setSearchExpressMultiplier(e.target.value)}
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-32 shrink-0"
                             >
-                                <option value="">EXPRESS MULTIPLIER</option>
+                                <option value="">ANY</option>
                                 {uniqueExpressMultipliers.map(mult => (
                                     <option key={mult} value={String(mult)}>{mult}x</option>
                                 ))}
                             </select>
+                            </FilterField>
 
                             {/* Heritage Multiplier Dropdown */}
+                            <FilterField label="Heritage multiplier" info="Shows only areas with this price factor for Heritage (premium care) orders.">
                             <select
                                 value={searchHeritageMultiplier}
                                 onChange={(e) => setSearchHeritageMultiplier(e.target.value)}
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-32 shrink-0"
                             >
-                                <option value="">HERITAGE MULTIPLIER</option>
+                                <option value="">ANY</option>
                                 {uniqueHeritageMultipliers.map(mult => (
                                     <option key={mult} value={String(mult)}>{mult}x</option>
                                 ))}
                             </select>
+                            </FilterField>
 
                             {/* Discount Multiplier Dropdown */}
+                            <FilterField label="Discount multiplier" info="Shows only areas with this discounted-price factor.">
                             <select
                                 value={searchDiscountMultiplier}
                                 onChange={(e) => setSearchDiscountMultiplier(e.target.value)}
                                 className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-sm text-[9px] font-black uppercase tracking-tight outline-none focus:bg-white focus:border-slate-300 transition-all cursor-pointer text-slate-900 w-32 shrink-0"
                             >
-                                <option value="">DISCOUNT MULTIPLIER</option>
+                                <option value="">ANY</option>
                                 {uniqueDiscountMultipliers.map(mult => (
                                     <option key={mult} value={String(mult)}>{mult}x</option>
                                 ))}
                             </select>
+                            </FilterField>
                         </div>
                     }
                     columns={columns}

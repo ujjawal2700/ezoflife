@@ -42,6 +42,7 @@ import { GOOGLE_MAPS_LOADER_OPTIONS } from "../../../lib/googleMaps";
 import PageHeader from "../components/common/PageHeader";
 import toast from "react-hot-toast";
 import { BASE_URL } from "../../../lib/api";
+import { FilterLabel } from "../components/common/FilterLabel";
 
 const mapContainerStyle = { width: "100%", height: "100%" };
 const defaultCenter = { lat: 19.9975, lng: 73.7898 }; // Nashik default
@@ -636,7 +637,8 @@ export default function ServiceAreas() {
       </div>
 
       {/* Search */}
-      <div className="px-4 py-3 border-b border-slate-50 shrink-0">
+      <div className="px-4 py-3 border-b border-slate-50 shrink-0 space-y-1">
+        <FilterLabel label="Search zones" info="Narrows the list to zones whose name, city or pincode contains this text." />
         <div className="relative">
           <Search
             size={12}

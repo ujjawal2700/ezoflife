@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import PageHeader from "../components/common/PageHeader";
 import { useNavigate } from "react-router-dom";
@@ -22,11 +22,28 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { FilterLabel } from "../components/common/FilterLabel";
+
+const money = (value) =>
+  `₹${Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+
+const MetricCard = ({ label, value, note, icon }) => (
+  <div className="bg-white border border-slate-200/80 p-6 rounded-[2rem] shadow-sm flex items-center justify-between">
+    <div className="space-y-1 min-w-0">
+      <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{label}</p>
+      <h3 className="text-3xl font-black text-slate-900 truncate">{value}</h3>
+      <span className="text-[10px] font-bold uppercase text-slate-500 bg-slate-50 px-2 py-0.5 rounded">{note}</span>
+    </div>
+    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+      <span className="material-symbols-outlined text-[24px]">{icon}</span>
+    </div>
+  </div>
+);
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [filterLoading, setFilterLoading] = useState(false);
+  const [, setFilterLoading] = useState(false);
   const [analytics, setAnalytics] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [sidebarCounts, setSidebarCounts] = useState(null);
@@ -108,7 +125,7 @@ export default function Dashboard() {
   }, [selectedCity, geographyMap.geofenceMap]);
 
   // Fetch analytics data
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const activeFilters = {
@@ -131,7 +148,16 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    channel,
+    selectedState,
+    selectedCity,
+    selectedPincode,
+    selectedGeofence,
+    timeRange,
+    startDate,
+    endDate,
+  ]);
 
   const fetchSidebarCounts = async () => {
     try {
@@ -150,16 +176,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchAnalytics();
     fetchSidebarCounts();
-  }, [
-    channel,
-    selectedState,
-    selectedCity,
-    selectedPincode,
-    selectedGeofence,
-    timeRange,
-    startDate,
-    endDate,
-  ]);
+  }, [fetchAnalytics]);
 
   // Computed Pending Partner Verification numbers
   const pendingVendors =
@@ -176,7 +193,7 @@ export default function Dashboard() {
     pendingVendors + pendingSuppliers;
 
   // Financial reconciliation chart data formatting
-  const financialTrendData = useMemo(() => {
+  const financialTrendData = (() => {
     if (!analytics?.financials) return [];
     if (analytics?.monthlyTrend && analytics.monthlyTrend.length > 0) {
       return analytics.monthlyTrend;
@@ -188,12 +205,26 @@ export default function Dashboard() {
         Payouts: analytics.financials.vendorPayouts,
         Logistics: analytics.financials.logisticsPayouts,
         Profit: analytics.financials.netProfit,
+        TransactionValue: analytics.financials.grossRevenue,
+        PartnerPayable:
+          (analytics.financials.b2c?.vendorPayable || 0) +
+          (analytics.financials.b2b?.directSupplierPayable || 0),
+        LogisticsCharges: analytics.financials.logisticsPayouts,
+        PlatformRevenue: analytics.financials.netProfit,
       },
     ];
-  }, [analytics?.financials, analytics?.monthlyTrend]);
+  })();
 
-  const waterfallData = useMemo(() => {
+  const waterfallData = (() => {
     if (!analytics?.financials) return [];
+    if (channel === "B2B") {
+      return [
+        { name: "Supplier Orders", value: analytics.financials.b2b?.supplierOrderValue || 0, color: "#3b82f6" },
+        { name: "Direct to Suppliers", value: -(analytics.financials.b2b?.directSupplierPayable || 0), color: "#f59e0b" },
+        { name: "Fees Collected", value: analytics.financials.b2b?.platformFeesCollected || 0, color: "#10b981" },
+        { name: "Fees Pending", value: analytics.financials.b2b?.platformFeesPending || 0, color: "#8b5cf6" },
+      ];
+    }
     return [
       {
         name: "Gross Revenue",
@@ -201,12 +232,15 @@ export default function Dashboard() {
         color: "#3b82f6",
       },
       {
-        name: "Vendor Splits",
-        value: -analytics.financials.vendorPayouts,
+        name: channel === "All" ? "Partner Payable" : "Vendor Payable",
+        value: -(
+          analytics.financials.vendorPayouts +
+          (channel === "All" ? analytics.financials.b2b?.directSupplierPayable || 0 : 0)
+        ),
         color: "#f59e0b",
       },
       {
-        name: "Logistics Cost",
+        name: "Logistics Charges",
         value: -analytics.financials.logisticsPayouts,
         color: "#8b5cf6",
       },
@@ -216,15 +250,101 @@ export default function Dashboard() {
         color: "#ef4444",
       },
       {
-        name: "Net Platform Profit",
+        name: "Platform Revenue",
         value: analytics.financials.netProfit,
         color: "#10b981",
       },
     ];
-  }, [analytics?.financials]);
+  })();
 
   // Recharts cell colors helper
   const DONUT_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+
+  const isB2B = channel === "B2B";
+  const isB2C = channel === "B2C";
+  const overviewCards = isB2B
+    ? [
+        { label: "Supplier order value", value: money(analytics?.financials?.b2b?.supplierOrderValue), note: "Paid directly to suppliers", icon: "inventory_2" },
+        { label: "Platform fees collected", value: money(analytics?.financials?.b2b?.platformFeesCollected), note: `${money(analytics?.financials?.b2b?.platformFeesPending)} pending`, icon: "payments" },
+        { label: "Active B2B orders", value: analytics?.overview?.activeB2BOrders || 0, note: `${analytics?.overview?.awaitingB2BPlatformFee || 0} awaiting fee`, icon: "local_shipping" },
+        { label: "Ordering vendors", value: analytics?.overview?.orderingVendors || 0, note: `${analytics?.overview?.participatingSuppliers || 0} participating suppliers`, icon: "storefront" },
+      ]
+    : isB2C
+      ? [
+          { label: "B2C order value", value: money(analytics?.financials?.b2c?.orderValue), note: `${analytics?.financials?.trendMoM || "0%"} vs prior period`, icon: "monetization_on" },
+          { label: "Active B2C orders", value: analytics?.overview?.activeB2COrders || 0, note: `${analytics?.orderLifecycleB2C?.totalSubmitted || 0} placed in period`, icon: "shopping_basket" },
+          { label: "Ordering customers", value: analytics?.overview?.orderingCustomers || 0, note: `${analytics?.overview?.totalCustomers || 0} total customers`, icon: "person" },
+          { label: "Open B2C tickets", value: analytics?.helpdesk?.open || 0, note: `${analytics?.helpdesk?.inProgress || 0} in progress`, icon: "support_agent" },
+        ]
+      : [
+          { label: "Combined transaction value", value: money(analytics?.overview?.transactionValue), note: `${analytics?.financials?.trendMoM || "0%"} vs prior period`, icon: "monetization_on" },
+          { label: "Spinzyt platform revenue", value: money(analytics?.overview?.platformRevenue), note: "B2C + collected B2B fees", icon: "account_balance" },
+          { label: "Active orders", value: (analytics?.overview?.activeB2COrders || 0) + (analytics?.overview?.activeB2BOrders || 0), note: `${analytics?.overview?.activeB2COrders || 0} B2C · ${analytics?.overview?.activeB2BOrders || 0} B2B`, icon: "local_shipping" },
+          { label: "Open support cases", value: analytics?.helpdesk?.open || 0, note: `${analytics?.helpdesk?.inProgress || 0} in progress`, icon: "support_agent" },
+        ];
+
+  const lifecycleSteps = isB2B
+    ? [
+        { label: "Orders placed", value: analytics?.orderLifecycleB2B?.totalPlaced, color: "bg-blue-500" },
+        { label: "Accepted", value: analytics?.orderLifecycleB2B?.totalAccepted, color: "bg-indigo-500" },
+        { label: "Processing", value: analytics?.orderLifecycleB2B?.inProgress, color: "bg-amber-500" },
+        { label: "Dispatched", value: analytics?.orderLifecycleB2B?.dispatched, color: "bg-purple-500" },
+        { label: "Delivered", value: analytics?.orderLifecycleB2B?.delivered, color: "bg-emerald-500" },
+      ]
+    : [
+        { label: "Total submitted", value: analytics?.orderLifecycleB2C?.totalSubmitted, color: "bg-blue-500" },
+        { label: "Claimed / accepted", value: analytics?.orderLifecycleB2C?.totalAccepted, color: "bg-indigo-500" },
+        { label: "In processing", value: analytics?.orderLifecycleB2C?.inProgress, color: "bg-amber-500" },
+        { label: "Ready for dispatch", value: analytics?.orderLifecycleB2C?.readyForDispatch, color: "bg-purple-500" },
+      ];
+  const lifecycleBase = Number(lifecycleSteps[0]?.value) || 1;
+  const partnerComposition = isB2B
+    ? [
+        { name: "Vendors", value: analytics?.vendorPerformance?.totalVendors || 0 },
+        { name: "Suppliers", value: analytics?.supplierAnalytics?.totalSuppliers || 0 },
+      ]
+    : isB2C
+      ? [
+          { name: "Individual customers", value: analytics?.customerAnalytics?.individualCount || 0 },
+          { name: "Retail customers", value: analytics?.customerAnalytics?.businessCount || 0 },
+        ]
+      : [
+          { name: "Customers", value: analytics?.customerAnalytics?.totalCustomers || 0 },
+          { name: "Vendors", value: analytics?.vendorPerformance?.totalVendors || 0 },
+          { name: "Suppliers", value: analytics?.supplierAnalytics?.totalSuppliers || 0 },
+        ];
+  const cohortData = isB2B
+    ? [
+        { name: "Ordering vendors", count: analytics?.overview?.orderingVendors || 0 },
+        { name: "Never ordered", count: analytics?.vendorPerformance?.neverOrderedB2B || 0 },
+        { name: "Active suppliers", count: analytics?.overview?.participatingSuppliers || 0 },
+      ]
+    : [
+        { name: "Unspecified", count: analytics?.vendorPerformance?.cohorts?.local || 0 },
+        { name: "Proprietorship", count: analytics?.vendorPerformance?.cohorts?.proprietorship || 0 },
+        { name: "Partnership", count: analytics?.vendorPerformance?.cohorts?.partnership || 0 },
+        { name: "Pvt Ltd", count: analytics?.vendorPerformance?.cohorts?.pvtLtd || 0 },
+        { name: "Franchise", count: analytics?.vendorPerformance?.cohorts?.franchise || 0 },
+      ];
+  const topRatedPartners = isB2B
+    ? analytics?.supplierAnalytics?.topSuppliers || []
+    : analytics?.vendorPerformance?.topVendors || [];
+  const bottomRatedPartners = isB2B
+    ? analytics?.supplierAnalytics?.bottomSuppliers || []
+    : analytics?.vendorPerformance?.bottomVendors || [];
+  const slaData = isB2B
+    ? [
+        { name: "Acceptance >1h", value: analytics?.orderLifecycleB2B?.slaBreach1h || 0 },
+        { name: "Fulfilment >48h", value: analytics?.orderLifecycleB2B?.slaBreach48h || 0 },
+        { name: "Late delivery", value: analytics?.orderLifecycleB2B?.late || 0 },
+        { name: "Cancelled", value: analytics?.orderLifecycleB2B?.cancelled || 0 },
+      ]
+    : [
+        { name: "Logistics Bounces", value: analytics?.orderLifecycleB2C?.logisticsBounces || 0 },
+        { name: "Pickup Window Delay", value: analytics?.orderLifecycleB2C?.violations?.pickup || 0 },
+        { name: "Drop-off Window Delay", value: analytics?.orderLifecycleB2C?.violations?.dropoff || 0 },
+        { name: "Vendor SLA Overruns", value: analytics?.orderLifecycleB2C?.violations?.vendorSla || 0 },
+      ];
 
   if (loading && !analytics) {
     return (
@@ -244,6 +364,8 @@ export default function Dashboard() {
         <div className="max-w-[1600px] mx-auto space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-end gap-4">
             {/* Channel selector pill */}
+            <div className="flex flex-col gap-1">
+            <FilterLabel label="Channel" info="B2C shows customer laundry orders, B2B shows vendors' supply orders from suppliers, All combines both." />
             <div className="flex bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/50">
               {["All", "B2C", "B2B"].map((ch) => (
                 <button
@@ -254,14 +376,13 @@ export default function Dashboard() {
                 </button>
               ))}
             </div>
+            </div>
           </div>
 
           {/* Cascading dropdown selectors */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2">
             <div className="flex flex-col">
-              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">
-                State
-              </label>
+              <FilterLabel label="State" className="mb-1 ml-1" info="Limits every figure on the dashboard to vendors and orders in this state. Totals such as clients and vendors count all records there, not just new ones." />
               <select
                 value={selectedState}
                 onChange={(e) => {
@@ -279,9 +400,7 @@ export default function Dashboard() {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">
-                City
-              </label>
+              <FilterLabel label="City" className="mb-1 ml-1" info="Limits the dashboard to this city (choose a state first to narrow the list)." />
               <select
                 value={selectedCity}
                 onChange={(e) => {
@@ -298,9 +417,7 @@ export default function Dashboard() {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">
-                Pincode
-              </label>
+              <FilterLabel label="Pincode" className="mb-1 ml-1" info="Limits the dashboard to this pincode within the selected city." />
               <select
                 value={selectedPincode}
                 onChange={(e) => setSelectedPincode(e.target.value)}
@@ -314,9 +431,7 @@ export default function Dashboard() {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">
-                Geofence
-              </label>
+              <FilterLabel label="Geofence" className="mb-1 ml-1" info="Limits the dashboard to one service area (geofence) drawn on the map." />
               <select
                 value={selectedGeofence}
                 onChange={(e) => setSelectedGeofence(e.target.value)}
@@ -330,9 +445,7 @@ export default function Dashboard() {
               </select>
             </div>
             <div className="flex flex-col col-span-2 md:col-span-1">
-              <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">
-                Temporal Index
-              </label>
+              <FilterLabel label="Date range" className="mb-1 ml-1" info="The period used for revenue, orders and new sign-ups. Growth is compared with the previous period of the same length. Overall totals (all clients, all vendors) are not affected." />
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
@@ -350,9 +463,7 @@ export default function Dashboard() {
           {timeRange === "Custom Range" && (
             <div className="flex gap-4 items-center bg-slate-50 p-3 rounded-2xl border border-slate-100 w-fit animate-fade-in">
               <div className="flex flex-col">
-                <label className="text-[7px] font-black text-slate-400 uppercase mb-1">
-                  Start Date
-                </label>
+                <FilterLabel label="Start date" className="mb-1" info="First day of the custom period (included)." />
                 <input
                   type="date"
                   value={startDate}
@@ -361,9 +472,7 @@ export default function Dashboard() {
                 />
               </div>
               <div className="flex flex-col">
-                <label className="text-[7px] font-black text-slate-400 uppercase mb-1">
-                  End Date
-                </label>
+                <FilterLabel label="End date" className="mb-1" info="Last day of the custom period (included)." />
                 <input
                   type="date"
                   value={endDate}
@@ -466,84 +575,8 @@ export default function Dashboard() {
       <div className="max-w-[1600px] mx-auto w-full px-6 pt-6">
         {activeTab === "overview" && (
           <div className="space-y-6">
-            {/* Macro Metrics ROW */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
-              <div className="bg-white border border-slate-200/80 p-6 rounded-[2rem] shadow-sm flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                    Gross transactional volume
-                  </p>
-                  <h3 className="text-3xl font-black text-slate-900">
-                    ₹{analytics?.financials.grossRevenue.toLocaleString()}
-                  </h3>
-                  <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${(analytics?.financials?.trendMoM || "").startsWith("-") ? "text-rose-600 bg-rose-50" : "text-emerald-600 bg-emerald-50"}`}>
-                    {analytics?.financials?.trendMoM || "0%"} vs prior period
-                  </span>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[24px]">
-                    monetization_on
-                  </span>
-                </div>
-              </div>
-              <div className="bg-white border border-slate-200/80 p-6 rounded-[2rem] shadow-sm flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                    Active B2C orders
-                  </p>
-                  <h3 className="text-3xl font-black text-slate-900">
-                    {analytics?.orderLifecycleB2C.totalSubmitted}
-                  </h3>
-                  <span className="text-[10px] font-bold text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded">
-                    {analytics?.orderLifecycleB2C?.totalSubmitted > 0
-                      ? `${((analytics.orderLifecycleB2C.totalAccepted / analytics.orderLifecycleB2C.totalSubmitted) * 100).toFixed(1)}%`
-                      : "0%"}{" "}
-                    acceptance
-                  </span>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[24px]">
-                    shopping_basket
-                  </span>
-                </div>
-              </div>
-              <div className="bg-white border border-slate-200/80 p-6 rounded-[2rem] shadow-sm flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                    Unique clients
-                  </p>
-                  <h3 className="text-3xl font-black text-slate-900">
-                    {analytics?.customerAnalytics.totalCustomers}
-                  </h3>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase bg-slate-50 px-2 py-0.5 rounded">
-                    Churn risk: {analytics?.customerAnalytics.churnRisk}
-                  </span>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[24px]">
-                    person
-                  </span>
-                </div>
-              </div>
-              <div className="bg-white border border-slate-200/80 p-6 rounded-[2rem] shadow-sm flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
-                    Open disputes
-                  </p>
-                  <h3 className="text-3xl font-black text-slate-900">
-                    {analytics?.helpdesk.open}
-                  </h3>
-                  <span className="text-[10px] font-bold text-rose-600 uppercase bg-rose-50 px-2 py-0.5 rounded">
-                    {analytics?.helpdesk.inProgress} In-Progress
-                  </span>
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[24px]">
-                    support_agent
-                  </span>
-                </div>
-              </div>
+              {overviewCards.map((card) => <MetricCard key={card.label} {...card} />)}
             </div>
 
             {/* Funnel + Core Chart Row */}
@@ -560,37 +593,12 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded">
-                    B2C Funnel
+                    {isB2B ? "B2B Funnel" : isB2C ? "B2C Funnel" : "Combined view · B2C funnel"}
                   </span>
                 </div>
 
                 <div className="space-y-5">
-                  {[
-                    {
-                      label: "Total Submitted",
-                      value: analytics?.orderLifecycleB2C.totalSubmitted,
-                      color: "bg-blue-500",
-                      width: "100%",
-                    },
-                    {
-                      label: "Claimed / Accepted",
-                      value: analytics?.orderLifecycleB2C.totalAccepted,
-                      color: "bg-indigo-500",
-                      width: `${(analytics?.orderLifecycleB2C.totalAccepted / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%`,
-                    },
-                    {
-                      label: "In processing",
-                      value: analytics?.orderLifecycleB2C.inProgress,
-                      color: "bg-amber-500",
-                      width: `${(analytics?.orderLifecycleB2C.inProgress / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%`,
-                    },
-                    {
-                      label: "Ready for Pickup",
-                      value: analytics?.orderLifecycleB2C.readyForDispatch,
-                      color: "bg-purple-500",
-                      width: `${(analytics?.orderLifecycleB2C.readyForDispatch / (analytics?.orderLifecycleB2C.totalSubmitted || 1)) * 100}%`,
-                    },
-                  ].map((funnel, idx) => (
+                  {lifecycleSteps.map((funnel, idx) => (
                     <div key={idx} className="space-y-1.5">
                       <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-600 tracking-wider">
                         <span>{funnel.label}</span>
@@ -600,12 +608,11 @@ export default function Dashboard() {
                       </div>
                       <div className="h-6 bg-slate-100 rounded-full overflow-hidden flex">
                         <div
-                          style={{ width: funnel.width }}
+                          style={{ width: `${Math.min(100, ((Number(funnel.value) || 0) / lifecycleBase) * 100)}%` }}
                           className={`${funnel.color} h-full rounded-full transition-all duration-1000 flex items-center justify-end px-3 text-[8px] font-black text-white`}>
                           {Math.round(
                             (funnel.value /
-                              (analytics?.orderLifecycleB2C.totalSubmitted ||
-                                1)) *
+                              lifecycleBase) *
                               100,
                           )}
                           %
@@ -629,11 +636,12 @@ export default function Dashboard() {
                       </span>
                       <div>
                         <h4 className="text-[10px] font-black uppercase text-rose-900 tracking-wider">
-                          Logistics Bounces
+                          {isB2B ? "Acceptance SLA breaches" : "Logistics Bounces"}
                         </h4>
                         <p className="text-[9px] text-rose-700 font-bold uppercase tracking-wider mt-1">
-                          {analytics?.orderLifecycleB2C.logisticsBounces} orders
-                          rejected by Shiprocket courier partners
+                          {isB2B
+                            ? `${analytics?.orderLifecycleB2B?.slaBreach1h || 0} submitted orders waiting over 1 hour`
+                            : `${analytics?.orderLifecycleB2C?.logisticsBounces || 0} orders rejected by logistics partners`}
                         </p>
                       </div>
                     </div>
@@ -643,11 +651,12 @@ export default function Dashboard() {
                       </span>
                       <div>
                         <h4 className="text-[10px] font-black uppercase text-amber-900 tracking-wider">
-                          Immediate Timeouts
+                          {isB2B ? "Fulfilment SLA breaches" : "Immediate Timeouts"}
                         </h4>
                         <p className="text-[9px] text-amber-700 font-bold uppercase tracking-wider mt-1">
-                          {analytics?.orderLifecycleB2C.immediateTimeouts}{" "}
-                          orders unaccepted in 5-minute window
+                          {isB2B
+                            ? `${analytics?.orderLifecycleB2B?.slaBreach48h || 0} accepted orders waiting over 48 hours`
+                            : `${analytics?.orderLifecycleB2C?.immediateTimeouts || 0} orders unaccepted for over 5 minutes`}
                         </p>
                       </div>
                     </div>
@@ -657,11 +666,12 @@ export default function Dashboard() {
                       </span>
                       <div>
                         <h4 className="text-[10px] font-black uppercase text-slate-900 tracking-wider">
-                          Dormant Vendors
+                          {isB2B ? "Late supplier orders" : "Dormant Vendors"}
                         </h4>
                         <p className="text-[9px] text-slate-700 font-bold uppercase tracking-wider mt-1">
-                          {analytics?.vendorPerformance.dormantCount} approved
-                          vendors offline or dormant
+                          {isB2B
+                            ? `${analytics?.orderLifecycleB2B?.late || 0} open orders past promised delivery`
+                            : `${analytics?.vendorPerformance?.dormantCount || 0} approved vendors inactive for 5 days`}
                         </p>
                       </div>
                     </div>
@@ -686,22 +696,13 @@ export default function Dashboard() {
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                  Customer Composition (B2C vs B2B)
+                  {isB2B ? "B2B Partner Composition" : isB2C ? "B2C Customer Composition" : "Platform Participants"}
                 </h3>
                 <div className="h-[250px] w-full flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          {
-                            name: "Individual B2C",
-                            value: analytics?.customerAnalytics.individualCount,
-                          },
-                          {
-                            name: "Commercial B2B",
-                            value: analytics?.customerAnalytics.businessCount,
-                          },
-                        ]}
+                        data={partnerComposition}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -724,18 +725,18 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 mt-4">
                 <div className="text-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    Churn Risk (30d Inactive)
+                    {isB2B ? "Never Ordered B2B" : "Churn Risk (30d Inactive)"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.customerAnalytics.churnRisk}
+                    {isB2B ? analytics?.vendorPerformance?.neverOrderedB2B : analytics?.customerAnalytics?.churnRisk}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    Onboarding Friction
+                    {isB2B ? "30d B2B Inactive" : "Onboarding Friction"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.customerAnalytics.onboardingFriction}
+                    {isB2B ? analytics?.vendorPerformance?.dormancy30DaysB2B : analytics?.customerAnalytics?.onboardingFriction}
                   </p>
                 </div>
               </div>
@@ -744,34 +745,12 @@ export default function Dashboard() {
             {/* Vendor Cohorts analytics */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                Vendor Onboarding Cohorts
+                {isB2B ? "B2B Partner Activity" : "Vendor Business Types"}
               </h3>
               <div className="h-[250px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={[
-                      {
-                        name: "Local",
-                        count: analytics?.vendorPerformance.cohorts.local,
-                      },
-                      {
-                        name: "Proprietorship",
-                        count:
-                          analytics?.vendorPerformance.cohorts.proprietorship,
-                      },
-                      {
-                        name: "Partnership",
-                        count: analytics?.vendorPerformance.cohorts.partnership,
-                      },
-                      {
-                        name: "Pvt Ltd",
-                        count: analytics?.vendorPerformance.cohorts.pvtLtd,
-                      },
-                      {
-                        name: "Franchise",
-                        count: analytics?.vendorPerformance.cohorts.franchise,
-                      },
-                    ]}
+                    data={cohortData}
                     layout="vertical"
                     margin={{ left: 20, right: 10, top: 5, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -793,18 +772,18 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-6 mt-4">
                 <div className="text-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    Never Ordered B2B
+                    {isB2B ? "Never Ordered B2B" : "Total Vendors"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.vendorPerformance.neverOrderedB2B}
+                    {isB2B ? analytics?.vendorPerformance?.neverOrderedB2B : analytics?.vendorPerformance?.totalVendors}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    30d B2B Inactive
+                    {isB2B ? "30d B2B Inactive" : "Dormant Vendors"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.vendorPerformance.dormancy30DaysB2B}
+                    {isB2B ? analytics?.vendorPerformance?.dormancy30DaysB2B : analytics?.vendorPerformance?.dormantCount}
                   </p>
                 </div>
               </div>
@@ -813,7 +792,7 @@ export default function Dashboard() {
             {/* Top/Bottom rating Leaderboards */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm lg:col-span-2">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                Vendor Performance Outliers (Ratings)
+                {isB2B ? "Supplier Rating Outliers" : "Vendor Rating Outliers"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Top Vendors */}
@@ -822,7 +801,7 @@ export default function Dashboard() {
                     Top 5 Highest Rated
                   </h4>
                   <div className="divide-y divide-slate-100">
-                    {analytics?.vendorPerformance.topVendors.map(
+                    {topRatedPartners.map(
                       (vendor, idx) => (
                         <div
                           key={idx}
@@ -849,7 +828,7 @@ export default function Dashboard() {
                     Bottom 5 Lowest Rated
                   </h4>
                   <div className="divide-y divide-slate-100">
-                    {analytics?.vendorPerformance.bottomVendors.map(
+                    {bottomRatedPartners.map(
                       (vendor, idx) => (
                         <div
                           key={idx}
@@ -881,34 +860,13 @@ export default function Dashboard() {
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm flex flex-col justify-between">
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                  Logistics & SLA Violation Breakdown
+                  {isB2B ? "B2B Supplier SLA Breakdown" : "B2C Logistics & SLA Breakdown"}
                 </h3>
                 <div className="h-[250px] w-full flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[
-                          {
-                            name: "Logistics Bounces",
-                            value:
-                              analytics?.orderLifecycleB2C.logisticsBounces,
-                          },
-                          {
-                            name: "Pickup Window Delay",
-                            value:
-                              analytics?.orderLifecycleB2C.violations.pickup,
-                          },
-                          {
-                            name: "Drop-off Window Delay",
-                            value:
-                              analytics?.orderLifecycleB2C.violations.dropoff,
-                          },
-                          {
-                            name: "Vendor SLA Overruns",
-                            value:
-                              analytics?.orderLifecycleB2C.violations.vendorSla,
-                          },
-                        ]}
+                        data={slaData}
                         cx="50%"
                         cy="50%"
                         innerRadius={60}
@@ -934,15 +892,14 @@ export default function Dashboard() {
             {/* Active order transits progress */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                Active Physical Transit Pipes
+                {isB2B ? "B2B Supply Order Movement" : "B2C Physical Transit"}
               </h3>
               <div className="space-y-6">
                 <div>
                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-500 tracking-wider mb-2">
-                    <span>Customer ➔ Vendor Facility</span>
+                    <span>{isB2B ? "Supplier dispatches" : "Customer ➔ Vendor Facility"}</span>
                     <span className="font-extrabold text-slate-800">
-                      {analytics?.orderLifecycleB2C.outboundLogistics} Active
-                      Transits
+                      {isB2B ? analytics?.orderLifecycleB2B?.dispatched : analytics?.orderLifecycleB2C?.outboundLogistics} Active
                     </span>
                   </div>
                   <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
@@ -950,14 +907,12 @@ export default function Dashboard() {
                       className="h-full bg-blue-500 rounded-full transition-all duration-500"
                       style={{
                         width: `${
-                          analytics?.orderLifecycleB2C?.totalSubmitted > 0
+                          (isB2B ? analytics?.orderLifecycleB2B?.totalPlaced : analytics?.orderLifecycleB2C?.totalSubmitted) > 0
                             ? Math.min(
                                 100,
                                 Math.round(
-                                  ((analytics?.orderLifecycleB2C
-                                    .outboundLogistics || 0) /
-                                    analytics.orderLifecycleB2C
-                                      .totalSubmitted) *
+                                  (((isB2B ? analytics?.orderLifecycleB2B?.dispatched : analytics?.orderLifecycleB2C?.outboundLogistics) || 0) /
+                                    (isB2B ? analytics.orderLifecycleB2B.totalPlaced : analytics.orderLifecycleB2C.totalSubmitted)) *
                                     100,
                                 ),
                               )
@@ -969,10 +924,9 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <div className="flex justify-between text-[10px] font-black uppercase text-slate-500 tracking-wider mb-2">
-                    <span>Vendor ➔ Customer Home</span>
+                    <span>{isB2B ? "Delivered supplier orders" : "Vendor ➔ Customer Home"}</span>
                     <span className="font-extrabold text-slate-800">
-                      {analytics?.orderLifecycleB2C.reverseLogistics} Active
-                      Return Transits
+                      {isB2B ? analytics?.orderLifecycleB2B?.delivered : analytics?.orderLifecycleB2C?.reverseLogistics} {isB2B ? "Delivered" : "Active Return Transits"}
                     </span>
                   </div>
                   <div className="h-4 bg-slate-100 rounded-full overflow-hidden">
@@ -980,14 +934,12 @@ export default function Dashboard() {
                       className="h-full bg-indigo-500 rounded-full transition-all duration-500"
                       style={{
                         width: `${
-                          analytics?.orderLifecycleB2C?.totalSubmitted > 0
+                          (isB2B ? analytics?.orderLifecycleB2B?.totalPlaced : analytics?.orderLifecycleB2C?.totalSubmitted) > 0
                             ? Math.min(
                                 100,
                                 Math.round(
-                                  ((analytics?.orderLifecycleB2C
-                                    .reverseLogistics || 0) /
-                                    analytics.orderLifecycleB2C
-                                      .totalSubmitted) *
+                                  (((isB2B ? analytics?.orderLifecycleB2B?.delivered : analytics?.orderLifecycleB2C?.reverseLogistics) || 0) /
+                                    (isB2B ? analytics.orderLifecycleB2B.totalPlaced : analytics.orderLifecycleB2C.totalSubmitted)) *
                                     100,
                                 ),
                               )
@@ -1002,26 +954,26 @@ export default function Dashboard() {
               <div className="mt-8 pt-6 border-t border-slate-100 grid grid-cols-3 gap-2 text-center">
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    In Processing
+                    {isB2B ? "B2B Processing" : "B2C Processing"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.orderLifecycleB2C.inProgress}
+                    {isB2B ? analytics?.orderLifecycleB2B?.inProgress : analytics?.orderLifecycleB2C?.inProgress}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    Ready / Collection
+                    {isB2B ? "Dispatched" : "Ready / Collection"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.orderLifecycleB2C.readyForDispatch}
+                    {isB2B ? analytics?.orderLifecycleB2B?.dispatched : analytics?.orderLifecycleB2C?.readyForDispatch}
                   </p>
                 </div>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-                    B2B Cycles
+                    {isB2B ? "Delivered" : "B2B Cycles"}
                   </p>
                   <p className="text-2xl font-black text-slate-900">
-                    {analytics?.orderLifecycleB2B.totalPlaced}
+                    {isB2B ? analytics?.orderLifecycleB2B?.delivered : analytics?.orderLifecycleB2B?.totalPlaced}
                   </p>
                 </div>
               </div>
@@ -1034,7 +986,7 @@ export default function Dashboard() {
             {/* Growth trends graph */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                Financial growth & disbursement trends
+                Financial activity for selected period
               </h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -1052,25 +1004,29 @@ export default function Dashboard() {
                     <Legend />
                     <Line
                       type="monotone"
-                      dataKey="Revenue"
+                      dataKey="TransactionValue"
+                      name={isB2B ? "Supplier Order Value" : "Transaction Value"}
                       stroke="#3b82f6"
                       strokeWidth={3}
                     />
                     <Line
                       type="monotone"
-                      dataKey="Payouts"
+                      dataKey="PartnerPayable"
+                      name={isB2B ? "Direct Supplier Payable" : "Partner Payable"}
                       stroke="#f59e0b"
                       strokeWidth={3}
                     />
                     <Line
                       type="monotone"
-                      dataKey="Logistics"
+                      dataKey="LogisticsCharges"
+                      name="Logistics Charges"
                       stroke="#8b5cf6"
                       strokeWidth={3}
                     />
                     <Line
                       type="monotone"
-                      dataKey="Profit"
+                      dataKey="PlatformRevenue"
+                      name="Platform Revenue"
                       stroke="#10b981"
                       strokeWidth={3}
                     />
@@ -1083,7 +1039,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm lg:col-span-2">
                 <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                  Waterfall Cost Allocations (Current Period)
+                  Financial reconciliation (selected period)
                 </h3>
                 <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1132,11 +1088,14 @@ export default function Dashboard() {
                     <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between">
                       <div>
                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
-                          Customer Wallet liability
+                          {isB2B ? "Platform fees pending" : "Customer Wallet liability"}
                         </p>
                         <p className="text-xl font-black text-slate-900 mt-1">
                           ₹
-                          {analytics?.financials.walletLiability.toLocaleString()}
+                          {(isB2B
+                            ? analytics?.financials?.b2b?.platformFeesPending
+                            : analytics?.financials?.walletLiability
+                          )?.toLocaleString()}
                         </p>
                       </div>
                       <span className="material-symbols-outlined text-slate-400">
@@ -1160,7 +1119,9 @@ export default function Dashboard() {
                 </div>
 
                 <div className="text-[10px] font-bold text-slate-400 uppercase text-center mt-4">
-                  Disbursements completed via RazorpayX
+                  {isB2B
+                    ? "Supplier invoice amounts are settled directly between vendors and suppliers"
+                    : "Liabilities shown separately from collected platform revenue"}
                 </div>
               </div>
             </div>
@@ -1170,7 +1131,7 @@ export default function Dashboard() {
         {activeTab === "catalogs" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
             {/* Service catalog health */}
-            <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
+            {channel !== "B2B" && <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
                 Service Catalog (B2C)
               </h3>
@@ -1208,10 +1169,13 @@ export default function Dashboard() {
                   {analytics?.catalogB2C.pendingReviews} Action
                 </span>
               </div>
-            </div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-3">
+                Missing price: {analytics?.catalogB2C?.missingPrice || 0} · Missing weight: {analytics?.catalogB2C?.missingWeight || 0}
+              </p>
+            </div>}
 
             {/* Product catalog B2B */}
-            <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
+            {channel !== "B2C" && <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
                 Supplier Product Catalog (B2B)
               </h3>
@@ -1249,7 +1213,10 @@ export default function Dashboard() {
                   {analytics?.catalogB2B.pendingReviews} Action
                 </span>
               </div>
-            </div>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mt-3">
+                Missing stock: {analytics?.catalogB2B?.missingStock || 0} · Missing cost: {analytics?.catalogB2B?.missingCost || 0}
+              </p>
+            </div>}
 
             {/* ATS pipeline */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm">
@@ -1262,15 +1229,15 @@ export default function Dashboard() {
                     data={[
                       {
                         name: "Corporate",
-                        applicants: analytics?.atsLaborExchange.admin,
+                        applicants: analytics?.atsLaborExchange?.activeJobs?.admin || 0,
                       },
                       {
                         name: "Vendors",
-                        applicants: analytics?.atsLaborExchange.vendor,
+                        applicants: analytics?.atsLaborExchange?.activeJobs?.vendor || 0,
                       },
                       {
                         name: "Warehouse",
-                        applicants: analytics?.atsLaborExchange.supplier,
+                        applicants: analytics?.atsLaborExchange?.activeJobs?.supplier || 0,
                       },
                     ]}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -1291,14 +1258,36 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
               <div className="text-[10px] font-bold text-slate-400 uppercase text-center mt-6">
-                ATS Job Requisitions active in last 60 days
+                Active job requisitions created in the selected period
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm lg:col-span-3">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
+                  {isB2B ? "B2B Support Cases" : isB2C ? "B2C Support Cases" : "Support Cases"}
+                </h3>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Selected period</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  ["Open", analytics?.helpdesk?.open, "text-rose-600 bg-rose-50"],
+                  ["In progress", analytics?.helpdesk?.inProgress, "text-amber-600 bg-amber-50"],
+                  ["Resolved", analytics?.helpdesk?.resolved, "text-emerald-600 bg-emerald-50"],
+                  ["Closed", analytics?.helpdesk?.closed, "text-slate-600 bg-slate-50"],
+                ].map(([label, value, tone]) => (
+                  <div key={label} className={`rounded-2xl p-4 ${tone}`}>
+                    <p className="text-[9px] font-black uppercase tracking-wider">{label}</p>
+                    <p className="text-2xl font-black mt-1">{value || 0}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Sentiment Word Cloud replacement / key terms */}
             <div className="bg-white border border-slate-200 p-6 rounded-[2rem] shadow-sm lg:col-span-3">
               <h3 className="text-sm font-black uppercase tracking-wider text-slate-800 mb-6">
-                Feedback Sentiment Keyword Analysis
+                {isB2B ? "Supplier Feedback Keyword Analysis" : "Customer Feedback Keyword Analysis"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-4">

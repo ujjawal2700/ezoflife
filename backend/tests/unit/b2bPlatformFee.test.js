@@ -79,8 +79,10 @@ describe('resolveFeeRule precedence', () => {
         assert.equal(computePlatformFee(1000, rule), 0);
     });
 
-    test('missing global config means no fee', () => {
-        assert.equal(resolveFeeRule(null, undefined).type, 'NONE');
+    test('missing global config uses the ₹40 first-run default', () => {
+        const rule = resolveFeeRule(null, undefined);
+        assert.deepEqual(rule, { type: 'FLAT', value: 40, minFee: 0, maxFee: null, source: 'GLOBAL' });
+        assert.equal(computePlatformFee(1000, rule), 40);
     });
 
     test('zone percentage override wins over global and uses zone min/max', () => {

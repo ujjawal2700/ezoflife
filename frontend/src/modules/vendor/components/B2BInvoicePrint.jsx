@@ -4,7 +4,6 @@ import { FileText, MapPin, Phone, Mail, Hash, Calendar, ShoppingBag, ShieldCheck
 const B2BInvoicePrint = ({ order, settings = {} }) => {
     if (!order) return null;
 
-    const accentColor = settings.accentColor || '#0F172A';
     const businessName = settings.businessName || 'EzOfLife B2B';
     const contactEmail = settings.contactEmail || 'b2b@ezoflife.com';
     const gstNumber = settings.gstNumber || '27AAAEZ1234F1Z1';
@@ -123,11 +122,11 @@ const B2BInvoicePrint = ({ order, settings = {} }) => {
                     </div>
                     <div className="space-y-2">
                         <p className="text-[11px] font-bold text-slate-500 leading-relaxed italic">
-                            This transaction has been successfully processed through the EzOfLife Escrow System. 
-                            Funds are secured until delivery confirmation.
+                            Spinzyt collected only the platform fee for order placement. The invoice amount shown here
+                            must be settled directly between the vendor and supplier.
                         </p>
                         <div className="pt-2 flex items-center gap-2">
-                            <span className="text-[9px] font-black uppercase text-emerald-600 px-2 py-0.5 bg-emerald-50 rounded-full border border-emerald-100">Paid via Razorpay</span>
+                            <span className="text-[9px] font-black uppercase text-amber-700 px-2 py-0.5 bg-amber-50 rounded-full border border-amber-100">Pay Supplier Directly</span>
                             <span className="text-[9px] font-black uppercase text-slate-400 px-2 py-0.5 bg-white rounded-full border border-slate-100">Ref: {order._id.slice(-10)}</span>
                         </div>
                     </div>
@@ -158,7 +157,7 @@ const B2BInvoicePrint = ({ order, settings = {} }) => {
                     <div className="space-y-2">
                         <h5 className="text-[10px] font-black uppercase tracking-widest text-slate-900">Terms of Supply</h5>
                         <ul className="text-[9px] font-bold text-slate-400 space-y-1 list-disc pl-4 uppercase tracking-wider">
-                            <li>Subject to EzOfLife Escrow Settlement Terms</li>
+                            <li>Supplier invoice is settled directly with the supplier</li>
                             <li>Electronic Receipt - No Signature required</li>
                             <li>GST component is subject to supplier filing</li>
                         </ul>

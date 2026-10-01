@@ -39,10 +39,12 @@ const orderSchema = new mongoose.Schema({
         enum: ['weighed', 'customer', 'estimated', null],
         default: null
     },
-    customerWeight: { type: Number, default: null },   // customer's approximate weight
+    // Kept for backwards compatibility with historical orders. New customer orders
+    // always use estimatedWeight from the admin-configured Master Service weights.
+    customerWeight: { type: Number, default: null },
     weighedWeight: { type: Number, default: null },    // measured by the vendor
     weighedAt: { type: Date, default: null },
-    estimatedWeight: { type: Number, default: null },  // from services' Avg Weight
+    estimatedWeight: { type: Number, default: null },  // admin-configured service weights × quantities
     status: {
         type: String,
         enum: [
@@ -83,6 +85,14 @@ const orderSchema = new mongoose.Schema({
         lat: { type: Number },
         lng: { type: Number }
     },
+    // Immutable order-time geography used by admin analytics. Historical orders
+    // without this snapshot fall back to the customer's current saved address.
+    analyticsLocation: {
+        state: { type: String, default: '' },
+        city: { type: String, default: '' },
+        pincode: { type: String, default: '' },
+        geofence: { type: String, default: '' }
+    },
     totalAmount: {
         type: Number,
         required: true
@@ -111,6 +121,13 @@ const orderSchema = new mongoose.Schema({
     razorpayOrderId: {
         type: String,
         default: null
+    },
+    // Walk-in orders with rider delivery: the vendor's verified delivery-fee payment.
+    logisticsPayment: {
+        razorpayOrderId: { type: String, default: null },
+        razorpayPaymentId: { type: String, default: null },
+        amount: { type: Number, default: 0 },
+        status: { type: String, enum: ['NOT_APPLICABLE', 'PAID', 'REFUNDED'], default: 'NOT_APPLICABLE' }
     },
     orderId: {
         type: String,
@@ -147,6 +164,25 @@ const orderSchema = new mongoose.Schema({
     walletAmountDeducted: {
         type: Number,
         default: 0
+    },
+    // Persist the money that was actually returned. `totalAmount` can include
+    // COD/unpaid portions, discounts and other non-refundable components, so
+    // it must not be used as the refund value in finance analytics.
+    refundAmount: {
+        type: Number,
+        default: 0
+    },
+    onlineRefundAmount: {
+        type: Number,
+        default: 0
+    },
+    walletRefundAmount: {
+        type: Number,
+        default: 0
+    },
+    refundedAt: {
+        type: Date,
+        default: null
     },
     deliveryMode: {
         type: String,
@@ -312,6 +348,12 @@ const orderSchema = new mongoose.Schema({
             timestamp: { type: Date, default: Date.now }
         }
     ]
+    ,
+    acceptedAt: { type: Date, default: null },
+    processingStartedAt: { type: Date, default: null },
+    readyForDispatchAt: { type: Date, default: null },
+    dispatchedAt: { type: Date, default: null },
+    deliveredAt: { type: Date, default: null }
 }, { timestamps: true });
 
 /**
@@ -327,6 +369,9 @@ orderSchema.index({ status: 1, createdAt: -1 });    // admin lists / pool querie
 orderSchema.index({ paymentStatus: 1 });            // settlement + payout reporting
 orderSchema.index({ createdAt: -1 });               // dashboards and date ranges
 orderSchema.index({ isCustomerRD: 1, status: 1 });  // GST pool visibility
+// A Razorpay payment can pay for at most one order.
+orderSchema.index({ razorpayPaymentId: 1 }, { unique: true, partialFilterExpression: { razorpayPaymentId: { $type: 'string' } } });
+orderSchema.index({ 'logisticsPayment.razorpayPaymentId': 1 }, { unique: true, partialFilterExpression: { 'logisticsPayment.razorpayPaymentId': { $type: 'string' } } });
 
 // Pre-save hook to generate unique readable order ID and track status history
 orderSchema.pre('save', async function(next) {
@@ -341,13 +386,19 @@ orderSchema.pre('save', async function(next) {
     }
 
     if (this.isNew || this.isModified('status')) {
+        const statusTime = new Date();
         if (!this.statusHistory) {
             this.statusHistory = [];
         }
         this.statusHistory.push({
             status: this.status,
-            timestamp: new Date()
+            timestamp: statusTime
         });
+        if (this.status !== 'ORDER_PLACED' && !this.acceptedAt) this.acceptedAt = statusTime;
+        if (this.status === 'PROCESSING' && !this.processingStartedAt) this.processingStartedAt = statusTime;
+        if (this.status === 'READY_FOR_DISPATCH' && !this.readyForDispatchAt) this.readyForDispatchAt = statusTime;
+        if (this.status === 'OUT_FOR_DELIVERY' && !this.dispatchedAt) this.dispatchedAt = statusTime;
+        if (this.status === 'DELIVERED' && !this.deliveredAt) this.deliveredAt = statusTime;
     }
     next();
 });

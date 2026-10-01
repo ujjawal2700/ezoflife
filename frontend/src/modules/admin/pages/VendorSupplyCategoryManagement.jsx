@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import PageHeader from '../components/common/PageHeader';
 import DataGrid from '../components/tables/DataGrid';
+import FilterField from "../components/common/FilterLabel";
 
 const VendorSupplyCategoryManagement = () => {
     const [categories, setCategories] = useState([]);
@@ -356,7 +357,8 @@ const VendorSupplyCategoryManagement = () => {
                     showFilter={false}
                     showSearch={false}
                     actions={
-                        <div className="flex items-center flex-wrap gap-2 w-full">
+                        <div className="flex items-end flex-wrap gap-2 w-full">
+                            <FilterField label="Main category" info="Shows only supply categories under this main category.">
                             <select
                                 value={filters.mainCategory}
                                 onChange={(e) => handleFilterChange('mainCategory', e.target.value)}
@@ -367,6 +369,8 @@ const VendorSupplyCategoryManagement = () => {
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Sub category" info="Shows only this sub category.">
                             <select
                                 value={filters.subCategory}
                                 onChange={(e) => handleFilterChange('subCategory', e.target.value)}
@@ -377,6 +381,8 @@ const VendorSupplyCategoryManagement = () => {
                                     <option key={sub} value={sub}>{sub}</option>
                                 ))}
                             </select>
+                            </FilterField>
+                            <FilterField label="Status" info="Active = vendors can order products in this category. Inactive = hidden from vendors.">
                             <select
                                 value={filters.isActive}
                                 onChange={(e) => handleFilterChange('isActive', e.target.value)}
@@ -386,6 +392,7 @@ const VendorSupplyCategoryManagement = () => {
                                 <option value="true">Active</option>
                                 <option value="false">Inactive</option>
                             </select>
+                            </FilterField>
 
                             <button 
                                 onClick={handleDownload}

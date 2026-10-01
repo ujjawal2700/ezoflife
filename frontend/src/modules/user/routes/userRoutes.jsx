@@ -9,7 +9,6 @@ import SuccessPage from '../pages/SuccessPage';
 import OrderConfirmationPage from '../pages/OrderConfirmationPage';
 import OrderTrackingPage from '../pages/OrderTrackingPage';
 import DeliveryVerificationPage from '../pages/DeliveryVerificationPage';
-import PaymentSelectionPage from '../pages/PaymentPage';
 import SuccessFeedbackPage from '../pages/SuccessFeedbackPage';
 import OrdersHistoryPage from '../pages/OrdersHistoryPage';
 import UserProfilePage from '../pages/UserProfilePage';
@@ -62,7 +61,6 @@ const UserRoutes = () => {
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/tracking/:id" element={<OrderTrackingPage />} />
         <Route path="/verification" element={<DeliveryVerificationPage />} />
-        {/* <Route path="/payment" element={<PaymentSelectionPage />} /> Removed per user request */}
         <Route path="/success-feedback" element={<SuccessFeedbackPage />} />
         <Route path="/orders" element={<OrdersHistoryPage />} />
         <Route path="/support/tickets/:ticketId?" element={<SupportTicketsPage />} />
