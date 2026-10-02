@@ -225,8 +225,30 @@ const userSchema = new mongoose.Schema({
     adminPermissions: [{ type: String }],
     adminAccessType: { type: String, default: 'Read/Write' },
     geofenceRestrictions: [{ type: String }],
-    activationToken: { type: String, default: null }
-}, { timestamps: true });
+    // Sub-admin invitation. Only a SHA-256 of the emailed token is stored; it
+    // is kept after acceptance so a reused link can say "already accepted".
+    inviteTokenHash: { type: String, default: null, select: false, index: true },
+    inviteSentAt: { type: Date, default: null },
+    inviteAcceptedAt: { type: Date, default: null },
+    inviteSendCount: { type: Number, default: 0 },
+    invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+}, {
+    timestamps: true,
+    // Never send login secrets to a client, whichever endpoint returns a user
+    toJSON: {
+        transform: (doc, ret) => stripSecrets(ret)
+    }
+});
+
+/** Removes OTP, password hash and invite token hash from a plain user object. */
+export const stripSecrets = (user) => {
+    if (!user) return user;
+    delete user.otp;
+    delete user.otpExpiry;
+    delete user.password;
+    delete user.inviteTokenHash;
+    return user;
+};
 
 const User = mongoose.model('User', userSchema);
 

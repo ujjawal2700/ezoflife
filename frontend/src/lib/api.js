@@ -423,19 +423,6 @@ export const authApi = {
             throw error;
         }
     },
-    adminLogin: async (email, password) => {
-        try {
-            const response = await fetch(`${BASE_URL}/auth/admin-login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            return await response.json();
-        } catch (error) {
-            console.error('Admin API Error:', error);
-            throw error;
-        }
-    },
     registerVendor: async (vendorData) => {
         try {
             const response = await fetch(`${BASE_URL}/auth/register-vendor`, {

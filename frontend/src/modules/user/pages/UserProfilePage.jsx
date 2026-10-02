@@ -245,7 +245,7 @@ const UserProfilePage = () => {
                   <div className="grid grid-cols-1 gap-3">
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Phone</p>
-                      <input type="tel" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-900 outline-none" />
+                      <input type="tel" value={formData.phone} readOnly title="Your login number can't be changed here" className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3.5 text-xs font-black text-slate-400 outline-none cursor-not-allowed" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</p>

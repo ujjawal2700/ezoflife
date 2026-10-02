@@ -31,16 +31,18 @@ import {
     recordVendorPayout,
     getVendorPayoutHistory,
     getCloudinaryUsage,
-    getSubAdmins
 } from '../controllers/adminController.js';
 import upload from '../middleware/upload.js';
-import { inviteSubAdmin } from '../controllers/authController.js';
+import { inviteSubAdmin, listAdmins, resendSubAdminInvite } from '../controllers/adminInviteController.js';
+import { requireMasterAdmin } from '../middleware/authMiddleware.js';
 import { getRefundLedger } from '../controllers/refundLedgerController.js';
 
 const router = express.Router();
 
-router.post('/invite-sub-admin', inviteSubAdmin);
-router.get('/sub-admins', getSubAdmins);
+// Admin directory & invitations — master admins only
+router.post('/invite-sub-admin', requireMasterAdmin, inviteSubAdmin);
+router.get('/sub-admins', requireMasterAdmin, listAdmins);
+router.post('/sub-admins/:id/resend-invite', requireMasterAdmin, resendSubAdminInvite);
 router.delete('/services-clear-all', clearAllServices);
 
 router.get('/config', getSystemConfig);

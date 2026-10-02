@@ -1,6 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// A missing secret would fall back to the default baked into the code, which
+// anyone can read — refuse to start in production rather than sign with it.
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.error('❌ JWT_SECRET must be set in production. Refusing to start.');
+    process.exit(1);
+}
+
 import dns from 'node:dns';
 // Fix querySrv EBADRESP on local networks / ISPs by using reliable public DNS servers
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1']);
@@ -22,7 +29,8 @@ const logToFile = (msg) => {
 
 // Route imports
 import authRoutes from './src/routes/authRoutes.js';
-import { verifyAdmin, verifyUser } from './src/middleware/authMiddleware.js';
+import { verifyAdmin, verifyUser, enforceAdminModules } from './src/middleware/authMiddleware.js';
+import { getAllowedOrigins } from './src/config/allowedOrigins.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import orderRoutes from './src/routes/orderRoutes.js';
 import notificationRoutes from './src/routes/notificationRoutes.js';
@@ -75,18 +83,7 @@ startOrderAggregationJob();
 startPaymentReconciler();
 
 // Middleware
-const envOrigins = (process.env.FRONTEND_URL || '')
-    .split(',')
-    .map(o => o.trim().replace(/\/$/, ''))
-    .filter(Boolean);
-
-const defaultOrigins = [
-    'http://localhost:5173', 
-    'http://localhost:5174',
-    'https://ezoflife-six.vercel.app'
-];
-
-const allowedOrigins = Array.from(new Set([...envOrigins, ...defaultOrigins]));
+const allowedOrigins = getAllowedOrigins();
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -129,6 +126,9 @@ app.use((req, res, next) => {
     logToFile(logMsg);
     next();
 });
+
+// Role-based admin access: sub-admins only reach the modules their role grants
+app.use(enforceAdminModules);
 
 // ─── Public Routes (no auth required) ────────────────────────────────────────
 // Razorpay → server notifications; authenticated by their HMAC signature.
@@ -342,6 +342,14 @@ mongoose.connect(MONGODB_URI, {
         }
     })
     .catch((err) => console.error('❌ MongoDB Connection Error:', err));
+
+// ─── Dev seeding endpoints ───────────────────────────────────────────────────
+// They create known test accounts, so they are master-admin only and do not
+// exist at all in production.
+app.use('/api/maintenance', (req, res, next) => {
+    if (process.env.NODE_ENV === 'production') return res.status(404).json({ message: 'Not found' });
+    next();
+}, verifyAdmin);
 
 app.get('/api/maintenance/seed-vendor-promos', async (req, res) => {
     try {

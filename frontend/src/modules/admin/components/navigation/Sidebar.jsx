@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { adminApi } from "../../../../lib/api";
+import { canAccessModule, readAdminData } from "../../config/adminAccess";
 
 const navItems = [
   {
@@ -330,29 +331,10 @@ export default function Sidebar({
   const location = useLocation();
   const [expandedMenu, setExpandedMenu] = useState(null);
   const [expandedSubMenus, setExpandedSubMenus] = useState({});
-  const [adminPermissions, setAdminPermissions] = useState(null);
+  const [adminData] = useState(readAdminData);
   const [searchTerm, setSearchTerm] = useState("");
   const [sidebarCounts, setSidebarCounts] = useState({});
   const [confirmLogout, setConfirmLogout] = useState(false);
-
-  useEffect(() => {
-    try {
-      const adminDataStr = localStorage.getItem("adminData");
-      if (adminDataStr) {
-        const adminData = JSON.parse(adminDataStr);
-        if (
-          adminData &&
-          (adminData.email === "admin@ezoflife.com" || !adminData.adminRole)
-        ) {
-          setAdminPermissions(null);
-        } else if (adminData && adminData.adminPermissions) {
-          setAdminPermissions(adminData.adminPermissions);
-        }
-      }
-    } catch (e) {
-      console.error("Error loading admin permissions:", e);
-    }
-  }, []);
 
   // Fetch pending count badges for admin attention
   useEffect(() => {
@@ -397,17 +379,13 @@ export default function Sidebar({
   const filteredNavItems = useMemo(() => {
     return navItems
       .map((group) => {
-        const filteredItems = group.items.filter((item) => {
-          if (!adminPermissions) return true;
-          return adminPermissions.some(
-            (perm) =>
-              perm.trim().toLowerCase() === item.label.trim().toLowerCase(),
-          );
-        });
+        const filteredItems = group.items.filter((item) =>
+          canAccessModule(adminData, item.label),
+        );
         return { ...group, items: filteredItems };
       })
       .filter((group) => group.items.length > 0);
-  }, [adminPermissions]);
+  }, [adminData]);
 
   // Filter navItems based on sidebar search input
   const searchFilteredNavItems = useMemo(() => {

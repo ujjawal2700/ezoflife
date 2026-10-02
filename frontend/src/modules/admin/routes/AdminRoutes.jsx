@@ -60,7 +60,8 @@ import ReferralManagement from '../pages/ReferralManagement';
 import AdminSettings from '../pages/AdminSettings';
 import MasterPricingRegistry from '../pages/MasterPricingRegistry';
 import AdminRolesManagement from '../pages/AdminRolesManagement';
-import AdminActivate from '../pages/AdminActivate';
+import AdminAcceptInvite from '../pages/AdminAcceptInvite';
+import { canAccessPath, firstAllowedPath } from '../config/adminAccess';
 
 // Simple Guard Component
 const AdminGuard = ({ children }) => {
@@ -112,8 +113,27 @@ const AdminGuard = ({ children }) => {
     return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
+  // Role-based access: a sub-admin only reaches the modules they were granted
+  const adminData = JSON.parse(adminDataStr);
+  if (!canAccessPath(adminData, location.pathname)) {
+    const fallback = firstAllowedPath(adminData);
+    if (fallback && fallback !== location.pathname) {
+      return <Navigate to={fallback} replace />;
+    }
+    return <NoModuleAccess />;
+  }
+
   return children;
 };
+
+const NoModuleAccess = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
+    <h2 className="text-lg font-black text-slate-900">No modules assigned</h2>
+    <p className="text-xs font-bold text-slate-500 mt-2 max-w-sm">
+      Your admin role has no pages assigned yet. Ask a Master Admin to update your permissions.
+    </p>
+  </div>
+);
 
 const AdminRoutes = () => {
   return (
@@ -121,7 +141,9 @@ const AdminRoutes = () => {
       {/* Public Admin Routes */}
       <Route path="/login" element={<AdminLogin />} />
       <Route path="/otp" element={<AdminOtp />} />
-      <Route path="/activate" element={<AdminActivate />} />
+      <Route path="/accept-invite" element={<AdminAcceptInvite />} />
+      {/* Old invitation links */}
+      <Route path="/activate" element={<AdminAcceptInvite />} />
 
       {/* Protected Admin Routes */}
       <Route 

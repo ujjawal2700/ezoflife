@@ -14,6 +14,8 @@ import net from 'node:net';
 const FRONTEND_ROOT = dirname(fileURLToPath(new URL('.', import.meta.url)));
 const BACKEND_ROOT = join(FRONTEND_ROOT, '..', 'backend');
 const STATE_FILE = join(tmpdir(), 'ezoflife-e2e-state.json');
+// Emails the backend sends during E2E land here (JSON lines) instead of SMTP.
+export const MAIL_OUTBOX = join(tmpdir(), 'ezoflife-e2e-mail.jsonl');
 
 const waitFor = async (check, { timeoutMs = 90_000, intervalMs = 400, label = 'service' } = {}) => {
     const started = Date.now();
@@ -32,6 +34,7 @@ const tcpOpen = port => new Promise(resolve => {
 
 export const startStack = async () => {
     const dbPath = mkdtempSync(join(tmpdir(), 'ezoflife-e2e-db-'));
+    try { unlinkSync(MAIL_OUTBOX); } catch { /* none yet */ }
     // Fixed ports: Playwright reads baseURL from config at load time, before
     // globalSetup runs, so the web port must be known up front.
     const mongoPort = Number(process.env.E2E_MONGO_PORT || 27099);
@@ -44,6 +47,21 @@ export const startStack = async () => {
         { stdio: 'ignore' });
     await waitFor(() => tcpOpen(mongoPort), { label: 'mongod' });
 
+    // Fixture service some checkout journeys order by id (orders are priced
+    // from the database, so it must exist) — mirrors backend/tests/helpers.
+    const { default: mongoose } = await import(join(BACKEND_ROOT, 'node_modules', 'mongoose', 'index.js'));
+    const seed = await mongoose.createConnection(`mongodb://127.0.0.1:${mongoPort}/ezoflife_e2e`).asPromise();
+    await seed.collection('masterservices').updateOne(
+        { _id: new mongoose.Types.ObjectId('000000000000000000000001') },
+        { $setOnInsert: {
+            itemName: 'Wash & Fold', categoryId: new mongoose.Types.ObjectId(), basePrice: 100,
+            discountedPrice: 100, gst: 5, unit: 'per_item', isActive: true,
+            createdAt: new Date(), updatedAt: new Date()
+        } },
+        { upsert: true }
+    );
+    await seed.close();
+
     // 2. real backend, pointed at the throwaway database
     const backend = spawn('node', ['server.js'], {
         cwd: BACKEND_ROOT,
@@ -53,6 +71,7 @@ export const startStack = async () => {
             MONGODB_URI: `mongodb://127.0.0.1:${mongoPort}/ezoflife_e2e`,
             PORT: String(apiPort),
             FRONTEND_URL: `http://127.0.0.1:${webPort}`,
+            EMAIL_OUTBOX_FILE: MAIL_OUTBOX,
             JWT_SECRET: process.env.JWT_SECRET || 'e2e_secret_key'
         },
         // ROUTE_LOG=<file> records every request for endpoint-coverage runs.

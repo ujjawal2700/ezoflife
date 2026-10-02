@@ -137,7 +137,7 @@ export const getPendingApprovals = async (req, res) => {
         }
 
         const [pendingVendors, supplierApps] = await Promise.all([
-            User.find(userQuery).select('-otp -otpExpiry').lean(),
+            User.find(userQuery).select('-otp -otpExpiry -password').lean(),
             SupplierApplication.find(supplierQuery).populate('user', 'displayName phone email').lean()
         ]);
         
@@ -304,7 +304,7 @@ export const deleteVendor = async (req, res) => {
 // Get all suppliers
 export const getAllSuppliers = async (req, res) => {
     try {
-        let suppliers = await User.find({ role: 'Supplier' }).select('-otp -otpExpiry').lean();
+        let suppliers = await User.find({ role: 'Supplier' }).select('-otp -otpExpiry -password').lean();
         
         if (req.admin && req.admin.id) {
             suppliers = await filterUsersByGeofence(suppliers, req.admin.id);
@@ -561,7 +561,7 @@ export const getAllUsers = async (req, res) => {
             query.role = role;
         }
 
-        let users = await User.find(query).select('-otp -otpExpiry').sort({ createdAt: -1 }).lean();
+        let users = await User.find(query).select('-otp -otpExpiry -password').sort({ createdAt: -1 }).lean();
 
         // Suppliers carry their real rating from vendors (null = not rated yet)
         const supplierIds = users.filter(u => u.role === 'Supplier').map(u => u._id);
@@ -1078,7 +1078,7 @@ export const getCloudinaryUsage = async (req, res) => {
 // Get all vendors (approved or pending)
 export const getAllVendors = async (req, res) => {
     try {
-        let vendors = await User.find({ role: 'Vendor' }).select('-otp -otpExpiry').lean();
+        let vendors = await User.find({ role: 'Vendor' }).select('-otp -otpExpiry -password').lean();
         
         if (req.admin && req.admin.id) {
             vendors = await filterUsersByGeofence(vendors, req.admin.id);
@@ -1129,7 +1129,7 @@ export const getAllVendors = async (req, res) => {
 export const getVendorById = async (req, res) => {
     try {
         const { id } = req.params;
-        const vendor = await User.findById(id).select('-otp -otpExpiry').lean();
+        const vendor = await User.findById(id).select('-otp -otpExpiry -password').lean();
         if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
 
         // Fetch custom services from Service collection
@@ -1163,7 +1163,7 @@ export const getVendorById = async (req, res) => {
 // Get all customers
 export const getCustomers = async (req, res) => {
     try {
-        let customers = await User.find({ role: 'Customer' }).select('-otp -otpExpiry').lean();
+        let customers = await User.find({ role: 'Customer' }).select('-otp -otpExpiry -password').lean();
         
         if (req.admin && req.admin.id) {
             customers = await filterUsersByGeofence(customers, req.admin.id);
@@ -1774,18 +1774,6 @@ export const getVendorPayoutHistory = async (req, res) => {
     } catch (err) {
         console.error('Get Payout History Error:', err);
         res.status(500).json({ message: 'Error fetching payout history', error: err.message });
-    }
-};
-
-// Get all administrative users
-export const getSubAdmins = async (req, res) => {
-    try {
-        const User = (await import('../models/User.js')).default;
-        const admins = await User.find({ role: 'Admin' }).select('-otp -otpExpiry').sort({ createdAt: -1 }).lean();
-        res.status(200).json(admins);
-    } catch (err) {
-        console.error('Get Sub-Admins Error:', err);
-        res.status(500).json({ message: 'Error fetching sub-admins' });
     }
 };
 

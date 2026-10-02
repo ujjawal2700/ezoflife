@@ -1,4 +1,6 @@
 import jwt from 'jsonwebtoken';
+import { isMasterAdmin, hasFullModuleAccess } from '../config/adminAccess.js';
+import { modulesForApi, MASTER } from '../config/adminApiModules.js';
 
 /**
  * Middleware: verifyAdmin
@@ -57,6 +59,7 @@ export const verifyAdmin = async (req, res, next) => {
 
         // Attach decoded payload to request for downstream use
         req.admin = decoded;
+        req.adminUser = adminUser;
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
@@ -69,6 +72,68 @@ export const verifyAdmin = async (req, res, next) => {
             success: false,
             message: 'Invalid token. Authentication failed.'
         });
+    }
+};
+
+/**
+ * Middleware: requireMasterAdmin (use after verifyAdmin)
+ * Only master admins may manage other admins. A token with no matching admin
+ * record (the legacy system admin) is treated as master, like verifyAdmin does.
+ */
+export const requireMasterAdmin = (req, res, next) => {
+    if (req.adminUser && !isMasterAdmin(req.adminUser)) {
+        return res.status(403).json({
+            success: false,
+            message: 'Only a Master Admin can manage admin roles.'
+        });
+    }
+    next();
+};
+
+/**
+ * Middleware: enforceAdminModules (mounted app-wide, before the routers)
+ * When the caller holds an Admin token, checks the call against the module
+ * map in config/adminApiModules.js and rejects it if the admin's role was not
+ * granted that module. Everything else passes through untouched: requests
+ * without an Admin token are left to each route's own auth.
+ */
+export const enforceAdminModules = async (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
+
+        const required = modulesForApi(req.method, req.path);
+        if (!required) return next();
+
+        let decoded;
+        try {
+            decoded = jwt.verify(authHeader.split(' ')[1], process.env.JWT_SECRET || 'ezoflife_secret_key_2026');
+        } catch {
+            return next(); // the route's own guard reports bad tokens
+        }
+        if (decoded.role !== 'Admin') return next();
+
+        const User = (await import('../models/User.js')).default;
+        const admin = await User.findById(decoded.id).select('role adminRole adminPermissions').lean().catch(() => null);
+        // No record: the legacy system admin, which verifyAdmin also lets through
+        if (!admin || admin.role !== 'Admin') return next();
+
+        if (required === MASTER) {
+            if (isMasterAdmin(admin)) return next();
+            return res.status(403).json({ success: false, message: 'Only a Master Admin can do this.' });
+        }
+
+        if (hasFullModuleAccess(admin)) return next();
+        const granted = new Set((admin.adminPermissions || []).map(p => p.trim().toLowerCase()));
+        if (required.some(m => granted.has(m.toLowerCase()))) return next();
+
+        return res.status(403).json({
+            success: false,
+            message: `Access denied. Your role does not include ${required.join(' / ')}.`
+        });
+    } catch (err) {
+        console.error('enforceAdminModules error:', err);
+        return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };
 
@@ -176,6 +241,27 @@ export const verifyUser = (req, res, next) => {
             message: 'Invalid token. Authentication failed.'
         });
     }
+};
+
+/**
+ * Middleware: requireSelfOrAdmin (use after verifyUser)
+ * For routes addressing an account by id (`/:id`, `?vendorId=`), only that
+ * account itself or an Admin may proceed.
+ */
+export const requireSelfOrAdmin = (param = 'id') => (req, res, next) => {
+    const target = req.params[param] ?? req.query[param];
+    if (req.user?.role === 'Admin' || (target && String(target) === String(req.user?.id))) {
+        return next();
+    }
+    return res.status(403).json({ success: false, message: 'You can only access your own account.' });
+};
+
+/**
+ * Middleware: requireRole(...roles) (use after verifyUser)
+ */
+export const requireRole = (...roles) => (req, res, next) => {
+    if (roles.includes(req.user?.role)) return next();
+    return res.status(403).json({ success: false, message: 'Forbidden.' });
 };
 
 /**
