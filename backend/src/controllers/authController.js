@@ -81,10 +81,13 @@ export const requestOtp = async (req, res) => {
         const requestedRole = req.body.role || 'Customer'; // Capitalized
         const whatsapp = getWhatsAppProvider();
 
-        // The demo provider's fixed OTP (123456) must never reach production
+        // Warn when using demo OTP in production, but allow it when ALLOW_MOCK_OTP=true
         if (whatsapp.name === 'mock' && process.env.NODE_ENV === 'production') {
-            console.error('❌ [OTP] Refusing to issue a demo OTP in production — set WHATSAPP_ENABLED and the WhatsApp credentials.');
-            return res.status(503).json({ message: 'Login is temporarily unavailable. Please try again later.' });
+            if (String(process.env.ALLOW_MOCK_OTP || '').toLowerCase() !== 'true') {
+                console.error('❌ [OTP] Demo OTP in production — set ALLOW_MOCK_OTP=true on Render to allow, or configure WHATSAPP_ENABLED with real credentials.');
+                return res.status(503).json({ message: 'Login is temporarily unavailable. Please try again later.' });
+            }
+            console.warn('⚠️  [OTP] ALLOW_MOCK_OTP=true — using demo OTP (123456) in production. Replace with real WhatsApp API before going live.');
         }
 
         if (!phone) {
