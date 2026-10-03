@@ -20,7 +20,16 @@ import { resolveActorId, isOwnerOrAdmin } from '../middleware/authMiddleware.js'
 import MasterService from '../models/MasterService.js';
 import Service from '../models/Service.js';
 import ServiceArea from '../models/ServiceArea.js';
-import { generateOrderInvoices, checkCustomerRD, checkVendorRD } from '../utils/gstInvoiceHelper.js';
+import {
+    generateOrderInvoices, checkCustomerRD, checkVendorRD,
+    GstEligibilityError, GstConfigurationError
+} from '../utils/gstInvoiceHelper.js';
+
+const customerSafeOrder = order => {
+    const value = typeof order?.toObject === 'function' ? order.toObject() : { ...order };
+    if (value.invoices) value.invoices = { customerInvoice: value.invoices.customerInvoice };
+    return value;
+};
 
 
 const logToFile = (msg) => {
@@ -112,6 +121,9 @@ export const getNearbyVendors = async (customerLat, customerLng, radiusKm = 4, s
         const nearbyVendors = [];
 
         for (const vendor of vendors) {
+            // The Mongo filter above is only an index-friendly prefilter. Always
+            // repeat exact GSTIN validation so malformed non-empty values never pass.
+            if (isCustomerRD && !checkVendorRD(vendor)) continue;
             // Filter by active services if serviceIds are requested
             if (serviceIds && serviceIds.length > 0) {
                 const vendorServices = vendor.shopDetails?.services || [];
@@ -168,8 +180,11 @@ export const handleGetNearbyVendors = async (req, res) => {
         }
         
         let isCustomerRD = false;
-        if (customerId) {
-            const customer = await User.findById(customerId);
+        // Customer identity comes from the token. Only an Admin may inspect
+        // nearby eligibility on behalf of another customer.
+        const effectiveCustomerId = req.user?.role === 'Admin' && customerId ? customerId : req.user?.id;
+        if (effectiveCustomerId) {
+            const customer = await User.findById(effectiveCustomerId);
             isCustomerRD = checkCustomerRD(customer);
         }
         
@@ -562,6 +577,7 @@ export const createOrder = async (req, res) => {
             name: priced.name,
             quantity: priced.quantity,
             price: priced.price,
+            gstPercent: priced.gstPercent,
             unit: items[i]?.unit || priced.unit,
             photos: Array.isArray(items[i]?.photos) ? items[i].photos : []
         }));
@@ -822,7 +838,8 @@ export const getMyOrders = async (req, res) => {
 
         logToFile(`[DEBUG] Orders found for ${currentUser.phone}: ${orders.length}`);
 
-        res.status(200).json(orders);
+        // A customer never receives Spinzyt's vendor-facing platform invoice.
+        res.status(200).json(orders.map(customerSafeOrder));
     } catch (err) {
         console.error('Fetch My Orders Error:', err);
         res.status(500).json({ message: 'Error fetching orders' });
@@ -955,7 +972,7 @@ export const updateOrderStatus = async (req, res) => {
             
         // Socket.io: Notify rooms
         const io = getIO();
-        io.to(`order_${id}`).emit('order_status_update', updatedOrder);
+        io.to(`order_${id}`).emit('order_status_update', customerSafeOrder(updatedOrder));
         
         // Also notify vendor specifically for live reports
         if (updatedOrder.vendor) {
@@ -966,7 +983,7 @@ export const updateOrderStatus = async (req, res) => {
         // Notify customer specifically for real-time updates
         if (updatedOrder.customer) {
             const customerId = updatedOrder.customer._id || updatedOrder.customer;
-            io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
+            io.to(`user_${customerId}`).emit('order_status_update', customerSafeOrder(updatedOrder));
         }
 
         // Helper to map DB status to UI terms
@@ -1408,7 +1425,7 @@ export const vendorAcceptOrder = async (req, res) => {
                 : matchingPromo.discountValue;
 
             const standardFee = order.totalAmount * 0.10;
-            const finalPromoValue = Math.min(promoVal, order.totalAmount);
+            finalPromoValue = Math.min(promoVal, order.totalAmount);
             // 50% of discount amount due to promotion goes to Customer's Wallet
             const customerCashback = Math.round((finalPromoValue * 0.50) * 100) / 100;
 
@@ -1421,13 +1438,8 @@ export const vendorAcceptOrder = async (req, res) => {
                 promoOwnerType: 'VENDOR'
             };
 
-            // Credit the customer's wallet balance
-            const customerUser = await User.findById(order.customer);
-            if (customerUser && customerCashback > 0) {
-                customerUser.walletBalance = (customerUser.walletBalance || 0) + customerCashback;
-                await customerUser.save();
-                console.log(`🎁 [WALLET] Credited ₹${customerCashback} (50% promo discount) to customer ${customerUser.phone}`);
-            }
+            // Wallet credit is applied only after the conditional order claim
+            // succeeds, preventing duplicate credits from concurrent accepts.
         } else if (order.ledger && order.ledger.promoOwnerType === 'PLATFORM') {
             // Already populated during order creation under Branch B
         } else {
@@ -1453,18 +1465,8 @@ export const vendorAcceptOrder = async (req, res) => {
 
         const pickupOtp = Math.floor(1000 + Math.random() * 9000).toString();
         
-        order.vendor = vendorId;
-        order.status = 'RIDER_ARRIVING';
-        order.pickupOtp = pickupOtp;
-        order.pickupStatus = 'scheduled';
-        order.nearbyRiders = [];
-        order.ledger = finalLedger;
-        order.invoices = {
-            customerInvoice: invoiceData.customerInvoice,
-            platformInvoice: invoiceData.platformInvoice
-        };
-        order.ledger = invoiceData.ledger;
-        order.vendorSnapshot = {
+        const acceptedAt = new Date();
+        const vendorSnapshot = {
             displayName: vendor.displayName || null,
             shopName: vendor.shopDetails?.name || null,
             phone: vendor.phone || null,
@@ -1473,19 +1475,42 @@ export const vendorAcceptOrder = async (req, res) => {
             isExUser: false
         };
 
+        const claimSet = {
+            vendor: vendorId,
+            status: 'RIDER_ARRIVING',
+            pickupOtp,
+            pickupStatus: 'scheduled',
+            nearbyRiders: [],
+            ledger: invoiceData.ledger,
+            invoices: { customerInvoice: invoiceData.customerInvoice, platformInvoice: invoiceData.platformInvoice },
+            gstSnapshot: invoiceData.gstSnapshot,
+            vendorSnapshot,
+            acceptedAt
+        };
         if (appliedPromo) {
-            order.promoApplied = appliedPromo._id;
-            order.discountAmount = finalLedger.appliedPromoValue;
-            order.discountAmount = finalPromoValue;
+            claimSet.promoApplied = appliedPromo._id;
+            claimSet.discountAmount = finalPromoValue;
+        }
+
+        // The vendor assignment and status predicate form the database lock.
+        // Exactly one concurrent request can change this unassigned order.
+        const claimedOrder = await Order.findOneAndUpdate(
+            { _id: id, vendor: null, status: 'ORDER_PLACED' },
+            { $set: claimSet, $push: { statusHistory: { status: 'RIDER_ARRIVING', timestamp: acceptedAt } } },
+            { new: true, runValidators: true }
+        );
+        if (!claimedOrder) return res.status(409).json({ message: 'Order already accepted by another vendor' });
+
+        const walletCredit = invoiceData.ledger.customerWalletCredit;
+        if (walletCredit > 0) {
+            await User.updateOne({ _id: order.customer }, { $inc: { walletBalance: walletCredit } });
         }
 
         // Remove availability notifications for other vendors
         await Notification.deleteMany({ orderId: id, type: 'order_available' });
 
-        await order.save();
-
         const updatedOrder = await Order.findById(id).populate('customer', 'displayName phone address location');
-        const nearbyRiders = order.nearbyRiders || [];
+        const nearbyRiders = claimedOrder.nearbyRiders || [];
 
 
         // Socket.io updates
@@ -1517,7 +1542,7 @@ export const vendorAcceptOrder = async (req, res) => {
 
         if (customerId) {
             console.log(`🔔 [NOTIFICATION] Notifying Customer: ${customerId}`);
-            io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
+            io.to(`user_${customerId}`).emit('order_status_update', customerSafeOrder(updatedOrder));
             io.to(`user_${customerId}`).emit('push_notification', {
                 title: 'Order Accepted! ✅',
                 body: `Your order is accepted by vendor`,
@@ -1558,6 +1583,9 @@ export const vendorAcceptOrder = async (req, res) => {
         res.status(200).json(updatedOrder);
     } catch (err) {
         console.error('Vendor Accept Error:', err);
+        if (err instanceof GstEligibilityError || err instanceof GstConfigurationError) {
+            return res.status(err.status).json({ message: err.message, code: err.code });
+        }
         res.status(500).json({ message: 'Error accepting order' });
     }
 };
@@ -1588,7 +1616,8 @@ export const getOrderById = async (req, res) => {
 
         // An order is visible to the customer who placed it, the vendor handling
         // it, or an Admin — not to any logged-in account that guesses an id.
-        if (!isOwnerOrAdmin(req, order.customer) && !isOwnerOrAdmin(req, order.vendor)) {
+        const viewingAsCustomer = req.user?.role !== 'Admin' && isOwnerOrAdmin(req, order.customer);
+        if (!viewingAsCustomer && !isOwnerOrAdmin(req, order.vendor)) {
             return res.status(403).json({ message: 'You cannot view this order' });
         }
 
@@ -1612,7 +1641,7 @@ export const getOrderById = async (req, res) => {
             };
         }
 
-        res.status(200).json(orderObj);
+        res.status(200).json(viewingAsCustomer ? customerSafeOrder(orderObj) : orderObj);
     } catch (err) {
         res.status(500).json({ message: 'Error fetching order details', error: err.message });
     }
@@ -1672,7 +1701,7 @@ export const markOrderReady = async (req, res) => {
             .populate('rider', 'displayName phone location');
 
         const io = getIO();
-        io.to(`order_${id}`).emit('order_status_update', populatedOrder);
+        io.to(`order_${id}`).emit('order_status_update', customerSafeOrder(populatedOrder));
         
         // Notify customer
         const notificationBody = (order.orderType === 'Walk-In' && !order.riderDropOff)
@@ -1750,7 +1779,7 @@ export const verifyHandshake = async (req, res) => {
                 const targetRoom = `user_${customerId.toString()}`;
                 console.log(`[DEBUG] Notifying customer of delivery in room: ${targetRoom}`);
                 io.to(targetRoom).emit('order_status_update', {
-                    ...order.toObject(),
+                    ...customerSafeOrder(order),
                     status: 'DELIVERED',
                     message: 'Items delivered successfully! Please rate your experience.'
                 });
@@ -1771,8 +1800,8 @@ export const verifyHandshake = async (req, res) => {
             .populate('rider', 'displayName phone location');
 
         const io = getIO();
-        io.to(`order_${id}`).emit('order_status_update', populatedOrder);
-        io.to(`user_${order.customer.toString()}`).emit('order_status_update', populatedOrder);
+        io.to(`order_${id}`).emit('order_status_update', customerSafeOrder(populatedOrder));
+        io.to(`user_${order.customer.toString()}`).emit('order_status_update', customerSafeOrder(populatedOrder));
 
         res.status(200).json({ message: `${phase} Handshake Verified!`, order: populatedOrder });
     } catch (error) {
@@ -1884,6 +1913,13 @@ export const createWalkInOrder = async (req, res) => {
             return res.status(400).json({ message: 'Missing required fields for walk-in order' });
         }
 
+        const vendorUser = await User.findById(vendorId);
+        if (!vendorUser) return res.status(404).json({ message: 'Vendor not found' });
+        const existingCustomer = await User.findOne({ phone: new RegExp(customerPhone.slice(-10) + '$') });
+        if (existingCustomer && checkCustomerRD(existingCustomer) && !checkVendorRD(vendorUser)) {
+            throw new GstEligibilityError();
+        }
+
         // The clothes are at the counter, so the vendor must weigh them.
         const weighedWeight = parseWeightKg(req.body.weight);
         if (!weighedWeight) {
@@ -1918,7 +1954,7 @@ export const createWalkInOrder = async (req, res) => {
         }
 
         // 1. Find or create a shadow user for this walk-in customer
-        let customer = await User.findOne({ phone: new RegExp(customerPhone.slice(-10) + '$') });
+        let customer = existingCustomer;
         
         let customerUpdated = false;
         if (!customer) {
@@ -1967,7 +2003,6 @@ export const createWalkInOrder = async (req, res) => {
         const parsedDeliverySlot = parseWalkInDeliveryTime(deliveryTime);
 
         // 3. Setup pricing breakdown and generate Invoices
-        const vendorUser = await User.findById(vendorId);
         const isCustRD = checkCustomerRD(customer);
         const itemsTotal = items.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
         const deliveryChargeVal = deliveryTxn ? deliveryTxn.amountPaid : 0;
@@ -2032,6 +2067,7 @@ export const createWalkInOrder = async (req, res) => {
                 customerInvoice: invoiceData.customerInvoice,
                 platformInvoice: invoiceData.platformInvoice
             },
+            gstSnapshot: invoiceData.gstSnapshot,
             ledger: invoiceData.ledger,
             riderDropOff: Boolean(deliveryTxn),
             logisticsPayment: deliveryTxn
@@ -2078,6 +2114,9 @@ export const createWalkInOrder = async (req, res) => {
         res.status(201).json(newOrder);
     } catch (err) {
         console.error('Walk-In Creation Error:', err);
+        if (err instanceof GstEligibilityError || err instanceof GstConfigurationError) {
+            return res.status(err.status).json({ message: err.message, code: err.code });
+        }
         res.status(500).json({ message: 'Internal server error', error: err.message });
     }
 };
@@ -2187,14 +2226,14 @@ export const cancelOrder = async (req, res) => {
 
         // 6. Broadcast updates via Socket.io
         const io = getIO();
-        io.to(`order_${id}`).emit('order_status_update', updatedOrder);
+        io.to(`order_${id}`).emit('order_status_update', customerSafeOrder(updatedOrder));
         if (updatedOrder.vendor) {
             const vendorId = updatedOrder.vendor._id || updatedOrder.vendor;
             io.to(`user_${vendorId}`).emit('order_status_update', updatedOrder);
         }
         if (updatedOrder.customer) {
             const customerId = updatedOrder.customer._id || updatedOrder.customer;
-            io.to(`user_${customerId}`).emit('order_status_update', updatedOrder);
+            io.to(`user_${customerId}`).emit('order_status_update', customerSafeOrder(updatedOrder));
         }
 
         // 7. Send push notifications
@@ -2290,8 +2329,7 @@ export const getOrderInvoices = async (req, res) => {
             return res.status(200).json({
                 orderId: order._id,
                 orderNo: order.orderId,
-                customerInvoice: invoices.customerInvoice,
-                platformInvoice: null // Strictly restricted from Customer
+                customerInvoice: invoices.customerInvoice
             });
         }
 
@@ -2303,6 +2341,9 @@ export const getOrderInvoices = async (req, res) => {
         });
     } catch (err) {
         console.error('Error fetching order invoices:', err);
+        if (err instanceof GstEligibilityError || err instanceof GstConfigurationError) {
+            return res.status(err.status).json({ message: err.message, code: err.code });
+        }
         res.status(500).json({ message: 'Error fetching order invoices', error: err.message });
     }
 };

@@ -6,12 +6,12 @@ const InvoicePrint = ({ order, invoice = null, settings = {} }) => {
     const custInv = invoice || order.invoices?.customerInvoice;
 
     const customerObj = order.customer || order.user;
-    const isCustRD = customerObj?.customerType === 'retail' && Boolean(customerObj?.gstNumber && customerObj.gstNumber.trim().length >= 10);
-    const customerGstin = customerObj?.gstNumber || '';
+    const customerGstin = custInv?.recipientGstin || order.gstSnapshot?.customerGstin || customerObj?.gstNumber || '';
+    const isCustRD = order.gstSnapshot?.customerRegistered ?? Boolean(custInv?.gstScenario === 'RD_RD');
 
     const vendorObj = order.vendor;
-    const vendorGstin = vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || order.vendorSnapshot?.gstNumber || '';
-    const isVendRD = Boolean(vendorGstin && vendorGstin.trim().length >= 10);
+    const vendorGstin = custInv?.supplierGstin || order.gstSnapshot?.vendorGstin || vendorObj?.shopDetails?.gst || vendorObj?.gstNumber || order.vendorSnapshot?.gstNumber || '';
+    const isVendRD = order.gstSnapshot?.vendorRegistered ?? Boolean(['RD_RD', 'URD_RD'].includes(custInv?.gstScenario));
 
     let scenario = custInv?.scenario;
     if (!scenario) {
@@ -33,7 +33,7 @@ const InvoicePrint = ({ order, invoice = null, settings = {} }) => {
         displayGstLabel = displayGstLabel || "Vendor GSTIN";
         gstNotice = "Scenario B: B2C Tax Invoice";
     } else {
-        displayGstNo = displayGstNo || settings.gstNumber || '07AAAAA0000A1Z5';
+        displayGstNo = displayGstNo || order.gstSnapshot?.spinzytGstin || settings.gstNumber || '';
         displayGstLabel = displayGstLabel || "Spinzyt GSTIN";
         gstNotice = "Scenario C: Marketplace / Platform Invoice (0% GST Unregistered Vendor)";
     }
@@ -50,7 +50,7 @@ const InvoicePrint = ({ order, invoice = null, settings = {} }) => {
 
     const taxPercent = custInv?.taxPercent !== undefined 
         ? custInv.taxPercent 
-        : (scenario === 'C' ? 0 : (settings.gstPercent || 18));
+        : (scenario === 'C' ? 0 : Number(order.gstSnapshot?.gstPercent ?? settings.gstPercent ?? 0));
 
     const taxAmount = custInv?.taxAmount !== undefined 
         ? custInv.taxAmount 

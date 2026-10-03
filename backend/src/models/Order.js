@@ -23,6 +23,7 @@ const orderSchema = new mongoose.Schema({
             name: { type: String, required: true },
             quantity: { type: Number, required: true },
             price: { type: Number, required: true },
+            gstPercent: { type: Number, default: null },
             unit: { type: String, default: 'pc' },
             weight: { type: Number, default: null },
             clothCount: { type: Number, default: 0 },
@@ -253,6 +254,7 @@ const orderSchema = new mongoose.Schema({
         shopName: { type: String, default: null },
         phone: { type: String, default: null },
         email: { type: String, default: null },
+        gstNumber: { type: String, default: null },
         isExUser: { type: Boolean, default: false }
     },
     riderSnapshot: {
@@ -305,10 +307,30 @@ const orderSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    gstSnapshot: {
+        scenario: { type: String, enum: ['RD_RD', 'URD_RD', 'URD_URD'], default: undefined },
+        customerRegistered: { type: Boolean, default: false },
+        customerGstin: { type: String, default: '' },
+        vendorRegistered: { type: Boolean, default: false },
+        vendorGstin: { type: String, default: '' },
+        spinzytGstin: { type: String, default: '' },
+        gstPercent: { type: Number, default: 0 },
+        platformFeeGstPercent: { type: Number, default: 0 },
+        logisticsFeeGstPercent: { type: Number, default: 0 },
+        customerName: { type: String, default: '' },
+        customerAddress: { type: String, default: '' },
+        vendorName: { type: String, default: '' },
+        vendorAddress: { type: String, default: '' },
+        capturedAt: { type: Date, default: null }
+    },
     invoices: {
         customerInvoice: {
             invoiceNo: { type: String, default: '' },
             scenario: { type: String, enum: ['A', 'B', 'C', ''], default: '' },
+            gstScenario: { type: String, enum: ['RD_RD', 'URD_RD', 'URD_URD', ''], default: '' },
+            issuerName: { type: String, default: '' },
+            supplierGstin: { type: String, default: '' },
+            recipientGstin: { type: String, default: '' },
             serviceValue: { type: Number, default: 0 },
             taxPercent: { type: Number, default: 0 },
             taxAmount: { type: Number, default: 0 },
@@ -320,6 +342,9 @@ const orderSchema = new mongoose.Schema({
         },
         platformInvoice: {
             invoiceNo: { type: String, default: '' },
+            issuerName: { type: String, default: '' },
+            recipientName: { type: String, default: '' },
+            recipientGstin: { type: String, default: '' },
             platformFee: { type: Number, default: 0 },
             platformFeeTaxPercent: { type: Number, default: 18 },
             platformFeeTax: { type: Number, default: 0 },
