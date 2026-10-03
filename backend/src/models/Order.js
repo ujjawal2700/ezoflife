@@ -24,6 +24,8 @@ const orderSchema = new mongoose.Schema({
             quantity: { type: Number, required: true },
             price: { type: Number, required: true },
             gstPercent: { type: Number, default: null },
+            sacCode: { type: String, default: '' },
+            serviceType: { type: String, default: '' },
             unit: { type: String, default: 'pc' },
             weight: { type: Number, default: null },
             clothCount: { type: Number, default: 0 },
@@ -319,18 +321,49 @@ const orderSchema = new mongoose.Schema({
         logisticsFeeGstPercent: { type: Number, default: 0 },
         customerName: { type: String, default: '' },
         customerAddress: { type: String, default: '' },
+        customerCity: { type: String, default: '' },
+        customerState: { type: String, default: '' },
+        customerStateCode: { type: String, default: '' },
+        customerPincode: { type: String, default: '' },
         vendorName: { type: String, default: '' },
         vendorAddress: { type: String, default: '' },
+        vendorCity: { type: String, default: '' },
+        vendorState: { type: String, default: '' },
+        vendorStateCode: { type: String, default: '' },
+        vendorPincode: { type: String, default: '' },
         capturedAt: { type: Date, default: null }
     },
     invoices: {
         customerInvoice: {
             invoiceNo: { type: String, default: '' },
+            documentStatus: { type: String, enum: ['DRAFT', 'FINALIZED'], default: 'DRAFT' },
+            financialYear: { type: String, default: '' },
+            invoiceDate: { type: Date, default: null },
+            preparedAt: { type: Date, default: null },
+            finalizedAt: { type: Date, default: null },
             scenario: { type: String, enum: ['A', 'B', 'C', ''], default: '' },
             gstScenario: { type: String, enum: ['RD_RD', 'URD_RD', 'URD_URD', ''], default: '' },
             issuerName: { type: String, default: '' },
             supplierGstin: { type: String, default: '' },
             recipientGstin: { type: String, default: '' },
+            supplierAddress: { type: String, default: '' },
+            supplierStateCode: { type: String, default: '' },
+            recipientAddress: { type: String, default: '' },
+            recipientStateCode: { type: String, default: '' },
+            placeOfSupplyStateCode: { type: String, default: '' },
+            reverseCharge: { type: Boolean, default: false },
+            currency: { type: String, default: 'INR' },
+            discountAmount: { type: Number, default: 0 },
+            cgstAmount: { type: Number, default: 0 },
+            sgstAmount: { type: Number, default: 0 },
+            igstAmount: { type: Number, default: 0 },
+            lineItems: [{
+                description: String, sacCode: String, quantity: Number, unit: String,
+                unitPrice: Number, taxableValue: Number, gstRate: Number,
+                cgstRate: Number, cgstAmount: Number, sgstRate: Number,
+                sgstAmount: Number, igstRate: Number, igstAmount: Number,
+                totalAmount: Number
+            }],
             serviceValue: { type: Number, default: 0 },
             taxPercent: { type: Number, default: 0 },
             taxAmount: { type: Number, default: 0 },
@@ -342,9 +375,31 @@ const orderSchema = new mongoose.Schema({
         },
         platformInvoice: {
             invoiceNo: { type: String, default: '' },
+            documentStatus: { type: String, enum: ['DRAFT', 'FINALIZED'], default: 'DRAFT' },
+            financialYear: { type: String, default: '' },
+            invoiceDate: { type: Date, default: null },
+            preparedAt: { type: Date, default: null },
+            finalizedAt: { type: Date, default: null },
             issuerName: { type: String, default: '' },
             recipientName: { type: String, default: '' },
             recipientGstin: { type: String, default: '' },
+            supplierAddress: { type: String, default: '' },
+            supplierStateCode: { type: String, default: '' },
+            recipientAddress: { type: String, default: '' },
+            recipientStateCode: { type: String, default: '' },
+            placeOfSupplyStateCode: { type: String, default: '' },
+            reverseCharge: { type: Boolean, default: false },
+            currency: { type: String, default: 'INR' },
+            cgstAmount: { type: Number, default: 0 },
+            sgstAmount: { type: Number, default: 0 },
+            igstAmount: { type: Number, default: 0 },
+            lineItems: [{
+                description: String, sacCode: String, quantity: Number, unit: String,
+                unitPrice: Number, taxableValue: Number, gstRate: Number,
+                cgstRate: Number, cgstAmount: Number, sgstRate: Number,
+                sgstAmount: Number, igstRate: Number, igstAmount: Number,
+                totalAmount: Number
+            }],
             platformFee: { type: Number, default: 0 },
             platformFeeTaxPercent: { type: Number, default: 18 },
             platformFeeTax: { type: Number, default: 0 },
@@ -368,6 +423,10 @@ const orderSchema = new mongoose.Schema({
         invoice2Total: { type: Number, default: 0 },
         spinzytPromoShare: { type: Number, default: 0 }
     },
+    walletCreditStatus: { type: String, enum: ['NOT_APPLICABLE', 'PENDING', 'CREDITED'], default: 'NOT_APPLICABLE' },
+    walletCreditedAt: { type: Date, default: null },
+    invoiceFinalizationStatus: { type: String, enum: ['NOT_READY', 'FINALIZING', 'FINALIZED'], default: 'NOT_READY' },
+    invoiceFinalizationStartedAt: { type: Date, default: null },
     statusHistory: [
         {
             status: { type: String, required: true },
@@ -395,11 +454,30 @@ orderSchema.index({ status: 1, createdAt: -1 });    // admin lists / pool querie
 orderSchema.index({ paymentStatus: 1 });            // settlement + payout reporting
 orderSchema.index({ createdAt: -1 });               // dashboards and date ranges
 orderSchema.index({ isCustomerRD: 1, status: 1 });  // GST pool visibility
+orderSchema.index(
+    { 'invoices.customerInvoice.invoiceNo': 1 },
+    { unique: true, partialFilterExpression: { 'invoices.customerInvoice.invoiceNo': { $type: 'string', $gt: '' } } }
+);
+orderSchema.index(
+    { 'invoices.platformInvoice.invoiceNo': 1 },
+    { unique: true, partialFilterExpression: { 'invoices.platformInvoice.invoiceNo': { $type: 'string', $gt: '' } } }
+);
 // A Razorpay payment can pay for at most one order.
 orderSchema.index({ razorpayPaymentId: 1 }, { unique: true, partialFilterExpression: { razorpayPaymentId: { $type: 'string' } } });
 orderSchema.index({ 'logisticsPayment.razorpayPaymentId': 1 }, { unique: true, partialFilterExpression: { 'logisticsPayment.razorpayPaymentId': { $type: 'string' } } });
 
 // Pre-save hook to generate unique readable order ID and track status history
+orderSchema.pre('validate', function(next) {
+    if (!this.isNew && this.invoiceFinalizationStatus === 'FINALIZED' && this.isModified('invoices')) {
+        return next(new Error('Finalized invoices are immutable'));
+    }
+    if (this.isModified('status') && this.status === 'DELIVERED'
+        && this.invoiceFinalizationStatus !== 'FINALIZED') {
+        return next(new Error('Orders can only be delivered through invoice finalization'));
+    }
+    next();
+});
+
 orderSchema.pre('save', async function(next) {
     if (!this.orderId) {
         // Drawn from an atomic counter rather than Math.random(). The previous

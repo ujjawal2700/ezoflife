@@ -1312,7 +1312,11 @@ export const getSystemConfig = async (req, res) => {
                         showTaxes: false,
                         accentColor: '#000000',
                         businessName: 'SPINZYT',
-                        contactEmail: 'support@spinzyt.com'
+                        contactEmail: 'support@spinzyt.com',
+                        registeredAddress: '',
+                        platformSacCode: '998311',
+                        logisticsSacCode: '996511',
+                        promotionSacCode: '9983'
                     }, 
                     description: 'Invoice Template Configuration' 
                 }
@@ -1344,7 +1348,11 @@ export const getSystemConfig = async (req, res) => {
                     accentColor: '#000000',
                     businessName: 'SPINZYT',
                     contactEmail: 'support@spinzyt.com',
-                    gstNumber: '07AAAAA0000A1Z5'
+                    gstNumber: '07AAAAA0000A1Z5',
+                    registeredAddress: '',
+                    platformSacCode: '998311',
+                    logisticsSacCode: '996511',
+                    promotionSacCode: '9983'
                 }, 
                 description: 'Invoice Template Configuration' 
             }

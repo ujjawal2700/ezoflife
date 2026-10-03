@@ -8,17 +8,18 @@ const PlatformRevenueInvoicePrint = ({
   if (!order) return null;
 
   const platInv = invoice || order.invoices?.platformInvoice || {};
+  const isFinalized = platInv.documentStatus === "FINALIZED";
 
   const businessName = settings.businessName || "EZOFLIFE TECHNOLOGY LLP";
   const contactEmail = settings.contactEmail || "connect@spinzyt.com";
   const spinzytGstin =
-    platInv.spinzytGstin || settings.gstNumber || "07AAAAA0000A1Z5";
+    platInv.spinzytGstin || order.gstSnapshot?.spinzytGstin || settings.gstNumber || "";
 
   const platformFee =
     platInv.platformFee !== undefined
       ? platInv.platformFee
-      : order.priceBreakdown?.platformFee || 20;
-  const platformFeeTaxPercent = platInv.platformFeeTaxPercent || 18;
+      : order.priceBreakdown?.platformFee || 0;
+  const platformFeeTaxPercent = Number(platInv.platformFeeTaxPercent ?? order.gstSnapshot?.platformFeeGstPercent ?? 0);
   const platformFeeTax =
     platInv.platformFeeTax !== undefined
       ? platInv.platformFeeTax
@@ -28,7 +29,7 @@ const PlatformRevenueInvoicePrint = ({
     platInv.logisticsFee !== undefined
       ? platInv.logisticsFee
       : order.priceBreakdown?.logisticsFee || order.deliveryCharge || 0;
-  const logisticsFeeTaxPercent = platInv.logisticsFeeTaxPercent || 18;
+  const logisticsFeeTaxPercent = Number(platInv.logisticsFeeTaxPercent ?? order.gstSnapshot?.logisticsFeeGstPercent ?? 0);
   const logisticsFeeTax =
     platInv.logisticsFeeTax !== undefined
       ? platInv.logisticsFeeTax
@@ -65,20 +66,17 @@ const PlatformRevenueInvoicePrint = ({
     "URD (Unregistered)";
 
   const invoiceNo =
-    platInv.invoiceNo ||
-    `SZ-PLAT-${order.orderId ? order.orderId.replace("#", "") : String(order._id || "1001").slice(-6)}`;
+    platInv.invoiceNo || "Pending delivery";
   const orderNo = order.orderId || order.orderNo || order._id || "N/A";
-  const invoiceDate = platInv.generatedAt
-    ? new Date(platInv.generatedAt).toLocaleDateString("en-IN", {
+  const invoiceDate = platInv.invoiceDate
+    ? new Date(platInv.invoiceDate).toLocaleDateString("en-IN", {
         day: "2-digit",
         month: "short",
         year: "numeric",
       })
-    : new Date().toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
+    : "Finalized on delivery";
+  const platformLine = platInv.lineItems?.find(line => line.description === "Platform Facilitation Fee") || {};
+  const logisticsLine = platInv.lineItems?.find(line => line.description === "Logistics / Transportation Fee") || {};
 
   return (
     <div
@@ -86,6 +84,7 @@ const PlatformRevenueInvoicePrint = ({
       id="platform-invoice-content">
       {/* Header Section */}
       <div className="bg-[#1e293b] p-10 flex justify-between items-center relative overflow-hidden rounded-t-sm text-white">
+        {!isFinalized && <div className="absolute top-3 right-3 bg-amber-100 text-amber-800 px-3 py-1 text-[10px] font-black uppercase z-20">Draft — Not a Tax Invoice</div>}
         <div className="relative z-10 space-y-3">
           <div className="inline-block bg-blue-500/20 border border-blue-400/30 text-blue-300 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest">
             Invoice 2 • Platform Revenue Invoice
@@ -132,6 +131,9 @@ const PlatformRevenueInvoicePrint = ({
           <p className="text-[11px] font-medium text-slate-500">
             Vendor ID: {vendorObj._id || order.vendor || "N/A"}
           </p>
+          <p className="text-[11px] font-medium text-slate-500">Supplier Address: {platInv.supplierAddress || "—"}</p>
+          <p className="text-[11px] font-medium text-slate-500">Recipient Address: {platInv.recipientAddress || order.gstSnapshot?.vendorAddress || "—"}</p>
+          <p className="text-[11px] font-medium text-slate-500">Place of Supply: State code {platInv.placeOfSupplyStateCode || "—"}</p>
         </div>
         <div className="space-y-1.5 text-right">
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -188,7 +190,7 @@ const PlatformRevenueInvoicePrint = ({
                 </span>
               </td>
               <td className="px-4 py-4 text-center font-mono text-slate-600">
-                998311
+                {platformLine.sacCode || "—"}
               </td>
               <td className="px-6 py-4 text-right font-bold text-slate-700">
                 ₹{platformFee.toFixed(2)}
@@ -215,7 +217,7 @@ const PlatformRevenueInvoicePrint = ({
                 </span>
               </td>
               <td className="px-4 py-4 text-center font-mono text-slate-600">
-                996511
+                {logisticsLine.sacCode || "—"}
               </td>
               <td className="px-6 py-4 text-right font-bold text-slate-700">
                 ₹{logisticsFee.toFixed(2)}
@@ -243,7 +245,7 @@ const PlatformRevenueInvoicePrint = ({
                   </span>
                 </td>
                 <td className="px-4 py-4 text-center font-mono text-slate-500">
-                  9983
+                  {platInv.lineItems?.find(line => line.description === "Spinzyt promotion share")?.sacCode || "—"}
                 </td>
                 <td className="px-6 py-4 text-right font-bold text-amber-900">
                   ₹{spinzytPromoShare.toFixed(2)}
@@ -259,6 +261,9 @@ const PlatformRevenueInvoicePrint = ({
                 </td>
               </tr>
             )}
+            {Number(platInv.cgstAmount || 0) > 0 && <tr><td colSpan={5} className="px-6 py-2 font-bold">CGST</td><td className="px-6 py-2 text-right font-bold">₹{Number(platInv.cgstAmount).toFixed(2)}</td></tr>}
+            {Number(platInv.sgstAmount || 0) > 0 && <tr><td colSpan={5} className="px-6 py-2 font-bold">SGST</td><td className="px-6 py-2 text-right font-bold">₹{Number(platInv.sgstAmount).toFixed(2)}</td></tr>}
+            {Number(platInv.igstAmount || 0) > 0 && <tr><td colSpan={5} className="px-6 py-2 font-bold">IGST</td><td className="px-6 py-2 text-right font-bold">₹{Number(platInv.igstAmount).toFixed(2)}</td></tr>}
 
             {/* Summary / Total Section */}
             <tr className="border-t-2 border-slate-900 bg-slate-900 text-white">
@@ -289,8 +294,7 @@ const PlatformRevenueInvoicePrint = ({
           As per the platform settlement rules:
           <br />
           <strong className="text-slate-900">
-            Net Payment to Vendor = Total Customer Payment (Invoice 1) - Total
-            Spinzyt Platform Charges (Invoice 2)
+            Net Payment to Vendor = Invoice 1 Total - Invoice 2 Total - Customer Wallet Promotion Credit
           </strong>
           <br />
           The total amount of ₹{totalInvoiceAmount.toFixed(2)} is withheld by

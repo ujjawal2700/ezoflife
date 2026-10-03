@@ -13,10 +13,15 @@ const configs = {
     platformFeeFixed: 0,
     platformFeeGstPercent: 18,
     logisticsFeeGstPercent: 18,
-    spinzytGstin: '23ABCDE1234F1Z5'
+    spinzytGstin: '23ABCDE1234F1Z5',
+    invoiceSettings: {
+        businessName: 'Spinzyt Test', registeredAddress: '1 Test Road, Indore',
+        platformSacCode: '998311', logisticsSacCode: '996511', promotionSacCode: '9983'
+    }
 };
 const order = {
     _id: 'order-1', orderId: '#ON-1',
+    items: [{ name: 'Laundry', quantity: 1, price: 1000, gstPercent: 18, sacCode: '9994', unit: 'service' }],
     priceBreakdown: { baseWithArea: 1000, expressSurcharge: 0, platformFee: 100, logisticsFee: 50 }
 };
 

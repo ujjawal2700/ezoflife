@@ -91,6 +91,7 @@ export const startTestEnvironment = async ({ silent = true, env: extraEnv = {} }
         basePrice: 100,
         discountedPrice: 100,
         gst: 5,
+        sacCode: '9994',
         unit: 'per_item',
         isActive: true,
         createdAt: new Date(),
@@ -101,7 +102,11 @@ export const startTestEnvironment = async ({ silent = true, env: extraEnv = {} }
         { key: 'platform_fee_fixed', value: 20 },
         { key: 'platform_fee_gst_percent', value: 18 },
         { key: 'logistics_fee_gst_percent', value: 18 },
-        { key: 'spinzyt_gstin', value: '23ABCDE1234F1Z5' }
+        { key: 'spinzyt_gstin', value: '23ABCDE1234F1Z5' },
+        { key: 'invoice_settings', value: {
+            businessName: 'Spinzyt Test', registeredAddress: '1 Test Road, Indore, Madhya Pradesh 452001',
+            platformSacCode: '998311', logisticsSacCode: '996511', promotionSacCode: '9983'
+        } }
     ]);
     await seed.close();
 

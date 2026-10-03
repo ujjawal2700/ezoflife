@@ -133,6 +133,8 @@ export const priceCustomerOrder = async ({
             quantity,
             price: unitPrice,
             gstPercent: Number(gstPercent),
+            sacCode: String(svc.sacCode || ''),
+            serviceType: svc.serviceType || '',
             tier: svc.tier || tier,
             unit: svc.unit
         };

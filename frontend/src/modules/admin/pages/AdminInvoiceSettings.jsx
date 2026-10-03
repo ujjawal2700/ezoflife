@@ -21,7 +21,11 @@ const AdminInvoiceSettings = () => {
         accentColor: '#000000',
         businessName: 'SPINZYT',
         contactEmail: 'support@spinzyt.com',
-        gstNumber: 'ZA1223324435435'
+        gstNumber: '',
+        registeredAddress: '',
+        platformSacCode: '998311',
+        logisticsSacCode: '996511',
+        promotionSacCode: '9983'
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -160,6 +164,29 @@ const AdminInvoiceSettings = () => {
                                     className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-slate-900/10 transition-all"
                                 />
                             </div>
+                            <div className="space-y-2 col-span-full">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Registered Business Address</label>
+                                <textarea
+                                    value={settings.registeredAddress || ''}
+                                    onChange={(e) => handleChange('registeredAddress', e.target.value)}
+                                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-slate-900/10 transition-all"
+                                />
+                            </div>
+                            {[
+                                ['platformSacCode', 'Platform Fee SAC'],
+                                ['logisticsSacCode', 'Logistics Fee SAC'],
+                                ['promotionSacCode', 'Promotion Share SAC']
+                            ].map(([field, label]) => (
+                                <div className="space-y-2" key={field}>
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</label>
+                                    <input
+                                        type="text"
+                                        value={settings[field] || ''}
+                                        onChange={(e) => handleChange(field, e.target.value)}
+                                        className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold focus:ring-2 focus:ring-slate-900/10 transition-all"
+                                    />
+                                </div>
+                            ))}
                         </div>
 
                         <div className="flex flex-wrap gap-4 pt-4 border-t border-slate-50">
@@ -240,4 +267,3 @@ const AdminInvoiceSettings = () => {
 };
 
 export default AdminInvoiceSettings;
-

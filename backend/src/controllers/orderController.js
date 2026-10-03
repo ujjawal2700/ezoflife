@@ -9,6 +9,7 @@ import { getIO } from '../socket.js';
 import { sendWalkInWhatsApp } from '../utils/whatsappHelper.js';
 import { sendSMSMessage, sendWhatsAppMessage } from '../utils/communicationHelper.js';
 import { dispatchReturn } from '../services/logistics/dispatch.js';
+import { finalizeDeliveredOrder } from '../services/invoiceFinalizationService.js';
 import PaymentTransaction from '../models/PaymentTransaction.js';
 import { getRazorpay } from '../utils/razorpayClient.js';
 import { calculateOrderPrice } from '../utils/pricingEngine.js';
@@ -578,6 +579,8 @@ export const createOrder = async (req, res) => {
             quantity: priced.quantity,
             price: priced.price,
             gstPercent: priced.gstPercent,
+            sacCode: priced.sacCode,
+            serviceType: priced.serviceType,
             unit: items[i]?.unit || priced.unit,
             photos: Array.isArray(items[i]?.photos) ? items[i].photos : []
         }));
@@ -881,6 +884,9 @@ export const updateOrderStatus = async (req, res) => {
         if (!isAssignedVendor && !isOwningCustomer) {
             return res.status(403).json({ message: 'You cannot update this order' });
         }
+        if (status === 'DELIVERED' && req.user?.role !== 'Admin' && !isAssignedVendor) {
+            return res.status(403).json({ message: 'Delivery must be confirmed by the assigned vendor or delivery OTP' });
+        }
 
         const updateData = { status };
         let shouldDispatchReturn = false;
@@ -912,8 +918,12 @@ export const updateOrderStatus = async (req, res) => {
             }
         }
 
-        order.status = status;
-        await order.save();
+        if (status === 'DELIVERED') {
+            await finalizeDeliveredOrder(order._id);
+        } else {
+            order.status = status;
+            await order.save();
+        }
 
         // Book the return leg once the order is safely persisted. dispatchReturn
         // is idempotent, so the scheduler retrying later is harmless.
@@ -1031,6 +1041,7 @@ export const updateOrderStatus = async (req, res) => {
         res.status(200).json(updatedOrder);
     } catch (err) {
         console.error('Update Status Error:', err);
+        if (err instanceof GstConfigurationError) return res.status(err.status).json({ message: err.message });
         res.status(500).json({ message: 'Error updating order status' });
     }
 };
@@ -1485,6 +1496,7 @@ export const vendorAcceptOrder = async (req, res) => {
             invoices: { customerInvoice: invoiceData.customerInvoice, platformInvoice: invoiceData.platformInvoice },
             gstSnapshot: invoiceData.gstSnapshot,
             vendorSnapshot,
+            walletCreditStatus: invoiceData.ledger.customerWalletCredit > 0 ? 'PENDING' : 'NOT_APPLICABLE',
             acceptedAt
         };
         if (appliedPromo) {
@@ -1503,7 +1515,22 @@ export const vendorAcceptOrder = async (req, res) => {
 
         const walletCredit = invoiceData.ledger.customerWalletCredit;
         if (walletCredit > 0) {
-            await User.updateOne({ _id: order.customer }, { $inc: { walletBalance: walletCredit } });
+            const credited = await User.updateOne(
+                { _id: order.customer, creditedPromotionOrders: { $ne: order._id } },
+                { $inc: { walletBalance: walletCredit }, $addToSet: { creditedPromotionOrders: order._id } }
+            );
+            if (credited.modifiedCount === 1) {
+                await Order.updateOne(
+                    { _id: order._id, walletCreditStatus: 'PENDING' },
+                    { $set: { walletCreditStatus: 'CREDITED', walletCreditedAt: new Date() } }
+                );
+            } else {
+                // A retry may observe the idempotency key already applied.
+                await Order.updateOne(
+                    { _id: order._id },
+                    { $set: { walletCreditStatus: 'CREDITED' } }
+                );
+            }
         }
 
         // Remove availability notifications for other vendors
@@ -1770,21 +1797,6 @@ export const verifyHandshake = async (req, res) => {
         }
 
         if (phase === 'Completion') {
-            order.status = 'DELIVERED';
-            
-            // Emit completion update (not payment trigger)
-            const io = getIO();
-            if (io) {
-                const customerId = order.customer._id || order.customer;
-                const targetRoom = `user_${customerId.toString()}`;
-                console.log(`[DEBUG] Notifying customer of delivery in room: ${targetRoom}`);
-                io.to(targetRoom).emit('order_status_update', {
-                    ...customerSafeOrder(order),
-                    status: 'DELIVERED',
-                    message: 'Items delivered successfully! Please rate your experience.'
-                });
-            }
-
             console.log('\n========================================');
             console.log('✅ [DELIVERY] COMPLETED FOR CUSTOMER');
             console.log(`📦 Order: ${order.orderId}`);
@@ -1792,7 +1804,16 @@ export const verifyHandshake = async (req, res) => {
             console.log('========================================\n');
         }
 
-        await order.save();
+        if (phase === 'Completion') {
+            await finalizeDeliveredOrder(order._id, {
+                set: {
+                    logisticsHandshakes: order.logisticsHandshakes.map(item => item.toObject()),
+                    deliveryStatus: 'delivered'
+                }
+            });
+        } else {
+            await order.save();
+        }
 
         const populatedOrder = await Order.findById(id)
             .populate('customer', 'displayName phone address email')
@@ -1806,6 +1827,7 @@ export const verifyHandshake = async (req, res) => {
         res.status(200).json({ message: `${phase} Handshake Verified!`, order: populatedOrder });
     } catch (error) {
         console.error('Handshake Verification Error:', error);
+        if (error instanceof GstConfigurationError) return res.status(error.status).json({ message: error.message });
         res.status(500).json({ message: 'Error verifying handshake' });
     }
 };
@@ -2004,7 +2026,29 @@ export const createWalkInOrder = async (req, res) => {
 
         // 3. Setup pricing breakdown and generate Invoices
         const isCustRD = checkCustomerRD(customer);
-        const itemsTotal = items.reduce((s, i) => s + (i.price * (i.quantity || 1)), 0);
+        const walkInIds = items.map(item => item.serviceId).filter(id => mongoose.Types.ObjectId.isValid(id));
+        const [walkInMasters, walkInServices] = await Promise.all([
+            MasterService.find({ _id: { $in: walkInIds } }).lean(),
+            Service.find({ _id: { $in: walkInIds } }).lean()
+        ]);
+        const walkInCatalog = new Map([...walkInMasters, ...walkInServices].map(service => [String(service._id), service]));
+        const walkInItems = items.map(item => {
+            const service = walkInCatalog.get(String(item.serviceId));
+            const gstPercent = Number((req.body.selectedTier || req.body.tier) === 'Heritage' ? service?.heritageGst : service?.gst);
+            return {
+                serviceId: item.serviceId || 'walkin',
+                name: item.name || item.title,
+                quantity: item.quantity || 1,
+                price: item.price,
+                gstPercent: Number.isFinite(gstPercent) ? gstPercent : 0,
+                sacCode: String(service?.sacCode || ''),
+                serviceType: service?.serviceType || '',
+                unit: service?.unit || 'pc'
+            };
+        });
+        const missingSac = walkInItems.find(item => !item.sacCode);
+        if (missingSac) throw new GstConfigurationError(`Missing SAC code for walk-in service: ${missingSac.name}`);
+        const itemsTotal = walkInItems.reduce((s, i) => s + (i.price * i.quantity), 0);
         const deliveryChargeVal = deliveryTxn ? deliveryTxn.amountPaid : 0;
         
         const priceBreakdown = {
@@ -2017,7 +2061,7 @@ export const createWalkInOrder = async (req, res) => {
 
         const tempOrderId = `#WL-${Date.now().toString().slice(-4)}`;
         const invoiceData = await generateOrderInvoices({
-            order: { _id: new mongoose.Types.ObjectId(), orderId: tempOrderId, priceBreakdown, deliveryCharge: deliveryChargeVal },
+            order: { _id: new mongoose.Types.ObjectId(), orderId: tempOrderId, orderType: 'Walk-In', items: walkInItems, priceBreakdown, deliveryCharge: deliveryChargeVal },
             customer,
             vendor: vendorUser,
             vendorPromoValue: 0
@@ -2027,13 +2071,7 @@ export const createWalkInOrder = async (req, res) => {
         const newOrder = new Order({
             customer: customer._id,
             vendor: vendorId,
-            items: items.map(item => ({
-                serviceId: item.serviceId || 'walkin',
-                name: item.name || item.title,
-                quantity: item.quantity || 1,
-                price: item.price,
-                unit: 'pc'
-            })),
+            items: walkInItems,
             totalWeight: weighedWeight,
             weightSource: 'weighed',
             weighedWeight,
@@ -2305,21 +2343,16 @@ export const getOrderInvoices = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized to view invoices for this order' });
         }
 
-        // If invoices are not yet generated or order was accepted earlier without invoices, generate dynamically
-        let invoices = order.invoices;
-        if (!invoices || !invoices.customerInvoice?.invoiceNo) {
-            const vendor = order.vendor ? await User.findById(order.vendor) : null;
-            const customer = order.customer ? (order.customer._id ? order.customer : await User.findById(order.customer)) : null;
-            const generated = await generateOrderInvoices({
-                order,
-                customer,
-                vendor,
-                vendorPromoValue: order.ledger?.appliedPromoValue || 0
+        if (order.status !== 'DELIVERED' || order.invoiceFinalizationStatus !== 'FINALIZED') {
+            return res.status(409).json({
+                message: 'Final invoices become available after delivery.',
+                invoiceStatus: order.invoiceFinalizationStatus || 'NOT_READY'
             });
-            invoices = {
-                customerInvoice: generated.customerInvoice,
-                platformInvoice: generated.platformInvoice
-            };
+        }
+
+        let invoices = order.invoices;
+        if (!invoices?.customerInvoice?.invoiceNo || !invoices?.platformInvoice?.invoiceNo) {
+            return res.status(500).json({ message: 'Finalized invoice data is incomplete. Please contact support.' });
         }
 
         // Access Control Rule:

@@ -196,6 +196,9 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    // Idempotency keys for vendor-funded promotion credits. The conditional
+    // update that adds one of these keys also increments walletBalance.
+    creditedPromotionOrders: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
     upiId: {
         type: String,
         default: ''
