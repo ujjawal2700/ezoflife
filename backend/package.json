@@ -15,7 +15,9 @@
     "test:load:write": "node tests/load/loadTest.js --scenario write",
     "test:volume": "node tests/load/loadTest.js --scenario volume --orders 1500",
     "test:perf": "node tests/load/loadTest.js --scenario all",
-    "test:stress": "node tests/load/loadTest.js --scenario stress"
+    "test:stress": "node tests/load/loadTest.js --scenario stress",
+    "seed:gst-users": "node scripts/seedGstVerificationUsers.js",
+    "verify:gst": "node --test --test-reporter=spec --test-timeout=120000 tests/verification/gstBusinessRules.test.js"
   },
   "keywords": [],
   "author": "",
