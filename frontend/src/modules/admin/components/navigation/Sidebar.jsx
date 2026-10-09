@@ -1,3 +1,4 @@
+import BrandLogo from '../../../../shared/components/BrandLogo.jsx';
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -473,13 +474,8 @@ export default function Sidebar({
         <div className="h-14 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
           {!isCollapsed ? (
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-slate-900 rounded-sm flex items-center justify-center">
-                <span className="text-white font-bold text-sm">E</span>
-              </div>
               <div className="flex flex-col">
-                <span className="font-bold text-[13px] tracking-tight text-slate-900 leading-none uppercase">
-                  SPINZYT
-                </span>
+                <BrandLogo className="h-9 w-auto" />
                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                   Admin Panel
                 </span>
@@ -487,9 +483,7 @@ export default function Sidebar({
             </div>
           ) : (
             <div className="w-full flex justify-center">
-              <div className="w-7 h-7 bg-slate-900 rounded-sm flex items-center justify-center">
-                <span className="text-white font-bold text-sm">E</span>
-              </div>
+              <BrandLogo compact className="h-7 w-7" />
             </div>
           )}
 

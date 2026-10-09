@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { authApi, serviceApi, promotionApi, BASE_URL } from '../../../lib/api';
 import VendorHeader from '../components/VendorHeader';
-import Lottie from 'lottie-react';
-import spinLogoAnimation from '../../../assets/spin_logo_text.json';
 
 const VendorMyServices = () => {
     const navigate = useNavigate();

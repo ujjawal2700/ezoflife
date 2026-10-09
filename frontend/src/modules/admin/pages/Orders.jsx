@@ -1,3 +1,4 @@
+import { getBrandLogoDataUrl } from '../../../lib/brandAssets.js';
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { formatOrderWeight, getOrderWeight } from "../../../lib/orderWeight";
@@ -257,7 +258,7 @@ export default function Orders() {
     };
   };
 
-  const handleDownloadCustomerInvoice = (order) => {
+  const handleDownloadCustomerInvoice = async (order) => {
     try {
       const calc = getCustomerInvoiceCalculations(order);
       const doc = new jsPDF();
@@ -268,7 +269,7 @@ export default function Orders() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.setTextColor(255, 255, 255);
-      doc.text("SPINZYT", 15, 20);
+      doc.addImage(await getBrandLogoDataUrl(), "PNG", 15, 3, 16, 20);
 
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
@@ -399,7 +400,7 @@ export default function Orders() {
     }
   };
 
-  const handleDownloadVendorInvoice = (order) => {
+  const handleDownloadVendorInvoice = async (order) => {
     try {
       const customerCalc = getCustomerInvoiceCalculations(order);
       const calc = getVendorInvoiceCalculations(order, customerCalc);
@@ -411,7 +412,7 @@ export default function Orders() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.setTextColor(255, 255, 255);
-      doc.text("SPINZYT", 15, 20);
+      doc.addImage(await getBrandLogoDataUrl(), "PNG", 15, 3, 16, 20);
 
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");

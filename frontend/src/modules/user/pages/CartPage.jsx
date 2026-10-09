@@ -716,7 +716,8 @@ const CartPage = () => {
           key: rzpOrder.keyId,
           amount: rzpOrder.amount,
           currency: rzpOrder.currency,
-          name: 'EzOfLife',
+          name: 'Spinzyt',
+          image: `${window.location.origin}/logo-mark.png`,
           description: `Full Payment`,
           order_id: rzpOrder.id,
           handler: async function (response) {

@@ -200,6 +200,7 @@ const VendorCartDetailsPage = () => {
           amount: Math.round(response.platformFeeAmount * 100),
           currency: "INR",
           name: "SPINZYT",
+          image: `${window.location.origin}/logo-mark.png`,
           description: "B2B Procurement Platform Fee",
           order_id: response.razorpayOrderId,
           handler: async function (paymentResponse) {

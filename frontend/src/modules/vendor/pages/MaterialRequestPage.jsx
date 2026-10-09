@@ -1,3 +1,4 @@
+import BrandLogo from '../../../shared/components/BrandLogo.jsx';
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -456,9 +457,7 @@ const MaterialRequestPage = () => {
               }}
               transition={{ duration: 2, repeat: Infinity }}
               className="flex flex-col items-center">
-              <h1 className="text-5xl font-black text-slate-900 tracking-tighter text-center uppercase">
-                SPINZYT
-              </h1>
+              <BrandLogo className="h-36 w-auto" />
               <div className="flex items-center gap-2 mt-4 bg-primary/5 px-4 py-2 rounded-full border border-primary/10">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping"></span>
                 <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">

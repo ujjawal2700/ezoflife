@@ -103,8 +103,8 @@ const PlatformRevenueInvoicePrint = ({
         <div className="relative z-10 flex flex-col items-center">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-lg mb-2">
             <img
-              src="https://spinzyt.com/wp-content/uploads/2023/12/spinzyt-logo-new.png"
-              alt="Logo"
+              src="/logo.png"
+              alt="Spinzyt"
               className="w-10 h-10 object-contain"
             />
           </div>

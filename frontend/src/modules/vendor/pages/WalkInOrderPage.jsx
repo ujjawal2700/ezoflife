@@ -1,3 +1,4 @@
+import BrandLogo from '../../../shared/components/BrandLogo.jsx';
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -2096,9 +2097,7 @@ const WalkInOrderPage = () => {
                 {/* Brand & Title */}
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-2xl font-black tracking-tighter uppercase text-slate-950">
-                      Spinzyt
-                    </h3>
+                    <BrandLogo className="h-16 w-auto mb-2" />
                     <p className="text-[10px] font-black text-[#3D5AFE] uppercase tracking-widest">
                       Hub Invoice
                     </p>
@@ -2236,9 +2235,7 @@ const WalkInOrderPage = () => {
               <div className="hidden print:block fixed inset-0 bg-white p-10 font-mono text-slate-900 leading-tight">
                 <div className="max-w-[400px] mx-auto border-2 border-slate-900 p-6 space-y-6">
                   <div className="text-center border-b-2 border-slate-900 pb-4">
-                    <h2 className="text-3xl font-black tracking-tighter uppercase mb-1">
-                      Spinzyt Laundry
-                    </h2>
+                    <BrandLogo className="h-20 w-auto mx-auto mb-2" />
                     <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">
                       Professional Care Network
                     </p>

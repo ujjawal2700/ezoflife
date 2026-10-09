@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, MapPin, Phone, Mail, Hash, Calendar, ShoppingBag, ShieldCheck } from 'lucide-react';
+import { FileText, MapPin, Phone, Mail, Hash, Calendar, ShieldCheck } from 'lucide-react';
 
 const B2BInvoicePrint = ({ order, settings = {} }) => {
     if (!order) return null;
@@ -13,13 +13,7 @@ const B2BInvoicePrint = ({ order, settings = {} }) => {
             {/* Top Bar */}
             <div className="flex justify-between items-center mb-12 pb-8 border-b-2 border-slate-100">
                 <div className="flex items-center gap-4">
-                    {settings.logo ? (
-                        <img src={settings.logo} alt="Logo" className="h-12 object-contain" />
-                    ) : (
-                        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
-                            <ShoppingBag size={24} />
-                        </div>
-                    )}
+                    <img src="/logo.png" alt="Spinzyt" className="h-16 w-auto object-contain" />
                     <div>
                         <h1 className="text-2xl font-black tracking-tighter text-slate-900 uppercase leading-none">{businessName}</h1>
                         <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mt-1">Industrial Supply Chain</p>

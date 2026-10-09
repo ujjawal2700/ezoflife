@@ -298,7 +298,7 @@ const OrdersHistoryPage = () => {
             
             .header-right { text-align: right; position: relative; z-index: 10; display: ${cfg.showLogo ? 'flex' : 'none'}; flex-direction: column; align-items: center; }
             .logo-circle { width: 80px; height: 80px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 12px; }
-            .logo-circle img { width: 48px; height: 48px; object-fit: contain; padding-top: 16px; }
+            .logo-circle img { width: 48px; height: 48px; object-fit: contain;  }
             .brand-name { font-size: 24px; font-weight: 900; letter-spacing: 0.2em; line-height: 1; }
 
             /* INFO SECTION */
@@ -374,7 +374,7 @@ const OrdersHistoryPage = () => {
               </div>
               <div class="header-right">
                 <div class="logo-circle">
-                  <img src="https://spinzyt.com/wp-content/uploads/2023/12/spinzyt-logo-new.png" />
+                  <img src="${window.location.origin}/logo.png" alt="Spinzyt" />
                 </div>
                 <div class="brand-name">SPINZYT</div>
               </div>

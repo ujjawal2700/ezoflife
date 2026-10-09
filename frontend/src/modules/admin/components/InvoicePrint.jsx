@@ -95,8 +95,8 @@ const InvoicePrint = ({ order, invoice = null, settings = {} }) => {
                     <div className="relative z-10 flex flex-col items-center">
                         <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg mb-3">
                             <img 
-                                src="https://spinzyt.com/wp-content/uploads/2023/12/spinzyt-logo-new.png" 
-                                alt="Logo" 
+                                src="/logo.png"
+                                alt="Spinzyt"
                                 className="w-12 h-12 object-contain"
                             />
                         </div>

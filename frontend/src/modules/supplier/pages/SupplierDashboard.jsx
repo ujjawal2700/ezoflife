@@ -1,3 +1,4 @@
+import BrandLogo from '../../../shared/components/BrandLogo.jsx';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -349,7 +350,7 @@ const SupplierDashboard = () => {
             {/* Header */}
             <header className="px-6 pt-2 flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                    <h1 className="font-headline font-black text-xl text-primary tracking-tighter leading-none uppercase">SPINZYT</h1>
+                    <BrandLogo className="h-10 w-auto" />
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 animate-pulse"></div>
                 </div>
 
